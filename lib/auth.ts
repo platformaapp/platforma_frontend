@@ -29,9 +29,11 @@ export function extractTokenFromResponse(data: any): string | undefined {
   if (!data || typeof data !== 'object') return undefined;
   return (
     data.token ||
+    data.access_token ||
     data.accessToken ||
     data.jwt ||
     data?.data?.token ||
+    data?.data?.access_token ||
     data?.data?.accessToken
   );
 }

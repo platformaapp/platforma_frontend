@@ -37,6 +37,13 @@ export default function HomeScreen() {
         </Link>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
+        <Link href="/events" asChild>
+          <Pressable style={{ paddingVertical: 12 }}>
+            <ThemedText type="link">События</ThemedText>
+          </Pressable>
+        </Link>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.

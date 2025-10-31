@@ -4,6 +4,8 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { endpoints } from '@/constants/env';
+import { extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -19,8 +21,23 @@ export default function LoginScreen() {
     }
     setIsSubmitting(true);
     try {
-      // TODO: подключить реальный API входа и сохранение токена
-      router.replace('/users');
+      const res = await fetch(endpoints.login, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : await res.text();
+      if (!res.ok) {
+        const message = typeof data === 'string' ? data : data?.message || 'Не удалось войти';
+        throw new Error(message);
+      }
+      const token = extractTokenFromResponse(data);
+      if (token) {
+        await saveAuthToken(token, data?.role || data?.user?.role);
+      }
+      router.replace('/events');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {
@@ -111,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
   },
   btnPrimaryText: {
-    color: '#000',
+    color: '#FFF',
   },
   close: {
     position: 'absolute',

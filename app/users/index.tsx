@@ -4,10 +4,10 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'r
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
 
-const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMGRiNTIxZi05OTUxLTQ4NzQtYjNjYi1kNzNlYmU1NjUzNjgiLCJlbWFpbCI6InRlc3RAdGVzdDEucnUiLCJyb2xlIjoic3R1ZGVudCIsImlhdCI6MTc2MTkwMDM5NywiZXhwIjoxNzYxOTAzOTk3fQ.juZKmxztQTk-d59VDOaZeKUBH0yEANirH3dwKnhLwlc';
-
-const USERS_URL = 'http://91.229.9.117:3000/api/users';
+const USERS_URL = endpoints.users;
 
 type User = {
   id?: string | number;
@@ -28,10 +28,11 @@ export default function UsersScreen() {
   const fetchUsers = useCallback(async () => {
     setError(null);
     try {
+      const token = await getAuthToken();
       const res = await fetch(USERS_URL, {
         headers: {
           'Accept': 'application/json',
-          Authorization: `Bearer ${TEST_TOKEN}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       const contentType = res.headers.get('content-type') || '';

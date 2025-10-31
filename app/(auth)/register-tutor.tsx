@@ -4,11 +4,10 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { endpoints } from '@/constants/env';
 import { extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
 
-const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMGRiNTIxZi05OTUxLTQ4NzQtYjNjYi1kNzNlYmU1NjUzNjgiLCJlbWFpbCI6InRlc3RAdGVzdDEucnUiLCJyb2xlIjoic3R1ZGVudCIsImlhdCI6MTc2MTkwMDM5NywiZXhwIjoxNzYxOTAzOTk3fQ.juZKmxztQTk-d59VDOaZeKUBH0yEANirH3dwKnhLwlc';
-
-const REGISTER_URL = 'http://91.229.9.117:3000/api/auth/register';
+const REGISTER_URL = endpoints.register;
 
 export default function RegisterTutorScreen() {
   const router = useRouter();
@@ -40,7 +39,7 @@ export default function RegisterTutorScreen() {
     try {
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TEST_TOKEN}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           password,
@@ -57,7 +56,7 @@ export default function RegisterTutorScreen() {
       }
       const token = extractTokenFromResponse(data);
       await saveAuthToken(token || '', 'tutor');
-      router.replace('/users');
+      router.replace('/events');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {
@@ -163,7 +162,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
   },
   btnPrimaryText: {
-    color: '#000',
+    color: '#FFF',
   },
   terms: {
     marginTop: 12,
