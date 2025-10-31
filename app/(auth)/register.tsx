@@ -8,6 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 type Role = 'student' | 'tutor';
 
 const REGISTER_URL = 'http://91.229.9.117:3000/api/auth/register';
+const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMGRiNTIxZi05OTUxLTQ4NzQtYjNjYi1kNzNlYmU1NjUzNjgiLCJlbWFpbCI6InRlc3RAdGVzdDEucnUiLCJyb2xlIjoic3R1ZGVudCIsImlhdCI6MTc2MTkwMDM5NywiZXhwIjoxNzYxOTAzOTk3fQ.juZKmxztQTk-d59VDOaZeKUBH0yEANirH3dwKnhLwlc';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function RegisterScreen() {
     try {
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TEST_TOKEN}` },
         body: JSON.stringify({ email, password, fullName, role, phone, avatarUrl, bio }),
       });
 

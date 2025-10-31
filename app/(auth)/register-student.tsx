@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
+
+const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMGRiNTIxZi05OTUxLTQ4NzQtYjNjYi1kNzNlYmU1NjUzNjgiLCJlbWFpbCI6InRlc3RAdGVzdDEucnUiLCJyb2xlIjoic3R1ZGVudCIsImlhdCI6MTc2MTkwMDM5NywiZXhwIjoxNzYxOTAzOTk3fQ.juZKmxztQTk-d59VDOaZeKUBH0yEANirH3dwKnhLwlc';
 
 const REGISTER_URL = 'http://91.229.9.117:3000/api/auth/register';
 
@@ -39,7 +41,7 @@ export default function RegisterStudentScreen() {
     try {
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TEST_TOKEN}` },
         body: JSON.stringify({
           email,
           password,
@@ -56,7 +58,7 @@ export default function RegisterStudentScreen() {
       }
       const token = extractTokenFromResponse(data);
       await saveAuthToken(token || '', 'student');
-      router.replace('/(tabs)');
+      router.replace('/users');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {
@@ -65,7 +67,9 @@ export default function RegisterStudentScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <ThemedView>
       <Pressable style={styles.close} onPress={() => router.back()}>
         <ThemedText style={{ fontSize: 22 }}>✕</ThemedText>
       </Pressable>
@@ -90,7 +94,9 @@ export default function RegisterStudentScreen() {
       <ThemedText style={styles.terms}>
         Нажимая кнопку «Далее», вы принимаете <ThemedText type="link">пользовательское</ThemedText>, <ThemedText type="link">лицензионное</ThemedText> и <ThemedText type="link">другие</ThemedText> важные нам для работы соглашения
       </ThemedText>
-    </ThemedView>
+        </ThemedView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -113,7 +119,7 @@ function PasswordInput({ visible, onToggle, ...props }: any) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
     backgroundColor: '#fff',
   },
