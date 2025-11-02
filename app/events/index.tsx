@@ -53,7 +53,7 @@ const EVENTS: EventItem[] = [
 export default function EventsScreen() {
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title" style={{ marginBottom: 12 }}>БЛИЖАЙШИЕ СОБЫТИЯ</ThemedText>
+      <ThemedText type="title" style={styles.title}>БЛИЖАЙШИЕ СОБЫТИЯ</ThemedText>
       <FlatList
         data={EVENTS}
         keyExtractor={(item) => item.id}
@@ -63,7 +63,7 @@ export default function EventsScreen() {
             <View style={styles.cardBody}>
               <ThemedText type="defaultSemiBold" style={styles.cardTitle}>{item.title}</ThemedText>
               {item.description ? (
-                <ThemedText style={{ marginTop: 6 }}>{item.description}</ThemedText>
+                <ThemedText style={styles.description}>{item.description}</ThemedText>
               ) : null}
               <View style={styles.metaRow}>
                 <ThemedText style={styles.metaText}>{item.time}</ThemedText>
@@ -72,8 +72,8 @@ export default function EventsScreen() {
             </View>
           </View>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        contentContainerStyle={{ paddingBottom: 16 }}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={styles.listContent}
       />
     </ThemedView>
   );
@@ -84,6 +84,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 12,
+  },
+  title: {
+    marginBottom: 12,
   },
   card: {
     borderWidth: 1,
@@ -102,6 +105,9 @@ const styles = StyleSheet.create({
   cardTitle: {
     marginBottom: 4,
   },
+  description: {
+    marginTop: 6,
+  },
   metaRow: {
     marginTop: 10,
     flexDirection: 'row',
@@ -112,6 +118,12 @@ const styles = StyleSheet.create({
   },
   metaPrice: {
     fontSize: 12,
+  },
+  separator: {
+    height: 12,
+  },
+  listContent: {
+    paddingBottom: 16,
   },
 });
 
