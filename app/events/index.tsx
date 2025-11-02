@@ -2,7 +2,6 @@ import React from 'react';
 import { FlatList, Image, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 
 type EventItem = {
   id: string;
@@ -52,8 +51,8 @@ const EVENTS: EventItem[] = [
 
 export default function EventsScreen() {
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="title" style={styles.title}>БЛИЖАЙШИЕ СОБЫТИЯ</ThemedText>
+    <View style={styles.container}>
+      <ThemedText type="title" style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</ThemedText>
       <FlatList
         data={EVENTS}
         keyExtractor={(item) => item.id}
@@ -75,7 +74,7 @@ export default function EventsScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={styles.listContent}
       />
-    </ThemedView>
+    </View>
   );
 }
 
@@ -85,7 +84,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 12,
   },
-  title: {
+  titleText: {
     marginBottom: 12,
   },
   card: {
@@ -94,9 +93,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   image: {
-    width: '100%',
+    width: undefined,
     height: 180,
     backgroundColor: '#eee',
+    alignSelf: 'stretch',
   },
   cardBody: {
     paddingHorizontal: 12,
