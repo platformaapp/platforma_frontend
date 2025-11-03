@@ -52,10 +52,12 @@ export default function ParallaxScrollView({
       <Animated.View
         style={[
           styles.header,
-          { backgroundColor: headerBackgroundColor[colorScheme] },
           headerAnimatedStyle,
-        ]}>
-        {headerImage}
+        ]}
+      >
+        <ThemedView style={{ backgroundColor: headerBackgroundColor[colorScheme], flex: 1 }}>
+          {headerImage}
+        </ThemedView>
       </Animated.View>
       <ThemedView style={styles.content}>{children}</ThemedView>
     </Animated.ScrollView>
@@ -73,7 +75,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 32,
-    gap: 16,
     overflow: 'hidden',
   },
 });

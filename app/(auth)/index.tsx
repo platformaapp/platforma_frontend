@@ -3,10 +3,12 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { View as ThemedView } from 'react-native';
 
 export default function AuthChoiceScreen() {
   const router = useRouter();
+  const btnPrimaryStyle = StyleSheet.flatten([styles.btn, styles.btnPrimary, { marginBottom: 16 }]);
+  const btnOutlineStyle = StyleSheet.flatten([styles.btn, styles.btnOutline]);
 
   return (
     <ThemedView style={styles.container}>
@@ -16,15 +18,15 @@ export default function AuthChoiceScreen() {
 
       <ThemedText type="title" style={styles.title}>АВТОРИЗАЦИЯ</ThemedText>
 
-      <View style={{ gap: 16 }}>
+      <View>
         <Link href="/register-student" asChild>
-          <Pressable style={[styles.btn, styles.btnPrimary]}> 
+          <Pressable style={btnPrimaryStyle}> 
             <ThemedText style={styles.btnPrimaryText}>Хочу учиться</ThemedText>
           </Pressable>
         </Link>
 
         <Link href="/register-tutor" asChild>
-          <Pressable style={[styles.btn, styles.btnOutline]}> 
+          <Pressable style={btnOutlineStyle}> 
             <ThemedText style={styles.btnOutlineText}>Хочу учить</ThemedText>
           </Pressable>
         </Link>

@@ -131,7 +131,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    gap: 8,
   },
   input: {
     borderWidth: 1,
@@ -142,7 +141,6 @@ const styles = StyleSheet.create({
   },
   segmented: {
     flexDirection: 'row',
-    gap: 8,
     marginTop: 6,
     marginBottom: 12,
   },

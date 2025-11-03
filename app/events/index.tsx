@@ -1,7 +1,5 @@
 import React from 'react';
-import { FlatList, Image, StyleSheet, View } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
+import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 
 type EventItem = {
   id: string;
@@ -52,7 +50,7 @@ const EVENTS: EventItem[] = [
 export default function EventsScreen() {
   return (
     <View style={styles.container}>
-      <ThemedText type="title" style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</ThemedText>
+      <Text style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
       <FlatList
         data={EVENTS}
         keyExtractor={(item) => item.id}
@@ -60,13 +58,13 @@ export default function EventsScreen() {
           <View style={styles.card}>
             <Image source={item.image} style={styles.image} resizeMode="cover" />
             <View style={styles.cardBody}>
-              <ThemedText type="defaultSemiBold" style={styles.cardTitle}>{item.title}</ThemedText>
+              <Text style={styles.cardTitleText}>{item.title}</Text>
               {item.description ? (
-                <ThemedText style={styles.description}>{item.description}</ThemedText>
+                <Text style={styles.description}>{item.description}</Text>
               ) : null}
               <View style={styles.metaRow}>
-                <ThemedText style={styles.metaText}>{item.time}</ThemedText>
-                <ThemedText style={styles.metaPrice}>{item.price}</ThemedText>
+                <Text style={styles.metaText}>{item.time}</Text>
+                <Text style={styles.metaPrice}>{item.price}</Text>
               </View>
             </View>
           </View>
@@ -86,6 +84,9 @@ const styles = StyleSheet.create({
   },
   titleText: {
     marginBottom: 12,
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 32,
   },
   card: {
     borderWidth: 1,
@@ -104,6 +105,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     marginBottom: 4,
+  },
+  cardTitleText: {
+    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 24,
   },
   description: {
     marginTop: 6,
