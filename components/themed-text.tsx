@@ -37,24 +37,34 @@ const styles = StyleSheet.create({
   default: {
     fontSize: 16,
     lineHeight: 24,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   defaultSemiBold: {
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '600',
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     lineHeight: 32,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   subtitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   link: {
     lineHeight: 30,
     fontSize: 16,
-    color: '#0a7ea4',
+    color: '#181818',
+    fontFamily: 'Inter-Regular',
+    textDecorationLine: 'underline',
   },
 });

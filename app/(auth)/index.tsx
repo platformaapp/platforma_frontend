@@ -13,7 +13,11 @@ export default function AuthChoiceScreen() {
   return (
     <ThemedView style={styles.container}>
       <Pressable style={styles.close} onPress={() => router.back()}>
-        <ThemedText style={{ fontSize: 22 }}>✕</ThemedText>
+        <ThemedText style={{ fontSize: 22 }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
+            </svg>
+        </ThemedText>
       </Pressable>
 
       <ThemedText type="title" style={styles.title}>АВТОРИЗАЦИЯ</ThemedText>
@@ -21,20 +25,25 @@ export default function AuthChoiceScreen() {
       <View>
         <Link href="/register-student" asChild>
           <Pressable style={btnPrimaryStyle}> 
-            <ThemedText style={styles.btnPrimaryText}>Хочу учиться</ThemedText>
+            <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>Хочу учиться</ThemedText>
           </Pressable>
         </Link>
 
         <Link href="/register-tutor" asChild>
           <Pressable style={btnOutlineStyle}> 
-            <ThemedText style={styles.btnOutlineText}>Хочу учить</ThemedText>
+            <ThemedText style={[styles.btnOutlineText, styles.btnOutlineTextCustom]}>Хочу учить</ThemedText>
           </Pressable>
         </Link>
       </View>
 
       <Link href="/login" asChild>
         <Pressable style={{ marginTop: 'auto', paddingVertical: 24 }}>
-          <ThemedText style={{ textAlign: 'center' }}>У меня уже есть профиль</ThemedText>
+          <ThemedText style={{ textAlign: 'center', fontFamily: "Inter-Regular",
+fontSize: 14,
+fontWeight: "400",
+fontStyle: "normal",
+lineHeight: 20,
+color: "#181818" }}>У меня уже есть профиль</ThemedText>
         </Pressable>
       </Link>
     </ThemedView>
@@ -50,6 +59,13 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 48,
     marginBottom: 24,
+    fontFamily: "Inter-Regular", // Имя должно совпадать с ключом в useFonts
+    fontSize: 28,
+    fontWeight: "400",
+    fontStyle: "normal",
+    lineHeight: 36,
+    letterSpacing: -2,
+    color: "#181818"
   },
   btn: {
     borderRadius: 6,
@@ -60,15 +76,41 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     backgroundColor: '#111',
+    borderRadius: 0,
+    height: 52,
+    borderWidth: 1,
+    borderColor: "rgba(24, 24, 24, 1.0)",
   },
   btnPrimaryText: {
-    color:'#000',
+    color:'#FFF',
   },
   btnOutline: {
     backgroundColor: 'transparent',
+    borderRadius: 0,
+    height: 52,
+    borderWidth: 1,
+    borderColor: "rgba(24, 24, 24, 1.0)",
   },
   btnOutlineText: {
     color: '#111',
+  },
+  btnOutlineTextCustom: {
+    // Уникальные стили только для "Хочу учить"
+    // Примеры стилей, которые можно добавить:
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    fontWeight: "400",
+    fontStyle: "normal",
+    lineHeight: 20,
+    color: "#181818",
+  },
+  btnPrimaryTextCustom: {
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    fontWeight: "400",
+    fontStyle: "normal",
+    lineHeight: 20,
+    color: "#FAFAFA",
   },
   close: {
     position: 'absolute',

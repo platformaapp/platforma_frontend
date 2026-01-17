@@ -87,6 +87,8 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     lineHeight: 32,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   card: {
     borderWidth: 1,
@@ -111,9 +113,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     lineHeight: 24,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   description: {
     marginTop: 6,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   metaRow: {
     marginTop: 10,
@@ -122,9 +128,13 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   metaPrice: {
     fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   separator: {
     height: 12,
