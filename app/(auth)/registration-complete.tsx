@@ -101,7 +101,11 @@ export default function RegistrationCompleteScreen() {
               </View>
 
               <Pressable style={styles.checkboxRow} onPress={() => setRemember((prev) => !prev)}>
-                <View style={[styles.checkbox, remember && styles.checkboxChecked]} />
+                <View style={styles.checkbox}>
+                  {remember && (
+                    <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
+                  )}
+                </View>
                 <ThemedText style={styles.checkboxLabel}>Запомнить карту</ThemedText>
               </Pressable>
 
@@ -262,9 +266,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#181818',
     backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  checkboxChecked: {
-    backgroundColor: '#181818',
+  checkboxCheckmark: {
+    fontSize: 16,
+    color: '#181818',
+    fontWeight: 'bold',
+    lineHeight: 20,
   },
   checkboxLabel: {
     fontFamily: 'Inter-Regular',

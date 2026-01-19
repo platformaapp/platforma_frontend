@@ -130,7 +130,15 @@ export default function RegisterStudentScreen() {
       </Pressable>
 
       <ThemedText style={[styles.terms && {fontSize: 12, lineHeight: 16, marginTop: 16}]}>
-        Нажимая кнопку «Далее», вы принимаете <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>пользовательское</ThemedText>, <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>лицензионное</ThemedText> и <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>другие</ThemedText> важные нам для работы соглашения
+        Нажимая кнопку «Далее», вы принимаете{' '}
+        <ThemedText 
+          type="link" 
+          style={{ fontSize: 12, lineHeight: 16 }}
+          onPress={() => router.push('/user-agreement')}
+        >
+          пользовательское
+        </ThemedText>
+        , <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>лицензионное</ThemedText> и <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>другие</ThemedText> важные нам для работы соглашения
       </ThemedText>
         </ThemedView>
       </ScrollView>

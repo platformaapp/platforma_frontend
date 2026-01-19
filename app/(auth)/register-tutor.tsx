@@ -56,7 +56,7 @@ export default function RegisterTutorScreen() {
       }
       const token = extractTokenFromResponse(data);
       await saveAuthToken(token || '', 'tutor');
-      router.replace('/events');
+      router.push('/register-tutor-step2');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {
