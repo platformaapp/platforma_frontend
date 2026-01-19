@@ -6,6 +6,9 @@ import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, St
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
+const SHORT_BIO_LIMIT = 70;
+const ABOUT_LIMIT = 400;
+
 export default function RegisterTutorStep2Screen() {
   const router = useRouter();
   const [shortBio, setShortBio] = useState('');
@@ -19,6 +22,9 @@ export default function RegisterTutorStep2Screen() {
   const rateValue = hourlyRate ? parseInt(hourlyRate) || 0 : 0;
   const commission = rateValue * 0.1;
   const finalAmount = rateValue - commission;
+
+  const shortBioRemaining = SHORT_BIO_LIMIT - shortBio.length;
+  const aboutRemaining = ABOUT_LIMIT - about.length;
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -45,8 +51,7 @@ export default function RegisterTutorStep2Screen() {
       // Здесь будет отправка данных второго шага на сервер
       // await fetch(endpoints.tutorStep2, { ... });
       await new Promise(resolve => setTimeout(resolve, 1000));
-      Alert.alert('Успешно', 'Заявка отправлена');
-      router.replace('/events');
+      router.replace('/tutor-application-sent');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {
@@ -71,25 +76,47 @@ export default function RegisterTutorStep2Screen() {
             <View style={styles.stepBadge}><ThemedText>Шаг 2</ThemedText></View>
           </View>
 
-          <TextInput
-            placeholder="Короткое био (например, фотограф в The Blueprint)"
-            placeholderTextColor="#888"
-            style={[styles.input, styles.textArea]}
-            value={shortBio}
-            onChangeText={setShortBio}
-            multiline
-            numberOfLines={3}
-          />
+          <View style={styles.inputWithCounter}>
+            <TextInput
+              placeholder="Короткое био (например, фотограф в The Blueprint)"
+              placeholderTextColor="#888"
+              style={[styles.input, styles.textArea]}
+              value={shortBio}
+              onChangeText={(text) => {
+                if (text.length <= SHORT_BIO_LIMIT) {
+                  setShortBio(text);
+                }
+              }}
+              multiline
+              numberOfLines={3}
+            />
+            <View style={styles.counter}>
+              <ThemedText style={[styles.counterText, shortBioRemaining === 0 && styles.counterTextError]}>
+                {shortBioRemaining}
+              </ThemedText>
+            </View>
+          </View>
 
-          <TextInput
-            placeholder="О себе в свободной форме"
-            placeholderTextColor="#888"
-            style={[styles.input, styles.textArea]}
-            value={about}
-            onChangeText={setAbout}
-            multiline
-            numberOfLines={4}
-          />
+          <View style={styles.inputWithCounter}>
+            <TextInput
+              placeholder="О себе в свободной форме"
+              placeholderTextColor="#888"
+              style={[styles.input, styles.textArea]}
+              value={about}
+              onChangeText={(text) => {
+                if (text.length <= ABOUT_LIMIT) {
+                  setAbout(text);
+                }
+              }}
+              multiline
+              numberOfLines={4}
+            />
+            <View style={styles.counter}>
+              <ThemedText style={[styles.counterText, aboutRemaining === 0 && styles.counterTextError]}>
+                {aboutRemaining}
+              </ThemedText>
+            </View>
+          </View>
 
           <View style={styles.rateContainer}>
             {hourlyRate && !isEditingRate ? (
@@ -196,10 +223,36 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-Regular",
     fontSize: 14,
   },
+  inputWithCounter: {
+    position: 'relative',
+    marginBottom: 12,
+  },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
     paddingTop: 14,
+    paddingRight: 50,
+  },
+  counter: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#181818',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 0,
+    minWidth: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  counterText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 12,
+    color: "#FFFFFF",
+    fontWeight: "400",
+  },
+  counterTextError: {
+    color: "#E02D2D",
   },
   rateContainer: {
     flexDirection: 'row',
