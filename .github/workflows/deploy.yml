@@ -1,0 +1,53 @@
+name: Build and Deploy Frontend (Expo Web)
+
+on:
+  push:
+    branches: [ "main" ]   # IMPORTANT: main, not master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      ###################################
+      # Checkout Code
+      ###################################
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      ###################################
+      # Setup Node.js
+      ###################################
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      ###################################
+      # Install Dependencies
+      ###################################
+      - name: Install npm dependencies
+        run: npm ci --prefer-offline --no-audit --omit=optional
+
+      ###################################
+      # Build Expo Web
+      ###################################
+      - name: Build Expo Web App
+        env:
+          EXPO_PUBLIC_API_BASE: http://91.229.9.117
+        run: |
+          npx expo export --platform web --clear
+
+      ###################################
+      # Deploy dist folder via SCP (SSH key pair)
+      ###################################
+      - name: Upload dist/ to server via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}   # deploy
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "dist/*"
+          target: "/opt/frontend/dist"
+          overwrite: true
+
