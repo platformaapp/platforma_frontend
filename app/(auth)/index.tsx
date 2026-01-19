@@ -20,7 +20,7 @@ export default function AuthChoiceScreen() {
         </ThemedText>
       </Pressable>
 
-      <ThemedText type="title" style={styles.title}>АВТОРИЗАЦИЯ</ThemedText>
+      <ThemedText type="title" style={styles.title}>РЕГИСТРАЦИЯ</ThemedText>
 
       <View>
         <Link href="/register-student" asChild>

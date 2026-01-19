@@ -1,6 +1,7 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -19,9 +20,34 @@ export default function RegisterStudentScreen() {
   const [show1, setShow1] = useState(false);
   const [show2, setShow2] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const phone = useMemo(() => formatPhoneRU(phoneRaw), [phoneRaw]);
+
+  async function pickImage() {
+    // Запрашиваем разрешение на доступ к медиатеке
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
+      return;
+    }
+
+    // Открываем выбор изображения
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+      // Здесь можно загрузить изображение на сервер и получить URL
+      // Пока сохраняем локальный URI
+      setAvatarUrl(result.assets[0].uri);
+    }
+  }
 
   async function onSubmit() {
     if (password.length < 7) {
@@ -57,7 +83,7 @@ export default function RegisterStudentScreen() {
       }
       const token = extractTokenFromResponse(data);
       await saveAuthToken(token || '', 'student');
-      router.replace('/events');
+      router.replace('/registration-complete');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {
@@ -83,8 +109,17 @@ export default function RegisterStudentScreen() {
       <LabeledInput placeholder="Почта" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
       <LabeledInput placeholder="Телефон" value={phone} onChangeText={(t: string) => setPhoneRaw(t)} keyboardType="phone-pad" />
 
-      <Pressable style={styles.upload} onPress={() => Alert.alert('Загрузка фото', 'Загрузчик будет добавлен позже')}>
-        <ThemedText style={{ textAlign: 'center' }}>Загрузить фото</ThemedText>
+      <Pressable style={[styles.upload, avatarUri && styles.uploadWithPhotoContainer]} onPress={pickImage}>
+        {avatarUri ? (
+          <View style={styles.uploadWithPhoto}>
+            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            <View style={styles.replacePhotoContainer}>
+              <ThemedText style={styles.replacePhotoText}>Заменить фото</ThemedText>
+            </View>
+          </View>
+        ) : (
+          <ThemedText style={{ textAlign: 'center' }}>Загрузить фото</ThemedText>
+        )}
       </Pressable>
 
       <PasswordInput placeholder="Пароль" value={password} onChangeText={setPassword} visible={show1} onToggle={() => setShow1(!show1)} />
@@ -169,7 +204,37 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 12,
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  uploadWithPhotoContainer: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  uploadWithPhoto: {
+    flexDirection: 'row',
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 0,
+  },
+  avatar: {
+    width: 52,
     height: 52,
+    backgroundColor: '#f0f0f0',
+    marginLeft: 0,
+  },
+  replacePhotoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 16,
+    height: 52,
+  },
+  replacePhotoText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    color: "#181818",
+    textAlign: 'center',
   },
   btn: {
     borderRadius: 6,

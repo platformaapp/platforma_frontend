@@ -99,7 +99,7 @@ export default function LoginScreen() {
 
           
         </ThemedView>
-        <Pressable style={{ marginTop: 24, position: 'absolute', bottom: 32, left: 0, right: 0 }} onPress={() => Alert.alert('Напоминание пароля', 'Экран восстановления добавим позже')}>
+        <Pressable style={{ marginTop: 24, position: 'absolute', bottom: 32, left: 0, right: 0 }} onPress={() => router.push('/forgot-password')}>
           <ThemedText style={{ textAlign: 'center' }}>Забыли пароль?</ThemedText>
         </Pressable>
       </ScrollView>
