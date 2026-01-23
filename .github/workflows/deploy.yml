@@ -34,7 +34,7 @@ jobs:
       ###################################
       - name: Build Expo Web App
         env:
-          EXPO_PUBLIC_API_BASE: http://91.229.9.117
+          EXPO_PUBLIC_API_BASE: http://194.67.88.237
         run: |
           npx expo export --platform web --clear
 
