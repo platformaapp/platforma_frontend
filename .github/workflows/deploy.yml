@@ -50,6 +50,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}   # deploy
           key: ${{ secrets.DEPLOY_KEY }}
           source: "dist/*"
-          target: "/opt/frontend/dist"
+          target: "/dist"
           overwrite: true
 
