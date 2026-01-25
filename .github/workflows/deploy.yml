@@ -51,6 +51,4 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           source: "dist/*"
           target: "/dist"
-          target: "/dist"
-          overwrite: true
 
