@@ -43,10 +43,18 @@ jobs:
       ###################################
       # Deploy dist folder via SCP (SSH key pair)
       ###################################
-      - name: Upload dist via scp 
+      - name: Upload dist via scp
+        shell: bash
         run: |
+          set -e
+      
+          echo "[INFO] Writing SSH key"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/github_deploy
+          chmod 600 ~/.ssh/github_deploy
+      
+          echo "[INFO] Copying files"
           scp -o StrictHostKeyChecking=no \
-              -i <(echo "${{ secrets.DEPLOY_KEY }}") \
+              -i ~/.ssh/github_deploy \
               -r dist/* \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/dist/
-
