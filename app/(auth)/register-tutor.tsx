@@ -19,46 +19,140 @@ export default function RegisterTutorScreen() {
   const [show1, setShow1] = useState(false);
   const [show2, setShow2] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    password2?: string;
+  }>({});
 
   const phone = useMemo(() => formatPhoneRU(phoneRaw), [phoneRaw]);
 
   async function onSubmit() {
+    const newErrors: typeof errors = {};
+    
+    // Валидация обязательных полей
+    if (!fullName.trim()) {
+      newErrors.fullName = 'Поле не заполнено!';
+    }
+    if (!email.trim()) {
+      newErrors.email = 'Поле не заполнено!';
+    } else if (!email.includes('@')) {
+      newErrors.email = 'Неверный формат email';
+    }
+    if (!phoneRaw.trim()) {
+      newErrors.phone = 'Поле не заполнено!';
+    } else if (!isValidPhoneRU(phoneRaw)) {
+      newErrors.phone = 'Неверный формат телефона';
+    }
     if (password.length < 7) {
-      Alert.alert('Пароль слишком короткий', 'Минимум 7 символов');
-      return;
+      newErrors.password = 'Пароль слишком короткий!';
     }
     if (password !== password2) {
-      Alert.alert('Пароли не совпадают');
+      newErrors.password2 = 'Пароли не совпадают!';
+    }
+    
+    setErrors(newErrors);
+    
+    // Если есть ошибки, не отправляем запрос
+    if (Object.keys(newErrors).length > 0) {
       return;
     }
-    if (!isValidPhoneRU(phoneRaw)) {
-      Alert.alert('Неверный телефон', 'Введите номер в формате +7XXXXXXXXXX');
-      return;
-    }
+    
     setIsSubmitting(true);
     try {
+      const requestBody = {
+        email: email.trim(),
+        password,
+        fullName: fullName.trim(),
+        role: 'tutor',
+        phone: normalizePhoneRU(phoneRaw),
+        avatarUrl: '',
+        bio: '',
+      };
+      
+      console.log('Отправка запроса на:', REGISTER_URL);
+      console.log('Тело запроса:', { ...requestBody, password: '***' });
+      
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          fullName,
-          role: 'tutor',
-          phone: normalizePhoneRU(phoneRaw),
-          avatarUrl: '',
-          bio: '',
-        }),
+        body: JSON.stringify(requestBody),
       });
+      
       const data = await res.json().catch(() => ({}));
+      
       if (!res.ok) {
-        throw new Error(data?.message || 'Ошибка регистрации');
+        // Обработка ошибки 409 Conflict (телефон / email уже существуют)
+        if (res.status === 409) {
+          const errorMessage = data?.message || data?.error || '';
+          const lowerMessage = errorMessage.toLowerCase();
+
+          // Если конфликт по телефону
+          if (lowerMessage.includes('phone') || lowerMessage.includes('телефон') || lowerMessage.includes('номер')) {
+            setErrors({ ...errors, phone: errorMessage });
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Если конфликт по email
+          if (lowerMessage.includes('email') || lowerMessage.includes('почта') || lowerMessage.includes('e-mail')) {
+            setErrors({ ...errors, email: errorMessage });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
+        // Для других ошибок показываем общее сообщение
+        const errorMessage = data?.message || data?.error || `Ошибка регистрации (${res.status})`;
+        Alert.alert('Ошибка', errorMessage);
+        setIsSubmitting(false);
+        return;
       }
+      
+      console.log('Статус ответа:', res.status);
+      console.log('Данные ответа:', JSON.stringify(data, null, 2));
+      
+      // Пытаемся извлечь токен из ответа
       const token = extractTokenFromResponse(data);
-      await saveAuthToken(token || '', 'tutor');
-      router.push('/register-tutor-step2');
+      console.log('Извлеченный токен:', token ? `есть (${token.substring(0, 20)}...)` : 'нет');
+      
+      // Сохраняем токен, если он есть
+      if (token) {
+        try {
+          await saveAuthToken(token, 'tutor');
+          console.log('Токен сохранен успешно');
+        } catch (saveError) {
+          console.error('Ошибка сохранения токена:', saveError);
+          // Продолжаем выполнение даже если не удалось сохранить токен
+        }
+      } else {
+        console.warn('Токен не найден в ответе сервера. Проверьте формат ответа.');
+      }
+
+      // Успешная регистрация: переходим на второй шаг
+      console.log('Переход на второй шаг регистрации...');
+      try {
+        router.push('/register-tutor-step2');
+        console.log('Навигация выполнена');
+      } catch (navError) {
+        console.error('Ошибка навигации:', navError);
+        // Пробуем альтернативный способ
+        router.replace('/register-tutor-step2');
+      }
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
+      // Обработка сетевых ошибок и других исключений
+      const msg = e?.message ?? '';
+      const lowerMsg = msg.toLowerCase();
+
+      if (lowerMsg.includes('phone') || lowerMsg.includes('телефон') || lowerMsg.includes('номер')) {
+        setErrors({ ...errors, phone: msg });
+      } else if (lowerMsg.includes('email') || lowerMsg.includes('почта') || lowerMsg.includes('e-mail')) {
+        setErrors({ ...errors, email: msg });
+      } else {
+        Alert.alert('Ошибка', msg || 'Неизвестная ошибка');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -81,12 +175,98 @@ export default function RegisterTutorScreen() {
         <View style={styles.stepBadge}><ThemedText>Шаг 1</ThemedText></View>
       </View>
 
-      <LabeledInput placeholder="Имя и фамилия" value={fullName} onChangeText={setFullName} />
-      <LabeledInput placeholder="Почта" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-      <LabeledInput placeholder="Телефон" value={phone} onChangeText={(t: string) => setPhoneRaw(t)} keyboardType="phone-pad" />
+      <View>
+        <LabeledInput 
+          placeholder="Имя и фамилия" 
+          value={fullName} 
+          onChangeText={(text: string) => {
+            setFullName(text);
+            if (errors.fullName) {
+              setErrors({ ...errors, fullName: undefined });
+            }
+          }}
+          error={errors.fullName}
+        />
+        {errors.fullName && (
+          <ThemedText style={styles.errorText}>{errors.fullName}</ThemedText>
+        )}
+      </View>
 
-      <PasswordInput placeholder="Пароль" value={password} onChangeText={setPassword} visible={show1} onToggle={() => setShow1(!show1)} />
-      <PasswordInput placeholder="Еще раз пароль" value={password2} onChangeText={setPassword2} visible={show2} onToggle={() => setShow2(!show2)} />
+      <View>
+        <LabeledInput 
+          placeholder="Почта" 
+          value={email} 
+          onChangeText={(text: string) => {
+            setEmail(text);
+            if (errors.email) {
+              setErrors({ ...errors, email: undefined });
+            }
+          }}
+          autoCapitalize="none" 
+          keyboardType="email-address"
+          error={errors.email}
+        />
+        {errors.email && (
+          <ThemedText style={styles.errorText}>{errors.email}</ThemedText>
+        )}
+      </View>
+
+      <View>
+        <LabeledInput 
+          placeholder="Телефон" 
+          value={phone} 
+          onChangeText={(text: string) => {
+            const digits = text.replace(/\D/g, '');
+            setPhoneRaw(digits);
+            if (errors.phone) {
+              setErrors({ ...errors, phone: undefined });
+            }
+          }} 
+          keyboardType="phone-pad"
+          error={errors.phone}
+        />
+        {errors.phone && (
+          <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
+        )}
+      </View>
+
+      <View>
+        <PasswordInput 
+          placeholder="Пароль" 
+          value={password} 
+          onChangeText={(text: string) => {
+            setPassword(text);
+            if (errors.password) {
+              setErrors({ ...errors, password: undefined });
+            }
+          }} 
+          visible={show1} 
+          onToggle={() => setShow1(!show1)}
+          error={errors.password}
+        />
+        {errors.password && (
+          <ThemedText style={styles.errorText}>{errors.password}</ThemedText>
+        )}
+      </View>
+
+      <View>
+        <PasswordInput 
+          placeholder="Еще раз пароль" 
+          value={password2} 
+          onChangeText={(text: string) => {
+            setPassword2(text);
+            if (errors.password2) {
+              setErrors({ ...errors, password2: undefined });
+            }
+          }} 
+          visible={show2} 
+          onToggle={() => setShow2(!show2)}
+          error={errors.password2}
+        />
+        {errors.password2 && (
+          <ThemedText style={styles.errorText}>{errors.password2}</ThemedText>
+        )}
+      </View>
 
       <ThemedText style={{ marginVertical: 8, fontSize: 14, lineHeight: 18 }}>
         Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов
@@ -105,16 +285,25 @@ export default function RegisterTutorScreen() {
   );
 }
 
-function LabeledInput(props: any) {
+function LabeledInput({ error, ...props }: any) {
   return (
-    <TextInput placeholderTextColor="#888" style={styles.input} {...props} />
+    <TextInput 
+      placeholderTextColor={error ? "#E02D2D" : "#888"} 
+      style={[styles.input, error && styles.inputError]} 
+      {...props} 
+    />
   );
 }
 
-function PasswordInput({ visible, onToggle, ...props }: any) {
+function PasswordInput({ visible, onToggle, error, ...props }: any) {
   return (
     <View style={{ position: 'relative' }}>
-      <TextInput placeholderTextColor="#888" style={styles.input} secureTextEntry={!visible} {...props} />
+      <TextInput 
+        placeholderTextColor={error ? "#E02D2D" : "#888"} 
+        style={[styles.input, error && styles.inputError]} 
+        secureTextEntry={!visible} 
+        {...props} 
+      />
       <Pressable onPress={onToggle} style={styles.eye}>
         <ThemedText>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -153,9 +342,21 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    marginBottom: 12,
+    marginBottom: 4,
     fontFamily: "Inter-Regular",
     fontSize: 14,
+    color: "#181818",
+  },
+  inputError: {
+    borderColor: "#E02D2D",
+    color: "#E02D2D",
+  },
+  errorText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    color: "#E02D2D",
+    marginBottom: 8,
+    marginTop: 4,
   },
   eye: {
     position: 'absolute',
