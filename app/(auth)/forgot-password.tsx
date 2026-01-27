@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { endpoints } from '@/constants/env';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -32,20 +33,38 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setIsSubmitting(true);
     try {
-      // TODO: вызвать API восстановления пароля
-      // Здесь будет проверка существования пользователя
-      // Если пользователь не найден, установить ошибку "Пользователь не найден!"
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Отправка запроса на:', endpoints.forgotPassword);
+      console.log('Email:', email);
       
-      // Имитация проверки - если email содержит "notfound", показываем ошибку
-      if (email.includes('notfound') || email === 'test@test.com') {
-        setError('Пользователь не найден!');
+      const res = await fetch(endpoints.forgotPassword, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      
+      const data = await res.json().catch(() => ({}));
+      
+      console.log('Статус ответа:', res.status);
+      console.log('Данные ответа:', data);
+      
+      if (!res.ok) {
+        const errorMessage = data?.message || data?.error || `Ошибка восстановления пароля (${res.status})`;
+        
+        // Если пользователь не найден (404 или специфичное сообщение)
+        if (res.status === 404 || errorMessage.toLowerCase().includes('не найден') || errorMessage.toLowerCase().includes('not found')) {
+          setError('Пользователь не найден!');
+        } else {
+          setError(errorMessage);
+        }
         setIsSubmitting(false);
         return;
       }
       
+      // Успешный запрос - переходим на экран проверки почты
+      console.log('Запрос успешен, переход на /check-email');
       router.push('/check-email');
     } catch (e: any) {
+      console.error('Ошибка при восстановлении пароля:', e);
       setError(e?.message ?? 'Неизвестная ошибка');
     } finally {
       setIsSubmitting(false);
