@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -12,16 +12,42 @@ export default function ResetPasswordScreen() {
   const [show1, setShow1] = useState(false);
   const [show2, setShow2] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error1, setError1] = useState<string | null>(null);
+  const [error2, setError2] = useState<string | null>(null);
+
+  function validatePassword(passwordValue: string): string | null {
+    if (passwordValue.length < 7) {
+      return 'Пароль слишком короткий!';
+    }
+    // Проверка на наличие хотя бы одной буквы или цифры
+    if (!/[a-zA-Zа-яА-Я0-9]/.test(passwordValue)) {
+      return 'Должна быть хотя бы одна буква или цифра!';
+    }
+    return null;
+  }
+
+  function validatePasswordMatch(passwordValue: string, password2Value: string): string | null {
+    if (passwordValue !== password2Value) {
+      return 'Пароли не совпадают!';
+    }
+    return null;
+  }
 
   async function onSubmit() {
-    if (password.length < 7) {
-      Alert.alert('Пароль слишком короткий', 'Минимум 7 символов');
+    const error1Value = validatePassword(password);
+    const error2Value = password2 ? validatePasswordMatch(password, password2) : null;
+
+    if (error1Value) {
+      setError1(error1Value);
+    }
+    if (error2Value) {
+      setError2(error2Value);
+    }
+
+    if (error1Value || error2Value) {
       return;
     }
-    if (password !== password2) {
-      Alert.alert('Пароли не совпадают');
-      return;
-    }
+
     setIsSubmitting(true);
     try {
       // Здесь будет запрос к API для сброса пароля
@@ -32,11 +58,10 @@ export default function ResetPasswordScreen() {
       // });
       // Пока просто имитируем задержку
       await new Promise(resolve => setTimeout(resolve, 1000));
-      Alert.alert('Успешно', 'Пароль изменен');
       // После успешного сброса пароля переходим на экран событий
-      router.replace('/events');
+      router.replace('/(tabs)/events');
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
+      setError1('Ошибка при сбросе пароля');
     } finally {
       setIsSubmitting(false);
     }
@@ -60,21 +85,55 @@ export default function ResetPasswordScreen() {
             Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов
           </ThemedText>
 
-          <PasswordInput 
-            placeholder="Новый пароль" 
-            value={password} 
-            onChangeText={setPassword} 
-            visible={show1} 
-            onToggle={() => setShow1(!show1)} 
-          />
+          <View>
+            <PasswordInput 
+              placeholder="Новый пароль" 
+              value={password} 
+              onChangeText={(text: string) => {
+                setPassword(text);
+                if (error1) {
+                  setError1(null);
+                }
+                // Проверяем совпадение паролей при изменении первого поля
+                if (password2 && text !== password2) {
+                  setError2('Пароли не совпадают!');
+                } else if (password2 && text === password2 && error2 === 'Пароли не совпадают!') {
+                  setError2(null);
+                }
+              }} 
+              visible={show1} 
+              onToggle={() => setShow1(!show1)}
+              error={error1}
+            />
+            {error1 && (
+              <ThemedText style={styles.errorText}>{error1}</ThemedText>
+            )}
+          </View>
 
-          <PasswordInput 
-            placeholder="Повторите пароль" 
-            value={password2} 
-            onChangeText={setPassword2} 
-            visible={show2} 
-            onToggle={() => setShow2(!show2)} 
-          />
+          <View>
+            <PasswordInput 
+              placeholder="Повторите пароль" 
+              value={password2} 
+              onChangeText={(text: string) => {
+                setPassword2(text);
+                if (error2) {
+                  setError2(null);
+                }
+                // Проверяем совпадение паролей при изменении второго поля
+                if (password && text !== password) {
+                  setError2('Пароли не совпадают!');
+                } else if (password && text === password && error2 === 'Пароли не совпадают!') {
+                  setError2(null);
+                }
+              }} 
+              visible={show2} 
+              onToggle={() => setShow2(!show2)}
+              error={error2}
+            />
+            {error2 && (
+              <ThemedText style={styles.errorText}>{error2}</ThemedText>
+            )}
+          </View>
 
           <Pressable 
             style={[styles.btn, styles.btnPrimary, isSubmitting && { opacity: 0.6 }]} 
@@ -89,10 +148,15 @@ export default function ResetPasswordScreen() {
   );
 }
 
-function PasswordInput({ visible, onToggle, ...props }: any) {
+function PasswordInput({ visible, onToggle, error, ...props }: any) {
   return (
-    <View style={{ position: 'relative', marginBottom: 12 }}>
-      <TextInput placeholderTextColor="#888" style={styles.input} secureTextEntry={!visible} {...props} />
+    <View style={{ position: 'relative', marginBottom: 4 }}>
+      <TextInput 
+        placeholderTextColor={error ? "#E02D2D" : "#888"} 
+        style={[styles.input, error && styles.inputError]} 
+        secureTextEntry={!visible} 
+        {...props} 
+      />
       <Pressable onPress={onToggle} style={styles.eye}>
         <ThemedText>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -140,6 +204,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontFamily: "Inter-Regular",
     fontSize: 14,
+    color: "#181818",
+  },
+  inputError: {
+    borderColor: "#E02D2D",
+    color: "#E02D2D",
+  },
+  errorText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    color: "#E02D2D",
+    marginBottom: 8,
+    marginTop: 4,
   },
   eye: {
     position: 'absolute',

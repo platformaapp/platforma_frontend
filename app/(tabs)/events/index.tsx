@@ -60,7 +60,7 @@ export default function EventsScreen() {
         renderItem={({ item }) => (
           <Pressable 
             style={styles.card} 
-            onPress={() => router.push(`/events/${item.id}` as any)}
+            onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
           >
             <Image source={item.image} style={styles.image} resizeMode="cover" />
             <View style={styles.cardBody}>

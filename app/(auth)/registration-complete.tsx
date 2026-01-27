@@ -19,14 +19,14 @@ export default function RegistrationCompleteScreen() {
 
   function handleLinkLater() {
     // Пропускаем привязку карты и переходим на экран событий
-    router.replace('/events');
+    router.replace('/(tabs)/events');
   }
 
   function handleSubmitCard() {
     // Здесь может быть вызов API для привязки карты
     // Пока закрываем попап и переходим к событиям
     setCardModalVisible(false);
-    router.replace('/events');
+    router.replace('/(tabs)/events');
   }
 
   return (

@@ -9,7 +9,7 @@ export default function TutorApplicationSentScreen() {
   const router = useRouter();
 
   function handleClose() {
-    router.replace('/events');
+    router.replace('/(tabs)/events');
   }
 
   return (

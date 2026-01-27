@@ -47,3 +47,6 @@ npm install --save-dev @expo-google-fonts/inter
 npx expo start --clear
 ```
 
+
+
+

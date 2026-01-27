@@ -37,7 +37,7 @@ export default function HomeScreen() {
         </Link>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <Link href="/events" asChild>
+        <Link href="/(tabs)/events" asChild>
           <Pressable style={{ paddingVertical: 12 }}>
             <ThemedText type="link">События</ThemedText>
           </Pressable>

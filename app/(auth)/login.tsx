@@ -37,7 +37,7 @@ export default function LoginScreen() {
       if (token) {
         await saveAuthToken(token, data?.role || data?.user?.role);
       }
-      router.replace('/events');
+      router.replace('/(tabs)/events');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
     } finally {

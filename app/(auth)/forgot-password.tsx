@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -9,19 +9,44 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function validateEmail(emailValue: string): string | null {
+    if (!emailValue) {
+      return 'Поле не заполнено!';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailValue)) {
+      return 'Неверный формат email';
+    }
+    return null;
+  }
 
   async function onSubmit() {
-    if (!email) {
-      Alert.alert('Введите почту');
+    const validationError = validateEmail(email);
+    if (validationError) {
+      setError(validationError);
       return;
     }
+
+    setError(null);
     setIsSubmitting(true);
     try {
       // TODO: вызвать API восстановления пароля
+      // Здесь будет проверка существования пользователя
+      // Если пользователь не найден, установить ошибку "Пользователь не найден!"
       await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Имитация проверки - если email содержит "notfound", показываем ошибку
+      if (email.includes('notfound') || email === 'test@test.com') {
+        setError('Пользователь не найден!');
+        setIsSubmitting(false);
+        return;
+      }
+      
       router.push('/check-email');
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
+      setError(e?.message ?? 'Неизвестная ошибка');
     } finally {
       setIsSubmitting(false);
     }
@@ -46,15 +71,25 @@ export default function ForgotPasswordScreen() {
               Мы пришлем ссылку для восстановления на почту, указанную при регистрации
             </ThemedText>
 
-            <TextInput
-              placeholder="Почта"
-              placeholderTextColor="#888"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-            />
+            <View>
+              <TextInput
+                placeholder="Почта"
+                placeholderTextColor={error ? "#E02D2D" : "#888"}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                style={[styles.input, error && styles.inputError]}
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (error) {
+                    setError(null);
+                  }
+                }}
+              />
+              {error && (
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              )}
+            </View>
 
             <Pressable 
               style={[styles.btn, styles.btnPrimary, isSubmitting && { opacity: 0.6 }]} 
@@ -102,9 +137,21 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    marginBottom: 12,
+    marginBottom: 4,
     fontFamily: "Inter-Regular",
     fontSize: 14,
+    color: "#181818",
+  },
+  inputError: {
+    borderColor: "#E02D2D",
+    color: "#E02D2D",
+  },
+  errorText: {
+    fontFamily: "Inter-Regular",
+    fontSize: 14,
+    color: "#E02D2D",
+    marginBottom: 8,
+    marginTop: 4,
   },
   btn: {
     borderRadius: 6,
