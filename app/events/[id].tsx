@@ -168,8 +168,9 @@ export default function EventDetailScreen() {
         visible={isRegistrationOpen}
         onRequestClose={() => setIsRegistrationOpen(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setIsRegistrationOpen(false)}>
-          <Pressable style={styles.modalSheet} onPress={() => {}}>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setIsRegistrationOpen(false)} />
+          <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>{event.title}</Text>
@@ -185,8 +186,8 @@ export default function EventDetailScreen() {
             <Pressable style={styles.modalPayButton}>
               <Text style={styles.modalPayButtonText}>Оплатить</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -418,67 +419,82 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
   modalSheet: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 24,
-    marginHorizontal: 16,
-    marginBottom: 24,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    gap: 12,
   },
   modalTitle: {
-    fontSize: 20,
-    letterSpacing: 1,
-    marginBottom: 16,
+    marginTop: 0,
+    marginBottom: 8,
     fontFamily: 'Inter-Regular',
-    color: '#1E1E1E',
+    fontSize: 28,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 36,
+    letterSpacing: -2,
+    color: '#181818',
+    textAlign: 'left',
   },
   modalEventCard: {
     borderWidth: 1,
-    borderColor: '#1E1E1E',
-    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(24, 24, 24, 1.0)',
+    borderRadius: 0,
+    backgroundColor: '#fff',
   },
   modalEventTitle: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    lineHeight: 22,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Inter-Regular',
-    color: '#1E1E1E',
+    color: '#181818',
   },
   modalEventFooter: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderColor: '#1E1E1E',
+    borderColor: 'rgba(24, 24, 24, 1.0)',
   },
   modalEventCell: {
     flex: 1,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     justifyContent: 'center',
   },
   modalEventCellRight: {
     borderLeftWidth: 1,
-    borderColor: '#1E1E1E',
+    borderColor: 'rgba(24, 24, 24, 1.0)',
   },
   modalEventText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#1E1E1E',
+    lineHeight: 20,
+    color: '#181818',
   },
   modalPayButton: {
-    marginTop: 16,
-    backgroundColor: '#1E1E1E',
-    paddingVertical: 14,
+    borderRadius: 0,
+    paddingVertical: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    height: 52,
+    backgroundColor: '#111',
+    borderColor: 'rgba(24, 24, 24, 1.0)',
   },
   modalPayButtonText: {
-    fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 20,
+    color: '#FAFAFA',
   },
 });
 
