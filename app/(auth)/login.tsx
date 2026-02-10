@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const [show, setShow] = useState(false);
   const [isMentor, setIsMentor] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -42,6 +43,7 @@ export default function LoginScreen() {
       Alert.alert('Введите почту и пароль');
       return;
     }
+    setLoginError('');
     setIsSubmitting(true);
     try {
       const role = isMentor ? 'tutor' : 'student';
@@ -64,7 +66,20 @@ export default function LoginScreen() {
       }
       router.replace('/(tabs)/events');
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');
+      const message = e?.message ?? 'Неизвестная ошибка';
+      const normalized = message.toLowerCase();
+      const roleMismatch =
+        normalized.includes('forbidden') ||
+        normalized.includes('роль') ||
+        normalized.includes('role') ||
+        normalized.includes('доступ') ||
+        normalized.includes('student') ||
+        normalized.includes('tutor');
+      const warningText = roleMismatch
+        ? 'Аккаунт зарегистрирован с другой ролью'
+        : message;
+      setLoginError(warningText);
+      Alert.alert('Ошибка', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +132,13 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            <Pressable style={styles.checkboxRow} onPress={() => setIsMentor((prev) => !prev)}>
+            <Pressable
+              style={styles.checkboxRow}
+              onPress={() => {
+                setIsMentor((prev) => !prev);
+                setLoginError('');
+              }}
+            >
               <View style={styles.checkbox}>
                 {isMentor && (
                   <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
@@ -125,6 +146,9 @@ export default function LoginScreen() {
               </View>
               <ThemedText style={styles.checkboxLabel}>Войти как наставник</ThemedText>
             </Pressable>
+            {loginError ? (
+              <ThemedText style={styles.loginErrorText}>{loginError}</ThemedText>
+            ) : null}
 
             <Pressable style={[styles.btn, styles.btnPrimary, isSubmitting && { opacity: 0.6 }]} onPress={onSubmit} disabled={isSubmitting}>
               <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>Войти</ThemedText>
@@ -197,6 +221,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   checkboxLabel: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
+  },
+  loginErrorText: {
+    marginTop: 4,
     fontFamily: 'Inter-Regular',
     fontSize: 14,
     lineHeight: 20,
