@@ -53,10 +53,10 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="pentagon" />,
         }}
       />
-      <Tabs.Screen name="slots" options={{ href: null, tabBarButton: () => null }} />
-      <Tabs.Screen name="edit-profile" options={{ href: null, tabBarButton: () => null }} />
-      <Tabs.Screen name="new-password" options={{ href: null, tabBarButton: () => null }} />
-      <Tabs.Screen name="new-event" options={{ href: null, tabBarButton: () => null }} />
+      <Tabs.Screen name="slots" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="edit-profile" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="new-password" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="new-event" options={{ tabBarButton: () => null }} />
     </Tabs>
   );
 }
