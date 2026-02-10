@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -29,11 +29,11 @@ const EVENTS: EventItem[] = [
     description: 'Пообщался об этом с Настей Четвериковой из «Искусство для пацанчиков» искусствоведом Женей Гут. Сформировали коалицию надежды',
     time: '13 июня 18:00',
     price: '500 ₽',
-    image: require('@/assets/images/react-logo.png'),
+    image: require('@/assets/images/img.png'),
     curator: {
       name: 'Андрей Осетров',
       role: 'Куратор, исследователь визуальной культуры',
-      avatar: require('@/assets/images/react-logo.png'),
+      avatar: require('@/assets/images/avatar.png'),
     },
   },
   {
@@ -42,7 +42,7 @@ const EVENTS: EventItem[] = [
     description: 'Обсудим с Егором Москвитяным может ли кино быть настоящим хобби, и как вообще начать в нем разбираться. Не выпуск, а мандари с сладкими косточками',
     time: '13 июня 20:00',
     price: '800 ₽',
-    image: require('@/assets/images/partial-react-logo.png'),
+    image: require('@/assets/images/img1.png'),
   },
   {
     id: '3',
@@ -50,7 +50,7 @@ const EVENTS: EventItem[] = [
     description: 'Рассказал на фестивале G8 о своем опыте взаимодейсвия с подписчиками бренда и создания с их помощью целого усс. На себя посмотреть и вас показать',
     time: '15 июня 20:00',
     price: '800 ₽',
-    image: require('@/assets/images/react-logo.png'),
+    image: require('@/assets/images/img2.png'),
   },
   {
     id: '4',
@@ -58,7 +58,7 @@ const EVENTS: EventItem[] = [
     description: 'Практика в модульной сетке, гротесках и линий ритма. Дизайн, который не «кричит».',
     time: '13 июня 20:00',
     price: '800 ₽',
-    image: require('@/assets/images/splash-icon.png'),
+    image: require('@/assets/images/img3.png'),
   },
 ];
 
@@ -67,9 +67,49 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = EVENTS.find((e) => e.id === id);
   const otherEvents = EVENTS.filter((e) => e.id !== id);
-  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isCardModalVisible, setCardModalVisible] = useState(false);
+  const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
+  const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
+  const [isShareEventVisible, setShareEventVisible] = useState(false);
   const [isShareCopied, setIsShareCopied] = useState(false);
+
+  function handleLinkNow() {
+    setCardModalVisible(true);
+    setIsShareCopied(false);
+  }
+
+  function handleLinkTutor() {
+    setLinkTutorVisible(true);
+    setIsShareCopied(false);
+  }
+
+  function handleShareEventTutor() {
+    setIsShareCopied(false);
+    setShareEventVisible(true);
+  }
+
+  function handleGetPay() {
+    setCardModalVisible(false);
+    setCardModalDoneVisible(true);
+    setIsShareCopied(false);
+  }
+
+  function handleCloseCard() {
+    // Здесь может быть вызов API для привязки карты
+    // Пока закрываем попап и переходим к событиям
+    setIsShareCopied(false);
+    setCardModalDoneVisible(false);
+    router.replace('/(tabs)/events');
+    
+  }
+
+  const eventUrl = Linking.createURL(`/events/${event.id}`);
+  const handleCopyLink = async () => {
+    await Clipboard.setStringAsync(eventUrl);
+    setIsShareCopied(true);
+  };
+
+  
 
   if (!event) {
     return (
@@ -86,109 +126,96 @@ export default function EventDetailScreen() {
     );
   }
 
-  const eventUrl = Linking.createURL(`/events/${event.id}`);
-  const handleCopyLink = async () => {
-    await Clipboard.setStringAsync(eventUrl);
-    setIsShareCopied(true);
-  };
-  const handleOpenShare = () => {
-    setIsShareCopied(false);
-    setIsShareOpen(true);
-  };
-  const handleCloseShare = () => {
-    setIsShareCopied(false);
-    setIsShareOpen(false);
-  };
-
   return (
-    <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ThemedText>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
-        </Pressable>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/events')}>
+        <ThemedText>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ThemedText>
+      </Pressable>
 
-        {/* Main Event Card */}
-        <View style={styles.mainCard}>
-          <Image source={event.image} style={styles.mainImage} resizeMode="cover" />
-          <View style={styles.mainCardBody}>
-            <Text style={styles.mainTitle}>{event.title}</Text>
-            {event.description ? (
-              <Text style={styles.mainDescription}>{event.description}</Text>
-            ) : null}
-          </View>
-          <View style={styles.mainFooter}>
-            <Text style={styles.mainFooterTime}>{event.time}</Text>
-            <View style={styles.mainPriceContainer}>
-              <Text style={styles.mainFooterPrice}>{event.price}</Text>
-            </View>
+      {/* Main Event Card */}
+      <View style={styles.mainCard}>
+        <Image source={event.image} style={styles.mainImage} resizeMode="cover" />
+        <View style={styles.mainCardBody}>
+          <Text style={styles.mainTitle}>{event.title}</Text>
+          {event.description ? (
+            <Text style={styles.mainDescription}>{event.description}</Text>
+          ) : null}
+        </View>
+        <View style={styles.mainFooter}>
+          <Text style={styles.mainFooterTime}>{event.time}</Text>
+          <View style={styles.mainPriceContainer}>
+            <Text style={styles.mainFooterPrice}>{event.price}</Text>
           </View>
         </View>
+      </View>
 
-        {/* Register Button */}
-        <Pressable style={styles.registerButton} onPress={() => setIsRegistrationOpen(true)}>
-          <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
-        </Pressable>
+      {/* Register Button */}
+      <Pressable style={styles.registerButton} onPress={handleLinkNow}>
+        <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
+      </Pressable>
 
-        {/* Curator Section */}
-        {event.curator && (
-          <View style={styles.curatorSection}>
+      {/* Curator Section */}
+      {event.curator && (
+        <View style={styles.curatorSection}>
+          <View style={styles.curatorSectionWrapper}>
             <Image source={event.curator.avatar} style={styles.curatorAvatar} />
-            <Text style={styles.curatorName}>{event.curator.name}</Text>
-            <Text style={styles.curatorRole}>{event.curator.role}</Text>
-            <Pressable style={styles.writeToCuratorButton}>
-              <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
-            </Pressable>
+            <View  style={styles.curatorNameWrapper}>
+              <Text style={styles.curatorName}>{event.curator.name}</Text>
+              <Text style={styles.curatorRole}>{event.curator.role}</Text>
+            </View>
           </View>
-        )}
-
-        {/* Share Button */}
-        <Pressable style={styles.shareButton} onPress={handleOpenShare}>
-          <Text style={styles.shareButtonText}>Поделиться событием</Text>
-          <ThemedText>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 6.66667L10 1.66667M15 6.66667L10 11.6667M15 6.66667H5C3.89543 6.66667 3 7.5621 3 8.66667V15.3333C3 16.4379 3.89543 17.3333 5 17.3333H12.3333C13.4379 17.3333 14.3333 16.4379 14.3333 15.3333V6.66667" stroke="#181818" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
-        </Pressable>
-
-        {/* Other Events Section */}
-        <Text style={styles.otherEventsTitle}>ДРУГИЕ СОБЫТИЯ</Text>
-        {otherEvents.map((item) => (
-          <Pressable 
-            key={item.id}
-            style={styles.otherCard} 
-            onPress={() => router.replace(`/(tabs)/events/${item.id}`)}
-          >
-            <Image source={item.image} style={styles.otherImage} resizeMode="cover" />
-            <View style={styles.otherCardBody}>
-              <Text style={styles.otherCardTitleText}>{item.title}</Text>
-              {item.description ? (
-                <Text style={styles.otherDescription}>{item.description}</Text>
-              ) : null}
-            </View>
-            <View style={styles.otherFooter}>
-              <Text style={styles.otherFooterTime}>{item.time}</Text>
-              <View style={styles.otherPriceContainer}>
-                <Text style={styles.otherFooterPrice}>{item.price}</Text>
-              </View>
-            </View>
+          <Pressable style={styles.writeToCuratorButton} onPress={handleLinkTutor}>
+            <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
           </Pressable>
-        ))}
-      </ScrollView>
+        </View>
+      )}
 
+      {/* Share Button */}
+      <Pressable style={styles.shareButton} onPress={handleShareEventTutor}>
+        <Text style={styles.shareButtonText}>Поделиться событием</Text>
+        <ThemedText style={styles.shareButtonIcon}>
+          <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
+          </svg>
+
+        </ThemedText>
+      </Pressable>
+
+      {/* Other Events Section */}
+      <Text style={styles.otherEventsTitle}>ДРУГИЕ СОБЫТИЯ</Text>
+      {otherEvents.map((item) => (
+        <Pressable 
+          key={item.id}
+          style={styles.otherCard} 
+          onPress={() => router.replace(`/(tabs)/events/${item.id}`)}
+        >
+          <Image source={item.image} style={styles.otherImage} resizeMode="cover" />
+          <View style={styles.otherCardBody}>
+            <Text style={styles.otherCardTitleText}>{item.title}</Text>
+            {item.description ? (
+              <Text style={styles.otherDescription}>{item.description}</Text>
+            ) : null}
+          </View>
+          <View style={styles.otherFooter}>
+            <Text style={styles.otherFooterTime}>{item.time}</Text>
+            <View style={styles.otherPriceContainer}>
+              <Text style={styles.otherFooterPrice}>{item.price}</Text>
+            </View>
+          </View>
+        </Pressable>
+      ))}
       <Modal
         transparent
-        animationType="slide"
-        visible={isRegistrationOpen}
-        onRequestClose={() => setIsRegistrationOpen(false)}
+        animationType="none"
+        visible={isCardModalVisible}
+        onRequestClose={() => setCardModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setIsRegistrationOpen(false)} />
-          <View style={styles.modalSheet}>
+        <Pressable style={styles.modalOverlay} onPress={() => setCardModalVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>{event.title}</Text>
@@ -201,36 +228,93 @@ export default function EventDetailScreen() {
                 </View>
               </View>
             </View>
-            <Pressable style={styles.modalPayButton}>
+            <Pressable style={styles.modalPayButton} onPress={handleGetPay}>
               <Text style={styles.modalPayButtonText}>Оплатить</Text>
             </Pressable>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
         transparent
-        animationType="slide"
-        visible={isShareOpen}
-        onRequestClose={handleCloseShare}
+        animationType="none"
+        visible={isShareEventVisible}
+        onRequestClose={() => setShareEventVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={handleCloseShare} />
-          <View style={styles.shareSheet}>
-            <Text style={styles.shareTitle}>ПОДЕЛИТЬСЯ СОБЫТИЕМ</Text>
-            <View style={styles.shareLinkBox}>
-              <Text style={styles.shareLinkText}>{eventUrl}</Text>
+        <Pressable style={styles.modalOverlay} onPress={() => setShareEventVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Поделиться событием</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>{eventUrl}</Text>
+              
             </View>
             {isShareCopied ? (
               <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
             ) : null}
-            <Pressable style={styles.shareCopyButton} onPress={handleCopyLink}>
-              <Text style={styles.shareCopyButtonText}>Скопировать ссылку</Text>
+            <Pressable style={styles.modalPayButton} onPress={handleCopyLink}>
+              <Text style={styles.modalPayButtonText}>Скопировать ссылку</Text>
             </Pressable>
-          </View>
-        </View>
+            <Pressable style={[styles.writeToCuratorButton, {marginTop: 12}]} onPress={() => setShareEventVisible(false)}>
+            <Text style={styles.writeToCuratorText}>Закрыть</Text>
+          </Pressable>
+          </Pressable>
+        </Pressable>
       </Modal>
-    </>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isCardModalDoneVisible}
+        onRequestClose={() => setCardModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Оплата прошла</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>
+              Чек отправлен вам на почту. 
+                <View style={{ paddingTop: 20 }}>
+                Возврат возможен не позднее, чем за 24 часа до начала
+                </View>
+              </Text>
+              
+            </View>
+            <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>
+              <Text style={styles.modalPayButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isLinkTutorVisible}
+        onRequestClose={() => setLinkTutorVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setLinkTutorVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Пожалуйста, проводите встречи на платформе</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>
+              Мы оставили вам возможность связаться напрямую и уточнить нужные вопросы, но просим итоговые встречи проводить на нашей платформе. 
+                <View style={{ paddingTop: 20 }}>
+                Иначе мы обидимся и не будем с вами дружить.
+                </View>
+              </Text>
+              
+            </View>
+            
+            <Link href="https://t.me/p34forma" asChild>
+                <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>
+                  <Text style={styles.modalPayButtonText}>Окей, давайте дружить</Text>
+                </Pressable>
+            </Link>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+    </ScrollView>
   );
 }
 
@@ -241,6 +325,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 24,
+    marginHorizontal: 16,
   },
   backButton: {
     position: 'absolute',
@@ -261,7 +346,7 @@ const styles = StyleSheet.create({
   mainCard: {
     backgroundColor: '#fff',
     marginTop: 60,
-    marginBottom: 16,
+    marginBottom: 0,
     borderWidth: 1,
     borderColor: '#1E1E1E',
   },
@@ -280,23 +365,23 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     marginBottom: 14,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 20,
+    lineHeight: 24,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
   mainDescription: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
   mainFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     backgroundColor: '#fff',
-    borderTopWidth: 1,
+    borderTopWidth: 0,
     borderColor: '#1E1E1E',
     paddingHorizontal: 0,
     paddingVertical: 0,
@@ -305,16 +390,22 @@ const styles = StyleSheet.create({
   mainFooterTime: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-    backgroundColor: '#1E1E1E',
+    color: '#1E1E1E',
+    borderColor: '#1E1E1E',
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 10,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
   },
   mainPriceContainer: {
     borderWidth: 1,
     borderColor: '#1E1E1E',
     paddingHorizontal: 14,
     paddingVertical: 8,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
   },
   mainFooterPrice: {
     fontSize: 14,
@@ -325,7 +416,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#181818',
     paddingVertical: 16,
     alignItems: 'center',
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginBottom: 24,
   },
   registerButtonText: {
@@ -336,15 +427,28 @@ const styles = StyleSheet.create({
   },
   curatorSection: {
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     marginBottom: 24,
+    width: '100%',
+  },
+  curatorSectionWrapper:{
+    display: 'flex',
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    width: '100%',
+    borderBottomWidth: 0,
   },
   curatorAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 0,
     backgroundColor: '#eee',
-    marginBottom: 12,
+    marginBottom: 0,
+    borderRightWidth: 1,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
   },
   curatorName: {
     fontSize: 18,
@@ -352,6 +456,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#181818',
     marginBottom: 4,
+  },
+  curatorNameWrapper: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'left',
+    padding: 16,
   },
   curatorRole: {
     fontSize: 14,
@@ -361,14 +473,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   writeToCuratorButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    // paddingVertical: 10,
+    // paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    height: 52,
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+
   },
   writeToCuratorText: {
     fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
-    textDecorationLine: 'underline',
+    textDecorationLine: 'none',
+    
   },
   shareButton: {
     flexDirection: 'row',
@@ -376,29 +500,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CFCFCF',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginHorizontal: 16,
+    borderColor: '#1E1E1E',
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
     marginBottom: 32,
   },
+  shareButtonIcon: {
+    width: 80,
+    height: 80,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderLeftWidth: 1,
+    flexShrink: 0
+  },
   shareButtonText: {
-    fontSize: 16,
+    fontSize: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+    textAlign: 'center',
+    width: '100%',
   },
   otherEventsTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Inter-Regular',
     color: '#181818',
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginBottom: 16,
   },
   otherCard: {
     backgroundColor: '#fff',
     marginBottom: 12,
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     borderWidth: 1,
     borderColor: '#1E1E1E',
   },
@@ -417,23 +552,23 @@ const styles = StyleSheet.create({
   },
   otherCardTitleText: {
     marginBottom: 14,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 20,
+    lineHeight: 24,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
   otherDescription: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 24,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
   otherFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     backgroundColor: '#fff',
-    borderTopWidth: 1,
+    borderTopWidth: 0,
     borderColor: '#1E1E1E',
     paddingHorizontal: 0,
     paddingVertical: 0,
@@ -446,37 +581,61 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E1E1E',
     paddingHorizontal: 16,
     paddingVertical: 10,
+ 
   },
   otherPriceContainer: {
     borderWidth: 1,
     borderColor: '#1E1E1E',
     paddingHorizontal: 14,
     paddingVertical: 8,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
   },
   otherFooterPrice: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
-  modalOverlay: {
+  close: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 12,
+    right: 16,
+    zIndex: 1,
+    padding: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
   },
-  modalBackdrop: {
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+    marginHorizontal: 0,
+    marginBottom: 0,
+  },
+
+  // modalOverlay: {
+  //   position: 'absolute',
+  //   top: 0,
+  //   left: 0,
+  //   right: 0,
+  //   bottom: 0,
+  //   justifyContent: 'flex-end',
+  // },
+  backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  modalSheet: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    gap: 12,
-  },
+  // modalSheet: {
+  //   backgroundColor: '#fff',
+  //   padding: 16,
+  //   borderTopLeftRadius: 0,
+  //   borderTopRightRadius: 0,
+  //   gap: 12,
+  // },
   modalTitle: {
     marginTop: 0,
     marginBottom: 8,
@@ -491,87 +650,47 @@ const styles = StyleSheet.create({
   },
   modalEventCard: {
     borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    borderRadius: 0,
-    backgroundColor: '#fff',
+    borderColor: '#1E1E1E',
+    backgroundColor: '#FFFFFF',
   },
   modalEventTitle: {
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    fontSize: 14,
-    lineHeight: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    lineHeight: 22,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#1E1E1E',
   },
   modalEventFooter: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
+    borderColor: '#1E1E1E',
   },
   modalEventCell: {
     flex: 1,
     paddingHorizontal: 12,
-    paddingVertical: 14,
+    paddingVertical: 10,
     justifyContent: 'center',
   },
   modalEventCellRight: {
     borderLeftWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
+    borderColor: '#1E1E1E',
   },
   modalEventText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-    color: '#181818',
+    color: '#1E1E1E',
   },
   modalPayButton: {
-    borderRadius: 0,
-    paddingVertical: 16,
+    marginTop: 16,
+    backgroundColor: '#1E1E1E',
+    paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1,
-    height: 52,
-    backgroundColor: '#111',
-    borderColor: 'rgba(24, 24, 24, 1.0)',
   },
   modalPayButtonText: {
+    fontSize: 16,
     fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 20,
-    color: '#FAFAFA',
-  },
-  shareSheet: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    gap: 12,
-  },
-  shareTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-    fontSize: 28,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 36,
-    letterSpacing: -2,
-    color: '#181818',
-    textAlign: 'left',
-  },
-  shareLinkBox: {
-    borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    borderRadius: 0,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
-  shareLinkText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
+    color: '#FFFFFF',
   },
   shareCopiedText: {
     marginTop: 4,
@@ -580,22 +699,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#181818',
   },
-  shareCopyButton: {
-    borderRadius: 0,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    height: 52,
-    backgroundColor: '#111',
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-  },
-  shareCopyButtonText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 20,
-    color: '#FAFAFA',
-  },
+
 });
 

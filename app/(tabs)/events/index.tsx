@@ -20,7 +20,7 @@ const EVENTS: EventItem[] = [
     description: 'Пообщался об этом с Настей Четвериковой из «Искусство для пацанчиков» искусствоведом Женей Гут. Сформировали коалицию надежды',
     time: 'Через час',
     price: '500 ₽',
-    image: require('@/assets/images/react-logo.png'),
+    image: require('@/assets/images/img.png'),
   },
   {
     id: '2',
@@ -28,7 +28,7 @@ const EVENTS: EventItem[] = [
     description: 'Обсудим с Егором Москвитяным может ли кино быть настоящим хобби, и как вообще начать в нем разбираться. Не выпуск, а мандари с сладкими косточками',
     time: '13 июня 20:00',
     price: '800 ₽',
-    image: require('@/assets/images/partial-react-logo.png'),
+    image: require('@/assets/images/img1.png'),
   },
   {
     id: '3',
@@ -36,7 +36,7 @@ const EVENTS: EventItem[] = [
     description: 'Рассказал на фестивале G8 о своем опыте взаимодейсвия с подписчиками бренда и создания с их помощью целого усс. На себя посмотреть и вас показать',
     time: '15 июня 20:00',
     price: '800 ₽',
-    image: require('@/assets/images/react-logo.png'),
+    image: require('@/assets/images/img2.png'),
   },
   {
     id: '4',
@@ -44,7 +44,7 @@ const EVENTS: EventItem[] = [
     description: 'Практика в модульной сетке, гротесках и линий ритма. Дизайн, который не «кричит».',
     time: '13 июня 20:00',
     price: '800 ₽',
-    image: require('@/assets/images/splash-icon.png'),
+    image: require('@/assets/images/img3.png'),
   },
 ];
 
@@ -91,9 +91,9 @@ const styles = StyleSheet.create({
   },
   titleText: {
     marginBottom: 12,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
-    lineHeight: 32,
+    lineHeight: 36,
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
@@ -118,23 +118,23 @@ const styles = StyleSheet.create({
   },
   cardTitleText: {
     marginBottom: 14,
-    fontSize: 24,
-    lineHeight: 30,
+    fontSize: 20,
+    lineHeight: 24,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
   description: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     backgroundColor: '#fff',
-    borderTopWidth: 1,
+    borderTopWidth: 0,
     borderColor: '#1E1E1E',
     paddingHorizontal: 0,
     paddingVertical: 0,
@@ -153,11 +153,14 @@ const styles = StyleSheet.create({
     borderColor: '#1E1E1E',
     paddingHorizontal: 14,
     paddingVertical: 8,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
   },
   footerPrice: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
+    
   },
   listContent: {
     paddingBottom: 16,

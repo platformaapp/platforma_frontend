@@ -16,7 +16,7 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
-          <Image source={require('@/assets/images/react-logo.png')} style={styles.profileImage} />
+          <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>Андрей Осетров</Text>
@@ -221,6 +221,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+
 
 
 

@@ -1,8 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
-import * as Linking from 'expo-linking';
-import React, { useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -67,9 +65,6 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = EVENTS.find((e) => e.id === id);
   const otherEvents = EVENTS.filter((e) => e.id !== id);
-  const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isShareCopied, setIsShareCopied] = useState(false);
 
   if (!event) {
     return (
@@ -86,151 +81,84 @@ export default function EventDetailScreen() {
     );
   }
 
-  const eventUrl = Linking.createURL(`/events/${event.id}`);
-  const handleCopyLink = async () => {
-    await Clipboard.setStringAsync(eventUrl);
-    setIsShareCopied(true);
-  };
-  const handleOpenShare = () => {
-    setIsShareCopied(false);
-    setIsShareOpen(true);
-  };
-  const handleCloseShare = () => {
-    setIsShareCopied(false);
-    setIsShareOpen(false);
-  };
-
   return (
-    <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ThemedText>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
-        </Pressable>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <ThemedText>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ThemedText>
+      </Pressable>
 
-        {/* Main Event Card */}
-        <View style={styles.mainCard}>
-          <Image source={event.image} style={styles.mainImage} resizeMode="cover" />
-          <View style={styles.mainCardBody}>
-            <Text style={styles.mainTitle}>{event.title}</Text>
-            {event.description ? (
-              <Text style={styles.mainDescription}>{event.description}</Text>
-            ) : null}
-          </View>
-          <View style={styles.mainFooter}>
-            <Text style={styles.mainFooterTime}>{event.time}</Text>
-            <View style={styles.mainPriceContainer}>
-              <Text style={styles.mainFooterPrice}>{event.price}</Text>
-            </View>
+      {/* Main Event Card */}
+      <View style={styles.mainCard}>
+        <Image source={event.image} style={styles.mainImage} resizeMode="cover" />
+        <View style={styles.mainCardBody}>
+          <Text style={styles.mainTitle}>{event.title}</Text>
+          {event.description ? (
+            <Text style={styles.mainDescription}>{event.description}</Text>
+          ) : null}
+        </View>
+        <View style={styles.mainFooter}>
+          <Text style={styles.mainFooterTime}>{event.time}</Text>
+          <View style={styles.mainPriceContainer}>
+            <Text style={styles.mainFooterPrice}>{event.price}</Text>
           </View>
         </View>
+      </View>
 
-        {/* Register Button */}
-        <Pressable style={styles.registerButton} onPress={() => setIsRegistrationOpen(true)}>
-          <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
-        </Pressable>
+      {/* Register Button */}
+      <Pressable style={styles.registerButton}>
+        <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
+      </Pressable>
 
-        {/* Curator Section */}
-        {event.curator && (
-          <View style={styles.curatorSection}>
-            <Image source={event.curator.avatar} style={styles.curatorAvatar} />
-            <Text style={styles.curatorName}>{event.curator.name}</Text>
-            <Text style={styles.curatorRole}>{event.curator.role}</Text>
-            <Pressable style={styles.writeToCuratorButton}>
-              <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Share Button */}
-        <Pressable style={styles.shareButton} onPress={handleOpenShare}>
-          <Text style={styles.shareButtonText}>Поделиться событием</Text>
-          <ThemedText>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 6.66667L10 1.66667M15 6.66667L10 11.6667M15 6.66667H5C3.89543 6.66667 3 7.5621 3 8.66667V15.3333C3 16.4379 3.89543 17.3333 5 17.3333H12.3333C13.4379 17.3333 14.3333 16.4379 14.3333 15.3333V6.66667" stroke="#181818" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
-        </Pressable>
-
-        {/* Other Events Section */}
-        <Text style={styles.otherEventsTitle}>ДРУГИЕ СОБЫТИЯ</Text>
-        {otherEvents.map((item) => (
-          <Pressable 
-            key={item.id}
-            style={styles.otherCard} 
-            onPress={() => router.replace(`/events/${item.id}`)}
-          >
-            <Image source={item.image} style={styles.otherImage} resizeMode="cover" />
-            <View style={styles.otherCardBody}>
-              <Text style={styles.otherCardTitleText}>{item.title}</Text>
-              {item.description ? (
-                <Text style={styles.otherDescription}>{item.description}</Text>
-              ) : null}
-            </View>
-            <View style={styles.otherFooter}>
-              <Text style={styles.otherFooterTime}>{item.time}</Text>
-              <View style={styles.otherPriceContainer}>
-                <Text style={styles.otherFooterPrice}>{item.price}</Text>
-              </View>
-            </View>
+      {/* Curator Section */}
+      {event.curator && (
+        <View style={styles.curatorSection}>
+          <Image source={event.curator.avatar} style={styles.curatorAvatar} />
+          <Text style={styles.curatorName}>{event.curator.name}</Text>
+          <Text style={styles.curatorRole}>{event.curator.role}</Text>
+          <Pressable style={styles.writeToCuratorButton}>
+            <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
           </Pressable>
-        ))}
-      </ScrollView>
-
-      <Modal
-        transparent
-        animationType="slide"
-        visible={isRegistrationOpen}
-        onRequestClose={() => setIsRegistrationOpen(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setIsRegistrationOpen(false)} />
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
-            <View style={styles.modalEventCard}>
-              <Text style={styles.modalEventTitle}>{event.title}</Text>
-              <View style={styles.modalEventFooter}>
-                <View style={styles.modalEventCell}>
-                  <Text style={styles.modalEventText}>{event.time}</Text>
-                </View>
-                <View style={[styles.modalEventCell, styles.modalEventCellRight]}>
-                  <Text style={styles.modalEventText}>{event.price}</Text>
-                </View>
-              </View>
-            </View>
-            <Pressable style={styles.modalPayButton}>
-              <Text style={styles.modalPayButtonText}>Оплатить</Text>
-            </Pressable>
-          </View>
         </View>
-      </Modal>
+      )}
 
-      <Modal
-        transparent
-        animationType="slide"
-        visible={isShareOpen}
-        onRequestClose={handleCloseShare}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={handleCloseShare} />
-          <View style={styles.shareSheet}>
-            <Text style={styles.shareTitle}>ПОДЕЛИТЬСЯ СОБЫТИЕМ</Text>
-            <View style={styles.shareLinkBox}>
-              <Text style={styles.shareLinkText}>{eventUrl}</Text>
-            </View>
-            {isShareCopied ? (
-              <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
+      {/* Share Button */}
+      <Pressable style={styles.shareButton}>
+        <Text style={styles.shareButtonText}>Поделиться событием</Text>
+        <ThemedText>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 6.66667L10 1.66667M15 6.66667L10 11.6667M15 6.66667H5C3.89543 6.66667 3 7.5621 3 8.66667V15.3333C3 16.4379 3.89543 17.3333 5 17.3333H12.3333C13.4379 17.3333 14.3333 16.4379 14.3333 15.3333V6.66667" stroke="#181818" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </ThemedText>
+      </Pressable>
+
+      {/* Other Events Section */}
+      <Text style={styles.otherEventsTitle}>ДРУГИЕ СОБЫТИЯ</Text>
+      {otherEvents.map((item) => (
+        <Pressable 
+          key={item.id}
+          style={styles.otherCard} 
+          onPress={() => router.replace(`/events/${item.id}`)}
+        >
+          <Image source={item.image} style={styles.otherImage} resizeMode="cover" />
+          <View style={styles.otherCardBody}>
+            <Text style={styles.otherCardTitleText}>{item.title}</Text>
+            {item.description ? (
+              <Text style={styles.otherDescription}>{item.description}</Text>
             ) : null}
-            <Pressable style={styles.shareCopyButton} onPress={handleCopyLink}>
-              <Text style={styles.shareCopyButtonText}>Скопировать ссылку</Text>
-            </Pressable>
           </View>
-        </View>
-      </Modal>
-    </>
+          <View style={styles.otherFooter}>
+            <Text style={styles.otherFooterTime}>{item.time}</Text>
+            <View style={styles.otherPriceContainer}>
+              <Text style={styles.otherFooterPrice}>{item.price}</Text>
+            </View>
+          </View>
+        </Pressable>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -457,145 +385,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  modalSheet: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    gap: 12,
-  },
-  modalTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-    fontSize: 28,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 36,
-    letterSpacing: -2,
-    color: '#181818',
-    textAlign: 'left',
-  },
-  modalEventCard: {
-    borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    borderRadius: 0,
-    backgroundColor: '#fff',
-  },
-  modalEventTitle: {
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  modalEventFooter: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-  },
-  modalEventCell: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    justifyContent: 'center',
-  },
-  modalEventCellRight: {
-    borderLeftWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-  },
-  modalEventText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 20,
-    color: '#181818',
-  },
-  modalPayButton: {
-    borderRadius: 0,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    height: 52,
-    backgroundColor: '#111',
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-  },
-  modalPayButtonText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 20,
-    color: '#FAFAFA',
-  },
-  shareSheet: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    gap: 12,
-  },
-  shareTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-    fontSize: 28,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 36,
-    letterSpacing: -2,
-    color: '#181818',
-    textAlign: 'left',
-  },
-  shareLinkBox: {
-    borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    borderRadius: 0,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
-  shareLinkText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
-  shareCopiedText: {
-    marginTop: 4,
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
-  shareCopyButton: {
-    borderRadius: 0,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    height: 52,
-    backgroundColor: '#111',
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-  },
-  shareCopyButtonText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 20,
-    color: '#FAFAFA',
   },
 });
 
