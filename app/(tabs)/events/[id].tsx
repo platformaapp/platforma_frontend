@@ -71,35 +71,44 @@ export default function EventDetailScreen() {
   const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
   const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
   const [isShareEventVisible, setShareEventVisible] = useState(false);
+  const [isShareCopied, setIsShareCopied] = useState(false);
 
   function handleLinkNow() {
     setCardModalVisible(true);
+    setIsShareCopied(false);
   }
 
   function handleLinkTutor() {
     setLinkTutorVisible(true);
+    setIsShareCopied(false);
   }
 
   function handleShareEventTutor() {
+    setIsShareCopied(false);
     setShareEventVisible(true);
   }
 
   function handleGetPay() {
     setCardModalVisible(false);
     setCardModalDoneVisible(true);
+    setIsShareCopied(false);
   }
 
   function handleCloseCard() {
     // Здесь может быть вызов API для привязки карты
     // Пока закрываем попап и переходим к событиям
+    setIsShareCopied(false);
     setCardModalDoneVisible(false);
     router.replace('/(tabs)/events');
+    
   }
 
   const eventUrl = Linking.createURL(`/events/${event.id}`);
   const handleCopyLink = async () => {
     await Clipboard.setStringAsync(eventUrl);
+    setIsShareCopied(true);
   };
+
   
 
   if (!event) {
@@ -239,6 +248,9 @@ export default function EventDetailScreen() {
               <Text style={styles.modalEventTitle}>{eventUrl}</Text>
               
             </View>
+            {isShareCopied ? (
+              <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
+            ) : null}
             <Pressable style={styles.modalPayButton} onPress={handleCopyLink}>
               <Text style={styles.modalPayButtonText}>Скопировать ссылку</Text>
             </Pressable>
@@ -679,6 +691,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
+  },
+  shareCopiedText: {
+    marginTop: 4,
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
   },
 
 });
