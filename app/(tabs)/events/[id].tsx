@@ -7,7 +7,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
+import { getAuthRole, getAuthToken } from '@/lib/auth';
 
 type EventItem = {
   id: string;
@@ -97,9 +97,12 @@ export default function EventDetailScreen() {
     setIsPaying(true);
     setIsShareCopied(false);
     try {
-      const token = await getAuthToken();
+      const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
       if (!token) {
         throw new Error('Для оплаты нужно войти в аккаунт');
+      }
+      if (role && role !== 'student') {
+        throw new Error('Оплата доступна только для студентов');
       }
 
       const res = await fetch(endpoints.studentPayments, {
