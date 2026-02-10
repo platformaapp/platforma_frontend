@@ -76,10 +76,12 @@ export default function EventDetailScreen() {
   const [isShareEventVisible, setShareEventVisible] = useState(false);
   const [isShareCopied, setIsShareCopied] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [payError, setPayError] = useState('');
 
   function handleLinkNow() {
     setCardModalVisible(true);
     setIsShareCopied(false);
+    setPayError('');
   }
 
   function handleLinkTutor() {
@@ -96,6 +98,7 @@ export default function EventDetailScreen() {
     if (isPaying) return;
     setIsPaying(true);
     setIsShareCopied(false);
+    setPayError('');
     try {
       const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
       if (!token) {
@@ -173,7 +176,9 @@ export default function EventDetailScreen() {
       setCardModalVisible(false);
       setCardModalDoneVisible(true);
     } catch (e: any) {
-      Alert.alert('Ошибка оплаты', e?.message ?? 'Не удалось оплатить');
+      const message = e?.message ?? 'Не удалось оплатить';
+      setPayError(message);
+      Alert.alert('Ошибка оплаты', message);
     } finally {
       setIsPaying(false);
     }
@@ -313,6 +318,9 @@ export default function EventDetailScreen() {
                 </View>
               </View>
             </View>
+            {payError ? (
+              <Text style={styles.payErrorText}>{payError}</Text>
+            ) : null}
             <Pressable
               style={[styles.modalPayButton, isPaying && styles.modalPayButtonDisabled]}
               onPress={handleGetPay}
@@ -778,6 +786,13 @@ const styles = StyleSheet.create({
   },
   modalPayButtonDisabled: {
     opacity: 0.6,
+  },
+  payErrorText: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   modalPayButtonText: {
     fontSize: 16,
