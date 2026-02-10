@@ -27,7 +27,10 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.actionsCard}>
-        <Pressable style={[styles.actionButton, styles.actionButtonFirst]}>
+        <Pressable
+          style={[styles.actionButton, styles.actionButtonFirst]}
+          onPress={() => router.push('/(tabs)/edit-profile')}
+        >
           <Text style={styles.actionText}>Изменить личные данные</Text>
         </Pressable>
         <Pressable style={styles.actionButton}>
