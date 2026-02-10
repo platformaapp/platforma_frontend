@@ -1,4 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import React, { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -66,6 +68,7 @@ export default function EventDetailScreen() {
   const event = EVENTS.find((e) => e.id === id);
   const otherEvents = EVENTS.filter((e) => e.id !== id);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   if (!event) {
     return (
@@ -81,6 +84,11 @@ export default function EventDetailScreen() {
       </View>
     );
   }
+
+  const eventUrl = Linking.createURL(`/events/${event.id}`);
+  const handleCopyLink = async () => {
+    await Clipboard.setStringAsync(eventUrl);
+  };
 
   return (
     <>
@@ -128,7 +136,7 @@ export default function EventDetailScreen() {
         )}
 
         {/* Share Button */}
-        <Pressable style={styles.shareButton}>
+        <Pressable style={styles.shareButton} onPress={() => setIsShareOpen(true)}>
           <Text style={styles.shareButtonText}>Поделиться событием</Text>
           <ThemedText>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -185,6 +193,26 @@ export default function EventDetailScreen() {
             </View>
             <Pressable style={styles.modalPayButton}>
               <Text style={styles.modalPayButtonText}>Оплатить</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="slide"
+        visible={isShareOpen}
+        onRequestClose={() => setIsShareOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setIsShareOpen(false)} />
+          <View style={styles.shareSheet}>
+            <Text style={styles.shareTitle}>ПОДЕЛИТЬСЯ СОБЫТИЕМ</Text>
+            <View style={styles.shareLinkBox}>
+              <Text style={styles.shareLinkText}>{eventUrl}</Text>
+            </View>
+            <Pressable style={styles.shareCopyButton} onPress={handleCopyLink}>
+              <Text style={styles.shareCopyButtonText}>Скопировать ссылку</Text>
             </Pressable>
           </View>
         </View>
@@ -493,6 +521,55 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(24, 24, 24, 1.0)',
   },
   modalPayButtonText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 20,
+    color: '#FAFAFA',
+  },
+  shareSheet: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    gap: 12,
+  },
+  shareTitle: {
+    marginTop: 0,
+    marginBottom: 8,
+    fontFamily: 'Inter-Regular',
+    fontSize: 28,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 36,
+    letterSpacing: -2,
+    color: '#181818',
+    textAlign: 'left',
+  },
+  shareLinkBox: {
+    borderWidth: 1,
+    borderColor: 'rgba(24, 24, 24, 1.0)',
+    borderRadius: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  shareLinkText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
+  },
+  shareCopyButton: {
+    borderRadius: 0,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    height: 52,
+    backgroundColor: '#111',
+    borderColor: 'rgba(24, 24, 24, 1.0)',
+  },
+  shareCopyButtonText: {
     fontFamily: 'Inter-Regular',
     fontSize: 14,
     fontWeight: '400',
