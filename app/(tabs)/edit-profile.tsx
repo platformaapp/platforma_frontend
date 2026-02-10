@@ -52,7 +52,10 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        <Pressable style={styles.secondaryButton}>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => router.push('/(tabs)/new-password')}
+        >
           <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
         </Pressable>
 
