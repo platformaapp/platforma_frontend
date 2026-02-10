@@ -1,14 +1,15 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
-import { extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
+import { extractTokenFromResponse, getAuthRole, saveAuthToken } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -21,10 +22,19 @@ export default function LoginScreen() {
     }
     setIsSubmitting(true);
     try {
+      const resolvedRole =
+        typeof roleParam === 'string'
+          ? roleParam
+          : Array.isArray(roleParam)
+            ? roleParam[0]
+            : undefined;
+      const storedRole = await getAuthRole();
+      const role = resolvedRole || storedRole || 'student';
+
       const res = await fetch(endpoints.login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role }),
       });
       const contentType = res.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
