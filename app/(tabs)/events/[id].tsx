@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -66,10 +66,35 @@ export default function EventDetailScreen() {
   const event = EVENTS.find((e) => e.id === id);
   const otherEvents = EVENTS.filter((e) => e.id !== id);
   const [isCardModalVisible, setCardModalVisible] = useState(false);
+  const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
+  const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
+  const [isShareEventVisible, setShareEventVisible] = useState(false);
 
   function handleLinkNow() {
     setCardModalVisible(true);
   }
+
+  function handleLinkTutor() {
+    setLinkTutorVisible(true);
+  }
+
+  function handleShareEventTutor() {
+    setShareEventVisible(true);
+  }
+
+  function handleGetPay() {
+    setCardModalVisible(false);
+    setCardModalDoneVisible(true);
+  }
+
+  function handleCloseCard() {
+    // Здесь может быть вызов API для привязки карты
+    // Пока закрываем попап и переходим к событиям
+    setCardModalDoneVisible(false);
+    router.replace('/(tabs)/events');
+  }
+
+  
 
   if (!event) {
     return (
@@ -128,14 +153,14 @@ export default function EventDetailScreen() {
               <Text style={styles.curatorRole}>{event.curator.role}</Text>
             </View>
           </View>
-          <Pressable style={styles.writeToCuratorButton}>
+          <Pressable style={styles.writeToCuratorButton} onPress={handleLinkTutor}>
             <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
           </Pressable>
         </View>
       )}
 
       {/* Share Button */}
-      <Pressable style={styles.shareButton}>
+      <Pressable style={styles.shareButton} onPress={handleShareEventTutor}>
         <Text style={styles.shareButtonText}>Поделиться событием</Text>
         <ThemedText style={styles.shareButtonIcon}>
           <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -188,37 +213,89 @@ export default function EventDetailScreen() {
                 </View>
               </View>
             </View>
-            <Pressable style={styles.modalPayButton}>
+            <Pressable style={styles.modalPayButton} onPress={handleGetPay}>
               <Text style={styles.modalPayButtonText}>Оплатить</Text>
             </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
 
-      {/* {isCardModalVisible && (
-          <View style={styles.modalOverlay}>
-            <Pressable style={styles.backdrop} onPress={() => setCardModalVisible(false)} />
-            <View style={styles.modalSheet}>               
-
-              <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
+      <Modal
+        transparent
+        animationType="none"
+        visible={isShareEventVisible}
+        onRequestClose={() => setShareEventVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShareEventVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Поделиться событием</Text>
             <View style={styles.modalEventCard}>
-              <Text style={styles.modalEventTitle}>{event.title}</Text>
-              <View style={styles.modalEventFooter}>
-                <View style={styles.modalEventCell}>
-                  <Text style={styles.modalEventText}>{event.time}</Text>
-                </View>
-                <View style={[styles.modalEventCell, styles.modalEventCellRight]}>
-                  <Text style={styles.modalEventText}>{event.price}</Text>
-                </View>
-              </View>
+              <Text style={styles.modalEventTitle}>https://bit.ly/hjhfKJHFjdnb3h</Text>
+              
             </View>
-            <Pressable style={styles.modalPayButton}>
-              <Text style={styles.modalPayButtonText}>Оплатить</Text>
+            <Pressable style={styles.modalPayButton} >
+              <Text style={styles.modalPayButtonText}>Скопировать ссылку</Text>
             </Pressable>
+            <Pressable style={[styles.writeToCuratorButton, {marginTop: 12}]} onPress={() => setShareEventVisible(false)}>
+            <Text style={styles.writeToCuratorText}>Закрыть</Text>
+          </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
+      <Modal
+        transparent
+        animationType="none"
+        visible={isCardModalDoneVisible}
+        onRequestClose={() => setCardModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Оплата прошла</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>
+              Чек отправлен вам на почту. 
+                <View style={{ paddingTop: 20 }}>
+                Возврат возможен не позднее, чем за 24 часа до начала
+                </View>
+              </Text>
+              
             </View>
-          </View>
-        )} */}
+            <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>
+              <Text style={styles.modalPayButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isLinkTutorVisible}
+        onRequestClose={() => setLinkTutorVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setLinkTutorVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Пожалуйста, проводите встречи на платформе</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>
+              Мы оставили вам возможность связаться напрямую и уточнить нужные вопросы, но просим итоговые встречи проводить на нашей платформе. 
+                <View style={{ paddingTop: 20 }}>
+                Иначе мы обидимся и не будем с вами дружить.
+                </View>
+              </Text>
+              
+            </View>
+            
+            <Link href="https://t.me/p34forma" asChild>
+                <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>
+                  <Text style={styles.modalPayButtonText}>Окей, давайте дружить</Text>
+                </Pressable>
+            </Link>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
     </ScrollView>
   );
 }
