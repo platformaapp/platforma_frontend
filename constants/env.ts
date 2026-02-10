@@ -5,6 +5,8 @@ export const endpoints = {
   login: `${API_BASE}/api/auth/login`,
   forgotPassword: `${API_BASE}/api/auth/forgot`,
   users: `${API_BASE}/api/users`,
+  studentPayments: `${API_BASE}/api/student/payments`,
+  studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
 };
 
 

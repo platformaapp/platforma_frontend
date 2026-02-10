@@ -1,10 +1,13 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
 
 type EventItem = {
   id: string;
@@ -72,6 +75,7 @@ export default function EventDetailScreen() {
   const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
   const [isShareEventVisible, setShareEventVisible] = useState(false);
   const [isShareCopied, setIsShareCopied] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
 
   function handleLinkNow() {
     setCardModalVisible(true);
@@ -88,10 +92,88 @@ export default function EventDetailScreen() {
     setShareEventVisible(true);
   }
 
-  function handleGetPay() {
-    setCardModalVisible(false);
-    setCardModalDoneVisible(true);
+  async function handleGetPay() {
+    if (isPaying) return;
+    setIsPaying(true);
     setIsShareCopied(false);
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Для оплаты нужно войти в аккаунт');
+      }
+
+      const res = await fetch(endpoints.studentPayments, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sessionId: event.id }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : await res.text();
+      if (!res.ok) {
+        const message = typeof data === 'string' ? data : data?.message || 'Не удалось создать платеж';
+        throw new Error(message);
+      }
+
+      const paymentId =
+        data?.paymentId ||
+        data?.payment_id ||
+        data?.id ||
+        data?.data?.paymentId ||
+        data?.data?.payment_id ||
+        data?.data?.id;
+      const confirmationUrl =
+        data?.confirmation?.confirmation_url ||
+        data?.confirmation_url ||
+        data?.confirmationUrl ||
+        data?.payment?.confirmation?.confirmation_url ||
+        data?.payment?.confirmation_url;
+      let status = data?.status || data?.payment?.status;
+
+      if (confirmationUrl) {
+        await WebBrowser.openBrowserAsync(confirmationUrl);
+      }
+
+      if (paymentId) {
+        const callbackRes = await fetch(
+          `${endpoints.studentPaymentsCallback}?paymentId=${encodeURIComponent(paymentId)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const callbackContentType = callbackRes.headers.get('content-type') || '';
+        const callbackIsJson = callbackContentType.includes('application/json');
+        const callbackData = callbackIsJson ? await callbackRes.json() : await callbackRes.text();
+        if (!callbackRes.ok) {
+          const message =
+            typeof callbackData === 'string'
+              ? callbackData
+              : callbackData?.message || 'Не удалось подтвердить оплату';
+          throw new Error(message);
+        }
+        status = callbackData?.status || callbackData?.payment?.status || status;
+        if (callbackData?.paid === true || callbackData?.payment?.paid === true) {
+          status = 'succeeded';
+        }
+      }
+
+      const isPaid = status === 'succeeded' || status === 'success';
+      if (!isPaid) {
+        throw new Error('Оплата не подтверждена');
+      }
+
+      setCardModalVisible(false);
+      setCardModalDoneVisible(true);
+    } catch (e: any) {
+      Alert.alert('Ошибка оплаты', e?.message ?? 'Не удалось оплатить');
+    } finally {
+      setIsPaying(false);
+    }
   }
 
   function handleCloseCard() {
@@ -228,8 +310,12 @@ export default function EventDetailScreen() {
                 </View>
               </View>
             </View>
-            <Pressable style={styles.modalPayButton} onPress={handleGetPay}>
-              <Text style={styles.modalPayButtonText}>Оплатить</Text>
+            <Pressable
+              style={[styles.modalPayButton, isPaying && styles.modalPayButtonDisabled]}
+              onPress={handleGetPay}
+              disabled={isPaying}
+            >
+              <Text style={styles.modalPayButtonText}>{isPaying ? 'Оплата...' : 'Оплатить'}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -686,6 +772,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E1E1E',
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  modalPayButtonDisabled: {
+    opacity: 0.6,
   },
   modalPayButtonText: {
     fontSize: 16,
