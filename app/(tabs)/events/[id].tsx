@@ -193,14 +193,6 @@ export default function EventDetailScreen() {
     
   }
 
-  const eventUrl = Linking.createURL(`/events/${event.id}`);
-  const handleCopyLink = async () => {
-    await Clipboard.setStringAsync(eventUrl);
-    setIsShareCopied(true);
-  };
-
-  
-
   if (!event) {
     return (
       <View style={styles.container}>
@@ -215,6 +207,12 @@ export default function EventDetailScreen() {
       </View>
     );
   }
+
+  const eventUrl = Linking.createURL(`/events/${event.id}`);
+  const handleCopyLink = async () => {
+    await Clipboard.setStringAsync(eventUrl);
+    setIsShareCopied(true);
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
