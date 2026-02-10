@@ -50,7 +50,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: '',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="pentagon" />,
         }}
       />
     </Tabs>
