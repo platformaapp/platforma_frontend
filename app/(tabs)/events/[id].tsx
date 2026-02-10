@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 
@@ -65,6 +65,11 @@ export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = EVENTS.find((e) => e.id === id);
   const otherEvents = EVENTS.filter((e) => e.id !== id);
+  const [isCardModalVisible, setCardModalVisible] = useState(false);
+
+  function handleLinkNow() {
+    setCardModalVisible(true);
+  }
 
   if (!event) {
     return (
@@ -109,7 +114,7 @@ export default function EventDetailScreen() {
       </View>
 
       {/* Register Button */}
-      <Pressable style={styles.registerButton}>
+      <Pressable style={styles.registerButton} onPress={handleLinkNow}>
         <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
       </Pressable>
 
@@ -163,6 +168,57 @@ export default function EventDetailScreen() {
           </View>
         </Pressable>
       ))}
+      <Modal
+        transparent
+        animationType="none"
+        visible={isCardModalVisible}
+        onRequestClose={() => setCardModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCardModalVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>{event.title}</Text>
+              <View style={styles.modalEventFooter}>
+                <View style={styles.modalEventCell}>
+                  <Text style={styles.modalEventText}>{event.time}</Text>
+                </View>
+                <View style={[styles.modalEventCell, styles.modalEventCellRight]}>
+                  <Text style={styles.modalEventText}>{event.price}</Text>
+                </View>
+              </View>
+            </View>
+            <Pressable style={styles.modalPayButton}>
+              <Text style={styles.modalPayButtonText}>Оплатить</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* {isCardModalVisible && (
+          <View style={styles.modalOverlay}>
+            <Pressable style={styles.backdrop} onPress={() => setCardModalVisible(false)} />
+            <View style={styles.modalSheet}>               
+
+              <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>{event.title}</Text>
+              <View style={styles.modalEventFooter}>
+                <View style={styles.modalEventCell}>
+                  <Text style={styles.modalEventText}>{event.time}</Text>
+                </View>
+                <View style={[styles.modalEventCell, styles.modalEventCellRight]}>
+                  <Text style={styles.modalEventText}>{event.price}</Text>
+                </View>
+              </View>
+            </View>
+            <Pressable style={styles.modalPayButton}>
+              <Text style={styles.modalPayButtonText}>Оплатить</Text>
+            </Pressable>
+
+            </View>
+          </View>
+        )} */}
     </ScrollView>
   );
 }
@@ -445,5 +501,102 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#1E1E1E',
   },
+  close: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    zIndex: 1,
+    padding: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+    marginHorizontal: 0,
+    marginBottom: 0,
+  },
+
+  // modalOverlay: {
+  //   position: 'absolute',
+  //   top: 0,
+  //   left: 0,
+  //   right: 0,
+  //   bottom: 0,
+  //   justifyContent: 'flex-end',
+  // },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  // modalSheet: {
+  //   backgroundColor: '#fff',
+  //   padding: 16,
+  //   borderTopLeftRadius: 0,
+  //   borderTopRightRadius: 0,
+  //   gap: 12,
+  // },
+  modalTitle: {
+    marginTop: 0,
+    marginBottom: 8,
+    fontFamily: 'Inter-Regular',
+    fontSize: 28,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 36,
+    letterSpacing: -2,
+    color: '#181818',
+    textAlign: 'left',
+  },
+  modalEventCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    backgroundColor: '#FFFFFF',
+  },
+  modalEventTitle: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#1E1E1E',
+  },
+  modalEventFooter: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  modalEventCell: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  modalEventCellRight: {
+    borderLeftWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  modalEventText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#1E1E1E',
+  },
+  modalPayButton: {
+    marginTop: 16,
+    backgroundColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalPayButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+
 });
 
