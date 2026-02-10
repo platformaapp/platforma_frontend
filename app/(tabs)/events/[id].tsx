@@ -69,6 +69,7 @@ export default function EventDetailScreen() {
   const otherEvents = EVENTS.filter((e) => e.id !== id);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isShareCopied, setIsShareCopied] = useState(false);
 
   if (!event) {
     return (
@@ -88,6 +89,15 @@ export default function EventDetailScreen() {
   const eventUrl = Linking.createURL(`/events/${event.id}`);
   const handleCopyLink = async () => {
     await Clipboard.setStringAsync(eventUrl);
+    setIsShareCopied(true);
+  };
+  const handleOpenShare = () => {
+    setIsShareCopied(false);
+    setIsShareOpen(true);
+  };
+  const handleCloseShare = () => {
+    setIsShareCopied(false);
+    setIsShareOpen(false);
   };
 
   return (
@@ -136,7 +146,7 @@ export default function EventDetailScreen() {
         )}
 
         {/* Share Button */}
-        <Pressable style={styles.shareButton} onPress={() => setIsShareOpen(true)}>
+        <Pressable style={styles.shareButton} onPress={handleOpenShare}>
           <Text style={styles.shareButtonText}>Поделиться событием</Text>
           <ThemedText>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -202,15 +212,18 @@ export default function EventDetailScreen() {
         transparent
         animationType="slide"
         visible={isShareOpen}
-        onRequestClose={() => setIsShareOpen(false)}
+        onRequestClose={handleCloseShare}
       >
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setIsShareOpen(false)} />
+          <Pressable style={styles.modalBackdrop} onPress={handleCloseShare} />
           <View style={styles.shareSheet}>
             <Text style={styles.shareTitle}>ПОДЕЛИТЬСЯ СОБЫТИЕМ</Text>
             <View style={styles.shareLinkBox}>
               <Text style={styles.shareLinkText}>{eventUrl}</Text>
             </View>
+            {isShareCopied ? (
+              <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
+            ) : null}
             <Pressable style={styles.shareCopyButton} onPress={handleCopyLink}>
               <Text style={styles.shareCopyButtonText}>Скопировать ссылку</Text>
             </Pressable>
@@ -555,6 +568,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   shareLinkText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
+  },
+  shareCopiedText: {
+    marginTop: 4,
     fontFamily: 'Inter-Regular',
     fontSize: 14,
     lineHeight: 20,
