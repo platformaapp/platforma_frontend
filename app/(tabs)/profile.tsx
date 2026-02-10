@@ -36,7 +36,10 @@ export default function ProfileScreen() {
         <Pressable style={styles.actionButton}>
           <Text style={styles.actionText}>Платежи</Text>
         </Pressable>
-        <Pressable style={[styles.actionButton, styles.actionPrimary]}>
+        <Pressable
+          style={[styles.actionButton, styles.actionPrimary]}
+          onPress={() => router.push('/(tabs)/new-event')}
+        >
           <Text style={[styles.actionText, styles.actionPrimaryText]}>Создать событие</Text>
         </Pressable>
       </View>
