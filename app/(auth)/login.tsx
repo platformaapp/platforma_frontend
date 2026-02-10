@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,7 +13,29 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
+  const [isMentor, setIsMentor] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const initRole = async () => {
+      const resolvedRole =
+        typeof roleParam === 'string'
+          ? roleParam
+          : Array.isArray(roleParam)
+            ? roleParam[0]
+            : undefined;
+      const storedRole = await getAuthRole();
+      const role = resolvedRole || storedRole;
+      if (isMounted && role === 'tutor') {
+        setIsMentor(true);
+      }
+    };
+    initRole();
+    return () => {
+      isMounted = false;
+    };
+  }, [roleParam]);
 
   async function onSubmit() {
     if (!email || !password) {
@@ -22,14 +44,7 @@ export default function LoginScreen() {
     }
     setIsSubmitting(true);
     try {
-      const resolvedRole =
-        typeof roleParam === 'string'
-          ? roleParam
-          : Array.isArray(roleParam)
-            ? roleParam[0]
-            : undefined;
-      const storedRole = await getAuthRole();
-      const role = resolvedRole || storedRole || 'student';
+      const role = isMentor ? 'tutor' : 'student';
 
       const res = await fetch(endpoints.login, {
         method: 'POST',
@@ -102,6 +117,15 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
+            <Pressable style={styles.checkboxRow} onPress={() => setIsMentor((prev) => !prev)}>
+              <View style={styles.checkbox}>
+                {isMentor && (
+                  <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
+                )}
+              </View>
+              <ThemedText style={styles.checkboxLabel}>Войти как наставник</ThemedText>
+            </Pressable>
+
             <Pressable style={[styles.btn, styles.btnPrimary, isSubmitting && { opacity: 0.6 }]} onPress={onSubmit} disabled={isSubmitting}>
               <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>Войти</ThemedText>
             </Pressable>
@@ -149,6 +173,34 @@ const styles = StyleSheet.create({
     right: 12,
     top: 6,
     padding: 6,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 1,
+    borderColor: '#181818',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxCheckmark: {
+    fontSize: 16,
+    color: '#181818',
+    fontWeight: 'bold',
+    lineHeight: 20,
+  },
+  checkboxLabel: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
   },
   btn: {
     borderRadius: 6,
