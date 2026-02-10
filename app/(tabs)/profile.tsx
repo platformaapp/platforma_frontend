@@ -1,9 +1,11 @@
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const slots = [
     '23.06\n18:00',
     '23.06\n20:00',
@@ -48,7 +50,7 @@ export default function ProfileScreen() {
       <Pressable style={styles.secondaryButton}>
         <Text style={styles.secondaryButtonText}>Все слоты</Text>
       </Pressable>
-      <Pressable style={styles.primaryButton}>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/(tabs)/slots')}>
         <Text style={styles.primaryButtonText}>Добавить слот</Text>
       </Pressable>
 
