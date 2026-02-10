@@ -1,3 +1,5 @@
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -94,6 +96,10 @@ export default function EventDetailScreen() {
     router.replace('/(tabs)/events');
   }
 
+  const eventUrl = Linking.createURL(`/events/${event.id}`);
+  const handleCopyLink = async () => {
+    await Clipboard.setStringAsync(eventUrl);
+  };
   
 
   if (!event) {
@@ -230,10 +236,10 @@ export default function EventDetailScreen() {
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Поделиться событием</Text>
             <View style={styles.modalEventCard}>
-              <Text style={styles.modalEventTitle}>https://bit.ly/hjhfKJHFjdnb3h</Text>
+              <Text style={styles.modalEventTitle}>{eventUrl}</Text>
               
             </View>
-            <Pressable style={styles.modalPayButton} >
+            <Pressable style={styles.modalPayButton} onPress={handleCopyLink}>
               <Text style={styles.modalPayButtonText}>Скопировать ссылку</Text>
             </Pressable>
             <Pressable style={[styles.writeToCuratorButton, {marginTop: 12}]} onPress={() => setShareEventVisible(false)}>
