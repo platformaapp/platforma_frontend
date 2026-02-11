@@ -25,6 +25,7 @@ export default function RootLayout() {
     'Inter-Regular': require('../assets/fonts/Inter/Inter_18pt-Regular.ttf'),
     'Inter-Bold': require('../assets/fonts/Inter/Inter_18pt-Bold.ttf'),
     'Inter-Medium': require('../assets/fonts/Inter/Inter_18pt-Medium.ttf'),
+    'Inter-Light': require('../assets/fonts/Inter/Inter-Light-BETA.ttf'),
   });
 
   useEffect(() => {

@@ -17,7 +17,8 @@ const EVENTS: EventItem[] = [
     id: 'a1f2c3d4-1111-4a1b-9f1a-1a1a1a1a1a1a',
     title: 'Как подойти к выставкам с умом, подготовиться и взять от них максимум?',
     subtitle: undefined,
-    description: 'Пообщался об этом с Настей Четвериковой из «Искусство для пацанчиков» искусствоведом Женей Гут. Сформировали коалицию надежды',
+    description: `Современное искусство часто кажется непонятным, провокационным или «слишком простым». Но за этой внешней неоднозначностью скрываются системы знаков, логики и контекста.
+    Этот мастер-класс — не про искусствоведение, а про зрение. Мы научимся распознавать художественные жесты, читать работы как тексты и ощущать в них интонации. Через реальные примеры, диалоги и упражнения ты откроешь, что видеть — это навык. И что современное искусство не про сложность, а про внимание.`,
     time: 'Через час',
     price: '500 ₽',
     image: require('@/assets/images/img.png'),
@@ -94,9 +95,9 @@ const styles = StyleSheet.create({
   titleText: {
     marginBottom: 12,
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: 'regular',
     lineHeight: 36,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter-Light',
     color: '#181818',
   },
   card: {
@@ -122,7 +123,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     fontSize: 20,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter-Light',
+    fontWeight: 700,
     color: '#1E1E1E',
   },
   description: {
