@@ -199,7 +199,10 @@ export default function EventDetailScreen() {
       setCardModalVisible(false);
       setCardModalDoneVisible(true);
     } catch (e: any) {
-      const message = e?.message ?? 'Не удалось оплатить';
+      const rawMessage = e?.message ?? 'Не удалось оплатить';
+      const message = rawMessage.toLowerCase().includes('token expired and refresh failed')
+        ? 'Авторизуйтесь заново'
+        : rawMessage;
       setPayError(message);
       Alert.alert('Ошибка оплаты', message);
     } finally {

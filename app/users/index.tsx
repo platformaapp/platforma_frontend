@@ -44,7 +44,11 @@ export default function UsersScreen() {
       }
       setUsers(Array.isArray(data) ? data : data?.data ?? []);
     } catch (e: any) {
-      setError(e?.message ?? 'Unknown error');
+      const rawMessage = e?.message ?? 'Unknown error';
+      const message = rawMessage.toLowerCase().includes('token expired and refresh failed')
+        ? 'Авторизуйтесь заново'
+        : rawMessage;
+      setError(message);
     } finally {
       setLoading(false);
     }
