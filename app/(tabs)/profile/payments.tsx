@@ -1,8 +1,11 @@
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
 import { setCardLinked } from '@/lib/payments';
 
 export default function PaymentsScreen() {
@@ -22,9 +25,63 @@ export default function PaymentsScreen() {
   const handleSubmitCard = async () => {
     if (isLinking) return;
     setIsLinking(true);
-    await setCardLinked(true);
-    setIsLinking(false);
-    setCardModalVisible(false);
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Для привязки карты нужно войти в аккаунт');
+      }
+
+      const res = await fetch(endpoints.bindPaymentMethod, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          cardNumber,
+          expiry,
+          cvc,
+          remember,
+        }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : await res.text();
+      if (!res.ok) {
+        const message = typeof data === 'string' ? data : data?.message || 'Не удалось привязать карту';
+        throw new Error(message);
+      }
+
+      const confirmationUrl =
+        data?.confirmation?.confirmation_url ||
+        data?.confirmation_url ||
+        data?.confirmationUrl ||
+        data?.payment?.confirmation?.confirmation_url ||
+        data?.payment?.confirmation_url;
+      if (confirmationUrl) {
+        await WebBrowser.openBrowserAsync(confirmationUrl);
+      }
+
+      const paymentMethodId =
+        data?.payment_method_id ||
+        data?.paymentMethodId ||
+        data?.payment_method?.id ||
+        data?.paymentMethod?.id ||
+        data?.data?.payment_method_id ||
+        data?.data?.paymentMethodId;
+      const status = data?.status || data?.payment?.status;
+      const isActive = status === 'active' || status === 'succeeded' || Boolean(paymentMethodId);
+      if (!isActive) {
+        throw new Error('Не удалось подтвердить карту');
+      }
+
+      await setCardLinked(true);
+      setCardModalVisible(false);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
+    } finally {
+      setIsLinking(false);
+    }
   };
 
   return (

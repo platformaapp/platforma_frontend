@@ -7,6 +7,7 @@ export const endpoints = {
   users: `${API_BASE}/api/users`,
   studentPayments: `${API_BASE}/api/student/payments`,
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
+  bindPaymentMethod: `${API_BASE}/api/student/payment-methods/bind`,
 };
 
 
