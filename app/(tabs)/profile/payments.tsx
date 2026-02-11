@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
-import { setCardLinked } from '@/lib/payments';
+import { getCardLinked, setCardLinked } from '@/lib/payments';
 
 export default function PaymentsScreen() {
   const router = useRouter();
@@ -16,6 +16,21 @@ export default function PaymentsScreen() {
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
   const [remember, setRemember] = useState(true);
+  const [isCardLinked, setIsCardLinked] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCardState = async () => {
+      const linked = await getCardLinked();
+      if (isMounted) {
+        setIsCardLinked(linked);
+      }
+    };
+    loadCardState();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleLinkCard = () => {
     if (isLinking) return;
@@ -76,6 +91,7 @@ export default function PaymentsScreen() {
       }
 
       await setCardLinked(true);
+      setIsCardLinked(true);
       setCardModalVisible(false);
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
@@ -98,14 +114,35 @@ export default function PaymentsScreen() {
 
       <Text style={styles.title}>ПЛАТЕЖИ</Text>
 
-      <Pressable style={styles.linkRow} onPress={handleLinkCard}>
-        <View style={styles.plusBox}>
-          <Text style={styles.plusText}>+</Text>
+      {isCardLinked ? (
+        <View style={styles.card}>
+          <View style={styles.cardInfo}>
+            <Text style={styles.cardTitle}>Карта MIR *2000</Text>
+            <Text style={styles.cardSubtitle}>Тинькофф Банк</Text>
+          </View>
+          <Pressable style={styles.cardAction} onPress={handleLinkCard}>
+            <Text style={styles.cardActionText}>Изменить</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.cardAction, styles.cardActionDelete]}
+            onPress={async () => {
+              await setCardLinked(false);
+              setIsCardLinked(false);
+            }}
+          >
+            <Text style={styles.cardActionDeleteText}>Удалить</Text>
+          </Pressable>
         </View>
-        <View style={styles.linkTextBox}>
-          <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
-        </View>
-      </Pressable>
+      ) : (
+        <Pressable style={styles.linkRow} onPress={handleLinkCard}>
+          <View style={styles.plusBox}>
+            <Text style={styles.plusText}>+</Text>
+          </View>
+          <View style={styles.linkTextBox}>
+            <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
+          </View>
+        </Pressable>
+      )}
 
       {isCardModalVisible && (
         <View style={styles.modalOverlay}>
@@ -214,6 +251,50 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  cardInfo: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  cardTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cardAction: {
+    borderTopWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cardActionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cardActionDelete: {
+    borderColor: '#E02D2D',
+  },
+  cardActionDeleteText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
   },
   modalOverlay: {
     position: 'absolute',
