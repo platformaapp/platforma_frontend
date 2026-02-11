@@ -66,7 +66,9 @@ export default function EventsScreen() {
             <View style={styles.cardBody}>
               <Text style={styles.cardTitleText}>{item.title}</Text>
               {item.description ? (
-                <Text style={styles.description}>{item.description}</Text>
+                <Text style={styles.description} numberOfLines={4} ellipsizeMode="tail">
+                  {item.description}
+                </Text>
               ) : null}
             </View>
             <View style={styles.footer}>
