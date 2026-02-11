@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -29,7 +29,10 @@ const EVENTS: EventItem[] = [
     id: 'a1f2c3d4-1111-4a1b-9f1a-1a1a1a1a1a1a',
     title: 'Как подойти к выставкам с умом, подготовиться и взять от них максимум?',
     subtitle: undefined,
-    description: 'Пообщался об этом с Настей Четвериковой из «Искусство для пацанчиков» искусствоведом Женей Гут. Сформировали коалицию надежды',
+    description: `
+    Современное искусство часто кажется непонятным, провокационным или «слишком простым». Но за этой внешней неоднозначностью скрываются системы знаков, логики и контекста.
+      Этот мастер-класс — не про искусствоведение, а про зрение. Мы научимся распознавать художественные жесты, читать работы как тексты и ощущать в них интонации. Через реальные примеры, диалоги и упражнения ты откроешь, что видеть — это навык. И что современное искусство не про сложность, а про внимание.
+    `,
     time: '13 июня 18:00',
     price: '500 ₽',
     image: require('@/assets/images/img.png'),
@@ -46,6 +49,11 @@ const EVENTS: EventItem[] = [
     time: '13 июня 20:00',
     price: '800 ₽',
     image: require('@/assets/images/img1.png'),
+    curator: {
+      name: 'Андрей Осетров',
+      role: 'Куратор, исследователь визуальной культуры',
+      avatar: require('@/assets/images/avatar.png'),
+    },
   },
   {
     id: 'c3f4a5b6-3333-4c3d-9f3c-3c3c3c3c3c3c',
@@ -54,6 +62,11 @@ const EVENTS: EventItem[] = [
     time: '15 июня 20:00',
     price: '800 ₽',
     image: require('@/assets/images/img2.png'),
+    curator: {
+      name: 'Андрей Осетров',
+      role: 'Куратор, исследователь визуальной культуры',
+      avatar: require('@/assets/images/avatar.png'),
+    },
   },
   {
     id: 'd4a5b6c7-4444-4d4e-9f4d-4d4d4d4d4d4d',
@@ -62,6 +75,11 @@ const EVENTS: EventItem[] = [
     time: '13 июня 20:00',
     price: '800 ₽',
     image: require('@/assets/images/img3.png'),
+    curator: {
+      name: 'Андрей Осетров',
+      role: 'Куратор, исследователь визуальной культуры',
+      avatar: require('@/assets/images/avatar.png'),
+    },
   },
 ];
 

@@ -5,7 +5,7 @@ import { ThemedText } from './themed-text';
 
 type TabIconProps = {
   focused: boolean;
-  type: 'square' | 'triangle' | 'circle' | 'home' | 'pentagon';
+  type: 'square' | 'triangle' | 'circle' | 'home' ;
 };
 
 export function TabIcon({ focused, type }: TabIconProps) {
@@ -46,7 +46,6 @@ export function TabIcon({ focused, type }: TabIconProps) {
           </View>
         );
       case 'home':
-      case 'pentagon':
         return (
           <View style={styles.iconContainer}>
             <ThemedText>
