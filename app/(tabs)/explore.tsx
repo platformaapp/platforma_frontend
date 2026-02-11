@@ -1,111 +1,187 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+type Mentor = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  price: string;
+  avatar: any;
+};
 
-export default function TabTwoScreen() {
+const MENTORS: Mentor[] = [
+  {
+    id: '1',
+    name: 'Андрей Осетров',
+    role: 'Куратор, исследователь визуальной культуры',
+    bio: 'Преподаю на стыке современного искусства, медиа и теории восприятия. Веду открытые курсы по визуальной грамотности, сотрудничал с Третьяковской галереей, ГЭС-2 и Garage Digital. Умею объяснять сложно просто, без пафоса и скуки. Считаю, что понимание искусства — это не про образование, а про внимание.',
+    price: '2500 ₽ / час',
+    avatar: require('@/assets/images/avatar.png'),
+  },
+  {
+    id: '2',
+    name: 'Варвара Михайлова',
+    role: 'Коллекционер, програмный директор региональных грантов',
+    bio: 'Пишу о независимом кино и дистрибуции. Составляю программы для «Каро Арт» и ММКФ, веду подкаст «Снять на улице». Расскажу, как наменять студии бренда 24 и не работать вовремя.',
+    price: '2500 ₽ / час',
+    avatar: require('@/assets/images/avatar.png'),
+  },
+  {
+    id: '3',
+    name: 'Кирилл Грачёв',
+    role: 'Дизайнер цифровых и арт-директор',
+    bio: 'Автор принтов «Golos» и «Berlinke Cyrillic». Консультировал The Village и «Логос» по типографике. Помогаю видеть в буквах ритм, а в сетке — свободу, даю инсайты по Figma.',
+    price: '2500 ₽ / час',
+    avatar: require('@/assets/images/avatar.png'),
+  },
+  {
+    id: '4',
+    name: 'Полина Селезнёва',
+    role: 'Футуролог, исследователь технологий',
+    bio: 'Исследую экосистемы и цифровую культуру. Запускала концепции для Beeline, Ректор «Деткартум» и Dicks Design Week. Докладчик на RoboBreak, UXR, Wearable Fest.',
+    price: '2500 ₽ / час',
+    avatar: require('@/assets/images/avatar.png'),
+  },
+  {
+    id: '5',
+    name: 'Марк Дроздов',
+    role: 'Серебряный арт-директор',
+    bio: '10 лет делаю уникальные плакаты и постеры. Нахожу общие идеи из разных тем и люблю обсуждать искусство, когда это не про карьеру, а про жизнь.',
+    price: '2500 ₽ / час',
+    avatar: require('@/assets/images/avatar.png'),
+  },
+  {
+    id: '6',
+    name: 'Инга Рунова',
+    role: 'Историк искусств, исследователь',
+    bio: 'Специализируюсь на русском плакате XX-XXI веков и «новой эстетике» до Gucci и Raf Simons. Помогу выстроить культурный код бренда и расскажу, почему худой имеет биткоин.',
+    price: '2500 ₽ / час',
+    avatar: require('@/assets/images/avatar.png'),
+  },
+];
+
+export default function MentorsScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>НАСТАВНИКИ</Text>
+      {MENTORS.map((mentor) => (
+        <View key={mentor.id} style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Image source={mentor.avatar} style={styles.avatar} />
+            <View style={styles.headerText}>
+              <Text style={styles.name}>{mentor.name}</Text>
+              <Text style={styles.role}>{mentor.role}</Text>
+            </View>
+          </View>
+          <View style={styles.cardBody}>
+            <Text style={styles.bio}>{mentor.bio}</Text>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Стоимость консультации</Text>
+            <Text style={styles.priceValue}>{mentor.price}</Text>
+          </View>
+          <Pressable style={styles.contactButton}>
+            <Text style={styles.contactButtonText}>Написать наставнику</Text>
+          </Pressable>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  titleContainer: {
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  title: {
+    paddingTop: 16,
+    paddingBottom: 12,
+    fontSize: 20,
+    lineHeight: 26,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 16,
+    backgroundColor: '#fff',
+  },
+  cardHeader: {
     flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+  },
+  headerText: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  name: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 4,
+  },
+  role: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cardBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  bio: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  priceLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  priceValue: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  contactButton: {
+    backgroundColor: '#111',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  contactButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
   },
 });

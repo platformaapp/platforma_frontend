@@ -1,118 +1,188 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-import { Pressable } from 'react-native';
 
-export default function HomeScreen() {
+type RecordItem = {
+  id: string;
+  title: string;
+  author: string;
+  datetime: string;
+  image: any;
+};
+
+const RECORDS: RecordItem[] = [
+  {
+    id: '1',
+    title: 'Как подойти к выставкам с умом, подготовиться и взять от них максимум?',
+    author: 'Андрей Осетров',
+    datetime: '15.06 ПН 20:00',
+    image: require('@/assets/images/img.png'),
+  },
+  {
+    id: '2',
+    title: 'Личная встреча',
+    author: 'Варвара Михайлова',
+    datetime: '15.06 ПН 20:00',
+    image: require('@/assets/images/avatar.png'),
+  },
+  {
+    id: '3',
+    title: 'Как подойти к выставкам с умом, подготовиться и взять от них максимум?',
+    author: 'Андрей Осетров',
+    datetime: '15.06 ПН 20:00',
+    image: require('@/assets/images/img.png'),
+  },
+];
+
+export default function RecordsScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/(auth)" asChild>
-          <Pressable style={{ paddingVertical: 12 }}>
-            <ThemedText type="link">Перейти к регистрации</ThemedText>
-          </Pressable>
-        </Link>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/users" asChild>
-          <Pressable style={{ paddingVertical: 12 }}>
-            <ThemedText type="link">Список пользователей</ThemedText>
-          </Pressable>
-        </Link>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/(tabs)/events" asChild>
-          <Pressable style={{ paddingVertical: 12 }}>
-            <ThemedText type="link">События</ThemedText>
-          </Pressable>
-        </Link>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.container}>
+      <Text style={styles.title}>МОИ ЗАПИСИ</Text>
+      <ScrollView contentContainerStyle={styles.list}>
+        {RECORDS.map((item) => (
+          <View key={item.id} style={styles.card}>
+            <View style={styles.cardTop}>
+              <Image source={item.image} style={styles.cardImage} />
+              <View style={styles.cardTitleBox}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+              </View>
+            </View>
+            <View style={styles.cardBottom}>
+              <Text style={styles.cardAuthor}>{item.author}</Text>
+              <Text style={styles.cardDate}>{item.datetime}</Text>
+              <View style={styles.cardMenu}>
+                <Text style={styles.cardMenuText}>•••</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      <View style={styles.bottomPanel}>
+        <View style={styles.nextEventRow}>
+          <ThemedText>
+            <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 3H14L20 7V9L14 13H2V3Z" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round"/>
+            </svg>
+          </ThemedText>
+          <Text style={styles.nextEventText}>До ближайшего события: 2 дня 3 часа и 15 минут</Text>
+        </View>
+        <Pressable style={styles.videoButton}>
+          <Text style={styles.videoButtonText}>Открыть видео</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  title: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    fontSize: 20,
+    lineHeight: 26,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  card: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 16,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  cardImage: {
+    width: 96,
+    height: 96,
+  },
+  cardTitleBox: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
   },
-  stepContainer: {
-    marginBottom: 8,
+  cardAuthor: {
+    flex: 1,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  cardDate: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cardMenu: {
+    width: 44,
+    height: '100%',
+    borderLeftWidth: 1,
+    borderColor: '#1E1E1E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  cardMenuText: {
+    fontSize: 18,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  bottomPanel: {
+    backgroundColor: '#111',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  nextEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  nextEventText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+    flex: 1,
+  },
+  videoButton: {
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    paddingVertical: 14,
+    alignItems: 'center',
+    height: 52,
+  },
+  videoButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
   },
 });
