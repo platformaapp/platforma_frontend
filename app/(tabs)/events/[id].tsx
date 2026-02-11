@@ -8,6 +8,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
+import { useWindowDimensions } from 'react-native';
 
 type EventItem = {
   id: string;
@@ -29,9 +30,8 @@ const EVENTS: EventItem[] = [
     id: 'a1f2c3d4-1111-4a1b-9f1a-1a1a1a1a1a1a',
     title: 'Как подойти к выставкам с умом, подготовиться и взять от них максимум?',
     subtitle: undefined,
-    description: `
-    Современное искусство часто кажется непонятным, провокационным или «слишком простым». Но за этой внешней неоднозначностью скрываются системы знаков, логики и контекста.
-      Этот мастер-класс — не про искусствоведение, а про зрение. Мы научимся распознавать художественные жесты, читать работы как тексты и ощущать в них интонации. Через реальные примеры, диалоги и упражнения ты откроешь, что видеть — это навык. И что современное искусство не про сложность, а про внимание.
+    description: `Современное искусство часто кажется непонятным, провокационным или «слишком простым». Но за этой внешней неоднозначностью скрываются системы знаков, логики и контекста.
+    Этот мастер-класс — не про искусствоведение, а про зрение. Мы научимся распознавать художественные жесты, читать работы как тексты и ощущать в них интонации. Через реальные примеры, диалоги и упражнения ты откроешь, что видеть — это навык. И что современное искусство не про сложность, а про внимание.
     `,
     time: '13 июня 18:00',
     price: '500 ₽',
@@ -95,6 +95,7 @@ export default function EventDetailScreen() {
   const [isShareCopied, setIsShareCopied] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState('');
+  const { width } = useWindowDimensions();
 
   async function handleLinkNow() {
     const token = await getAuthToken();
@@ -221,9 +222,12 @@ export default function EventDetailScreen() {
       <View style={styles.container}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ThemedText>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
+</svg>
+
+
+
           </ThemedText>
         </Pressable>
         <ThemedText style={styles.errorText}>Событие не найдено</ThemedText>
@@ -241,9 +245,11 @@ export default function EventDetailScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/events')}>
         <ThemedText>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
+</svg>
+
+
         </ThemedText>
       </Pressable>
 
@@ -253,7 +259,7 @@ export default function EventDetailScreen() {
         <View style={styles.mainCardBody}>
           <Text style={styles.mainTitle}>{event.title}</Text>
           {event.description ? (
-            <Text style={styles.mainDescription}>{event.description}</Text>
+            <Text style={[styles.mainDescription, { whiteSpace: 'unset' }]}>{event.description}</Text>
           ) : null}
         </View>
         <View style={styles.mainFooter}>
@@ -274,7 +280,7 @@ export default function EventDetailScreen() {
         <View style={styles.curatorSection}>
           <View style={styles.curatorSectionWrapper}>
             <Image source={event.curator.avatar} style={styles.curatorAvatar} />
-            <View  style={styles.curatorNameWrapper}>
+            <View  style={[styles.curatorNameWrapper, { width: width - 96 - 32 - 16 }]}>
               <Text style={styles.curatorName}>{event.curator.name}</Text>
               <Text style={styles.curatorRole}>{event.curator.role}</Text>
             </View>
@@ -448,7 +454,7 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
     top: 12,
-    left: 16,
+    left: 0,
     zIndex: 1,
     padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
