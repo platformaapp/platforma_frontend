@@ -56,12 +56,6 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
         }}
       />
-      <Tabs.Screen name="events/[id]" options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="slots" options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="payments" options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="edit-profile" options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="new-password" options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="new-event" options={{ tabBarButton: () => null }} />
     </Tabs>
   );
 }

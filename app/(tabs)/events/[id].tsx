@@ -138,7 +138,7 @@ export default function EventDetailScreen() {
       }
       if (!isLinked) {
         setCardModalVisible(false);
-        router.push('/(tabs)/payments');
+        router.push('/(tabs)/profile/payments');
         return;
       }
 

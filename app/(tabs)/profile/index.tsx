@@ -29,16 +29,16 @@ export default function ProfileScreen() {
       <View style={styles.actionsCard}>
         <Pressable
           style={[styles.actionButton, styles.actionButtonFirst]}
-          onPress={() => router.push('/(tabs)/edit-profile')}
+          onPress={() => router.push('/(tabs)/profile/edit-profile')}
         >
           <Text style={styles.actionText}>Изменить личные данные</Text>
         </Pressable>
-        <Pressable style={styles.actionButton} onPress={() => router.push('/(tabs)/payments')}>
+        <Pressable style={styles.actionButton} onPress={() => router.push('/(tabs)/profile/payments')}>
           <Text style={styles.actionText}>Платежи</Text>
         </Pressable>
         <Pressable
           style={[styles.actionButton, styles.actionPrimary]}
-          onPress={() => router.push('/(tabs)/new-event')}
+          onPress={() => router.push('/(tabs)/profile/new-event')}
         >
           <Text style={[styles.actionText, styles.actionPrimaryText]}>Создать событие</Text>
         </Pressable>
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
       <Pressable style={styles.secondaryButton}>
         <Text style={styles.secondaryButtonText}>Все слоты</Text>
       </Pressable>
-      <Pressable style={styles.primaryButton} onPress={() => router.push('/(tabs)/slots')}>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/(tabs)/profile/slots')}>
         <Text style={styles.primaryButtonText}>Добавить слот</Text>
       </Pressable>
 
@@ -229,8 +229,3 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
-
-
-
-
