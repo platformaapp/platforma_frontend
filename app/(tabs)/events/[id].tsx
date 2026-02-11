@@ -96,7 +96,12 @@ export default function EventDetailScreen() {
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState('');
 
-  function handleLinkNow() {
+  async function handleLinkNow() {
+    const token = await getAuthToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
     setCardModalVisible(true);
     setIsShareCopied(false);
     setPayError('');
