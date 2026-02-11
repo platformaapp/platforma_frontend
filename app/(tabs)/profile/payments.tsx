@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { setCardLinked } from '@/lib/payments';
@@ -8,12 +8,23 @@ import { setCardLinked } from '@/lib/payments';
 export default function PaymentsScreen() {
   const router = useRouter();
   const [isLinking, setIsLinking] = useState(false);
+  const [isCardModalVisible, setCardModalVisible] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
+  const [remember, setRemember] = useState(true);
 
-  const handleLinkCard = async () => {
+  const handleLinkCard = () => {
+    if (isLinking) return;
+    setCardModalVisible(true);
+  };
+
+  const handleSubmitCard = async () => {
     if (isLinking) return;
     setIsLinking(true);
     await setCardLinked(true);
     setIsLinking(false);
+    setCardModalVisible(false);
   };
 
   return (
@@ -38,6 +49,58 @@ export default function PaymentsScreen() {
           <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
         </View>
       </Pressable>
+
+      {isCardModalVisible && (
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.backdrop} onPress={() => setCardModalVisible(false)} />
+          <View style={styles.modalSheet}>
+            <ThemedText type="title" style={styles.modalTitle}>НОВАЯ КАРТА</ThemedText>
+
+            <TextInput
+              placeholder="Номер карты"
+              placeholderTextColor="#888"
+              style={styles.input}
+              value={cardNumber}
+              onChangeText={setCardNumber}
+              keyboardType="numeric"
+            />
+
+            <View style={styles.row}>
+              <TextInput
+                placeholder="MM/ГГ"
+                placeholderTextColor="#888"
+                style={[styles.input, styles.inputHalf]}
+                value={expiry}
+                onChangeText={setExpiry}
+                keyboardType="numeric"
+              />
+              <TextInput
+                placeholder="CVC2/CVV"
+                placeholderTextColor="#888"
+                style={[styles.input, styles.inputHalf]}
+                value={cvc}
+                onChangeText={setCvc}
+                keyboardType="numeric"
+              />
+            </View>
+
+            <Pressable style={styles.checkboxRow} onPress={() => setRemember((prev) => !prev)}>
+              <View style={styles.checkbox}>
+                {remember && (
+                  <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
+                )}
+              </View>
+              <ThemedText style={styles.checkboxLabel}>Запомнить карту</ThemedText>
+            </Pressable>
+
+            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={handleSubmitCard}>
+              <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
+                Продолжить
+              </ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -94,5 +157,103 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  modalSheet: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    gap: 12,
+  },
+  modalTitle: {
+    marginTop: 0,
+    marginBottom: 8,
+    fontFamily: 'Inter-Regular',
+    fontSize: 28,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 36,
+    letterSpacing: -2,
+    color: '#181818',
+    textAlign: 'left',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: 'rgba(24, 24, 24, 1.0)',
+    borderRadius: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#181818',
+  },
+  inputHalf: {
+    flex: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 1,
+    borderColor: '#181818',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxCheckmark: {
+    fontSize: 16,
+    color: '#181818',
+    fontWeight: 'bold',
+    lineHeight: 20,
+  },
+  checkboxLabel: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
+  },
+  btn: {
+    borderRadius: 0,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    height: 52,
+  },
+  btnPrimary: {
+    backgroundColor: '#111',
+    borderColor: 'rgba(24, 24, 24, 1.0)',
+  },
+  btnPrimaryText: {
+    color: '#FFF',
+  },
+  btnPrimaryTextCustom: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: 20,
+    color: '#FAFAFA',
   },
 });
