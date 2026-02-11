@@ -9,7 +9,6 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarButton: HapticTab,
         tabBarActiveTintColor: '#E02D2D',
         tabBarInactiveTintColor: '#181818',
         tabBarStyle: {
@@ -26,23 +25,26 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="events"
+        name="index"
         options={{
           title: '',
+          tabBarButton: HapticTab,
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
         }}
       />
       <Tabs.Screen
-        name="login"
+        name="explore"
         options={{
           title: '',
+          tabBarButton: HapticTab,
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="triangle" />,
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="events"
         options={{
           title: '',
+          tabBarButton: HapticTab,
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
         }}
       />
@@ -50,15 +52,16 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: '',
+          tabBarButton: HapticTab,
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
         }}
       />
-      <Tabs.Screen name="events/[id]" options={{ href: null }} />
-      <Tabs.Screen name="slots" options={{ href: null }} />
-      <Tabs.Screen name="payments" options={{ href: null }} />
-      <Tabs.Screen name="edit-profile" options={{ href: null }} />
-      <Tabs.Screen name="new-password" options={{ href: null }} />
-      <Tabs.Screen name="new-event" options={{ href: null }} />
+      <Tabs.Screen name="events/[id]" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="slots" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="payments" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="edit-profile" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="new-password" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="new-event" options={{ tabBarButton: () => null }} />
     </Tabs>
   );
 }
