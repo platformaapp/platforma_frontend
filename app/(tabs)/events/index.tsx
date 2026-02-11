@@ -95,9 +95,9 @@ const styles = StyleSheet.create({
   titleText: {
     marginBottom: 12,
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: 'regular',
     lineHeight: 36,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter-Light',
     color: '#181818',
   },
   card: {
@@ -123,7 +123,8 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     fontSize: 20,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Inter-Light',
+    fontWeight: 700,
     color: '#1E1E1E',
   },
   description: {
