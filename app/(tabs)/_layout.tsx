@@ -26,21 +26,21 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="events"
         options={{
           title: '',
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="login"
         options={{
           title: '',
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="triangle" />,
         }}
       />
       <Tabs.Screen
-        name="events"
+        name="index"
         options={{
           title: '',
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
@@ -50,7 +50,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: '',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="pentagon" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
         }}
       />
       <Tabs.Screen name="slots" options={{ tabBarButton: () => null }} />
