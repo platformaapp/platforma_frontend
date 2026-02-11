@@ -33,7 +33,7 @@ export default function ProfileScreen() {
         >
           <Text style={styles.actionText}>Изменить личные данные</Text>
         </Pressable>
-        <Pressable style={styles.actionButton}>
+        <Pressable style={styles.actionButton} onPress={() => router.push('/(tabs)/payments')}>
           <Text style={styles.actionText}>Платежи</Text>
         </Pressable>
         <Pressable

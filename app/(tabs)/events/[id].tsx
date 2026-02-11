@@ -8,6 +8,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
+import { getCardLinked } from '@/lib/payments';
 import { useWindowDimensions } from 'react-native';
 
 type EventItem = {
@@ -124,12 +125,21 @@ export default function EventDetailScreen() {
     setIsShareCopied(false);
     setPayError('');
     try {
-      const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
+      const [token, role, isLinked] = await Promise.all([
+        getAuthToken(),
+        getAuthRole(),
+        getCardLinked(),
+      ]);
       if (!token) {
         throw new Error('Для оплаты нужно войти в аккаунт');
       }
       if (role && role !== 'student') {
         throw new Error('Оплата доступна только для студентов');
+      }
+      if (!isLinked) {
+        setCardModalVisible(false);
+        router.push('/(tabs)/payments');
+        return;
       }
 
       const res = await fetch(endpoints.studentPayments, {

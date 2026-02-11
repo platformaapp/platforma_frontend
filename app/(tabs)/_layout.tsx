@@ -54,6 +54,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="slots" options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="payments" options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="edit-profile" options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="new-password" options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="new-event" options={{ tabBarButton: () => null }} />
