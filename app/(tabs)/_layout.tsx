@@ -15,23 +15,24 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#CFCFCF',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: 82,
+          paddingBottom: 0,
+          paddingTop: 12,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: 'Inter-Regular',
         },
       }}>
-      <Tabs.Screen
+        <Tabs.Screen
         name="events"
         options={{
           title: '',
           tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
         }}
       />
+      
       <Tabs.Screen
         name="explore"
         options={{
@@ -40,14 +41,16 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="triangle" />,
         }}
       />
-      <Tabs.Screen
+
+<Tabs.Screen
         name="index"
         options={{
           title: '',
           tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
         }}
       />
+      
       <Tabs.Screen
         name="profile"
         options={{
