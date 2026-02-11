@@ -25,11 +25,11 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="events"
         options={{
           title: '',
           tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
         }}
       />
       <Tabs.Screen
@@ -41,11 +41,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="events"
+        name="index"
         options={{
           title: '',
           tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
         }}
       />
       <Tabs.Screen
