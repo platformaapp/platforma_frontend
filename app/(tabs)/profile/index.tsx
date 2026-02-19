@@ -10,6 +10,13 @@ export default function ProfileScreen() {
   const router = useRouter();
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [isSwitching, setIsSwitching] = useState(false);
+  const studentProfile = {
+    name: 'Варвара Михайлова',
+  };
+  const tutorProfile = {
+    name: 'Андрей Осетров',
+    role: 'Куратор, исследователь визуальной культуры',
+  };
   const slots = [
     '23.06\n18:00',
     '23.06\n20:00',
@@ -67,36 +74,55 @@ export default function ProfileScreen() {
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.roleSwitch}>
-        <Pressable
-          style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
-          onPress={() => handleSwitchRole('student')}
-          disabled={isSwitching}
-        >
-          <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>
-            Ученик
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.roleButton, role === 'tutor' && styles.roleButtonActive]}
-          onPress={() => handleSwitchRole('tutor')}
-          disabled={isSwitching}
-        >
-          <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>
-            Наставник
-          </Text>
-        </Pressable>
-      </View>
-
+  const renderStudentContent = () => (
+    <>
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
           <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
         </View>
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>Андрей Осетров</Text>
-          <Text style={styles.profileRole}>Куратор, исследователь визуальной культуры</Text>
+          <Text style={styles.profileName}>{studentProfile.name}</Text>
+        </View>
+      </View>
+
+      <View style={styles.actionsCard}>
+        <Pressable
+          style={[styles.actionButton, styles.actionButtonFirst]}
+          onPress={() => router.push('/(tabs)/profile/edit-profile')}
+        >
+          <Text style={styles.actionText}>Изменить личные данные</Text>
+        </Pressable>
+        <Pressable style={styles.actionButton} onPress={() => router.push('/(tabs)/profile/payments')}>
+          <Text style={styles.actionText}>Платежи</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.studentInviteCard}>
+        <View style={styles.studentInviteContent}>
+          <Text style={styles.studentInviteText}>
+            Отправьте товарищу ссылку на платформу и ходите на мастер-классы вместе
+          </Text>
+        </View>
+        <View style={styles.inviteIconBox}>
+          <ThemedText>
+            <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 6.66667L10 1.66667M15 6.66667L10 11.6667M15 6.66667H5C3.89543 6.66667 3 7.5621 3 8.66667V15.3333C3 16.4379 3.89543 17.3333 5 17.3333H12.3333C13.4379 17.3333 14.3333 16.4379 14.3333 15.3333V6.66667" stroke="#181818" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </ThemedText>
+        </View>
+      </View>
+    </>
+  );
+
+  const renderTutorContent = () => (
+    <>
+      <View style={styles.profileCard}>
+        <View style={styles.profileImageWrapper}>
+          <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
+        </View>
+        <View style={styles.profileInfo}>
+          <Text style={styles.profileName}>{tutorProfile.name}</Text>
+          <Text style={styles.profileRole}>{tutorProfile.role}</Text>
         </View>
       </View>
 
@@ -147,6 +173,35 @@ export default function ProfileScreen() {
           </ThemedText>
         </View>
       </View>
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.roleSwitch}>
+        <Pressable
+          style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
+          onPress={() => handleSwitchRole('student')}
+          disabled={isSwitching}
+        >
+          <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>
+            Ученик
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.roleButton, role === 'tutor' && styles.roleButtonActive]}
+          onPress={() => handleSwitchRole('tutor')}
+          disabled={isSwitching}
+        >
+          <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>
+            Наставник
+          </Text>
+        </Pressable>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {role === 'student' ? renderStudentContent() : renderTutorContent()}
+      </ScrollView>
     </View>
   );
 }
@@ -179,6 +234,23 @@ const styles = StyleSheet.create({
   },
   roleButtonTextActive: {
     color: '#FAFAFA',
+  },
+  studentInviteCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  studentInviteContent: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  studentInviteText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   profileCard: {
     borderWidth: 1,
