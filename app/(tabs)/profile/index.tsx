@@ -1,11 +1,15 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { endpoints } from '@/constants/env';
+import { extractTokenFromResponse, getAuthRole, getAuthToken, saveAuthToken } from '@/lib/auth';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [role, setRole] = useState<'student' | 'tutor'>('student');
+  const [isSwitching, setIsSwitching] = useState(false);
   const slots = [
     '23.06\n18:00',
     '23.06\n20:00',
@@ -14,8 +18,78 @@ export default function ProfileScreen() {
     '25.06\n20:00',
   ];
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadRole = async () => {
+      const storedRole = await getAuthRole();
+      if (isMounted && (storedRole === 'student' || storedRole === 'tutor')) {
+        setRole(storedRole);
+      }
+    };
+    loadRole();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
+    if (isSwitching || nextRole === role) return;
+    const token = await getAuthToken();
+    if (!token) {
+      Alert.alert('Ошибка', 'Для смены роли нужно войти в аккаунт');
+      router.push('/login');
+      return;
+    }
+    setIsSwitching(true);
+    try {
+      const res = await fetch(endpoints.switchRole, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : await res.text();
+      if (!res.ok) {
+        const message = typeof data === 'string' ? data : data?.message || 'Не удалось сменить роль';
+        throw new Error(message);
+      }
+      const newToken = extractTokenFromResponse(data) || token;
+      await saveAuthToken(newToken, nextRole);
+      setRole(nextRole);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось сменить роль');
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
+      <View style={styles.roleSwitch}>
+        <Pressable
+          style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
+          onPress={() => handleSwitchRole('student')}
+          disabled={isSwitching}
+        >
+          <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>
+            Ученик
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.roleButton, role === 'tutor' && styles.roleButtonActive]}
+          onPress={() => handleSwitchRole('tutor')}
+          disabled={isSwitching}
+        >
+          <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>
+            Наставник
+          </Text>
+        </Pressable>
+      </View>
+
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
           <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
@@ -82,6 +156,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 16,
+  },
+  roleSwitch: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 16,
+  },
+  roleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  roleButtonActive: {
+    backgroundColor: '#111',
+  },
+  roleButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  roleButtonTextActive: {
+    color: '#FAFAFA',
   },
   profileCard: {
     borderWidth: 1,
