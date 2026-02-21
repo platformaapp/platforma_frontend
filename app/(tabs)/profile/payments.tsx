@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -18,6 +17,21 @@ export default function PaymentsScreen() {
   const [cvc, setCvc] = useState('');
   const [remember, setRemember] = useState(true);
   const [isCardLinked, setIsCardLinked] = useState(false);
+
+  const mapBindError = (status: number, fallback: string) => {
+    switch (status) {
+      case 400:
+        return 'Некорректные данные карты';
+      case 402:
+        return 'Оплата не прошла';
+      case 409:
+        return 'Карта уже привязана';
+      case 500:
+        return 'Ошибка YooKassa';
+      default:
+        return fallback;
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -47,47 +61,79 @@ export default function PaymentsScreen() {
         throw new Error('Для привязки карты нужно войти в аккаунт');
       }
 
-      const returnUrl = Linking.createURL('/(tabs)/profile/payments');
-      const res = await fetch(endpoints.bindPaymentMethod, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          returnUrl,
-          remember,
-        }),
-      });
-      const contentType = res.headers.get('content-type') || '';
-      const isJson = contentType.includes('application/json');
-      const data = isJson ? await res.json() : await res.text();
-      if (!res.ok) {
-        const message = typeof data === 'string' ? data : data?.message || 'Не удалось привязать карту';
+      const requestBind = async (url: string) => {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const payload = isJson ? await response.json() : await response.text();
+        return { response, payload };
+      };
+
+      let { response, payload } = await requestBind(endpoints.bindPaymentMethod);
+      if (!response.ok && (response.status === 404 || response.status === 405)) {
+        const retry = await requestBind(endpoints.bindPaymentMethodLegacy);
+        response = retry.response;
+        payload = retry.payload;
+      }
+      if (!response.ok) {
+        const message = typeof payload === 'string' ? payload : payload?.message || 'Не удалось привязать карту';
+        throw new Error(mapBindError(response.status, message));
+      }
+
+      const redirectUrl =
+        payload?.redirect_url ||
+        payload?.redirectUrl ||
+        payload?.confirmation?.confirmation_url ||
+        payload?.confirmation_url ||
+        payload?.confirmationUrl;
+      if (!redirectUrl) {
+        throw new Error('Не удалось получить ссылку для подтверждения карты');
+      }
+
+      const paymentIdMatch = String(redirectUrl).match(/[?&]payment_id=([^&]+)/i);
+      const paymentId = paymentIdMatch ? decodeURIComponent(paymentIdMatch[1]) : undefined;
+      await WebBrowser.openBrowserAsync(redirectUrl);
+
+      if (!paymentId) {
+        throw new Error('Не удалось получить id платежа');
+      }
+
+      const requestCallback = async (url: string) => {
+        const callbackUrl = `${url}?payment_id=${encodeURIComponent(paymentId)}`;
+        const callbackRes = await fetch(callbackUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const contentType = callbackRes.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const callbackPayload = isJson ? await callbackRes.json() : await callbackRes.text();
+        return { callbackRes, callbackPayload };
+      };
+
+      let { callbackRes, callbackPayload } = await requestCallback(endpoints.paymentMethodsCallback);
+      if (!callbackRes.ok && (callbackRes.status === 404 || callbackRes.status === 405)) {
+        const retry = await requestCallback(endpoints.paymentMethodsCallbackLegacy);
+        callbackRes = retry.callbackRes;
+        callbackPayload = retry.callbackPayload;
+      }
+      if (!callbackRes.ok) {
+        const message =
+          typeof callbackPayload === 'string'
+            ? callbackPayload
+            : callbackPayload?.message || 'Ошибка привязки карты';
+        throw new Error(mapBindError(callbackRes.status, message));
+      }
+
+      const status = callbackPayload?.status;
+      if (status !== 'succeeded') {
+        const message = callbackPayload?.message || 'Ошибка привязки карты';
         throw new Error(message);
-      }
-
-      const confirmationUrl =
-        data?.confirmation?.confirmation_url ||
-        data?.confirmation_url ||
-        data?.confirmationUrl ||
-        data?.payment?.confirmation?.confirmation_url ||
-        data?.payment?.confirmation_url;
-      if (confirmationUrl) {
-        await WebBrowser.openBrowserAsync(confirmationUrl);
-      }
-
-      const paymentMethodId =
-        data?.payment_method_id ||
-        data?.paymentMethodId ||
-        data?.payment_method?.id ||
-        data?.paymentMethod?.id ||
-        data?.data?.payment_method_id ||
-        data?.data?.paymentMethodId;
-      const status = data?.status || data?.payment?.status;
-      const isActive = status === 'active' || status === 'succeeded' || Boolean(paymentMethodId);
-      if (!isActive) {
-        throw new Error('Не удалось подтвердить карту');
       }
 
       await setCardLinked(true);

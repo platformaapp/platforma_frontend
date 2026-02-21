@@ -7,7 +7,10 @@ export const endpoints = {
   users: `${API_BASE}/api/users`,
   studentPayments: `${API_BASE}/api/student/payments`,
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
-  bindPaymentMethod: `${API_BASE}/api/student/payment-methods/bind`,
+  bindPaymentMethod: `${API_BASE}/student/payment-methods/bind`,
+  bindPaymentMethodLegacy: `${API_BASE}/api/student/payment-methods/bind`,
+  paymentMethodsCallback: `${API_BASE}/payments/callback`,
+  paymentMethodsCallbackLegacy: `${API_BASE}/api/payments/callback`,
   switchRole: `${API_BASE}/auth/switch-role`,
   switchRoleLegacy: `${API_BASE}/api/auth/switch-role`,
 };
