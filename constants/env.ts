@@ -8,7 +8,7 @@ export const endpoints = {
   studentPayments: `${API_BASE}/api/student/payments`,
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
   bindPaymentMethod: `${API_BASE}/api/student/payment-methods/bind`,
-  switchRole: `${API_BASE}/api/auth/switch-role`,
+  switchRole: `${API_BASE}/auth/switch-role`,
 };
 
 
