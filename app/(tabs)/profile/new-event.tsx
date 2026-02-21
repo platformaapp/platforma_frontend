@@ -127,7 +127,7 @@ export default function NewEventScreen() {
         ) : (
           <TextInput
             value={price}
-            onChangeText={setPrice}
+            onChangeText={(text) => setPrice(text.replace(/\D/g, ''))}
             style={styles.priceInput}
             placeholder="Стоимость участия"
             placeholderTextColor="#9B9B9B"
