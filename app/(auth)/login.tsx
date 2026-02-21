@@ -63,7 +63,7 @@ export default function LoginScreen() {
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
       if (token) {
-        await saveAuthToken(token, data?.role || data?.user?.role, refreshToken);
+        await saveAuthToken(token, role, refreshToken);
       }
       router.replace('/(tabs)/events');
     } catch (e: any) {
