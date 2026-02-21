@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
@@ -47,7 +46,8 @@ export default function PaymentsScreen() {
         throw new Error('Для привязки карты нужно войти в аккаунт');
       }
 
-      const returnUrl = Linking.createURL('/(tabs)/profile/payments');
+      // const returnUrl = Linking.createURL('/(tabs)/profile/payments');
+      const returnUrl = 'http://194.67.88.237/(tabs)/profile/payments';
       const res = await fetch(endpoints.bindPaymentMethod, {
         method: 'POST',
         headers: {
