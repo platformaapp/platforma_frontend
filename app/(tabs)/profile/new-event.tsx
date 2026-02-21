@@ -21,7 +21,12 @@ export default function NewEventScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [time, setTime] = useState('');
   const [price, setPrice] = useState('');
+  const [isEditingPrice, setIsEditingPrice] = useState(true);
   const [maxParticipants, setMaxParticipants] = useState('');
+
+  const priceValue = price ? parseInt(price) || 0 : 0;
+  const commission = priceValue * 0.1;
+  const finalAmount = priceValue - commission;
 
   return (
     <View style={styles.container}>
@@ -113,14 +118,37 @@ export default function NewEventScreen() {
       />
 
       <View style={styles.priceRow}>
-        <TextInput
-          value={price}
-          onChangeText={setPrice}
-          style={styles.priceInput}
-          placeholder="Стоимость участия"
-          placeholderTextColor="#9B9B9B"
-        />
-        <Text style={styles.priceHint}>Комиссия 10%</Text>
+        {price && !isEditingPrice ? (
+          <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
+            <Text style={styles.priceDisplay}>
+              Стоимость участия — {priceValue} ₽
+            </Text>
+          </Pressable>
+        ) : (
+          <TextInput
+            value={price}
+            onChangeText={setPrice}
+            style={styles.priceInput}
+            placeholder="Стоимость участия"
+            placeholderTextColor="#9B9B9B"
+            keyboardType="numeric"
+            onBlur={() => {
+              if (price && parseInt(price) > 0) {
+                setIsEditingPrice(false);
+              }
+            }}
+          />
+        )}
+        {price && priceValue > 0 ? (
+          <View style={styles.commissionInfo}>
+            <Text style={styles.commissionText}>Комиссия 10%</Text>
+            <Text style={styles.finalAmountText}>
+              Вы получите {Math.round(finalAmount)} ₽
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.commissionText}>Комиссия 10%</Text>
+        )}
       </View>
 
       <TextInput
@@ -213,26 +241,50 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   priceRow: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 14,
     paddingHorizontal: 12,
+    marginBottom: 12,
+    minHeight: 52,
   },
   priceInput: {
     flex: 1,
-    paddingVertical: 12,
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
     color: '#181818',
+    padding: 0,
+    margin: 0,
+    minHeight: 24,
+    borderWidth: 0,
   },
-  priceHint: {
-    fontSize: 12,
-    lineHeight: 16,
+  priceDisplayWrap: {
+    flex: 1,
+  },
+  priceDisplay: {
     fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#181818',
+    minHeight: 24,
+    paddingVertical: 4,
+  },
+  commissionInfo: {
+    alignItems: 'flex-end',
+    marginLeft: 12,
+  },
+  commissionText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
     color: '#9B9B9B',
+    marginBottom: 4,
+  },
+  finalAmountText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#181818',
   },
   uploadButton: {
     borderWidth: 1,
