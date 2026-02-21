@@ -1,14 +1,24 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+
+function formatDate(d: Date): string {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+}
 
 export default function NewEventScreen() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
+  const [dateInputText, setDateInputText] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [time, setTime] = useState('');
   const [price, setPrice] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
@@ -43,13 +53,57 @@ export default function NewEventScreen() {
         multiline
         textAlignVertical="top"
       />
-      <TextInput
-        value={date}
-        onChangeText={setDate}
-        style={styles.input}
-        placeholder="Дата"
-        placeholderTextColor="#9B9B9B"
-      />
+      {Platform.OS === 'web' ? (
+        <TextInput
+          value={dateInputText}
+          onChangeText={(v) => {
+            setDateInputText(v);
+            const m = v.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+            setDate(m ? new Date(+m[3], +m[2] - 1, +m[1]) : null);
+          }}
+          style={styles.input}
+          placeholder="Дата (ДД.ММ.ГГГГ)"
+          placeholderTextColor="#9B9B9B"
+        />
+      ) : (
+        <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+          <Text style={[styles.dateText, !date && styles.placeholderText]}>
+            {date ? formatDate(date) : 'Дата'}
+          </Text>
+        </Pressable>
+      )}
+      {showDatePicker && Platform.OS === 'ios' && (
+        <Modal transparent animationType="slide">
+          <Pressable style={styles.datePickerOverlay} onPress={() => setShowDatePicker(false)}>
+            <Pressable style={styles.datePickerSheet} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.datePickerHeader}>
+                <Pressable onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.datePickerDone}>Готово</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={date ?? new Date()}
+                mode="date"
+                display="spinner"
+                minimumDate={new Date()}
+                onChange={(_, selectedDate) => selectedDate && setDate(selectedDate)}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+      {showDatePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={date ?? new Date()}
+          mode="date"
+          display="default"
+          minimumDate={new Date()}
+          onChange={(_, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) setDate(selectedDate);
+          }}
+        />
+      )}
       <TextInput
         value={time}
         onChangeText={setTime}
@@ -121,6 +175,38 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#181818',
     marginBottom: 12,
+  },
+  dateText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  placeholderText: {
+    color: '#9B9B9B',
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  datePickerSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  datePickerDone: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
   },
   textArea: {
     minHeight: 96,
