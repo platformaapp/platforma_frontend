@@ -54,24 +54,36 @@ export default function ProfileScreen() {
     }
     setIsSwitching(true);
     try {
-      const res = await fetch(endpoints.switchRole, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role: nextRole }),
-      });
-      const contentType = res.headers.get('content-type') || '';
-      const isJson = contentType.includes('application/json');
-      const data = isJson ? await res.json() : await res.text();
-      if (!res.ok) {
-        const message = typeof data === 'string' ? data : data?.message || 'Не удалось сменить роль';
+      const requestSwitchRole = async (url: string) => {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role: nextRole }),
+        });
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const payload = isJson ? await response.json() : await response.text();
+        return { response, payload };
+      };
+
+      let { response, payload } = await requestSwitchRole(endpoints.switchRole);
+      if (!response.ok && (response.status === 404 || response.status === 405)) {
+        const retry = await requestSwitchRole(endpoints.switchRoleLegacy);
+        response = retry.response;
+        payload = retry.payload;
+      }
+
+      if (!response.ok) {
+        const message = typeof payload === 'string' ? payload : payload?.message || 'Не удалось сменить роль';
         throw new Error(message);
       }
-      const newToken = extractTokenFromResponse(data) || token;
+
+      const newToken = extractTokenFromResponse(payload) || token;
       const storedRefresh = await getRefreshToken();
-      const refreshToken = extractRefreshTokenFromResponse(data) || storedRefresh || undefined;
+      const refreshToken = extractRefreshTokenFromResponse(payload) || storedRefresh || undefined;
       await saveAuthToken(newToken, nextRole, refreshToken);
       setRole(nextRole);
     } catch (e: any) {
