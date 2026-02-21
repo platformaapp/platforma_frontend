@@ -13,6 +13,13 @@ export const endpoints = {
   paymentMethodsCallbackLegacy: `${API_BASE}/api/payments/callback`,
   switchRole: `${API_BASE}/auth/switch-role`,
   switchRoleLegacy: `${API_BASE}/api/auth/switch-role`,
+
+  // Tutor (Наставник) — профиль, слоты, события, платежи
+  tutorProfile: `${API_BASE}/api/tutor/profile`,
+  tutorSlots: `${API_BASE}/api/tutor/slots`,
+  tutorEvents: `${API_BASE}/api/tutor/events`,
+  tutorPayments: `${API_BASE}/api/tutor/payments`,
+  tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
 };
 
 
