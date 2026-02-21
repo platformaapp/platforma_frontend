@@ -28,6 +28,11 @@ export default function ProfileScreen() {
   useEffect(() => {
     let isMounted = true;
     const loadRole = async () => {
+      const token = await getAuthToken();
+      if (!token) {
+        router.replace('/login');
+        return;
+      }
       const storedRole = await getAuthRole();
       if (isMounted && (storedRole === 'student' || storedRole === 'tutor')) {
         setRole(storedRole);
@@ -37,7 +42,7 @@ export default function ProfileScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [router]);
 
   const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
     if (isSwitching || nextRole === role) return;
