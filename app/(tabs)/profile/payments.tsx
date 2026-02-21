@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -46,6 +47,7 @@ export default function PaymentsScreen() {
         throw new Error('Для привязки карты нужно войти в аккаунт');
       }
 
+      const returnUrl = Linking.createURL('/(tabs)/profile/payments');
       const res = await fetch(endpoints.bindPaymentMethod, {
         method: 'POST',
         headers: {
@@ -53,9 +55,7 @@ export default function PaymentsScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          cardNumber,
-          expiry,
-          cvc,
+          returnUrl,
           remember,
         }),
       });
