@@ -5,7 +5,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
-import { extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
 
@@ -116,12 +116,13 @@ export default function RegisterTutorScreen() {
       
       // Пытаемся извлечь токен из ответа
       const token = extractTokenFromResponse(data);
+      const refreshToken = extractRefreshTokenFromResponse(data);
       console.log('Извлеченный токен:', token ? `есть (${token.substring(0, 20)}...)` : 'нет');
       
       // Сохраняем токен, если он есть
       if (token) {
         try {
-          await saveAuthToken(token, 'tutor');
+          await saveAuthToken(token, 'tutor', refreshToken);
           console.log('Токен сохранен успешно');
         } catch (saveError) {
           console.error('Ошибка сохранения токена:', saveError);

@@ -5,7 +5,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
-import { extractTokenFromResponse, getAuthRole, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, saveAuthToken } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -61,8 +61,9 @@ export default function LoginScreen() {
         throw new Error(message);
       }
       const token = extractTokenFromResponse(data);
+      const refreshToken = extractRefreshTokenFromResponse(data);
       if (token) {
-        await saveAuthToken(token, data?.role || data?.user?.role);
+        await saveAuthToken(token, data?.role || data?.user?.role, refreshToken);
       }
       router.replace('/(tabs)/events');
     } catch (e: any) {

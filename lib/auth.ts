@@ -2,11 +2,12 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 const ROLE_KEY = 'auth_role';
 
 const isWeb = Platform.OS === 'web';
 
-export async function saveAuthToken(token: string, role?: string) {
+export async function saveAuthToken(token: string, role?: string, refreshToken?: string) {
   if (!token) return;
 
   if (isWeb) {
@@ -19,6 +20,9 @@ export async function saveAuthToken(token: string, role?: string) {
         if (role) {
           ls.setItem(ROLE_KEY, role);
         }
+        if (refreshToken) {
+          ls.setItem(REFRESH_TOKEN_KEY, refreshToken);
+        }
       }
     } catch (error) {
       console.error('Ошибка сохранения токена в localStorage:', error);
@@ -29,6 +33,9 @@ export async function saveAuthToken(token: string, role?: string) {
       await SecureStore.setItemAsync(TOKEN_KEY, token);
       if (role) {
         await SecureStore.setItemAsync(ROLE_KEY, role);
+      }
+      if (refreshToken) {
+        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
       }
       
       // Дополнительно сохраняем в localStorage для совместимости
@@ -67,6 +74,26 @@ export async function getAuthToken() {
   }
 }
 
+export async function getRefreshToken() {
+  if (isWeb) {
+    try {
+      const ls = (globalThis as any)?.localStorage;
+      if (ls && typeof ls.getItem === 'function') {
+        return ls.getItem(REFRESH_TOKEN_KEY) || null;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  } else {
+    try {
+      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  }
+}
+
 export async function getAuthRole() {
   if (isWeb) {
     try {
@@ -93,6 +120,7 @@ export async function clearAuth() {
       const ls = (globalThis as any)?.localStorage;
       if (ls && typeof ls.removeItem === 'function') {
         ls.removeItem(TOKEN_KEY);
+        ls.removeItem(REFRESH_TOKEN_KEY);
         ls.removeItem(ROLE_KEY);
         ls.removeItem('access_token');
       }
@@ -102,6 +130,7 @@ export async function clearAuth() {
   } else {
     try {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
       await SecureStore.deleteItemAsync(ROLE_KEY);
     } catch {
       // Игнорируем ошибки
@@ -119,6 +148,18 @@ export function extractTokenFromResponse(data: any): string | undefined {
     data?.data?.token ||
     data?.data?.access_token ||
     data?.data?.accessToken
+  );
+}
+
+export function extractRefreshTokenFromResponse(data: any): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  return (
+    data.refreshToken ||
+    data.refresh_token ||
+    data.refresh ||
+    data?.data?.refreshToken ||
+    data?.data?.refresh_token ||
+    data?.data?.refresh
   );
 }
 

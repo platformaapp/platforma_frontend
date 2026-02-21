@@ -4,7 +4,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
-import { extractTokenFromResponse, getAuthRole, getAuthToken, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from '@/lib/auth';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -70,7 +70,9 @@ export default function ProfileScreen() {
         throw new Error(message);
       }
       const newToken = extractTokenFromResponse(data) || token;
-      await saveAuthToken(newToken, nextRole);
+      const storedRefresh = await getRefreshToken();
+      const refreshToken = extractRefreshTokenFromResponse(data) || storedRefresh || undefined;
+      await saveAuthToken(newToken, nextRole, refreshToken);
       setRole(nextRole);
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось сменить роль');
