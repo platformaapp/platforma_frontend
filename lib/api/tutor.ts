@@ -105,6 +105,7 @@ export interface Payment {
 export interface PaymentsSummary {
   total_income: number;
   month_income?: number;
+  balance?: number;
 }
 
 // --- Хелперы ---

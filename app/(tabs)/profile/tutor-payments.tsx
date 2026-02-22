@@ -1,0 +1,475 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+
+import {
+  getTutorPayments,
+  getTutorPaymentsSummary,
+  type Payment,
+  type PaymentsSummary,
+} from '@/lib/api/tutor';
+
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}.${mm}.${yy} ${hh}:${min}`;
+  } catch {
+    return iso;
+  }
+}
+
+function formatAmount(amount: number): string {
+  return `${amount.toLocaleString('ru-RU')} ₽`;
+}
+
+function statusLabel(status: string): string {
+  if (status === 'success') return 'исполнено';
+  if (status === 'pending') return 'в обработке';
+  if (status === 'failed') return 'ошибка';
+  return status;
+}
+
+const BALANCE_TOOLTIP = 'Не забудьте оплатить налоги и жить счастливо, счатливо';
+const WITHDRAWAL_TOOLTIP =
+  'Деньги на ваш счет придут в течение 3 рабочих дней, а может быть и раньше';
+
+export default function TutorPaymentsScreen() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<PaymentsSummary | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isWithdrawModalVisible, setWithdrawModalVisible] = useState(false);
+
+  const cardMasked = 'Карта MIR * 2000';
+  const cardBank = 'Тинькофф Банк';
+
+  const loadData = useCallback(async () => {
+    try {
+      const [sum, list] = await Promise.all([
+        getTutorPaymentsSummary(),
+        getTutorPayments(),
+      ]);
+      setSummary(sum);
+      setPayments(list);
+    } catch (e: any) {
+      setSummary(null);
+      setPayments([]);
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      setLoading(true);
+      Promise.all([getTutorPaymentsSummary(), getTutorPayments()])
+        .then(([sum, list]) => {
+          if (!cancelled) {
+            setSummary(sum);
+            setPayments(list);
+          }
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setSummary(null);
+            setPayments([]);
+            Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => { cancelled = true; };
+    }, [])
+  );
+
+  const handleWithdrawConfirm = () => {
+    setWithdrawModalVisible(false);
+  };
+
+  const handleWithdrawReplace = () => {
+    setWithdrawModalVisible(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#181818" />
+      </View>
+    );
+  }
+
+  const balance = summary?.balance ?? summary?.total_income ?? 0;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <MaterialIcons name="chevron-left" size={24} color="#181818" />
+        </Pressable>
+        <Text style={styles.title}>ПЛАТЕЖИ</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.balanceRow}>
+          <Text style={styles.balanceLabel}>Баланс</Text>
+          <View style={styles.balanceRight}>
+            <Text style={styles.balanceAmount}>{formatAmount(balance)}</Text>
+            <Pressable
+              style={styles.infoIcon}
+              onPress={() => Alert.alert('О балансе', BALANCE_TOOLTIP)}
+            >
+              <MaterialIcons name="help-outline" size={18} color="#181818" />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.cardBlock}>
+          <View style={styles.cardInfo}>
+            <Text style={styles.cardTitle}>{cardMasked}</Text>
+            <Text style={styles.cardSubtitle}>{cardBank}</Text>
+          </View>
+          <Pressable
+            style={[styles.cardAction, styles.cardActionPrimary]}
+            onPress={() => setWithdrawModalVisible(true)}
+          >
+            <Text style={styles.cardActionPrimaryText}>Вывести на карту</Text>
+          </Pressable>
+          <Pressable style={styles.cardAction}>
+            <Text style={styles.cardActionText}>Изменить</Text>
+          </Pressable>
+          <Pressable style={[styles.cardAction, styles.cardActionDelete]}>
+            <Text style={styles.cardActionDeleteText}>Удалить</Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionTitle}>История платежей</Text>
+        {payments.map((p) => (
+          <View key={p.id} style={styles.historyRow}>
+            <View style={styles.historyLeft}>
+              <Text style={styles.historyId}>№{p.id.replace(/\D/g, '').slice(-5) || p.id.slice(-5)}</Text>
+              <Text style={styles.historyDesc}>Вывод на карту</Text>
+              <Text style={styles.historyDate}>{formatDate(p.created_at ?? '')}</Text>
+            </View>
+            <View style={styles.historyRight}>
+              <View style={styles.historyStatusRow}>
+                <Text style={styles.historyStatus}>{statusLabel(p.status)}</Text>
+                <Pressable
+                  style={styles.infoIcon}
+                  onPress={() => Alert.alert('О выводе', WITHDRAWAL_TOOLTIP)}
+                >
+                  <MaterialIcons name="help-outline" size={18} color="#181818" />
+                </Pressable>
+              </View>
+              <Text style={styles.historyAmount}>{formatAmount(p.amount)}</Text>
+            </View>
+          </View>
+        ))}
+        {payments.length === 0 ? (
+          <Text style={styles.emptyText}>История пуста</Text>
+        ) : null}
+      </ScrollView>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isWithdrawModalVisible}
+        onRequestClose={() => setWithdrawModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setWithdrawModalVisible(false)}
+        >
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>ОТПРАВИТЬ ДЕНЬГИ НА ЭТУ КАРТУ?</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>{cardMasked}</Text>
+              <Text style={styles.modalEventSubtitle}>{cardBank}</Text>
+            </View>
+            <Pressable
+              style={styles.modalPayButton}
+              onPress={handleWithdrawConfirm}
+            >
+              <Text style={styles.modalPayButtonText}>Да, все ок</Text>
+            </Pressable>
+            <Pressable
+              style={styles.modalSecondaryButton}
+              onPress={handleWithdrawReplace}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Нет, заменю</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    paddingTop: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    marginTop: 12,
+    marginBottom: 16,
+    fontSize: 20,
+    lineHeight: 26,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  content: {
+    paddingBottom: 24,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  balanceRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  balanceAmount: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  infoIcon: {
+    padding: 4,
+  },
+  cardBlock: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 24,
+  },
+  cardInfo: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  cardTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+  },
+  cardAction: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  cardActionPrimary: {
+    backgroundColor: '#111',
+    borderTopWidth: 0,
+  },
+  cardActionPrimaryText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#FAFAFA',
+  },
+  cardActionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cardActionDelete: {
+    borderColor: '#E02D2D',
+  },
+  cardActionDeleteText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 12,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 8,
+  },
+  historyLeft: {
+    flex: 1,
+  },
+  historyId: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  historyDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginTop: 4,
+  },
+  historyDate: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
+  },
+  historyRight: {
+    alignItems: 'flex-end',
+  },
+  historyStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  historyStatus: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  historyAmount: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginTop: 4,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  modalTitle: {
+    marginTop: 0,
+    marginBottom: 8,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    lineHeight: 36,
+    letterSpacing: -1,
+    color: '#181818',
+    textAlign: 'left',
+  },
+  modalEventCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  modalEventTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#1E1E1E',
+  },
+  modalEventSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
+  },
+  modalPayButton: {
+    marginTop: 16,
+    backgroundColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalPayButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  modalSecondaryButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  modalSecondaryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+});
