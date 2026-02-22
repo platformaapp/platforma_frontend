@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { createEvent } from '@/lib/api/events';
+import { AuthError, createEvent } from '@/lib/api/events';
 
 function formatDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
@@ -108,7 +108,12 @@ export default function NewEventScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось создать событие');
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
+      const msg = e?.message ?? 'Не удалось создать событие';
+      Alert.alert('Ошибка', msg);
     } finally {
       setIsSubmitting(false);
     }

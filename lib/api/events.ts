@@ -9,7 +9,14 @@
  */
 
 import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
+import { clearAuth, getAuthToken } from '@/lib/auth';
+
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
 
 // --- Типы ---
 
@@ -75,6 +82,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     const msg = typeof payload === 'string' ? payload : payload?.error ?? payload?.message ?? 'Ошибка запроса';
+    if (res.status === 401) {
+      await clearAuth();
+      throw new AuthError(msg);
+    }
+    if (res.status === 504) {
+      throw new Error('Сервер не отвечает. Попробуйте позже.');
+    }
     throw new Error(msg);
   }
 
