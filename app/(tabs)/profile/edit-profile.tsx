@@ -1,29 +1,69 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const [name, setName] = useState('Андрей Осетров');
-  const [role, setRole] = useState('Куратор, исследователь визуальной культуры');
-  const [email, setEmail] = useState('andrey_osetrov@yandex.ru');
-  const [telegram, setTelegram] = useState('Телеграм: @andrrrr');
-  const [bio, setBio] = useState(
-    'Преподаю на стыке современного искусства, медиа и теории восприятия. Веду открытые курсы по визуальной грамотности, сотрудничал с Третьяковской галереей, ГЭС-2 и Garage Digital. Умею объяснять сложно просто, без пафоса и скуки. Считаю, что понимание искусства — это не про образование, а про внимание.'
-  );
-  const [price, setPrice] = useState('Стоимость часовой консультации: 600 ₽');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
+  const [email, setEmail] = useState('');
+  const [telegram, setTelegram] = useState('');
+  const [bio, setBio] = useState('');
+  const [price, setPrice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTutorProfile()
+      .then((p) => {
+        if (!cancelled) {
+          setName(p.full_name ?? '');
+          setBio(p.bio ?? '');
+          setEmail(p.email ?? '');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setName('Андрей Осетров');
+          setRole('Куратор, исследователь визуальной культуры');
+          setEmail('andrey_osetrov@yandex.ru');
+          setTelegram('Телеграм: @andrrrr');
+          setBio('Преподаю на стыке современного искусства, медиа и теории восприятия. Веду открытые курсы по визуальной грамотности, сотрудничал с Третьяковской галереей, ГЭС-2 и Garage Digital. Умею объяснять сложно просто, без пафоса и скуки. Считаю, что понимание искусства — это не про образование, а про внимание.');
+          setPrice('Стоимость часовой консультации: 600 ₽');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleSave() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await updateTutorProfile({
+        full_name: name.trim(),
+        bio: bio.trim(),
+      });
+      router.back();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось сохранить');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ThemedText>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
+          <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
       </View>
 
@@ -59,8 +99,8 @@ export default function EditProfileScreen() {
           <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
         </Pressable>
 
-        <Pressable style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Сохранить изменения</Text>
+        <Pressable style={[styles.primaryButton, saving && styles.primaryButtonDisabled]} onPress={handleSave} disabled={saving}>
+          <Text style={styles.primaryButtonText}>{saving ? 'Сохранение...' : 'Сохранить изменения'}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -156,6 +196,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     height: 52,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     fontSize: 14,

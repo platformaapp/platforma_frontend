@@ -1,7 +1,9 @@
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
@@ -21,6 +23,15 @@ export default function ProfileScreen() {
     role: 'Куратор, исследователь визуальной культуры',
   };
   const [slots, setSlots] = useState<{ date: string; time: string }[]>([]);
+  const [isShareVisible, setShareVisible] = useState(false);
+  const [isShareCopied, setShareCopied] = useState(false);
+
+  const profileUrl = Linking.createURL('/(tabs)/profile');
+
+  const handleCopyProfileLink = async () => {
+    await Clipboard.setStringAsync(profileUrl);
+    setShareCopied(true);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -185,7 +196,7 @@ export default function ProfileScreen() {
         <Text style={styles.primaryButtonText}>Добавить слот</Text>
       </Pressable>
 
-      <View style={styles.inviteCard}>
+      <Pressable style={styles.inviteCard} onPress={() => { setShareCopied(false); setShareVisible(true); }}>
         <View style={styles.inviteContent}>
           <Text style={styles.inviteTitle}>Инвайт</Text>
           <Text style={styles.inviteSubtitle}>Отправьте ссылку на ваш профиль</Text>
@@ -197,7 +208,25 @@ export default function ProfileScreen() {
             </svg>
           </ThemedText>
         </View>
-      </View>
+      </Pressable>
+
+      <Modal transparent animationType="none" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
+        <Pressable style={styles.shareModalOverlay} onPress={() => setShareVisible(false)}>
+          <Pressable style={styles.shareModalSheet} onPress={() => {}}>
+            <Text style={styles.shareModalTitle}>Поделиться событием</Text>
+            <View style={styles.shareModalCard}>
+              <Text style={styles.shareModalUrl} numberOfLines={2}>{profileUrl}</Text>
+            </View>
+            {isShareCopied ? <Text style={styles.shareCopiedText}>Ссылка скопирована</Text> : null}
+            <Pressable style={styles.shareModalButton} onPress={handleCopyProfileLink}>
+              <Text style={styles.shareModalButtonText}>Скопировать ссылку</Text>
+            </Pressable>
+            <Pressable style={styles.shareModalClose} onPress={() => setShareVisible(false)}>
+              <Text style={styles.shareModalCloseText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 
@@ -421,5 +450,60 @@ const styles = StyleSheet.create({
     borderColor: '#1E1E1E',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  shareModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  shareModalSheet: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+  },
+  shareModalTitle: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 12,
+  },
+  shareModalCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    padding: 12,
+  },
+  shareModalUrl: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  shareCopiedText: {
+    marginTop: 4,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  shareModalButton: {
+    marginTop: 16,
+    backgroundColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  shareModalButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  shareModalClose: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  shareModalCloseText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
 });
