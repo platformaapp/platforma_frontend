@@ -1,51 +1,34 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
-import { getCardLinked, setCardLinked } from '@/lib/payments';
+import { bindPaymentMethod } from '@/lib/api/student-payments';
+import { getCardLinked, getCardMasked, setCardLinked } from '@/lib/payments';
 
 export default function PaymentsScreen() {
   const router = useRouter();
   const [isLinking, setIsLinking] = useState(false);
   const [isCardModalVisible, setCardModalVisible] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [remember, setRemember] = useState(true);
   const [isCardLinked, setIsCardLinked] = useState(false);
 
-  const mapBindError = (status: number, fallback: string) => {
-    switch (status) {
-      case 400:
-        return 'Некорректные данные карты';
-      case 402:
-        return 'Оплата не прошла';
-      case 409:
-        return 'Карта уже привязана';
-      case 500:
-        return 'Ошибка YooKassa';
-      default:
-        return fallback;
-    }
-  };
+  const [cardMasked, setCardMaskedState] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadCardState = async () => {
-      const linked = await getCardLinked();
-      if (isMounted) {
-        setIsCardLinked(linked);
-      }
-    };
-    loadCardState();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      Promise.all([getCardLinked(), getCardMasked()]).then(([linked, masked]) => {
+        if (!cancelled) {
+          setIsCardLinked(linked);
+          setCardMaskedState(masked);
+        }
+      });
+      return () => { cancelled = true; };
+    }, [])
+  );
 
   const handleLinkCard = () => {
     if (isLinking) return;
@@ -54,91 +37,22 @@ export default function PaymentsScreen() {
 
   const handleSubmitCard = async () => {
     if (isLinking) return;
+    const number = cardNumber.replace(/\s/g, '');
+    if (!number || number.length < 13) {
+      Alert.alert('Ошибка', 'Введите номер карты');
+      return;
+    }
     setIsLinking(true);
     try {
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('Для привязки карты нужно войти в аккаунт');
-      }
-
-      const requestBind = async (url: string) => {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const contentType = response.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const payload = isJson ? await response.json() : await response.text();
-        return { response, payload };
-      };
-
-      let { response, payload } = await requestBind(endpoints.bindPaymentMethod);
-      if (!response.ok && (response.status === 404 || response.status === 405)) {
-        const retry = await requestBind(endpoints.bindPaymentMethodLegacy);
-        response = retry.response;
-        payload = retry.payload;
-      }
-      if (!response.ok) {
-        const message = typeof payload === 'string' ? payload : payload?.message || 'Не удалось привязать карту';
-        throw new Error(mapBindError(response.status, message));
-      }
-
-      const redirectUrl =
-        payload?.redirect_url ||
-        payload?.redirectUrl ||
-        payload?.confirmation?.confirmation_url ||
-        payload?.confirmation_url ||
-        payload?.confirmationUrl;
-      if (!redirectUrl) {
-        throw new Error('Не удалось получить ссылку для подтверждения карты');
-      }
-
-      const paymentIdMatch = String(redirectUrl).match(/[?&]payment_id=([^&]+)/i);
-      const paymentId = paymentIdMatch ? decodeURIComponent(paymentIdMatch[1]) : undefined;
-      await WebBrowser.openBrowserAsync(redirectUrl);
-
-      if (!paymentId) {
-        throw new Error('Не удалось получить id платежа');
-      }
-
-      const requestCallback = async (url: string) => {
-        const callbackUrl = `${url}?payment_id=${encodeURIComponent(paymentId)}`;
-        const callbackRes = await fetch(callbackUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const contentType = callbackRes.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const callbackPayload = isJson ? await callbackRes.json() : await callbackRes.text();
-        return { callbackRes, callbackPayload };
-      };
-
-      let { callbackRes, callbackPayload } = await requestCallback(endpoints.paymentMethodsCallback);
-      if (!callbackRes.ok && (callbackRes.status === 404 || callbackRes.status === 405)) {
-        const retry = await requestCallback(endpoints.paymentMethodsCallbackLegacy);
-        callbackRes = retry.callbackRes;
-        callbackPayload = retry.callbackPayload;
-      }
-      if (!callbackRes.ok) {
-        const message =
-          typeof callbackPayload === 'string'
-            ? callbackPayload
-            : callbackPayload?.message || 'Ошибка привязки карты';
-        throw new Error(mapBindError(callbackRes.status, message));
-      }
-
-      const status = callbackPayload?.status;
-      if (status !== 'succeeded') {
-        const message = callbackPayload?.message || 'Ошибка привязки карты';
-        throw new Error(message);
-      }
-
-      await setCardLinked(true);
+      const result = await bindPaymentMethod({
+        provider: 'yookassa',
+        card_number: number,
+      });
+      await setCardLinked(true, result.card_masked);
       setIsCardLinked(true);
+      setCardMaskedState(result.card_masked);
       setCardModalVisible(false);
+      setCardNumber('');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
     } finally {
@@ -150,11 +64,7 @@ export default function PaymentsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ThemedText>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
+          <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
       </View>
 
@@ -163,8 +73,7 @@ export default function PaymentsScreen() {
       {isCardLinked ? (
         <View style={styles.card}>
           <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>Карта MIR *2000</Text>
-            <Text style={styles.cardSubtitle}>Тинькофф Банк</Text>
+            <Text style={styles.cardTitle}>Карта {cardMasked ?? '**** ****'}</Text>
           </View>
           <Pressable style={styles.cardAction} onPress={handleLinkCard}>
             <Text style={styles.cardActionText}>Изменить</Text>
@@ -174,6 +83,7 @@ export default function PaymentsScreen() {
             onPress={async () => {
               await setCardLinked(false);
               setIsCardLinked(false);
+              setCardMaskedState(null);
             }}
           >
             <Text style={styles.cardActionDeleteText}>Удалить</Text>
@@ -201,41 +111,14 @@ export default function PaymentsScreen() {
               placeholderTextColor="#888"
               style={styles.input}
               value={cardNumber}
-              onChangeText={setCardNumber}
+              onChangeText={(t) => setCardNumber(t.replace(/\D/g, ''))}
               keyboardType="numeric"
+              maxLength={19}
             />
 
-            <View style={styles.row}>
-              <TextInput
-                placeholder="MM/ГГ"
-                placeholderTextColor="#888"
-                style={[styles.input, styles.inputHalf]}
-                value={expiry}
-                onChangeText={setExpiry}
-                keyboardType="numeric"
-              />
-              <TextInput
-                placeholder="CVC2/CVV"
-                placeholderTextColor="#888"
-                style={[styles.input, styles.inputHalf]}
-                value={cvc}
-                onChangeText={setCvc}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <Pressable style={styles.checkboxRow} onPress={() => setRemember((prev) => !prev)}>
-              <View style={styles.checkbox}>
-                {remember && (
-                  <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
-                )}
-              </View>
-              <ThemedText style={styles.checkboxLabel}>Запомнить карту</ThemedText>
-            </Pressable>
-
-            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={handleSubmitCard}>
+            <Pressable style={[styles.btn, styles.btnPrimary, isLinking && styles.btnDisabled]} onPress={handleSubmitCard} disabled={isLinking}>
               <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
-                Продолжить
+                {isLinking ? 'Привязка...' : 'Продолжить'}
               </ThemedText>
             </Pressable>
           </View>
@@ -383,41 +266,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#181818',
   },
-  inputHalf: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 1,
-    borderColor: '#181818',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxCheckmark: {
-    fontSize: 16,
-    color: '#181818',
-    fontWeight: 'bold',
-    lineHeight: 20,
-  },
-  checkboxLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
   btn: {
     borderRadius: 0,
     paddingVertical: 16,
@@ -428,6 +276,9 @@ const styles = StyleSheet.create({
   btnPrimary: {
     backgroundColor: '#111',
     borderColor: 'rgba(24, 24, 24, 1.0)',
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
   btnPrimaryText: {
     color: '#FFF',
