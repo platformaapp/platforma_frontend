@@ -1,26 +1,50 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-type SlotRow = {
-  id: string;
-  date: string;
-  day?: string;
-  time: string;
-};
-
-const SLOTS: SlotRow[] = [
-  { id: '1', date: '20.07.25', day: 'ВС', time: '20:00' },
-  { id: '2', date: '21.07.25', day: 'ПН', time: '20:00' },
-  { id: '3', date: '22.07.25', day: 'ВТ', time: '20:00' },
-  { id: '4', date: '23.07.25', day: 'СР', time: '18:00' },
-  { id: '5', date: '23.07.25', day: 'СР', time: '20:00' },
-  { id: '6', date: '24.07.25', day: 'ЧТ', time: '20:00' },
-];
+import { getSlots, removeSlots, type Slot } from '@/lib/slots-store';
 
 export default function SlotsScreen() {
   const router = useRouter();
+  const [slots, setSlotsState] = useState<Slot[]>([]);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [slotsBeforeDelete, setSlotsBeforeDelete] = useState<Slot[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setSlotsState(getSlots());
+    }, [])
+  );
+
+  function enterDeleteMode() {
+    setSlotsBeforeDelete([...slots]);
+    setIsDeleteMode(true);
+  }
+
+  function exitDeleteMode() {
+    setIsDeleteMode(false);
+  }
+
+  function handleCancel() {
+    setSlotsState([...slotsBeforeDelete]);
+    exitDeleteMode();
+  }
+
+  function handleSaveDelete() {
+    const beforeIds = new Set(slotsBeforeDelete.map((s) => s.id));
+    const currentIds = new Set(slots.map((s) => s.id));
+    const toRemove = [...beforeIds].filter((id) => !currentIds.has(id));
+    if (toRemove.length > 0) {
+      removeSlots(toRemove);
+    }
+    exitDeleteMode();
+  }
+
+  function removeSlot(id: string) {
+    setSlotsState((prev) => prev.filter((s) => s.id !== id));
+  }
 
   return (
     <View style={styles.container}>
@@ -33,9 +57,17 @@ export default function SlotsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {SLOTS.map((slot) => (
+        {slots.map((slot) => (
           <View key={slot.id} style={styles.slotRow}>
-            <View style={styles.slotCellDate}>
+            {isDeleteMode && (
+              <Pressable
+                style={styles.deleteButton}
+                onPress={() => removeSlot(slot.id)}
+              >
+                <MaterialIcons name="close" size={24} color="#E02D2D" />
+              </Pressable>
+            )}
+            <View style={[styles.slotCellDate, isDeleteMode && styles.slotCellWithDelete]}>
               <Text style={styles.slotText}>{slot.date}</Text>
             </View>
             <View style={styles.slotCellDay}>
@@ -47,12 +79,28 @@ export default function SlotsScreen() {
           </View>
         ))}
 
-        <Pressable style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Сохранить</Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => router.back()}>
-          <Text style={styles.secondaryButtonText}>Отмена</Text>
-        </Pressable>
+        {isDeleteMode ? (
+          <>
+            <Pressable style={styles.primaryButton} onPress={handleSaveDelete}>
+              <Text style={styles.primaryButtonText}>Сохранить</Text>
+            </Pressable>
+            <Pressable style={styles.secondaryButton} onPress={handleCancel}>
+              <Text style={styles.secondaryButtonText}>Отмена</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Pressable
+              style={styles.primaryButton}
+              onPress={() => router.push('/(tabs)/profile/add-slot')}
+            >
+              <Text style={styles.primaryButtonText}>Добавить слот</Text>
+            </Pressable>
+            <Pressable style={styles.deleteModeButton} onPress={enterDeleteMode}>
+              <Text style={styles.deleteModeButtonText}>Удалить слоты</Text>
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -93,16 +141,26 @@ const styles = StyleSheet.create({
   },
   slotRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#1E1E1E',
     marginBottom: 12,
     backgroundColor: '#fff',
     minHeight: 52,
   },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   slotCellDate: {
     flex: 1.6,
     justifyContent: 'center',
     paddingHorizontal: 12,
+  },
+  slotCellWithDelete: {
+    flex: 1.4,
   },
   slotCellDay: {
     width: 64,
@@ -151,5 +209,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  deleteModeButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#E02D2D',
+    paddingVertical: 16,
+    alignItems: 'center',
+    height: 52,
+  },
+  deleteModeButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
   },
 });

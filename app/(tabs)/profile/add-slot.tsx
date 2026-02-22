@@ -1,10 +1,32 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import { addSlots, getSlots, type Slot } from '@/lib/slots-store';
 
 export default function AddSlotScreen() {
   const router = useRouter();
+  const [existingSlots, setExistingSlots] = useState<Slot[]>([]);
+  const [newDate1, setNewDate1] = useState('');
+  const [newTime1, setNewTime1] = useState('');
+  const [newDate2, setNewDate2] = useState('');
+  const [newTime2, setNewTime2] = useState('');
+
+  useEffect(() => {
+    setExistingSlots(getSlots());
+  }, []);
+
+  function handleSave() {
+    const items = [
+      { date: newDate1, time: newTime1 },
+      { date: newDate2, time: newTime2 },
+    ].filter((x) => x.date.trim() && x.time.trim());
+    if (items.length > 0) {
+      addSlots(items);
+    }
+    router.back();
+  }
 
   return (
     <View style={styles.container}>
@@ -17,12 +39,27 @@ export default function AddSlotScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {existingSlots.map((slot) => (
+          <View key={slot.id} style={styles.slotRow}>
+            <View style={styles.slotCellDate}>
+              <Text style={styles.slotText}>{slot.date}</Text>
+            </View>
+            <View style={styles.slotCellDay}>
+              <Text style={styles.slotText}>{slot.day ?? ''}</Text>
+            </View>
+            <View style={styles.slotCellTime}>
+              <Text style={styles.slotText}>{slot.time}</Text>
+            </View>
+          </View>
+        ))}
         <View style={styles.slotRow}>
           <View style={styles.slotCellDate}>
             <TextInput
               style={styles.slotInput}
               placeholder="Дата"
               placeholderTextColor="#9B9B9B"
+              value={newDate1}
+              onChangeText={setNewDate1}
             />
           </View>
           <View style={styles.slotCellDay} />
@@ -31,6 +68,8 @@ export default function AddSlotScreen() {
               style={styles.slotInput}
               placeholder="Время"
               placeholderTextColor="#9B9B9B"
+              value={newTime1}
+              onChangeText={setNewTime1}
             />
           </View>
         </View>
@@ -40,6 +79,8 @@ export default function AddSlotScreen() {
               style={styles.slotInput}
               placeholder="Дата"
               placeholderTextColor="#9B9B9B"
+              value={newDate2}
+              onChangeText={setNewDate2}
             />
           </View>
           <View style={styles.slotCellDay} />
@@ -48,11 +89,13 @@ export default function AddSlotScreen() {
               style={styles.slotInput}
               placeholder="Время"
               placeholderTextColor="#9B9B9B"
+              value={newTime2}
+              onChangeText={setNewTime2}
             />
           </View>
         </View>
 
-        <Pressable style={styles.primaryButton}>
+        <Pressable style={styles.primaryButton} onPress={handleSave}>
           <Text style={styles.primaryButtonText}>Сохранить</Text>
         </Pressable>
         <Pressable style={styles.secondaryButton} onPress={() => router.back()}>
@@ -111,6 +154,8 @@ const styles = StyleSheet.create({
   },
   slotCellDay: {
     width: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: '#1E1E1E',
@@ -119,6 +164,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 12,
+  },
+  slotText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   slotInput: {
     fontSize: 14,

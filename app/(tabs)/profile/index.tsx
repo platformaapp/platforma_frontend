@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from '@/lib/auth';
+import { getSlots } from '@/lib/slots-store';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -17,13 +19,14 @@ export default function ProfileScreen() {
     name: 'Андрей Осетров',
     role: 'Куратор, исследователь визуальной культуры',
   };
-  const slots = [
-    '23.06\n18:00',
-    '23.06\n20:00',
-    '24.06\n18:00',
-    '24.06\n20:00',
-    '25.06\n20:00',
-  ];
+  const [slots, setSlots] = useState<{ date: string; time: string }[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const s = getSlots();
+      setSlots(s.map((x) => ({ date: x.date, time: x.time })));
+    }, [])
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -166,8 +169,8 @@ export default function ProfileScreen() {
       <Text style={styles.sectionTitle}>Свободные слоты</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.slotsRow}>
         {slots.map((slot, index) => (
-          <View key={`${slot}-${index}`} style={styles.slotCard}>
-            <Text style={styles.slotText}>{slot}</Text>
+          <View key={`${slot.date}-${slot.time}-${index}`} style={styles.slotCard}>
+            <Text style={styles.slotText}>{`${slot.date}\n${slot.time}`}</Text>
           </View>
         ))}
       </ScrollView>
