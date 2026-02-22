@@ -1,15 +1,24 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { createTutorEventFull } from '@/lib/api/tutor';
 
 function formatDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
   return `${day}.${month}.${year}`;
+}
+
+function toApiDate(d: Date): string {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${year}-${month}-${day}`;
 }
 
 export default function NewEventScreen() {
@@ -23,13 +32,81 @@ export default function NewEventScreen() {
   const [price, setPrice] = useState('');
   const [isEditingPrice, setIsEditingPrice] = useState(true);
   const [maxParticipants, setMaxParticipants] = useState('');
+  const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [coverBase64, setCoverBase64] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const priceValue = price ? parseInt(price) || 0 : 0;
   const commission = priceValue * 0.1;
   const finalAmount = priceValue - commission;
 
+  async function pickCover() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setCoverUri(result.assets[0].uri);
+      setCoverBase64(result.assets[0].base64 ?? null);
+    }
+  }
+
+  async function handleCreate() {
+    const eventDate = date ?? (dateInputText ? (() => {
+      const m = dateInputText.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+      return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+    })() : null);
+    if (!title.trim()) {
+      Alert.alert('Ошибка', 'Введите название');
+      return;
+    }
+    if (!eventDate) {
+      Alert.alert('Ошибка', 'Выберите дату');
+      return;
+    }
+    if (!time.trim()) {
+      Alert.alert('Ошибка', 'Введите время');
+      return;
+    }
+    if (priceValue <= 0) {
+      Alert.alert('Ошибка', 'Введите стоимость участия');
+      return;
+    }
+    const max = Math.max(1, parseInt(maxParticipants) || 1);
+    setIsSubmitting(true);
+    try {
+      await createTutorEventFull({
+        title: title.trim(),
+        description: description.trim(),
+        date: toApiDate(eventDate),
+        time: time.trim(),
+        price: priceValue,
+        max_participants: max,
+        cover_image: coverBase64 ?? undefined,
+      });
+      router.back();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось создать событие');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <ThemedText>
@@ -153,19 +230,39 @@ export default function NewEventScreen() {
 
       <TextInput
         value={maxParticipants}
-        onChangeText={setMaxParticipants}
+        onChangeText={(text) => setMaxParticipants(text.replace(/\D/g, ''))}
         style={styles.input}
         placeholder="Максимальное количество участников"
         placeholderTextColor="#9B9B9B"
+        keyboardType="numeric"
       />
 
-      <Pressable style={styles.uploadButton}>
-        <Text style={styles.uploadButtonText}>Загрузить обложку</Text>
+      <Pressable
+        style={[styles.uploadButton, coverUri && styles.uploadWithPhotoContainer]}
+        onPress={pickCover}
+      >
+        {coverUri ? (
+          <View style={styles.uploadWithPhoto}>
+            <Image source={{ uri: coverUri }} style={styles.coverImage} />
+            <View style={styles.replacePhotoContainer}>
+              <Text style={styles.replacePhotoText}>Заменить обложку</Text>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.uploadButtonText}>Загрузить обложку</Text>
+        )}
       </Pressable>
 
-      <Pressable style={styles.createButton}>
-        <Text style={styles.createButtonText}>Создать событие</Text>
+      <Pressable
+        style={[styles.createButton, isSubmitting && styles.createButtonDisabled]}
+        onPress={handleCreate}
+        disabled={isSubmitting}
+      >
+        <Text style={styles.createButtonText}>
+          {isSubmitting ? 'Создание...' : 'Создать событие'}
+        </Text>
       </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -174,7 +271,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  scrollContent: {
     paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   header: {
     paddingTop: 16,
@@ -294,6 +394,33 @@ const styles = StyleSheet.create({
     height: 52,
     marginBottom: 24,
   },
+  uploadWithPhotoContainer: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    overflow: 'hidden',
+  },
+  uploadWithPhoto: {
+    flexDirection: 'row',
+    width: '100%',
+    alignItems: 'center',
+  },
+  coverImage: {
+    width: 96,
+    height: 54,
+    backgroundColor: '#E5E5E5',
+  },
+  replacePhotoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 16,
+    height: 52,
+  },
+  replacePhotoText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
   uploadButtonText: {
     fontSize: 14,
     lineHeight: 20,
@@ -309,6 +436,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     height: 52,
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
   },
   createButtonText: {
     fontSize: 14,

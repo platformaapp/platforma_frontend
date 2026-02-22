@@ -63,6 +63,17 @@ export interface EventCreate {
   title?: string;
 }
 
+/** Полный payload для создания события из формы new-event */
+export interface EventCreateFull {
+  title: string;
+  description: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  price: number;
+  max_participants: number;
+  cover_image?: string; // base64 или URL
+}
+
 export interface EventUpdate {
   status?: string;
 }
@@ -197,6 +208,16 @@ export async function getTutorEvents(): Promise<Event[]> {
 
 /** POST /tutor/events — создать событие (если добавляем сразу занятие) */
 export async function createTutorEvent(event: EventCreate): Promise<Event> {
+  const res = await fetch(endpoints.tutorEvents, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(event),
+  });
+  return handleResponse<Event>(res);
+}
+
+/** POST /tutor/events — создать событие с полными данными (Название, Описание, Дата, Время, Стоимость, Участники, Обложка) */
+export async function createTutorEventFull(event: EventCreateFull): Promise<Event> {
   const res = await fetch(endpoints.tutorEvents, {
     method: 'POST',
     headers: await authHeaders(),
