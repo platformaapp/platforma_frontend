@@ -9,7 +9,17 @@ import {
   getTutorSlots,
   type Slot,
 } from '@/lib/api/tutor';
-import { digitsToApiDate, digitsToTime, toApiDate, toDisplayDate, dayFromDate } from '@/lib/slots-utils';
+import {
+  digitsToApiDate,
+  digitsToTime,
+  formatDateInput,
+  formatTimeInput,
+  toApiDate,
+  toDisplayDate,
+  dayFromDate,
+  validateDate,
+  validateTime,
+} from '@/lib/slots-utils';
 
 export default function AddSlotScreen() {
   const router = useRouter();
@@ -42,19 +52,50 @@ export default function AddSlotScreen() {
     const raw = [
       { date: newDate1, time: newTime1 },
       { date: newDate2, time: newTime2 },
-    ];
+    ].filter((x) => x.date.trim() || x.time.trim());
+
+    if (raw.length === 0) {
+      Alert.alert('Внимание', 'Введите дату и время для новых слотов');
+      return;
+    }
+
+    for (let i = 0; i < raw.length; i++) {
+      const errDate = validateDate(raw[i].date);
+      const errTime = validateTime(raw[i].time);
+      if (raw[i].date.trim() && errDate) {
+        Alert.alert('Ошибка', errDate);
+        return;
+      }
+      if (raw[i].time.trim() && errTime) {
+        Alert.alert('Ошибка', errTime);
+        return;
+      }
+      if (raw[i].date.trim() && !raw[i].time.trim()) {
+        Alert.alert('Ошибка', 'Введите время');
+        return;
+      }
+      if (!raw[i].date.trim() && raw[i].time.trim()) {
+        Alert.alert('Ошибка', 'Введите дату');
+        return;
+      }
+    }
+
     const items = raw
       .filter((x) => x.date.trim() && x.time.trim())
-        .map((x) => {
+      .map((x) => {
         const digitsDate = x.date.replace(/\D/g, '');
         const apiDate = digitsToApiDate(digitsDate) ?? toApiDate(x.date.trim());
         const time = digitsToTime(x.time.trim());
-        return apiDate && time ? { date: apiDate, time } : null;
+        if (!apiDate || !time) return null;
+        return {
+          date: apiDate,
+          time,
+        };
       })
       .filter((x): x is { date: string; time: string } => x !== null);
 
     if (items.length === 0) {
-      Alert.alert('Внимание', 'Введите дату (ДД.ММ.ГГ или ДДММГГ) и время (ЧЧ:ММ или ЧЧММ) для новых слотов');
+      Alert.alert('Ошибка', 'Неверный формат. Дата: ДД.ММ.ГГ, Время: ЧЧ:ММ');
       return;
     }
 
@@ -116,7 +157,7 @@ export default function AddSlotScreen() {
               placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate1}
-              onChangeText={(t) => setNewDate1(t.replace(/\D/g, '').slice(0, 8))}
+              onChangeText={(t) => setNewDate1(formatDateInput(t))}
               keyboardType="numeric"
             />
           </View>
@@ -124,10 +165,10 @@ export default function AddSlotScreen() {
           <View style={styles.slotCellTime}>
             <TextInput
               style={styles.slotInput}
-              placeholder="Время (ЧЧММ)"
+              placeholder="Время (ЧЧ:ММ)"
               placeholderTextColor="#9B9B9B"
               value={newTime1}
-              onChangeText={(t) => setNewTime1(t.replace(/\D/g, '').slice(0, 4))}
+              onChangeText={(t) => setNewTime1(formatTimeInput(t))}
               keyboardType="numeric"
             />
           </View>
@@ -139,7 +180,7 @@ export default function AddSlotScreen() {
               placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate2}
-              onChangeText={(t) => setNewDate2(t.replace(/\D/g, '').slice(0, 8))}
+              onChangeText={(t) => setNewDate2(formatDateInput(t))}
               keyboardType="numeric"
             />
           </View>
@@ -147,10 +188,10 @@ export default function AddSlotScreen() {
           <View style={styles.slotCellTime}>
             <TextInput
               style={styles.slotInput}
-              placeholder="Время (ЧЧММ)"
+              placeholder="Время (ЧЧ:ММ)"
               placeholderTextColor="#9B9B9B"
               value={newTime2}
-              onChangeText={(t) => setNewTime2(t.replace(/\D/g, '').slice(0, 4))}
+              onChangeText={(t) => setNewTime2(formatTimeInput(t))}
               keyboardType="numeric"
             />
           </View>

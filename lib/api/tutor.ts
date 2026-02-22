@@ -126,8 +126,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
-    const message = typeof payload === 'string' ? payload : payload?.message || 'Ошибка запроса';
-    throw new Error(message);
+    const msg =
+      typeof payload === 'string'
+        ? payload
+        : payload?.message ?? payload?.error ?? (Array.isArray(payload?.errors) ? payload.errors.join(', ') : 'Ошибка запроса');
+    throw new Error(msg);
   }
 
   return payload as T;

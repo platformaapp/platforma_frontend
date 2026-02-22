@@ -58,6 +58,48 @@ export function digitsToTime(digits: string): string | null {
   return null;
 }
 
+/** Форматирует ввод при наборе: 200725 → 20.07.25 */
+export function formatDateInput(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}.${d.slice(2)}`;
+  if (d.length <= 6) return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+  return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 8)}`;
+}
+
+/** Форматирует ввод при наборе: 2000 → 20:00 */
+export function formatTimeInput(value: string): string {
+  const t = value.replace(/\D/g, '').slice(0, 4);
+  if (t.length <= 2) return t;
+  return `${t.slice(0, 2)}:${t.slice(2)}`;
+}
+
+/** Валидация даты ДД.ММ.ГГ или ДД.ММ.ГГГГ. Возвращает null или сообщение об ошибке. */
+export function validateDate(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Введите дату';
+  const apiDate = toApiDate(trimmed) ?? digitsToApiDate(trimmed.replace(/\D/g, ''));
+  if (!apiDate) return 'Неверный формат даты. Используйте ДД.ММ.ГГ (например 20.07.25)';
+  const [y, m, d] = apiDate.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+    return 'Некорректная дата';
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (date < today) return 'Дата не может быть в прошлом';
+  return null;
+}
+
+/** Валидация времени ЧЧ:ММ. Возвращает null или сообщение об ошибке. */
+export function validateTime(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Введите время';
+  const time = digitsToTime(trimmed);
+  if (!time) return 'Неверный формат времени. Используйте ЧЧ:ММ (например 20:00)';
+  return null;
+}
+
 export function dayFromDate(dateStr: string): string {
   const apiDate = dateStr.includes('-') ? dateStr : toApiDate(dateStr);
   if (!apiDate) return '';
