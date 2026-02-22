@@ -57,6 +57,12 @@ export default function TabLayout() {
           title: '',
           tabBarButton: HapticTab,
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
+          listeners: ({ navigation }) => ({
+            tabPress: (e) => {
+              e.preventDefault();
+              navigation.navigate('profile', { screen: 'index' });
+            },
+          }),
         }}
       />
     </Tabs>

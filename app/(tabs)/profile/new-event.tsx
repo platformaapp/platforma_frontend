@@ -1,10 +1,11 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { AuthError, createEvent } from '@/lib/api/events';
 
 function formatDate(d: Date): string {
@@ -47,6 +48,24 @@ export default function NewEventScreen() {
   const [maxParticipants, setMaxParticipants] = useState('');
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkAuth = async () => {
+      const token = await getAuthToken();
+      if (!token) {
+        router.replace('/login');
+        return;
+      }
+      const role = await getAuthRole();
+      if (isMounted && role !== 'tutor') {
+        Alert.alert('Доступ запрещён', 'Создавать события могут только наставники.');
+        router.replace('/(tabs)/profile');
+      }
+    };
+    checkAuth();
+    return () => { isMounted = false; };
+  }, [router]);
 
   const priceValue = price ? parseInt(price) || 0 : 0;
   const commission = priceValue * 0.1;
