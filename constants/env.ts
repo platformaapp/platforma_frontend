@@ -20,6 +20,9 @@ export const endpoints = {
   tutorEvents: `${API_BASE}/api/tutor/events`,
   tutorPayments: `${API_BASE}/api/tutor/payments`,
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
+
+  // Events (события) — POST /api/events, PATCH, GET, DELETE, register
+  events: `${API_BASE}/api/events`,
 };
 
 

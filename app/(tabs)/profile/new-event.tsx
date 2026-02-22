@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { createTutorEventFull } from '@/lib/api/tutor';
+import { createEvent } from '@/lib/api/events';
 
 function formatDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
@@ -14,11 +14,24 @@ function formatDate(d: Date): string {
   return `${day}.${month}.${year}`;
 }
 
-function toApiDate(d: Date): string {
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${year}-${month}-${day}`;
+/** Парсит "20:00" или "20:00:00" → [hours, minutes] */
+function parseTime(t: string): [number, number] | null {
+  const m = t.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return [h, min];
+}
+
+/** Формирует datetime_start и datetime_end (ISO 8601), длительность 1 час */
+function toDatetimeRange(date: Date, timeStr: string): { start: string; end: string } | null {
+  const parsed = parseTime(timeStr);
+  if (!parsed) return null;
+  const [h, min] = parsed;
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, min, 0);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString() };
 }
 
 export default function NewEventScreen() {
@@ -33,7 +46,6 @@ export default function NewEventScreen() {
   const [isEditingPrice, setIsEditingPrice] = useState(true);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [coverUri, setCoverUri] = useState<string | null>(null);
-  const [coverBase64, setCoverBase64] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const priceValue = price ? parseInt(price) || 0 : 0;
@@ -51,11 +63,9 @@ export default function NewEventScreen() {
       allowsEditing: true,
       aspect: [16, 9],
       quality: 0.8,
-      base64: true,
     });
     if (!result.canceled && result.assets[0]) {
       setCoverUri(result.assets[0].uri);
-      setCoverBase64(result.assets[0].base64 ?? null);
     }
   }
 
@@ -76,21 +86,25 @@ export default function NewEventScreen() {
       Alert.alert('Ошибка', 'Введите время');
       return;
     }
+    const range = toDatetimeRange(eventDate, time.trim());
+    if (!range) {
+      Alert.alert('Ошибка', 'Введите время в формате ЧЧ:ММ (например, 20:00)');
+      return;
+    }
     if (priceValue <= 0) {
       Alert.alert('Ошибка', 'Введите стоимость участия');
       return;
     }
-    const max = Math.max(1, parseInt(maxParticipants) || 1);
+    const max = maxParticipants ? Math.max(1, parseInt(maxParticipants) || 30) : 30;
     setIsSubmitting(true);
     try {
-      await createTutorEventFull({
+      await createEvent({
         title: title.trim(),
         description: description.trim(),
-        date: toApiDate(eventDate),
-        time: time.trim(),
+        datetime_start: range.start,
+        datetime_end: range.end,
         price: priceValue,
         max_participants: max,
-        cover_image: coverBase64 ?? undefined,
       });
       router.back();
     } catch (e: any) {
