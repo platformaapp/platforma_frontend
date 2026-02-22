@@ -30,6 +30,7 @@ export default function AddSlotScreen() {
   const [newTime1, setNewTime1] = useState('');
   const [newDate2, setNewDate2] = useState('');
   const [newTime2, setNewTime2] = useState('');
+  const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,13 +50,17 @@ export default function AddSlotScreen() {
   );
 
   async function handleSave() {
+    setStatusMessage({ text: 'Обработка...', isError: false });
+
     const raw = [
       { date: newDate1, time: newTime1 },
       { date: newDate2, time: newTime2 },
     ].filter((x) => x.date.trim() || x.time.trim());
 
     if (raw.length === 0) {
-      Alert.alert('Внимание', 'Введите дату и время для новых слотов');
+      const msg = 'Введите дату и время для новых слотов';
+      setStatusMessage({ text: msg, isError: true });
+      Alert.alert('Внимание', msg);
       return;
     }
 
@@ -63,19 +68,25 @@ export default function AddSlotScreen() {
       const errDate = validateDate(raw[i].date);
       const errTime = validateTime(raw[i].time);
       if (raw[i].date.trim() && errDate) {
+        setStatusMessage({ text: errDate, isError: true });
         Alert.alert('Ошибка', errDate);
         return;
       }
       if (raw[i].time.trim() && errTime) {
+        setStatusMessage({ text: errTime, isError: true });
         Alert.alert('Ошибка', errTime);
         return;
       }
       if (raw[i].date.trim() && !raw[i].time.trim()) {
-        Alert.alert('Ошибка', 'Введите время');
+        const msg = 'Введите время';
+        setStatusMessage({ text: msg, isError: true });
+        Alert.alert('Ошибка', msg);
         return;
       }
       if (!raw[i].date.trim() && raw[i].time.trim()) {
-        Alert.alert('Ошибка', 'Введите дату');
+        const msg = 'Введите дату';
+        setStatusMessage({ text: msg, isError: true });
+        Alert.alert('Ошибка', msg);
         return;
       }
     }
@@ -95,11 +106,14 @@ export default function AddSlotScreen() {
       .filter((x): x is { date: string; time: string } => x !== null);
 
     if (items.length === 0) {
-      Alert.alert('Ошибка', 'Неверный формат. Дата: ДД.ММ.ГГ, Время: ЧЧ:ММ');
+      const msg = 'Неверный формат. Дата: ДД.ММ.ГГ, Время: ЧЧ:ММ';
+      setStatusMessage({ text: msg, isError: true });
+      Alert.alert('Ошибка', msg);
       return;
     }
 
     setSaving(true);
+    setStatusMessage({ text: 'Сохранение...', isError: false });
     try {
       for (const item of items) {
         await createTutorSlot(item);
@@ -110,9 +124,12 @@ export default function AddSlotScreen() {
       setNewTime2('');
       const data = await getTutorSlots();
       setSlots(data);
+      setStatusMessage({ text: 'Слоты сохранены', isError: false });
       Alert.alert('Слоты сохранены');
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось добавить слоты');
+      const msg = e?.message ?? 'Не удалось добавить слоты';
+      setStatusMessage({ text: msg, isError: true });
+      Alert.alert('Ошибка', msg);
     } finally {
       setSaving(false);
     }
@@ -157,7 +174,10 @@ export default function AddSlotScreen() {
               placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate1}
-              onChangeText={(t) => setNewDate1(formatDateInput(t))}
+              onChangeText={(t) => {
+                setStatusMessage(null);
+                setNewDate1(formatDateInput(t));
+              }}
               keyboardType="numeric"
             />
           </View>
@@ -168,7 +188,10 @@ export default function AddSlotScreen() {
               placeholder="Время (ЧЧ:ММ)"
               placeholderTextColor="#9B9B9B"
               value={newTime1}
-              onChangeText={(t) => setNewTime1(formatTimeInput(t))}
+              onChangeText={(t) => {
+                setStatusMessage(null);
+                setNewTime1(formatTimeInput(t));
+              }}
               keyboardType="numeric"
             />
           </View>
@@ -180,7 +203,10 @@ export default function AddSlotScreen() {
               placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate2}
-              onChangeText={(t) => setNewDate2(formatDateInput(t))}
+              onChangeText={(t) => {
+                setStatusMessage(null);
+                setNewDate2(formatDateInput(t));
+              }}
               keyboardType="numeric"
             />
           </View>
@@ -191,11 +217,25 @@ export default function AddSlotScreen() {
               placeholder="Время (ЧЧ:ММ)"
               placeholderTextColor="#9B9B9B"
               value={newTime2}
-              onChangeText={(t) => setNewTime2(formatTimeInput(t))}
+              onChangeText={(t) => {
+                setStatusMessage(null);
+                setNewTime2(formatTimeInput(t));
+              }}
               keyboardType="numeric"
             />
           </View>
         </View>
+
+        {statusMessage ? (
+          <Text
+            style={[
+              styles.statusMessage,
+              statusMessage.isError ? styles.statusMessageError : styles.statusMessageSuccess,
+            ]}
+          >
+            {statusMessage.text}
+          </Text>
+        ) : null}
 
         <Pressable
           style={[styles.primaryButton, saving && styles.buttonDisabled]}
@@ -287,6 +327,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#181818',
     padding: 0,
+  },
+  statusMessage: {
+    marginTop: 16,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    textAlign: 'center',
+  },
+  statusMessageError: {
+    color: '#E02D2D',
+  },
+  statusMessageSuccess: {
+    color: '#181818',
   },
   primaryButton: {
     marginTop: 24,
