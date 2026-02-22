@@ -9,7 +9,7 @@ import {
   getTutorSlots,
   type Slot,
 } from '@/lib/api/tutor';
-import { digitsToApiDate, digitsToTime, toDisplayDate, dayFromDate } from '@/lib/slots-utils';
+import { digitsToApiDate, digitsToTime, toApiDate, toDisplayDate, dayFromDate } from '@/lib/slots-utils';
 
 export default function AddSlotScreen() {
   const router = useRouter();
@@ -45,17 +45,16 @@ export default function AddSlotScreen() {
     ];
     const items = raw
       .filter((x) => x.date.trim() && x.time.trim())
-      .map((x) => {
+        .map((x) => {
         const digitsDate = x.date.replace(/\D/g, '');
-        const digitsTime = x.time.replace(/\D/g, '');
-        const apiDate = digitsToApiDate(digitsDate);
-        const time = digitsToTime(digitsTime);
+        const apiDate = digitsToApiDate(digitsDate) ?? toApiDate(x.date.trim());
+        const time = digitsToTime(x.time.trim());
         return apiDate && time ? { date: apiDate, time } : null;
       })
       .filter((x): x is { date: string; time: string } => x !== null);
 
     if (items.length === 0) {
-      Alert.alert('Введите дату и время для новых слотов');
+      Alert.alert('Внимание', 'Введите дату (ДД.ММ.ГГ или ДДММГГ) и время (ЧЧ:ММ или ЧЧММ) для новых слотов');
       return;
     }
 
@@ -96,7 +95,7 @@ export default function AddSlotScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {slots.map((slot) => (
           <View key={slot.id} style={styles.slotRow}>
             <View style={styles.slotCellDate}>

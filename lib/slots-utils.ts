@@ -38,8 +38,15 @@ export function digitsToApiDate(digits: string): string | null {
   return null;
 }
 
-/** Только цифры HHMM → "HH:mm" (например 2000 → 20:00, 830 → 08:30) */
+/** Только цифры HHMM или "HH:mm" → "HH:mm" */
 export function digitsToTime(digits: string): string | null {
+  const withColon = digits.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (withColon) {
+    const h = parseInt(withColon[1], 10);
+    const m = parseInt(withColon[2], 10);
+    if (h <= 23 && m <= 59) return `${String(h).padStart(2, '0')}:${withColon[2]}`;
+    return null;
+  }
   let t = digits.replace(/\D/g, '');
   if (t.length === 3) t = '0' + t;
   if (t.length < 4) return null;
