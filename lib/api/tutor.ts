@@ -2,7 +2,9 @@
  * API-клиент для эндпоинтов наставника (tutor).
  * Все запросы требуют JWT и роль role = tutor.
  *
- * Бизнес-логика на бэкенде:
+ * Сущности: User (tutor), Slot, Event, Payment
+ *
+ * Бизнес-логика:
  * - Слот не создаётся в прошлом
  * - Слоты одного наставника не пересекаются по времени
  * - При удалении слота с бронью → status = cancelled или запрет
@@ -16,11 +18,13 @@ import { getAuthToken } from '@/lib/auth';
 
 export interface TutorProfile {
   id?: string;
-  full_name: string;
-  bio?: string;
-  avatar_url?: string;
-  role?: string;
   email?: string;
+  full_name: string;
+  avatar_url?: string;
+  bio?: string;
+  role?: 'tutor';
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface TutorProfileUpdate {
@@ -29,12 +33,17 @@ export interface TutorProfileUpdate {
   avatar_url?: string;
 }
 
+/** free (или available) | booked | cancelled */
+export type SlotStatus = 'free' | 'available' | 'booked' | 'cancelled';
+
 export interface Slot {
   id: string;
+  tutor_id?: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
-  status: 'available' | 'booked' | 'cancelled';
-  tutor_id?: string;
+  status: SlotStatus;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SlotCreate {
@@ -45,15 +54,18 @@ export interface SlotCreate {
 export interface SlotUpdate {
   date?: string;
   time?: string;
-  status?: 'available' | 'booked' | 'cancelled';
+  status?: SlotStatus;
 }
+
+/** planned | done | cancelled */
+export type EventStatus = 'planned' | 'done' | 'cancelled';
 
 export interface Event {
   id: string;
   slot_id: string;
-  title?: string;
-  status: string;
   student_id?: string;
+  status: EventStatus;
+  notes?: string;
 }
 
 export interface EventCreate {
@@ -67,22 +79,27 @@ export interface EventCreate {
 export interface EventCreateFull {
   title: string;
   description: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:mm
+  date: string;
+  time: string;
   price: number;
   max_participants: number;
-  cover_image?: string; // base64 или URL
+  cover_image?: string;
 }
 
 export interface EventUpdate {
-  status?: string;
+  status?: EventStatus;
 }
+
+/** pending | success | failed */
+export type PaymentStatus = 'pending' | 'success' | 'failed';
 
 export interface Payment {
   id: string;
+  tutor_id?: string;
   amount: number;
-  date: string;
-  status: string;
+  currency?: string;
+  status: PaymentStatus;
+  created_at?: string;
 }
 
 export interface PaymentsSummary {
@@ -140,8 +157,8 @@ export async function updateTutorProfile(data: TutorProfileUpdate): Promise<Tuto
 
 /** GET /tutor/slots — список слотов (фильтр: date, status) */
 export async function getTutorSlots(params?: {
-  date?: string;
-  status?: string;
+  date?: string; // YYYY-MM-DD
+  status?: SlotStatus | string;
 }): Promise<Slot[]> {
   const search = new URLSearchParams();
   if (params?.date) search.set('date', params.date);
