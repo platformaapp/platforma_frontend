@@ -55,7 +55,7 @@ export default function AddSlotScreen() {
       .filter((x): x is { date: string; time: string } => x !== null);
 
     if (items.length === 0) {
-      router.back();
+      Alert.alert('Введите дату и время для новых слотов');
       return;
     }
 
@@ -64,7 +64,13 @@ export default function AddSlotScreen() {
       for (const item of items) {
         await createTutorSlot(item);
       }
-      router.back();
+      setNewDate1('');
+      setNewTime1('');
+      setNewDate2('');
+      setNewTime2('');
+      const data = await getTutorSlots();
+      setSlots(data);
+      Alert.alert('Слоты сохранены');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось добавить слоты');
     } finally {
