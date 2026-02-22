@@ -6,9 +6,8 @@ import React, { useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
-import { getCardLinked } from '@/lib/payments';
+import { getStudentPayments, paySession } from '@/lib/api/student-payments';
 import { useWindowDimensions } from 'react-native';
 
 type EventItem = {
@@ -125,10 +124,10 @@ export default function EventDetailScreen() {
     setIsShareCopied(false);
     setPayError('');
     try {
-      const [token, role, isLinked] = await Promise.all([
+      const [token, role, paymentsData] = await Promise.all([
         getAuthToken(),
         getAuthRole(),
-        getCardLinked(),
+        getStudentPayments(),
       ]);
       if (!token) {
         throw new Error('Для оплаты нужно войти в аккаунт');
@@ -136,75 +135,23 @@ export default function EventDetailScreen() {
       if (role && role !== 'student') {
         throw new Error('Оплата доступна только для студентов');
       }
-      if (!isLinked) {
+      if (!paymentsData.cards?.length) {
         setCardModalVisible(false);
         router.push('/(tabs)/profile/payments');
         return;
       }
 
-      const res = await fetch(endpoints.studentPayments, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ sessionId: event.id }),
+      const result = await paySession({
+        session_id: event.id,
+        payment_method_id: paymentsData.cards[0].id,
       });
-      const contentType = res.headers.get('content-type') || '';
-      const isJson = contentType.includes('application/json');
-      const data = isJson ? await res.json() : await res.text();
-      if (!res.ok) {
-        const message = typeof data === 'string' ? data : data?.message || 'Не удалось создать платеж';
-        throw new Error(message);
+
+      if (result.status === 'failed') {
+        throw new Error(result.error_message ?? 'Оплата не прошла');
       }
 
-      const paymentId =
-        data?.paymentId ||
-        data?.payment_id ||
-        data?.id ||
-        data?.data?.paymentId ||
-        data?.data?.payment_id ||
-        data?.data?.id;
-      const confirmationUrl =
-        data?.confirmation?.confirmation_url ||
-        data?.confirmation_url ||
-        data?.confirmationUrl ||
-        data?.payment?.confirmation?.confirmation_url ||
-        data?.payment?.confirmation_url;
-      let status = data?.status || data?.payment?.status;
-
-      if (confirmationUrl) {
-        await WebBrowser.openBrowserAsync(confirmationUrl);
-      }
-
-      if (paymentId) {
-        const callbackRes = await fetch(
-          `${endpoints.studentPaymentsCallback}?paymentId=${encodeURIComponent(paymentId)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        const callbackContentType = callbackRes.headers.get('content-type') || '';
-        const callbackIsJson = callbackContentType.includes('application/json');
-        const callbackData = callbackIsJson ? await callbackRes.json() : await callbackRes.text();
-        if (!callbackRes.ok) {
-          const message =
-            typeof callbackData === 'string'
-              ? callbackData
-              : callbackData?.message || 'Не удалось подтвердить оплату';
-          throw new Error(message);
-        }
-        status = callbackData?.status || callbackData?.payment?.status || status;
-        if (callbackData?.paid === true || callbackData?.payment?.paid === true) {
-          status = 'succeeded';
-        }
-      }
-
-      const isPaid = status === 'succeeded' || status === 'success';
-      if (!isPaid) {
-        throw new Error('Оплата не подтверждена');
+      if (result.redirect_url) {
+        await WebBrowser.openBrowserAsync(result.redirect_url);
       }
 
       setCardModalVisible(false);

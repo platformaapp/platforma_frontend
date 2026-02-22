@@ -2,30 +2,91 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { bindPaymentMethod } from '@/lib/api/student-payments';
-import { getCardLinked, getCardMasked, setCardLinked } from '@/lib/payments';
+import {
+  bindPaymentMethod,
+  deletePaymentMethod,
+  getStudentPayments,
+  type Card,
+  type PaymentHistoryItem,
+} from '@/lib/api/student-payments';
+import { setCardLinked } from '@/lib/payments';
+
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function formatAmount(amount: number): string {
+  return `${amount.toLocaleString('ru-RU')} ₽`;
+}
 
 export default function PaymentsScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [isLinking, setIsLinking] = useState(false);
   const [isCardModalVisible, setCardModalVisible] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
-  const [isCardLinked, setIsCardLinked] = useState(false);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [history, setHistory] = useState<PaymentHistoryItem[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [cardMasked, setCardMaskedState] = useState<string | null>(null);
+  const loadData = useCallback(async () => {
+    try {
+      const data = await getStudentPayments();
+      setCards(data.cards);
+      setHistory(data.history);
+    } catch (e: any) {
+      setCards([]);
+      setHistory([]);
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      Promise.all([getCardLinked(), getCardMasked()]).then(([linked, masked]) => {
-        if (!cancelled) {
-          setIsCardLinked(linked);
-          setCardMaskedState(masked);
-        }
-      });
+      setLoading(true);
+      getStudentPayments()
+        .then((data) => {
+          if (!cancelled) {
+            setCards(data.cards);
+            setHistory(data.history);
+          }
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setCards([]);
+            setHistory([]);
+            Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
       return () => { cancelled = true; };
     }, [])
   );
@@ -49,10 +110,9 @@ export default function PaymentsScreen() {
         card_number: number,
       });
       await setCardLinked(true, result.card_masked);
-      setIsCardLinked(true);
-      setCardMaskedState(result.card_masked);
       setCardModalVisible(false);
       setCardNumber('');
+      await loadData();
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
     } finally {
@@ -60,37 +120,70 @@ export default function PaymentsScreen() {
     }
   };
 
+  const handleDeleteCard = async (card: Card) => {
+    if (deletingId) return;
+    Alert.alert(
+      'Удалить карту',
+      `Удалить карту ${card.card_masked}?`,
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingId(card.id);
+            try {
+              await deletePaymentMethod(card.id);
+              if (cards.length <= 1) await setCardLinked(false);
+              await loadData();
+            } catch (e: any) {
+              Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#181818" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
+        <Text style={styles.title}>ПЛАТЕЖИ</Text>
       </View>
 
-      <Text style={styles.title}>ПЛАТЕЖИ</Text>
-
-      {isCardLinked ? (
-        <View style={styles.card}>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>Карта {cardMasked ?? '**** ****'}</Text>
-          </View>
-          <Pressable style={styles.cardAction} onPress={handleLinkCard}>
-            <Text style={styles.cardActionText}>Изменить</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.cardAction, styles.cardActionDelete]}
-            onPress={async () => {
-              await setCardLinked(false);
-              setIsCardLinked(false);
-              setCardMaskedState(null);
-            }}
-          >
-            <Text style={styles.cardActionDeleteText}>Удалить</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable style={styles.linkRow} onPress={handleLinkCard}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.sectionTitle}>Карты</Text>
+        {cards.length > 0 ? (
+          cards.map((card) => (
+            <View key={card.id} style={styles.card}>
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardTitle}>Карта {card.card_masked}</Text>
+                <Text style={styles.cardSubtitle}>{card.provider}</Text>
+              </View>
+              <View style={styles.cardActions}>
+                <Pressable style={[styles.cardAction, styles.cardActionDelete]} onPress={() => handleDeleteCard(card)} disabled={deletingId !== null}>
+                  <Text style={styles.cardActionDeleteText}>
+                    {deletingId === card.id ? '…' : 'Удалить'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        ) : null}
+        <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinking}>
           <View style={styles.plusBox}>
             <Text style={styles.plusText}>+</Text>
           </View>
@@ -98,13 +191,41 @@ export default function PaymentsScreen() {
             <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
           </View>
         </Pressable>
-      )}
+
+        {history.length > 0 ? (
+          <>
+            <Text style={[styles.sectionTitle, styles.sectionTitleHistory]}>История оплат</Text>
+            {history.map((item) => (
+              <View key={item.id} style={styles.historyRow}>
+                <View style={styles.historyMain}>
+                  <Text style={styles.historyTutor}>{item.tutor}</Text>
+                  <Text style={styles.historyDate}>{formatDate(item.created_at)}</Text>
+                </View>
+                <View style={styles.historyRight}>
+                  <Text style={styles.historyAmount}>{formatAmount(item.amount)}</Text>
+                  <Text
+                    style={[
+                      styles.historyStatus,
+                      item.status === 'success' && styles.historyStatusSuccess,
+                      item.status === 'failed' && styles.historyStatusFailed,
+                    ]}
+                  >
+                    {item.status === 'success' ? 'Оплачено' : item.status === 'failed' ? 'Ошибка' : 'В обработке'}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </>
+        ) : null}
+      </ScrollView>
 
       {isCardModalVisible && (
         <View style={styles.modalOverlay}>
           <Pressable style={styles.backdrop} onPress={() => setCardModalVisible(false)} />
           <View style={styles.modalSheet}>
-            <ThemedText type="title" style={styles.modalTitle}>НОВАЯ КАРТА</ThemedText>
+            <ThemedText type="title" style={styles.modalTitle}>
+              НОВАЯ КАРТА
+            </ThemedText>
 
             <TextInput
               placeholder="Номер карты"
@@ -116,7 +237,11 @@ export default function PaymentsScreen() {
               maxLength={19}
             />
 
-            <Pressable style={[styles.btn, styles.btnPrimary, isLinking && styles.btnDisabled]} onPress={handleSubmitCard} disabled={isLinking}>
+            <Pressable
+              style={[styles.btn, styles.btnPrimary, isLinking && styles.btnDisabled]}
+              onPress={handleSubmitCard}
+              disabled={isLinking}
+            >
               <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
                 {isLinking ? 'Привязка...' : 'Продолжить'}
               </ThemedText>
@@ -134,6 +259,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: 16,
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     paddingTop: 16,
   },
@@ -150,6 +279,19 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  content: {
+    paddingBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 12,
+  },
+  sectionTitleHistory: {
+    marginTop: 24,
   },
   linkRow: {
     flexDirection: 'row',
@@ -182,14 +324,16 @@ const styles = StyleSheet.create({
     color: '#181818',
   },
   card: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#1E1E1E',
+    marginBottom: 12,
   },
   cardInfo: {
+    flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: '#1E1E1E',
   },
   cardTitle: {
     fontSize: 14,
@@ -202,27 +346,71 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#9B9B9B',
+  },
+  cardActions: {
+    flexDirection: 'row',
   },
   cardAction: {
-    borderTopWidth: 1,
-    borderColor: '#1E1E1E',
     paddingVertical: 14,
-    alignItems: 'center',
-  },
-  cardActionText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
+    paddingHorizontal: 16,
   },
   cardActionDelete: {
+    borderLeftWidth: 1,
     borderColor: '#E02D2D',
   },
   cardActionDeleteText: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
+  },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 8,
+  },
+  historyMain: {
+    flex: 1,
+  },
+  historyTutor: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  historyDate: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
+  },
+  historyRight: {
+    alignItems: 'flex-end',
+  },
+  historyAmount: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  historyStatus: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
+  },
+  historyStatusSuccess: {
+    color: '#2E7D32',
+  },
+  historyStatusFailed: {
     color: '#E02D2D',
   },
   modalOverlay: {
