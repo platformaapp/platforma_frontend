@@ -172,10 +172,10 @@ export default function ProfileScreen() {
         ))}
       </ScrollView>
 
-      <Pressable style={styles.secondaryButton}>
+      <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/profile/slots')}>
         <Text style={styles.secondaryButtonText}>Все слоты</Text>
       </Pressable>
-      <Pressable style={styles.primaryButton} onPress={() => router.push('/(tabs)/profile/slots')}>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/(tabs)/profile/add-slot')}>
         <Text style={styles.primaryButtonText}>Добавить слот</Text>
       </Pressable>
 
