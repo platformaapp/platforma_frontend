@@ -1,31 +1,79 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { addSlots, getSlots, type Slot } from '@/lib/slots-store';
+import {
+  createTutorSlot,
+  getTutorSlots,
+  type Slot,
+} from '@/lib/api/tutor';
+import { toApiDate, toDisplayDate, dayFromDate } from '@/lib/slots-utils';
 
 export default function AddSlotScreen() {
   const router = useRouter();
-  const [existingSlots, setExistingSlots] = useState<Slot[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [newDate1, setNewDate1] = useState('');
   const [newTime1, setNewTime1] = useState('');
   const [newDate2, setNewDate2] = useState('');
   const [newTime2, setNewTime2] = useState('');
 
-  useEffect(() => {
-    setExistingSlots(getSlots());
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      getTutorSlots()
+        .then((data) => {
+          if (!cancelled) setSlots(data);
+        })
+        .catch((e) => {
+          if (!cancelled) Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить слоты');
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => { cancelled = true; };
+    }, [])
+  );
 
-  function handleSave() {
+  async function handleSave() {
     const items = [
       { date: newDate1, time: newTime1 },
       { date: newDate2, time: newTime2 },
-    ].filter((x) => x.date.trim() && x.time.trim());
-    if (items.length > 0) {
-      addSlots(items);
+    ]
+      .filter((x) => x.date.trim() && x.time.trim())
+      .map((x) => {
+        const apiDate = toApiDate(x.date.trim());
+        return apiDate ? { date: apiDate, time: x.time.trim() } : null;
+      })
+      .filter((x): x is { date: string; time: string } => x !== null);
+
+    if (items.length === 0) {
+      router.back();
+      return;
     }
-    router.back();
+
+    setSaving(true);
+    try {
+      for (const item of items) {
+        await createTutorSlot(item);
+      }
+      router.back();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось добавить слоты');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#181818" />
+      </View>
+    );
   }
 
   return (
@@ -39,13 +87,13 @@ export default function AddSlotScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {existingSlots.map((slot) => (
+        {slots.map((slot) => (
           <View key={slot.id} style={styles.slotRow}>
             <View style={styles.slotCellDate}>
-              <Text style={styles.slotText}>{slot.date}</Text>
+              <Text style={styles.slotText}>{toDisplayDate(slot.date)}</Text>
             </View>
             <View style={styles.slotCellDay}>
-              <Text style={styles.slotText}>{slot.day ?? ''}</Text>
+              <Text style={styles.slotText}>{dayFromDate(slot.date)}</Text>
             </View>
             <View style={styles.slotCellTime}>
               <Text style={styles.slotText}>{slot.time}</Text>
@@ -56,7 +104,7 @@ export default function AddSlotScreen() {
           <View style={styles.slotCellDate}>
             <TextInput
               style={styles.slotInput}
-              placeholder="Дата"
+              placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate1}
               onChangeText={setNewDate1}
@@ -77,7 +125,7 @@ export default function AddSlotScreen() {
           <View style={styles.slotCellDate}>
             <TextInput
               style={styles.slotInput}
-              placeholder="Дата"
+              placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate2}
               onChangeText={setNewDate2}
@@ -95,10 +143,14 @@ export default function AddSlotScreen() {
           </View>
         </View>
 
-        <Pressable style={styles.primaryButton} onPress={handleSave}>
-          <Text style={styles.primaryButtonText}>Сохранить</Text>
+        <Pressable
+          style={[styles.primaryButton, saving && styles.buttonDisabled]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={styles.primaryButtonText}>{saving ? 'Сохранение...' : 'Сохранить'}</Text>
         </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => router.back()}>
+        <Pressable style={styles.secondaryButton} onPress={() => router.back()} disabled={saving}>
           <Text style={styles.secondaryButtonText}>Отмена</Text>
         </Pressable>
       </ScrollView>
@@ -110,6 +162,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -186,6 +242,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     height: 52,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     fontSize: 14,

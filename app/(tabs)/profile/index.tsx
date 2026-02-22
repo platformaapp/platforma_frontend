@@ -6,7 +6,8 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'rea
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from '@/lib/auth';
-import { getSlots } from '@/lib/slots-store';
+import { getTutorSlots } from '@/lib/api/tutor';
+import { toDisplayDate } from '@/lib/slots-utils';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -23,9 +24,11 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const s = getSlots();
-      setSlots(s.map((x) => ({ date: x.date, time: x.time })));
-    }, [])
+      if (role !== 'tutor') return;
+      getTutorSlots()
+        .then((s) => setSlots(s.map((x) => ({ date: toDisplayDate(x.date), time: x.time }))))
+        .catch(() => setSlots([]));
+    }, [role])
   );
 
   useEffect(() => {

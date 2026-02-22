@@ -2,19 +2,38 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { getSlots, removeSlots, type Slot } from '@/lib/slots-store';
+import {
+  deleteTutorSlots,
+  getTutorSlots,
+  type Slot,
+} from '@/lib/api/tutor';
+import { dayFromDate, toDisplayDate } from '@/lib/slots-utils';
 
 export default function SlotsScreen() {
   const router = useRouter();
   const [slots, setSlotsState] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [slotsBeforeDelete, setSlotsBeforeDelete] = useState<Slot[]>([]);
 
   useFocusEffect(
     useCallback(() => {
-      setSlotsState(getSlots());
+      let cancelled = false;
+      setLoading(true);
+      getTutorSlots()
+        .then((data) => {
+          if (!cancelled) setSlotsState(data);
+        })
+        .catch((e) => {
+          if (!cancelled) Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить слоты');
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => { cancelled = true; };
     }, [])
   );
 
@@ -32,18 +51,38 @@ export default function SlotsScreen() {
     exitDeleteMode();
   }
 
-  function handleSaveDelete() {
+  async function handleSaveDelete() {
     const beforeIds = new Set(slotsBeforeDelete.map((s) => s.id));
     const currentIds = new Set(slots.map((s) => s.id));
     const toRemove = [...beforeIds].filter((id) => !currentIds.has(id));
-    if (toRemove.length > 0) {
-      removeSlots(toRemove);
+
+    if (toRemove.length === 0) {
+      exitDeleteMode();
+      return;
     }
-    exitDeleteMode();
+
+    setSaving(true);
+    try {
+      await deleteTutorSlots(toRemove);
+      setSlotsState((prev) => prev.filter((s) => !toRemove.includes(s.id)));
+      exitDeleteMode();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить слоты');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function removeSlot(id: string) {
     setSlotsState((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#181818" />
+      </View>
+    );
   }
 
   return (
@@ -68,10 +107,10 @@ export default function SlotsScreen() {
               </Pressable>
             )}
             <View style={[styles.slotCellDate, isDeleteMode && styles.slotCellWithDelete]}>
-              <Text style={styles.slotText}>{slot.date}</Text>
+              <Text style={styles.slotText}>{toDisplayDate(slot.date)}</Text>
             </View>
             <View style={styles.slotCellDay}>
-              <Text style={styles.slotText}>{slot.day ?? ''}</Text>
+              <Text style={styles.slotText}>{dayFromDate(slot.date)}</Text>
             </View>
             <View style={styles.slotCellTime}>
               <Text style={styles.slotText}>{slot.time}</Text>
@@ -81,10 +120,14 @@ export default function SlotsScreen() {
 
         {isDeleteMode ? (
           <>
-            <Pressable style={styles.primaryButton} onPress={handleSaveDelete}>
-              <Text style={styles.primaryButtonText}>Сохранить</Text>
+            <Pressable
+              style={[styles.primaryButton, saving && styles.buttonDisabled]}
+              onPress={handleSaveDelete}
+              disabled={saving}
+            >
+              <Text style={styles.primaryButtonText}>{saving ? 'Сохранение...' : 'Сохранить'}</Text>
             </Pressable>
-            <Pressable style={styles.secondaryButton} onPress={handleCancel}>
+            <Pressable style={styles.secondaryButton} onPress={handleCancel} disabled={saving}>
               <Text style={styles.secondaryButtonText}>Отмена</Text>
             </Pressable>
           </>
@@ -110,6 +153,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -189,6 +236,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     height: 52,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     fontSize: 14,
