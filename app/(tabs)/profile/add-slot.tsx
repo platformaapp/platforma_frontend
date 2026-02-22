@@ -9,7 +9,7 @@ import {
   getTutorSlots,
   type Slot,
 } from '@/lib/api/tutor';
-import { toApiDate, toDisplayDate, dayFromDate } from '@/lib/slots-utils';
+import { digitsToApiDate, digitsToTime, toDisplayDate, dayFromDate } from '@/lib/slots-utils';
 
 export default function AddSlotScreen() {
   const router = useRouter();
@@ -39,14 +39,18 @@ export default function AddSlotScreen() {
   );
 
   async function handleSave() {
-    const items = [
+    const raw = [
       { date: newDate1, time: newTime1 },
       { date: newDate2, time: newTime2 },
-    ]
+    ];
+    const items = raw
       .filter((x) => x.date.trim() && x.time.trim())
       .map((x) => {
-        const apiDate = toApiDate(x.date.trim());
-        return apiDate ? { date: apiDate, time: x.time.trim() } : null;
+        const digitsDate = x.date.replace(/\D/g, '');
+        const digitsTime = x.time.replace(/\D/g, '');
+        const apiDate = digitsToApiDate(digitsDate);
+        const time = digitsToTime(digitsTime);
+        return apiDate && time ? { date: apiDate, time } : null;
       })
       .filter((x): x is { date: string; time: string } => x !== null);
 
@@ -107,17 +111,19 @@ export default function AddSlotScreen() {
               placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate1}
-              onChangeText={setNewDate1}
+              onChangeText={(t) => setNewDate1(t.replace(/\D/g, '').slice(0, 8))}
+              keyboardType="numeric"
             />
           </View>
           <View style={styles.slotCellDay} />
           <View style={styles.slotCellTime}>
             <TextInput
               style={styles.slotInput}
-              placeholder="Время"
+              placeholder="Время (ЧЧММ)"
               placeholderTextColor="#9B9B9B"
               value={newTime1}
-              onChangeText={setNewTime1}
+              onChangeText={(t) => setNewTime1(t.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="numeric"
             />
           </View>
         </View>
@@ -128,17 +134,19 @@ export default function AddSlotScreen() {
               placeholder="Дата (ДД.ММ.ГГ)"
               placeholderTextColor="#9B9B9B"
               value={newDate2}
-              onChangeText={setNewDate2}
+              onChangeText={(t) => setNewDate2(t.replace(/\D/g, '').slice(0, 8))}
+              keyboardType="numeric"
             />
           </View>
           <View style={styles.slotCellDay} />
           <View style={styles.slotCellTime}>
             <TextInput
               style={styles.slotInput}
-              placeholder="Время"
+              placeholder="Время (ЧЧММ)"
               placeholderTextColor="#9B9B9B"
               value={newTime2}
-              onChangeText={setNewTime2}
+              onChangeText={(t) => setNewTime2(t.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="numeric"
             />
           </View>
         </View>

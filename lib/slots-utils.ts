@@ -20,6 +20,37 @@ export function toApiDate(displayDate: string): string | null {
   return `${y}-${mm}-${dd}`;
 }
 
+/** Только цифры DDMMYY или DDMMYYYY → API YYYY-MM-DD */
+export function digitsToApiDate(digits: string): string | null {
+  const d = digits.replace(/\D/g, '');
+  if (d.length === 6) {
+    const dd = d.slice(0, 2);
+    const mm = d.slice(2, 4);
+    const yy = d.slice(4, 6);
+    return toApiDate(`${dd}.${mm}.${yy}`);
+  }
+  if (d.length === 8) {
+    const dd = d.slice(0, 2);
+    const mm = d.slice(2, 4);
+    const yyyy = d.slice(4, 8);
+    return toApiDate(`${dd}.${mm}.${yyyy}`);
+  }
+  return null;
+}
+
+/** Только цифры HHMM → "HH:mm" (например 2000 → 20:00, 830 → 08:30) */
+export function digitsToTime(digits: string): string | null {
+  let t = digits.replace(/\D/g, '');
+  if (t.length === 3) t = '0' + t;
+  if (t.length < 4) return null;
+  const hh = t.slice(0, 2);
+  const mm = t.slice(2, 4);
+  const h = parseInt(hh, 10);
+  const m = parseInt(mm, 10);
+  if (h <= 23 && m <= 59) return `${hh}:${mm}`;
+  return null;
+}
+
 export function dayFromDate(dateStr: string): string {
   const apiDate = dateStr.includes('-') ? dateStr : toApiDate(dateStr);
   if (!apiDate) return '';
