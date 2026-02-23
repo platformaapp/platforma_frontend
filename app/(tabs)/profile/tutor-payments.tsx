@@ -10,16 +10,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
+import { ThemedText } from '@/components/themed-text';
 import {
   getTutorPayments,
   getTutorPaymentsSummary,
   type Payment,
   type PaymentsSummary,
 } from '@/lib/api/tutor';
-import { deleteCurrentPaymentMethod } from '@/lib/api/student-payments';
+import { bindPaymentMethod, deleteCurrentPaymentMethod } from '@/lib/api/student-payments';
 
 function formatDate(iso: string): string {
   try {
@@ -58,6 +60,9 @@ export default function TutorPaymentsScreen() {
   const [isWithdrawModalVisible, setWithdrawModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
+  const [editCardNumber, setEditCardNumber] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
 
   const cardMasked = 'Карта MIR * 2000';
   const cardBank = 'Тинькофф Банк';
@@ -133,6 +138,31 @@ export default function TutorPaymentsScreen() {
     }
   };
 
+  const handleEditCardClick = () => {
+    setEditCardNumber('');
+    setEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (isLinking) return;
+    const number = editCardNumber.replace(/\s/g, '');
+    if (!number || number.length < 13) {
+      Alert.alert('Ошибка', 'Введите номер новой карты');
+      return;
+    }
+    setIsLinking(true);
+    try {
+      await bindPaymentMethod({ provider: 'yookassa', card_number: number });
+      setEditModalVisible(false);
+      setEditCardNumber('');
+      await loadData();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -177,7 +207,12 @@ export default function TutorPaymentsScreen() {
           >
             <Text style={styles.cardActionPrimaryText}>Вывести на карту</Text>
           </Pressable>
-          <Pressable style={styles.cardAction}>
+          <Pressable
+            style={styles.cardAction}
+            onPress={handleEditCardClick}
+            disabled={isDeleting}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
             <Text style={styles.cardActionText}>Изменить</Text>
           </Pressable>
           <Pressable
@@ -267,6 +302,50 @@ export default function TutorPaymentsScreen() {
               disabled={isDeleting}
             >
               <Text style={styles.deleteModalDeleteText}>{isDeleting ? '…' : 'Удалить'}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isEditModalVisible}
+        onRequestClose={() => { setEditModalVisible(false); setEditCardNumber(''); }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => { setEditModalVisible(false); setEditCardNumber(''); }}
+        >
+          <Pressable style={styles.editModalSheet} onPress={() => {}}>
+            <ThemedText type="title" style={styles.editModalTitle}>
+              ИЗМЕНИТЬ КАРТУ
+            </ThemedText>
+
+            <View style={styles.editCardInfo}>
+              <Text style={styles.editCardLabel}>Текущая карта</Text>
+              <Text style={styles.editCardMasked}>{cardMasked}</Text>
+              <Text style={styles.editCardProvider}>{cardBank}</Text>
+            </View>
+
+            <TextInput
+              placeholder="Номер новой карты"
+              placeholderTextColor="#888"
+              style={styles.editInput}
+              value={editCardNumber}
+              onChangeText={(t) => setEditCardNumber(t.replace(/\D/g, ''))}
+              keyboardType="numeric"
+              maxLength={19}
+            />
+
+            <Pressable
+              style={[styles.editModalBtn, styles.editModalBtnPrimary, isLinking && styles.editModalBtnDisabled]}
+              onPress={handleEditSubmit}
+              disabled={isLinking}
+            >
+              <Text style={styles.editModalBtnText}>
+                {isLinking ? 'Сохранение...' : 'Заменить'}
+              </Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -549,5 +628,76 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
+  },
+  editModalSheet: {
+    backgroundColor: '#fff',
+    padding: 16,
+  },
+  editModalTitle: {
+    marginTop: 0,
+    marginBottom: 8,
+    fontFamily: 'Inter-Regular',
+    fontSize: 28,
+    fontWeight: '400',
+    lineHeight: 36,
+    letterSpacing: -2,
+    color: '#181818',
+    textAlign: 'left',
+  },
+  editCardInfo: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    padding: 12,
+    marginBottom: 12,
+  },
+  editCardLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 4,
+  },
+  editCardMasked: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  editCardProvider: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    borderRadius: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#181818',
+    marginBottom: 12,
+  },
+  editModalBtn: {
+    borderRadius: 0,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    height: 52,
+  },
+  editModalBtnPrimary: {
+    backgroundColor: '#111',
+    borderColor: '#111',
+  },
+  editModalBtnDisabled: {
+    opacity: 0.6,
+  },
+  editModalBtnText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#FAFAFA',
   },
 });

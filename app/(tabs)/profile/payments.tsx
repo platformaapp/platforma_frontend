@@ -55,6 +55,9 @@ export default function PaymentsScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
+  const [editCardNumber, setEditCardNumber] = useState('');
 
   const loadData = useCallback(async () => {
     try {
@@ -97,7 +100,39 @@ export default function PaymentsScreen() {
 
   const handleLinkCard = () => {
     if (isLinking) return;
+    setCardNumber('');
     setCardModalVisible(true);
+  };
+
+  const handleEditCardClick = (card: Card) => {
+    setCardToEdit(card);
+    setEditCardNumber('');
+    setEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (isLinking || !cardToEdit) return;
+    const number = editCardNumber.replace(/\s/g, '');
+    if (!number || number.length < 13) {
+      Alert.alert('Ошибка', 'Введите номер новой карты');
+      return;
+    }
+    setIsLinking(true);
+    try {
+      const result = await bindPaymentMethod({
+        provider: 'yookassa',
+        card_number: number,
+      });
+      await setCardLinked(true, result.card_masked);
+      setEditModalVisible(false);
+      setCardToEdit(null);
+      setEditCardNumber('');
+      await loadData();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
+    } finally {
+      setIsLinking(false);
+    }
   };
 
   const handleSubmitCard = async () => {
@@ -182,6 +217,14 @@ export default function PaymentsScreen() {
               </View>
               <View style={styles.cardActions}>
                 <Pressable
+                  style={styles.cardAction}
+                  onPress={() => handleEditCardClick(card)}
+                  disabled={deletingId !== null}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Text style={styles.cardActionText}>Изменить</Text>
+                </Pressable>
+                <Pressable
                   style={[styles.cardAction, styles.cardActionDelete]}
                   onPress={() => handleDeleteCardClick(card)}
                   disabled={deletingId !== null}
@@ -249,6 +292,47 @@ export default function PaymentsScreen() {
               disabled={!!deletingId}
             >
               <Text style={styles.deleteModalDeleteText}>{deletingId ? '…' : 'Удалить'}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isEditModalVisible && !!cardToEdit}
+        onRequestClose={() => { setEditModalVisible(false); setCardToEdit(null); }}
+      >
+        <Pressable style={styles.deleteModalOverlay} onPress={() => { setEditModalVisible(false); setCardToEdit(null); }}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <ThemedText type="title" style={styles.modalTitle}>
+              ИЗМЕНИТЬ КАРТУ
+            </ThemedText>
+
+            <View style={styles.editCardInfo}>
+              <Text style={styles.editCardLabel}>Текущая карта</Text>
+              <Text style={styles.editCardMasked}>{cardToEdit.card_masked}</Text>
+              <Text style={styles.editCardProvider}>{cardToEdit.provider}</Text>
+            </View>
+
+            <TextInput
+              placeholder="Номер новой карты"
+              placeholderTextColor="#888"
+              style={styles.input}
+              value={editCardNumber}
+              onChangeText={(t) => setEditCardNumber(t.replace(/\D/g, ''))}
+              keyboardType="numeric"
+              maxLength={19}
+            />
+
+            <Pressable
+              style={[styles.btn, styles.btnPrimary, isLinking && styles.btnDisabled]}
+              onPress={handleEditSubmit}
+              disabled={isLinking}
+            >
+              <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
+                {isLinking ? 'Сохранение...' : 'Заменить'}
+              </ThemedText>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -390,6 +474,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
   },
+  cardActionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
   cardActionDelete: {
     borderLeftWidth: 1,
     borderColor: '#E02D2D',
@@ -514,6 +604,32 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     gap: 12,
+  },
+  editCardInfo: {
+    borderWidth: 1,
+    borderColor: 'rgba(24, 24, 24, 1.0)',
+    padding: 12,
+    marginBottom: 12,
+  },
+  editCardLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 4,
+  },
+  editCardMasked: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  editCardProvider: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
   },
   modalTitle: {
     marginTop: 0,
