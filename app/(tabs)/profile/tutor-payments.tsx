@@ -22,6 +22,7 @@ import {
   type PaymentsSummary,
 } from '@/lib/api/tutor';
 import { bindPaymentMethod, deleteCurrentPaymentMethod } from '@/lib/api/student-payments';
+import * as WebBrowser from 'expo-web-browser';
 
 function formatDate(iso: string): string {
   try {
@@ -176,10 +177,17 @@ export default function TutorPaymentsScreen() {
     }
     setIsLinking(true);
     try {
-      await bindPaymentMethod({ provider: 'yookassa', card_number: number });
-      setEditModalVisible(false);
-      setEditCardNumber('');
-      await loadData();
+      const result = await bindPaymentMethod({ provider: 'yookassa', card_number: number });
+      if (result.redirect_url) {
+        setEditModalVisible(false);
+        setEditCardNumber('');
+        await WebBrowser.openBrowserAsync(result.redirect_url);
+        await loadData();
+      } else if (result.card_masked) {
+        setEditModalVisible(false);
+        setEditCardNumber('');
+        await loadData();
+      }
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
     } finally {

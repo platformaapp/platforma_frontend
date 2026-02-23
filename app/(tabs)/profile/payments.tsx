@@ -1,5 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -20,6 +21,7 @@ import {
   deleteCurrentPaymentMethod,
   deletePaymentMethod,
   getStudentPayments,
+  MAX_CARDS,
   type Card,
   type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
@@ -100,6 +102,10 @@ export default function PaymentsScreen() {
 
   const handleLinkCard = () => {
     if (isLinking) return;
+    if (cards.length >= MAX_CARDS) {
+      Alert.alert('Внимание', `Максимум ${MAX_CARDS} карты на пользователя`);
+      return;
+    }
     setCardNumber('');
     setCardModalVisible(true);
   };
@@ -123,11 +129,19 @@ export default function PaymentsScreen() {
         provider: 'yookassa',
         card_number: number,
       });
-      await setCardLinked(true, result.card_masked);
-      setEditModalVisible(false);
-      setCardToEdit(null);
-      setEditCardNumber('');
-      await loadData();
+      if (result.redirect_url) {
+        setEditModalVisible(false);
+        setCardToEdit(null);
+        setEditCardNumber('');
+        await WebBrowser.openBrowserAsync(result.redirect_url);
+        await loadData();
+      } else if (result.card_masked) {
+        await setCardLinked(true, result.card_masked);
+        setEditModalVisible(false);
+        setCardToEdit(null);
+        setEditCardNumber('');
+        await loadData();
+      }
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
     } finally {
@@ -148,10 +162,17 @@ export default function PaymentsScreen() {
         provider: 'yookassa',
         card_number: number,
       });
-      await setCardLinked(true, result.card_masked);
-      setCardModalVisible(false);
-      setCardNumber('');
-      await loadData();
+      if (result.redirect_url) {
+        setCardModalVisible(false);
+        setCardNumber('');
+        await WebBrowser.openBrowserAsync(result.redirect_url);
+        await loadData();
+      } else if (result.card_masked) {
+        await setCardLinked(true, result.card_masked);
+        setCardModalVisible(false);
+        setCardNumber('');
+        await loadData();
+      }
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
     } finally {
@@ -238,14 +259,20 @@ export default function PaymentsScreen() {
             </View>
           ))
         ) : null}
-        <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinking}>
-          <View style={styles.plusBox}>
-            <Text style={styles.plusText}>+</Text>
+        {cards.length < MAX_CARDS ? (
+          <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinking}>
+            <View style={styles.plusBox}>
+              <Text style={styles.plusText}>+</Text>
+            </View>
+            <View style={styles.linkTextBox}>
+              <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.linkRowDisabled}>
+            <Text style={styles.linkTextDisabled}>Максимум {MAX_CARDS} карты</Text>
           </View>
-          <View style={styles.linkTextBox}>
-            <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
-          </View>
-        </Pressable>
+        )}
 
         {history.length > 0 ? (
           <>
@@ -311,8 +338,8 @@ export default function PaymentsScreen() {
 
             <View style={styles.editCardInfo}>
               <Text style={styles.editCardLabel}>Текущая карта</Text>
-              <Text style={styles.editCardMasked}>{cardToEdit.card_masked}</Text>
-              <Text style={styles.editCardProvider}>{cardToEdit.provider}</Text>
+              <Text style={styles.editCardMasked}>{cardToEdit?.card_masked ?? ''}</Text>
+              <Text style={styles.editCardProvider}>{cardToEdit?.provider ?? ''}</Text>
             </View>
 
             <TextInput
@@ -417,6 +444,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1E1E1E',
     height: 52,
+  },
+  linkRowDisabled: {
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    height: 52,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  linkTextDisabled: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
   },
   plusBox: {
     width: 52,
