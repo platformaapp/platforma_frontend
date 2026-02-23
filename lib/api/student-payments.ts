@@ -139,7 +139,7 @@ export async function paySession(body: PaySessionBody): Promise<PaySessionRespon
   };
 }
 
-/** DELETE /student/payment-methods/{id} — удалить карту */
+/** DELETE /student/payment-methods/{id} — удалить карту по id */
 export async function deletePaymentMethod(id: string): Promise<void> {
   let res = await fetch(`${endpoints.studentPaymentMethods}/${id}`, {
     method: 'DELETE',
@@ -152,4 +152,13 @@ export async function deletePaymentMethod(id: string): Promise<void> {
     });
   }
   await handleResponse(res);
+}
+
+/** DELETE /payments/method — отвязать текущую карту */
+export async function deleteCurrentPaymentMethod(): Promise<void> {
+  const res = await fetch(endpoints.paymentsMethod, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  });
+  await handleResponse<{ message?: string }>(res);
 }

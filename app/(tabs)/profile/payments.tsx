@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import {
   bindPaymentMethod,
+  deleteCurrentPaymentMethod,
   deletePaymentMethod,
   getStudentPayments,
   type Card,
@@ -51,6 +53,8 @@ export default function PaymentsScreen() {
   const [cards, setCards] = useState<Card[]>([]);
   const [history, setHistory] = useState<PaymentHistoryItem[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -120,31 +124,34 @@ export default function PaymentsScreen() {
     }
   };
 
-  const handleDeleteCard = async (card: Card) => {
-    if (deletingId) return;
-    Alert.alert(
-      'Удалить карту',
-      `Удалить карту ${card.card_masked}?`,
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingId(card.id);
-            try {
-              await deletePaymentMethod(card.id);
-              if (cards.length <= 1) await setCardLinked(false);
-              await loadData();
-            } catch (e: any) {
-              Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
-            } finally {
-              setDeletingId(null);
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteCardClick = (card: Card) => {
+    setCardToDelete(card);
+    setDeleteModalVisible(true);
+  };
+
+  const handleDeleteModalKeep = () => {
+    setDeleteModalVisible(false);
+    setCardToDelete(null);
+  };
+
+  const handleDeleteModalConfirm = async () => {
+    if (!cardToDelete) return;
+    setDeletingId(cardToDelete.id);
+    try {
+      try {
+        await deleteCurrentPaymentMethod();
+      } catch {
+        await deletePaymentMethod(cardToDelete.id);
+      }
+      await setCardLinked(false);
+      setDeleteModalVisible(false);
+      setCardToDelete(null);
+      await loadData();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (loading) {
@@ -174,7 +181,7 @@ export default function PaymentsScreen() {
                 <Text style={styles.cardSubtitle}>{card.provider}</Text>
               </View>
               <View style={styles.cardActions}>
-                <Pressable style={[styles.cardAction, styles.cardActionDelete]} onPress={() => handleDeleteCard(card)} disabled={deletingId !== null}>
+                <Pressable style={[styles.cardAction, styles.cardActionDelete]} onPress={() => handleDeleteCardClick(card)} disabled={deletingId !== null}>
                   <Text style={styles.cardActionDeleteText}>
                     {deletingId === card.id ? '…' : 'Удалить'}
                   </Text>
@@ -218,6 +225,29 @@ export default function PaymentsScreen() {
           </>
         ) : null}
       </ScrollView>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isDeleteModalVisible}
+        onRequestClose={handleDeleteModalKeep}
+      >
+        <Pressable style={styles.deleteModalOverlay} onPress={handleDeleteModalKeep}>
+          <Pressable style={styles.deleteModalSheet} onPress={() => {}}>
+            <Text style={styles.deleteModalTitle}>ВЫ ДЕЙСТВИТЕЛЬНО ХОТИТЕ УДАЛИТЬ КАРТУ?</Text>
+            <Pressable style={styles.deleteModalKeepButton} onPress={handleDeleteModalKeep}>
+              <Text style={styles.deleteModalKeepText}>Оставить</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.deleteModalDeleteButton, deletingId && styles.deleteModalButtonDisabled]}
+              onPress={handleDeleteModalConfirm}
+              disabled={!!deletingId}
+            >
+              <Text style={styles.deleteModalDeleteText}>{deletingId ? '…' : 'Удалить'}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {isCardModalVisible && (
         <View style={styles.modalOverlay}>
@@ -412,6 +442,54 @@ const styles = StyleSheet.create({
   },
   historyStatusFailed: {
     color: '#E02D2D',
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  deleteModalSheet: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  deleteModalTitle: {
+    marginTop: 0,
+    marginBottom: 24,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    lineHeight: 36,
+    letterSpacing: -1,
+    color: '#181818',
+    textAlign: 'center',
+  },
+  deleteModalKeepButton: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  deleteModalKeepText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  deleteModalDeleteButton: {
+    backgroundColor: '#E2372A',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteModalButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteModalDeleteText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
   },
   modalOverlay: {
     position: 'absolute',
