@@ -95,6 +95,7 @@ export default function EventDetailScreen() {
   const [isShareCopied, setIsShareCopied] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState('');
+  const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
   const { width } = useWindowDimensions();
 
   async function handleLinkNow() {
@@ -162,7 +163,7 @@ export default function EventDetailScreen() {
         ? 'Авторизуйтесь заново'
         : rawMessage;
       setPayError(message);
-      Alert.alert('Ошибка оплаты', message);
+      setPaymentFailedModalVisible(true);
     } finally {
       setIsPaying(false);
     }
@@ -394,6 +395,34 @@ export default function EventDetailScreen() {
                   <Text style={styles.modalPayButtonText}>Окей, давайте дружить</Text>
                 </Pressable>
             </Link>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isPaymentFailedModalVisible}
+        onRequestClose={() => setPaymentFailedModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setPaymentFailedModalVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.paymentFailedTitle}>ОПЛАТА НЕ ПРОШЛА</Text>
+            <Text style={styles.paymentFailedMessage}>
+              Повторите попытку или попробуйте привязать другую карту
+            </Text>
+            <Pressable
+              style={styles.modalPayButton}
+              onPress={() => { setPaymentFailedModalVisible(false); setCardModalVisible(true); }}
+            >
+              <Text style={styles.modalPayButtonText}>Попробовать еще раз</Text>
+            </Pressable>
+            <Pressable
+              style={styles.modalSecondaryButton}
+              onPress={() => { setPaymentFailedModalVisible(false); router.push('/(tabs)/profile/payments'); }}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Сменить карту</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
@@ -787,6 +816,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
+  },
+  modalSecondaryButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  modalSecondaryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  paymentFailedTitle: {
+    marginTop: 0,
+    marginBottom: 12,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    lineHeight: 36,
+    letterSpacing: -1,
+    color: '#E2372A',
+    textAlign: 'left',
+  },
+  paymentFailedMessage: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#E2372A',
   },
   shareCopiedText: {
     marginTop: 4,

@@ -63,6 +63,9 @@ export default function TutorPaymentsScreen() {
   const [isEditModalVisible, setEditModalVisible] = useState(false);
   const [editCardNumber, setEditCardNumber] = useState('');
   const [isLinking, setIsLinking] = useState(false);
+  const [isMoneySentModalVisible, setMoneySentModalVisible] = useState(false);
+  const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const cardMasked = 'Карта MIR * 2000';
   const cardBank = 'Тинькофф Банк';
@@ -109,12 +112,33 @@ export default function TutorPaymentsScreen() {
     }, [])
   );
 
-  const handleWithdrawConfirm = () => {
+  const handleWithdrawConfirm = async () => {
     setWithdrawModalVisible(false);
+    setIsWithdrawing(true);
+    try {
+      // TODO: POST /tutor/withdraw — вызов API вывода средств
+      await new Promise((r) => setTimeout(r, 300));
+      setMoneySentModalVisible(true);
+    } catch {
+      setPaymentFailedModalVisible(true);
+    } finally {
+      setIsWithdrawing(false);
+    }
   };
 
   const handleWithdrawReplace = () => {
     setWithdrawModalVisible(false);
+    setEditModalVisible(true);
+  };
+
+  const handlePaymentFailedRetry = () => {
+    setPaymentFailedModalVisible(false);
+    setWithdrawModalVisible(true);
+  };
+
+  const handlePaymentFailedChangeCard = () => {
+    setPaymentFailedModalVisible(false);
+    setEditModalVisible(true);
   };
 
   const handleDeleteCardClick = () => {
@@ -269,16 +293,77 @@ export default function TutorPaymentsScreen() {
               <Text style={styles.modalEventSubtitle}>{cardBank}</Text>
             </View>
             <Pressable
-              style={styles.modalPayButton}
+              style={[styles.modalPayButton, isWithdrawing && styles.modalPayButtonDisabled]}
               onPress={handleWithdrawConfirm}
+              disabled={isWithdrawing}
             >
-              <Text style={styles.modalPayButtonText}>Да, все ок</Text>
+              <Text style={styles.modalPayButtonText}>{isWithdrawing ? '…' : 'Да, все ок'}</Text>
             </Pressable>
             <Pressable
               style={styles.modalSecondaryButton}
               onPress={handleWithdrawReplace}
+              disabled={isWithdrawing}
             >
               <Text style={styles.modalSecondaryButtonText}>Нет, заменю</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isMoneySentModalVisible}
+        onRequestClose={() => { setMoneySentModalVisible(false); loadData(); }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => { setMoneySentModalVisible(false); loadData(); }}
+        >
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>ДЕНЬГИ ОТПРАВЛЕНЫ!</Text>
+            <Text style={styles.moneySentMessage}>
+              Мы отправили вам на карту {formatAmount(balance)}.
+            </Text>
+            <Text style={styles.moneySentSubtext}>
+              Они придут в течении 3 рабочих дней, а может быть и раньше.
+            </Text>
+            <Pressable
+              style={styles.modalPayButton}
+              onPress={() => { setMoneySentModalVisible(false); loadData(); }}
+            >
+              <Text style={styles.modalPayButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isPaymentFailedModalVisible}
+        onRequestClose={() => setPaymentFailedModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setPaymentFailedModalVisible(false)}
+        >
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.paymentFailedTitle}>ОПЛАТА НЕ ПРОШЛА</Text>
+            <Text style={styles.paymentFailedMessage}>
+              Повторите попытку или попробуйте привязать другую карту
+            </Text>
+            <Pressable
+              style={styles.modalPayButton}
+              onPress={handlePaymentFailedRetry}
+            >
+              <Text style={styles.modalPayButtonText}>Попробовать еще раз</Text>
+            </Pressable>
+            <Pressable
+              style={styles.modalSecondaryButton}
+              onPress={handlePaymentFailedChangeCard}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Сменить карту</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -584,6 +669,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E1E1E',
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  modalPayButtonDisabled: {
+    opacity: 0.6,
+  },
+  moneySentMessage: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginTop: 12,
+  },
+  moneySentSubtext: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginTop: 8,
+  },
+  paymentFailedTitle: {
+    marginTop: 0,
+    marginBottom: 12,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    lineHeight: 36,
+    letterSpacing: -1,
+    color: '#E2372A',
+    textAlign: 'left',
+  },
+  paymentFailedMessage: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#E2372A',
   },
   modalPayButtonText: {
     fontSize: 16,
