@@ -171,7 +171,7 @@ export default function PaymentsScreen() {
         <Text style={styles.title}>ПЛАТЕЖИ</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         <Text style={styles.sectionTitle}>Карты</Text>
         {cards.length > 0 ? (
           cards.map((card) => (
@@ -181,7 +181,12 @@ export default function PaymentsScreen() {
                 <Text style={styles.cardSubtitle}>{card.provider}</Text>
               </View>
               <View style={styles.cardActions}>
-                <Pressable style={[styles.cardAction, styles.cardActionDelete]} onPress={() => handleDeleteCardClick(card)} disabled={deletingId !== null}>
+                <Pressable
+                  style={[styles.cardAction, styles.cardActionDelete]}
+                  onPress={() => handleDeleteCardClick(card)}
+                  disabled={deletingId !== null}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <Text style={styles.cardActionDeleteText}>
                     {deletingId === card.id ? '…' : 'Удалить'}
                   </Text>

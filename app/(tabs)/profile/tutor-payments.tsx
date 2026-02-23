@@ -19,6 +19,7 @@ import {
   type Payment,
   type PaymentsSummary,
 } from '@/lib/api/tutor';
+import { deleteCurrentPaymentMethod } from '@/lib/api/student-payments';
 
 function formatDate(iso: string): string {
   try {
@@ -55,6 +56,8 @@ export default function TutorPaymentsScreen() {
   const [summary, setSummary] = useState<PaymentsSummary | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isWithdrawModalVisible, setWithdrawModalVisible] = useState(false);
+  const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const cardMasked = 'Карта MIR * 2000';
   const cardBank = 'Тинькофф Банк';
@@ -109,6 +112,27 @@ export default function TutorPaymentsScreen() {
     setWithdrawModalVisible(false);
   };
 
+  const handleDeleteCardClick = () => {
+    setDeleteModalVisible(true);
+  };
+
+  const handleDeleteModalKeep = () => {
+    setDeleteModalVisible(false);
+  };
+
+  const handleDeleteModalConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteCurrentPaymentMethod();
+      setDeleteModalVisible(false);
+      await loadData();
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -128,7 +152,7 @@ export default function TutorPaymentsScreen() {
         <Text style={styles.title}>ПЛАТЕЖИ</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
         <View style={styles.balanceRow}>
           <Text style={styles.balanceLabel}>Баланс</Text>
           <View style={styles.balanceRight}>
@@ -156,8 +180,13 @@ export default function TutorPaymentsScreen() {
           <Pressable style={styles.cardAction}>
             <Text style={styles.cardActionText}>Изменить</Text>
           </Pressable>
-          <Pressable style={[styles.cardAction, styles.cardActionDelete]}>
-            <Text style={styles.cardActionDeleteText}>Удалить</Text>
+          <Pressable
+            style={[styles.cardAction, styles.cardActionDelete]}
+            onPress={handleDeleteCardClick}
+            disabled={isDeleting}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.cardActionDeleteText}>{isDeleting ? '…' : 'Удалить'}</Text>
           </Pressable>
         </View>
 
@@ -215,6 +244,29 @@ export default function TutorPaymentsScreen() {
               onPress={handleWithdrawReplace}
             >
               <Text style={styles.modalSecondaryButtonText}>Нет, заменю</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isDeleteModalVisible}
+        onRequestClose={handleDeleteModalKeep}
+      >
+        <Pressable style={styles.modalOverlay} onPress={handleDeleteModalKeep}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>ВЫ ДЕЙСТВИТЕЛЬНО ХОТИТЕ УДАЛИТЬ КАРТУ?</Text>
+            <Pressable style={styles.deleteModalKeepButton} onPress={handleDeleteModalKeep}>
+              <Text style={styles.deleteModalKeepText}>Оставить</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.deleteModalDeleteButton, isDeleting && styles.deleteModalButtonDisabled]}
+              onPress={handleDeleteModalConfirm}
+              disabled={isDeleting}
+            >
+              <Text style={styles.deleteModalDeleteText}>{isDeleting ? '…' : 'Удалить'}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -471,5 +523,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  deleteModalKeepButton: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  deleteModalKeepText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  deleteModalDeleteButton: {
+    backgroundColor: '#E2372A',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deleteModalButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteModalDeleteText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
   },
 });
