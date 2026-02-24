@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { AuthError } from '@/lib/api/auth-error';
 import {
   createTutorSlot,
   getTutorSlots,
@@ -40,13 +41,19 @@ export default function AddSlotScreen() {
           if (!cancelled) setSlots(data);
         })
         .catch((e) => {
-          if (!cancelled) Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить слоты');
+          if (!cancelled) {
+            if (e instanceof AuthError || e?.name === 'AuthError') {
+              router.replace('/login');
+              return;
+            }
+            Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить слоты');
+          }
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
         });
       return () => { cancelled = true; };
-    }, [])
+    }, [router])
   );
 
   async function handleSave() {
@@ -112,6 +119,23 @@ export default function AddSlotScreen() {
       return;
     }
 
+    const normalizeTime = (t: string) => t.slice(0, 5);
+    const allSlots = [...slots.map((s) => ({ date: s.date, time: normalizeTime(s.time) }))];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const itemTime = normalizeTime(item.time);
+      const conflictWithExisting = allSlots.some((s) => s.date === item.date && s.time === itemTime);
+      const conflictWithNew = items
+        .slice(0, i)
+        .some((o) => o.date === item.date && normalizeTime(o.time) === itemTime);
+      if (conflictWithExisting || conflictWithNew) {
+        setStatusMessage({ text: 'Время уже занято!', isError: true });
+        Alert.alert('Ошибка', 'Время уже занято!');
+        return;
+      }
+      allSlots.push({ date: item.date, time: itemTime });
+    }
+
     setSaving(true);
     setStatusMessage({ text: 'Сохранение...', isError: false });
     try {
@@ -127,6 +151,10 @@ export default function AddSlotScreen() {
       setStatusMessage({ text: 'Слоты сохранены', isError: false });
       Alert.alert('Слоты сохранены');
     } catch (e: any) {
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
       const msg = e?.message ?? 'Не удалось добавить слоты';
       setStatusMessage({ text: msg, isError: true });
       Alert.alert('Ошибка', msg);

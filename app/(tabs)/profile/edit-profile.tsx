@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { AuthError } from '@/lib/api/auth-error';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
 
 export default function EditProfileScreen() {
@@ -27,8 +28,12 @@ export default function EditProfileScreen() {
           setEmail(p.email ?? '');
         }
       })
-      .catch(() => {
+      .catch((e) => {
         if (!cancelled) {
+          if (e instanceof AuthError || e?.name === 'AuthError') {
+            router.replace('/login');
+            return;
+          }
           setName('Андрей Осетров');
           setRole('Куратор, исследователь визуальной культуры');
           setEmail('andrey_osetrov@yandex.ru');
@@ -53,6 +58,10 @@ export default function EditProfileScreen() {
       });
       router.back();
     } catch (e: any) {
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
       Alert.alert('Ошибка', e?.message ?? 'Не удалось сохранить');
     } finally {
       setSaving(false);

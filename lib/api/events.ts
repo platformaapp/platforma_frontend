@@ -9,14 +9,9 @@
  */
 
 import { endpoints } from '@/constants/env';
-import { clearAuth, getAuthToken } from '@/lib/auth';
-
-export class AuthError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'AuthError';
-  }
-}
+import { getAuthToken } from '@/lib/auth';
+import { AuthError, handle401 } from '@/lib/api/auth-error';
+export { AuthError };
 
 // --- Типы ---
 
@@ -81,14 +76,9 @@ async function handleResponse<T>(res: Response): Promise<T> {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
+    if (res.status === 401) await handle401(res, payload);
     const msg = typeof payload === 'string' ? payload : payload?.error ?? payload?.message ?? 'Ошибка запроса';
-    if (res.status === 401) {
-      await clearAuth();
-      throw new AuthError(msg);
-    }
-    if (res.status === 504) {
-      throw new Error('Сервер не отвечает. Попробуйте позже.');
-    }
+    if (res.status === 504) throw new Error('Сервер не отвечает. Попробуйте позже.');
     throw new Error(msg);
   }
 

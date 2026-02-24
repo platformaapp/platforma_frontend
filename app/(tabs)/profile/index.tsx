@@ -8,6 +8,7 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from '@/lib/auth';
+import { AuthError } from '@/lib/api/auth-error';
 import { getTutorSlots } from '@/lib/api/tutor';
 import { toDisplayDate } from '@/lib/slots-utils';
 
@@ -38,8 +39,14 @@ export default function ProfileScreen() {
       if (role !== 'tutor') return;
       getTutorSlots()
         .then((s) => setSlots(s.map((x) => ({ date: toDisplayDate(x.date), time: x.time }))))
-        .catch(() => setSlots([]));
-    }, [role])
+        .catch((e) => {
+          if (e instanceof AuthError || e?.name === 'AuthError') {
+            router.replace('/login');
+            return;
+          }
+          setSlots([]);
+        });
+    }, [role, router])
   );
 
   useEffect(() => {
@@ -63,7 +70,7 @@ export default function ProfileScreen() {
 
   const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
     if (isSwitching || nextRole === role) return;
-    const token = await getAuthToken();
+    const [token, refreshToken] = await Promise.all([getAuthToken(), getRefreshToken()]);
     if (!token) {
       Alert.alert('Ошибка', 'Для смены роли нужно войти в аккаунт');
       router.push('/login');
@@ -72,13 +79,15 @@ export default function ProfileScreen() {
     setIsSwitching(true);
     try {
       const requestSwitchRole = async (url: string) => {
+        const body: { role: string; refresh_token?: string } = { role: nextRole };
+        if (refreshToken) body.refresh_token = refreshToken;
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ role: nextRole }),
+          body: JSON.stringify(body),
         });
         const contentType = response.headers.get('content-type') || '';
         const isJson = contentType.includes('application/json');
@@ -104,7 +113,12 @@ export default function ProfileScreen() {
       await saveAuthToken(newToken, nextRole, refreshToken);
       setRole(nextRole);
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось сменить роль');
+      const msg = e?.message ?? '';
+      if (msg.includes('Unauthorized') || msg.includes('401') || msg.includes('Refresh token not found')) {
+        router.replace('/login');
+        return;
+      }
+      Alert.alert('Ошибка', msg || 'Не удалось сменить роль');
     } finally {
       setIsSwitching(false);
     }

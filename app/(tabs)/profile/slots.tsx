@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AuthError } from '@/lib/api/auth-error';
 import {
   deleteTutorSlots,
   getTutorSlots,
@@ -28,13 +29,19 @@ export default function SlotsScreen() {
           if (!cancelled) setSlotsState(data);
         })
         .catch((e) => {
-          if (!cancelled) Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить слоты');
+          if (!cancelled) {
+            if (e instanceof AuthError || e?.name === 'AuthError') {
+              router.replace('/login');
+              return;
+            }
+            Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить слоты');
+          }
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
         });
       return () => { cancelled = true; };
-    }, [])
+    }, [router])
   );
 
   function enterDeleteMode() {
@@ -67,6 +74,10 @@ export default function SlotsScreen() {
       setSlotsState((prev) => prev.filter((s) => !toRemove.includes(s.id)));
       exitDeleteMode();
     } catch (e: any) {
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
       Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить слоты');
     } finally {
       setSaving(false);

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { AuthError } from '@/lib/api/auth-error';
 import {
   bindPaymentMethod,
   deleteCurrentPaymentMethod,
@@ -88,6 +89,10 @@ export default function PaymentsScreen() {
         })
         .catch((e) => {
           if (!cancelled) {
+            if (e instanceof AuthError || e?.name === 'AuthError') {
+              router.replace('/login');
+              return;
+            }
             setCards([]);
             setHistory([]);
             Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
@@ -143,6 +148,10 @@ export default function PaymentsScreen() {
         await loadData();
       }
     } catch (e: any) {
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
       Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
     } finally {
       setIsLinking(false);
@@ -174,6 +183,10 @@ export default function PaymentsScreen() {
         await loadData();
       }
     } catch (e: any) {
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
       Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
     } finally {
       setIsLinking(false);
@@ -204,6 +217,10 @@ export default function PaymentsScreen() {
       setCardToDelete(null);
       await loadData();
     } catch (e: any) {
+      if (e instanceof AuthError || e?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
       Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
     } finally {
       setDeletingId(null);

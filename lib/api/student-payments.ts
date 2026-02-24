@@ -14,6 +14,7 @@
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
+import { handle401 } from '@/lib/api/auth-error';
 
 // --- Типы ---
 
@@ -82,6 +83,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
+    if (res.status === 401) await handle401(res, payload);
     const msg =
       typeof payload === 'string'
         ? payload
@@ -114,9 +116,11 @@ export async function bindPaymentMethod(body: BindCardBody): Promise<PaymentMeth
       headers: await authHeaders(),
       body: JSON.stringify(payload),
     });
+    if (legacyRes.status === 500) throw new Error('Ошибка при привязке карты, попробуйте позже');
     return handleResponse<PaymentMethodResponse>(legacyRes);
   }
 
+  if (res.status === 500) throw new Error('Ошибка при привязке карты, попробуйте позже');
   const data = await handleResponse<PaymentMethodResponse & { confirmation_url?: string }>(res);
   return {
     id: data.id,

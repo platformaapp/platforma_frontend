@@ -13,6 +13,7 @@
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
+import { handle401 } from '@/lib/api/auth-error';
 
 // --- Типы ---
 
@@ -127,6 +128,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
+    if (res.status === 401) await handle401(res, payload);
     const msg =
       typeof payload === 'string'
         ? payload

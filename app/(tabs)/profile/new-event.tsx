@@ -48,6 +48,7 @@ export default function NewEventScreen() {
   const [maxParticipants, setMaxParticipants] = useState('');
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -89,33 +90,40 @@ export default function NewEventScreen() {
   }
 
   async function handleCreate() {
+    setStatusMessage(null);
     const eventDate = date ?? (dateInputText ? (() => {
       const m = dateInputText.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
       return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
     })() : null);
     if (!title.trim()) {
+      setStatusMessage('Введите название');
       Alert.alert('Ошибка', 'Введите название');
       return;
     }
     if (!eventDate) {
+      setStatusMessage('Выберите дату');
       Alert.alert('Ошибка', 'Выберите дату');
       return;
     }
     if (!time.trim()) {
+      setStatusMessage('Введите время');
       Alert.alert('Ошибка', 'Введите время');
       return;
     }
     const range = toDatetimeRange(eventDate, time.trim());
     if (!range) {
+      setStatusMessage('Введите время в формате ЧЧ:ММ');
       Alert.alert('Ошибка', 'Введите время в формате ЧЧ:ММ (например, 20:00)');
       return;
     }
     if (priceValue <= 0) {
+      setStatusMessage('Введите стоимость участия');
       Alert.alert('Ошибка', 'Введите стоимость участия');
       return;
     }
     const max = maxParticipants ? Math.max(1, parseInt(maxParticipants) || 30) : 30;
     setIsSubmitting(true);
+    setStatusMessage('Создание...');
     try {
       await createEvent({
         title: title.trim(),
@@ -125,6 +133,7 @@ export default function NewEventScreen() {
         price: priceValue,
         max_participants: max,
       });
+      setStatusMessage('Событие создано');
       router.back();
     } catch (e: any) {
       if (e instanceof AuthError || e?.name === 'AuthError') {
@@ -132,6 +141,7 @@ export default function NewEventScreen() {
         return;
       }
       const msg = e?.message ?? 'Не удалось создать событие';
+      setStatusMessage(msg);
       Alert.alert('Ошибка', msg);
     } finally {
       setIsSubmitting(false);
@@ -142,7 +152,7 @@ export default function NewEventScreen() {
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
       <View style={styles.header}>
@@ -291,6 +301,9 @@ export default function NewEventScreen() {
         )}
       </Pressable>
 
+        {statusMessage ? (
+          <Text style={styles.statusMessage}>{statusMessage}</Text>
+        ) : null}
       <Pressable
         style={[styles.createButton, isSubmitting && styles.createButtonDisabled]}
         onPress={handleCreate}
@@ -465,8 +478,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
+  statusMessage: {
+    marginTop: 12,
+    marginBottom: 8,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    textAlign: 'center',
+  },
   createButton: {
-    marginTop: 'auto',
+    marginTop: 12,
     marginBottom: 24,
     backgroundColor: '#111',
     borderWidth: 1,
