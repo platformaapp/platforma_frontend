@@ -1,14 +1,14 @@
+import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from '@/lib/auth';
 import { getTutorSlots } from '@/lib/api/tutor';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
 export default function ProfileScreen() {
@@ -213,7 +213,7 @@ export default function ProfileScreen() {
       <Modal transparent animationType="none" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
         <Pressable style={styles.shareModalOverlay} onPress={() => setShareVisible(false)}>
           <Pressable style={styles.shareModalSheet} onPress={() => {}}>
-            <Text style={styles.shareModalTitle}>Поделиться событием</Text>
+            <Text style={styles.shareModalTitle}>Поделиться профилем</Text>
             <View style={styles.shareModalCard}>
               <Text style={styles.shareModalUrl} numberOfLines={2}>{profileUrl}</Text>
             </View>
