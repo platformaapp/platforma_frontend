@@ -6,6 +6,16 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
+import { getAuthRole, getUserProfile } from '@/lib/auth';
+
+const FALLBACK = {
+  name: 'Андрей Осетров',
+  role: 'Куратор, исследователь визуальной культуры',
+  email: 'andrey_osetrov@yandex.ru',
+  telegram: 'Телеграм: @andrrrr',
+  bio: 'Преподаю на стыке современного искусства, медиа и теории восприятия. Веду открытые курсы по визуальной грамотности, сотрудничал с Третьяковской галереей, ГЭС-2 и Garage Digital. Умею объяснять сложно просто, без пафоса и скуки. Считаю, что понимание искусства — это не про образование, а про внимание.',
+  price: 'Стоимость часовой консультации: 600 ₽',
+};
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -20,33 +30,54 @@ export default function EditProfileScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    getTutorProfile()
-      .then((p) => {
-        if (!cancelled) {
-          setName(p.full_name ?? '');
-          setBio(p.bio ?? '');
-          setEmail(p.email ?? '');
+    const load = async () => {
+      const loginProfile = await getUserProfile();
+      if (!cancelled && loginProfile) {
+        setName(loginProfile.full_name ?? '');
+        setEmail(loginProfile.email ?? '');
+        setBio(loginProfile.bio ?? '');
+      }
+      const currentRole = await getAuthRole();
+      if (currentRole === 'tutor') {
+        getTutorProfile()
+          .then((p) => {
+            if (!cancelled) {
+              setName(p.full_name ?? loginProfile?.full_name ?? FALLBACK.name);
+              setBio(p.bio ?? loginProfile?.bio ?? FALLBACK.bio);
+              setEmail(p.email ?? loginProfile?.email ?? FALLBACK.email);
+            }
+          })
+          .catch((e) => {
+            if (!cancelled) {
+              if (e instanceof AuthError || e?.name === 'AuthError') {
+                setLoading(false);
+                router.replace('/login');
+                return;
+              }
+              if (!loginProfile) {
+                setName(FALLBACK.name);
+                setRole(FALLBACK.role);
+                setEmail(FALLBACK.email);
+                setTelegram(FALLBACK.telegram);
+                setBio(FALLBACK.bio);
+                setPrice(FALLBACK.price);
+              }
+            }
+          })
+          .finally(() => {
+            if (!cancelled) setLoading(false);
+          });
+      } else {
+        if (!cancelled && !loginProfile) {
+          setName(FALLBACK.name);
+          setEmail(FALLBACK.email);
         }
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          if (e instanceof AuthError || e?.name === 'AuthError') {
-            router.replace('/login');
-            return;
-          }
-          setName('Андрей Осетров');
-          setRole('Куратор, исследователь визуальной культуры');
-          setEmail('andrey_osetrov@yandex.ru');
-          setTelegram('Телеграм: @andrrrr');
-          setBio('Преподаю на стыке современного искусства, медиа и теории восприятия. Веду открытые курсы по визуальной грамотности, сотрудничал с Третьяковской галереей, ГЭС-2 и Garage Digital. Умею объяснять сложно просто, без пафоса и скуки. Считаю, что понимание искусства — это не про образование, а про внимание.');
-          setPrice('Стоимость часовой консультации: 600 ₽');
-        }
-      })
-      .finally(() => {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+    load();
     return () => { cancelled = true; };
-  }, []);
+  }, [router]);
 
   async function handleSave() {
     if (saving) return;

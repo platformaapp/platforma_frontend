@@ -6,7 +6,7 @@ import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, St
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
 
@@ -144,12 +144,14 @@ export default function RegisterStudentScreen() {
       // Пытаемся извлечь токен из ответа
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
+      const user = extractUserFromResponse(data);
       console.log('Извлеченный токен:', token ? `есть (${token.substring(0, 20)}...)` : 'нет');
       
       // Сохраняем токен, если он есть
       if (token) {
         try {
-          await saveAuthToken(token, 'student', refreshToken);
+          const userProfile = user ? { ...user, role: 'student' } : undefined;
+          await saveAuthToken(token, 'student', refreshToken, userProfile);
           console.log('Токен сохранен успешно');
         } catch (saveError) {
           console.error('Ошибка сохранения токена:', saveError);

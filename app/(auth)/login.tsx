@@ -5,7 +5,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, getAuthRole, saveAuthToken } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -62,10 +62,16 @@ export default function LoginScreen() {
       }
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
+      const user = extractUserFromResponse(data);
       if (token) {
-        await saveAuthToken(token, role, refreshToken);
+        const userProfile = user ? { ...user, role } : undefined;
+        await saveAuthToken(token, role, refreshToken, userProfile);
       }
-      router.replace('/(tabs)/events');
+      if (user?.id) {
+        router.replace(`/(tabs)/profile/${user.id}`);
+      } else {
+        router.replace('/(tabs)/events');
+      }
     } catch (e: any) {
       const message = e?.message ?? 'Неизвестная ошибка';
       const normalized = message.toLowerCase();

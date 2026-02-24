@@ -4,10 +4,21 @@ import * as SecureStore from 'expo-secure-store';
 const TOKEN_KEY = 'auth_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const ROLE_KEY = 'auth_role';
+const USER_PROFILE_KEY = 'auth_user_profile';
 
 const isWeb = Platform.OS === 'web';
 
-export async function saveAuthToken(token: string, role?: string, refreshToken?: string) {
+export interface UserProfile {
+  id: string;
+  email?: string;
+  full_name?: string;
+  role?: string;
+  avatar_url?: string;
+  bio?: string;
+  [key: string]: unknown;
+}
+
+export async function saveAuthToken(token: string, role?: string, refreshToken?: string, userProfile?: UserProfile) {
   if (!token) return;
 
   if (isWeb) {
@@ -23,6 +34,9 @@ export async function saveAuthToken(token: string, role?: string, refreshToken?:
         if (refreshToken) {
           ls.setItem(REFRESH_TOKEN_KEY, refreshToken);
         }
+        if (userProfile) {
+          ls.setItem(USER_PROFILE_KEY, JSON.stringify(userProfile));
+        }
       }
     } catch (error) {
       console.error('Ошибка сохранения токена в localStorage:', error);
@@ -36,6 +50,9 @@ export async function saveAuthToken(token: string, role?: string, refreshToken?:
       }
       if (refreshToken) {
         await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+      }
+      if (userProfile) {
+        await SecureStore.setItemAsync(USER_PROFILE_KEY, JSON.stringify(userProfile));
       }
       
       // Дополнительно сохраняем в localStorage для совместимости
@@ -51,6 +68,25 @@ export async function saveAuthToken(token: string, role?: string, refreshToken?:
       console.error('Ошибка сохранения токена в SecureStore:', error);
       throw error;
     }
+  }
+}
+
+export async function getUserProfile(): Promise<UserProfile | null> {
+  try {
+    let raw: string | null = null;
+    if (isWeb) {
+      const ls = (globalThis as any)?.localStorage;
+      if (ls && typeof ls.getItem === 'function') {
+        raw = ls.getItem(USER_PROFILE_KEY);
+      }
+    } else {
+      raw = await SecureStore.getItemAsync(USER_PROFILE_KEY);
+    }
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UserProfile;
+    return parsed?.id ? parsed : null;
+  } catch {
+    return null;
   }
 }
 
@@ -122,6 +158,7 @@ export async function clearAuth() {
         ls.removeItem(TOKEN_KEY);
         ls.removeItem(REFRESH_TOKEN_KEY);
         ls.removeItem(ROLE_KEY);
+        ls.removeItem(USER_PROFILE_KEY);
         ls.removeItem('access_token');
       }
     } catch {
@@ -132,6 +169,7 @@ export async function clearAuth() {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
       await SecureStore.deleteItemAsync(ROLE_KEY);
+      await SecureStore.deleteItemAsync(USER_PROFILE_KEY);
     } catch {
       // Игнорируем ошибки
     }
@@ -161,6 +199,20 @@ export function extractRefreshTokenFromResponse(data: any): string | undefined {
     data?.data?.refresh_token ||
     data?.data?.refresh
   );
+}
+
+export function extractUserFromResponse(data: any): UserProfile | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const user = data.user ?? data.data?.user ?? data.data ?? (data.id ? data : null);
+  if (!user || typeof user !== 'object' || !user.id) return undefined;
+  return {
+    id: String(user.id),
+    email: user.email,
+    full_name: user.full_name ?? user.fullName ?? user.name,
+    role: user.role,
+    avatar_url: user.avatar_url ?? user.avatarUrl,
+    bio: user.bio,
+  };
 }
 
 
