@@ -208,12 +208,12 @@ export async function deleteTutorSlot(id: string): Promise<void> {
   await handleResponse(res);
 }
 
-/** DELETE /tutor/slots — массовое удаление (ids) */
-export async function deleteTutorSlots(ids: string[]): Promise<void> {
+/** DELETE /tutor/slots — массовое удаление (slotIds) */
+export async function deleteTutorSlots(slotIds: string[]): Promise<void> {
   const res = await fetch(endpoints.tutorSlots, {
     method: 'DELETE',
     headers: await authHeaders(),
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify({ slotIds }),
   });
   await handleResponse(res);
 }
