@@ -225,13 +225,14 @@ export default function ProfileByIdScreen() {
       <Modal transparent animationType="none" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
         <Pressable style={styles.shareModalOverlay} onPress={() => setShareVisible(false)}>
           <Pressable style={styles.shareModalSheet} onPress={() => {}}>
-            <Text style={styles.shareModalTitle}>Поделиться событием</Text>
+            <Text style={styles.shareModalTitle}>Поделиться профилем</Text>
             <View style={styles.shareModalCard}>
               <Text style={styles.shareModalUrl} numberOfLines={2}>{profileUrl}</Text>
             </View>
-            {isShareCopied ? <Text style={styles.shareCopiedText}>Ссылка скопирована</Text> : null}
             <Pressable style={styles.shareModalButton} onPress={handleCopyProfileLink}>
-              <Text style={styles.shareModalButtonText}>Скопировать ссылку</Text>
+              <Text style={styles.shareModalButtonText}>
+                {isShareCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+              </Text>
             </Pressable>
             <Pressable style={styles.shareModalClose} onPress={() => setShareVisible(false)}>
               <Text style={styles.shareModalCloseText}>Закрыть</Text>
@@ -466,13 +467,13 @@ const styles = StyleSheet.create({
   shareModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    padding: 16,
+    justifyContent: 'flex-end',
   },
   shareModalSheet: {
     backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
   },
   shareModalTitle: {
     fontSize: 20,
@@ -489,12 +490,6 @@ const styles = StyleSheet.create({
   shareModalUrl: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  shareCopiedText: {
-    marginTop: 4,
-    fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
