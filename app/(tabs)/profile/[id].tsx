@@ -64,7 +64,7 @@ export default function ProfileByIdScreen() {
 
   const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
     if (isSwitching || nextRole === role) return;
-    const token = await getAuthToken();
+    const [token, refreshToken] = await Promise.all([getAuthToken(), getRefreshToken()]);
     if (!token) {
       Alert.alert('Ошибка', 'Для смены роли нужно войти в аккаунт');
       router.push('/login');
@@ -72,27 +72,20 @@ export default function ProfileByIdScreen() {
     }
     setIsSwitching(true);
     try {
-      const requestSwitchRole = async (url: string) => {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: nextRole }),
-        });
-        const contentType = response.headers.get('content-type') || '';
-        const isJson = contentType.includes('application/json');
-        const payload = isJson ? await response.json() : await response.text();
-        return { response, payload };
-      };
+      const body: Record<string, string> = { role: nextRole };
+      if (refreshToken) body.refresh_token = refreshToken;
 
-      let { response, payload } = await requestSwitchRole(endpoints.switchRoleLegacy);
-      if (!response.ok && (response.status === 404 || response.status === 405)) {
-        const retry = await requestSwitchRole(endpoints.switchRole);
-        response = retry.response;
-        payload = retry.payload;
-      }
+      const response = await fetch(endpoints.switchRole, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const contentType = response.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const payload = isJson ? await response.json() : await response.text();
 
       if (!response.ok) {
         const message = typeof payload === 'string' ? payload : payload?.message || 'Не удалось сменить роль';
@@ -100,9 +93,8 @@ export default function ProfileByIdScreen() {
       }
 
       const newToken = extractTokenFromResponse(payload) || token;
-      const storedRefresh = await getRefreshToken();
-      const refreshToken = extractRefreshTokenFromResponse(payload) || storedRefresh || undefined;
-      await saveAuthToken(newToken, nextRole, refreshToken);
+      const newRefresh = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
+      await saveAuthToken(newToken, nextRole, newRefresh);
       setRole(nextRole);
     } catch (e: any) {
       const msg = e?.message ?? '';
