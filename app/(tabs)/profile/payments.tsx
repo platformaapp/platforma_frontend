@@ -1,7 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -22,6 +23,7 @@ import {
   deleteCurrentPaymentMethod,
   deletePaymentMethod,
   getStudentPayments,
+  getStudentPaymentsCallback,
   MAX_CARDS,
   type Card,
   type PaymentHistoryItem,
@@ -89,21 +91,38 @@ export default function PaymentsScreen() {
         })
         .catch((e) => {
           if (!cancelled) {
-            if (e instanceof AuthError || e?.name === 'AuthError') {
+            if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
               router.replace('/login');
               return;
             }
             setCards([]);
             setHistory([]);
-            Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
+            Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось загрузить данные');
           }
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
         });
       return () => { cancelled = true; };
-    }, [])
+    }, [router])
   );
+
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      const url = event.url;
+      if (url.includes('payments/callback') || url.includes('payment-methods/callback')) {
+        const parsed = Linking.parse(url);
+        const params = parsed.queryParams as Record<string, string> | undefined;
+        if (params?.payment_id) {
+          getStudentPaymentsCallback(params).finally(() => loadData());
+        } else {
+          loadData();
+        }
+      }
+    };
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    return () => sub.remove();
+  }, [loadData]);
 
   const handleLinkCard = () => {
     if (isLinking) return;

@@ -98,7 +98,12 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 const MAX_CARDS = 3;
 
-/** POST api/student/payment-methods/bind — инициализация привязки карты (3D-Secure) */
+/**
+ * POST api/student/payment-methods/bind — инициализация привязки карты.
+ * Создаётся тестовый платёж 1₽, возвращается redirect_url для 3D-Secure.
+ * После прохождения 3D-Secure — GET /student/payments/callback обрабатывает колбэк,
+ * YooKassa возвращает payment_method_id, карта сохраняется как ACTIVE.
+ */
 export async function bindPaymentMethod(body: BindCardBody): Promise<PaymentMethodResponse> {
   const cardNumber = body.card_number.replace(/\s/g, '');
   const payload = { provider: body.provider, card_number: cardNumber };
@@ -133,6 +138,22 @@ export async function bindPaymentMethod(body: BindCardBody): Promise<PaymentMeth
 
 /** Максимум карт на пользователя */
 export { MAX_CARDS };
+
+/**
+ * GET /student/payments/callback — обработка 3D-Secure колбэка.
+ * Вызывается после редиректа с YooKassa (или клиентом с query-параметрами).
+ * Завершает привязку карты, сохраняет payment_method_id, карта → ACTIVE.
+ */
+export async function getStudentPaymentsCallback(params?: {
+  payment_id?: string;
+  success?: string;
+  [key: string]: string | undefined;
+}): Promise<{ success?: boolean; card_masked?: string; message?: string }> {
+  const qs = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
+  const url = qs ? `${endpoints.studentPaymentsCallback}?${qs}` : endpoints.studentPaymentsCallback;
+  const res = await fetch(url, { headers: await authHeaders() });
+  return handleResponse(res);
+}
 
 /** GET /student/payments — список карт и история оплат */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
