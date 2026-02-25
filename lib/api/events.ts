@@ -18,10 +18,11 @@ export { AuthError };
 export interface EventCreateBody {
   title: string;
   description: string;
-  datetime_start: string; // ISO 8601: "2025-06-15T20:00:00Z"
-  datetime_end: string;   // ISO 8601: "2025-06-15T21:00:00Z"
+  datetime_start: string; // ISO 8601: "2025-03-01T10:00:00.000Z"
+  datetime_end: string;   // ISO 8601: "2025-03-01T11:00:00.000Z"
   price: number;
   max_participants?: number; // ≥1, по умолчанию 30
+  type?: 'standalone';
 }
 
 export interface EventResponse {
@@ -92,6 +93,7 @@ export async function createEvent(body: EventCreateBody): Promise<EventResponse>
   const payload = {
     ...body,
     max_participants: body.max_participants ?? 30,
+    type: body.type ?? 'standalone',
   };
   const res = await fetch(endpoints.events, {
     method: 'POST',

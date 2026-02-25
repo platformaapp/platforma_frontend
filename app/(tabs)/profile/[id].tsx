@@ -64,7 +64,7 @@ export default function ProfileByIdScreen() {
 
   const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
     if (isSwitching || nextRole === role) return;
-    const token = await getAuthToken();
+    const [token, refreshToken] = await Promise.all([getAuthToken(), getRefreshToken()]);
     if (!token) {
       Alert.alert('Ошибка', 'Для смены роли нужно войти в аккаунт');
       router.push('/login');
@@ -72,13 +72,16 @@ export default function ProfileByIdScreen() {
     }
     setIsSwitching(true);
     try {
+      const body: Record<string, string> = { role: nextRole };
+      if (refreshToken) body.refresh_token = refreshToken;
       const response = await fetch(endpoints.switchRole, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ role: nextRole }),
+        body: JSON.stringify(body),
+        credentials: 'include',
       });
       const contentType = response.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
@@ -90,8 +93,8 @@ export default function ProfileByIdScreen() {
       }
 
       const newToken = extractTokenFromResponse(payload) || token;
-      const refreshToken = extractRefreshTokenFromResponse(payload) || (await getRefreshToken()) || undefined;
-      await saveAuthToken(newToken, nextRole, refreshToken);
+      const newRefresh = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
+      await saveAuthToken(newToken, nextRole, newRefresh);
       setRole(nextRole);
     } catch (e: any) {
       const msg = e?.message ?? '';
