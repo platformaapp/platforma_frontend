@@ -110,18 +110,50 @@ export default function EditProfileScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>ИЗМЕНЕНИЕ ДАННЫХ</Text>
 
-        <TextInput value={name} onChangeText={setName} style={styles.input} />
-        <TextInput value={role} onChangeText={setRole} style={styles.input} />
-        <TextInput value={email} onChangeText={setEmail} style={styles.input} />
-        <TextInput value={telegram} onChangeText={setTelegram} style={styles.input} />
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          style={styles.input}
+          placeholder="Имя"
+          placeholderTextColor="#9B9B9B"
+        />
+        <TextInput
+          value={role}
+          onChangeText={setRole}
+          style={styles.input}
+          placeholder="Роль"
+          placeholderTextColor="#9B9B9B"
+        />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#9B9B9B"
+        />
+        <TextInput
+          value={telegram}
+          onChangeText={setTelegram}
+          style={styles.input}
+          placeholder="Телеграм"
+          placeholderTextColor="#9B9B9B"
+        />
         <TextInput
           value={bio}
           onChangeText={setBio}
           style={[styles.input, styles.textArea]}
           multiline
           textAlignVertical="top"
+          placeholder="О себе"
+          placeholderTextColor="#9B9B9B"
         />
-        <TextInput value={price} onChangeText={setPrice} style={styles.input} />
+        <TextInput
+          value={price}
+          onChangeText={setPrice}
+          style={styles.input}
+          placeholder="Стоимость"
+          placeholderTextColor="#9B9B9B"
+        />
 
         <View style={styles.photoRow}>
           <View style={styles.photoBox}>
