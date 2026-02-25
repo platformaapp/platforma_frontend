@@ -64,79 +64,22 @@ export default function ProfileByIdScreen() {
 
   const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
     if (isSwitching || nextRole === role) return;
-    let token = await getAuthToken();
-    let refreshToken = await getRefreshToken();
-    if (!token && !refreshToken) {
+    const token = await getAuthToken();
+    if (!token) {
       Alert.alert('Ошибка', 'Для смены роли нужно войти в аккаунт');
       router.push('/login');
       return;
     }
     setIsSwitching(true);
     try {
-      const doSwitch = async (accessToken: string) => {
-        const body: Record<string, string> = { role: nextRole };
-        if (refreshToken) body.refresh_token = refreshToken;
-        return fetch(endpoints.switchRole, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(body),
-        });
-      };
-
-      if (!token && refreshToken) {
-        const refreshRes = await fetch(endpoints.authRefresh, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-        if (refreshRes.ok) {
-          const refreshCt = refreshRes.headers.get('content-type') || '';
-          const refreshData = refreshCt.includes('application/json') ? await refreshRes.json() : await refreshRes.text();
-          const newAccess = extractTokenFromResponse(refreshData);
-          const newRefresh = extractRefreshTokenFromResponse(refreshData);
-          if (newAccess) {
-            token = newAccess;
-            if (newRefresh) refreshToken = newRefresh;
-            const currentRole = await getAuthRole();
-            await saveAuthToken(token, currentRole ?? undefined, refreshToken);
-          }
-        }
-      }
-
-      let response = token ? await doSwitch(token) : await Promise.reject(new Error('Нет токена'));
-
-      if (response.status === 401 && refreshToken) {
-        const refreshRes = await fetch(endpoints.authRefresh, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-        if (refreshRes.ok) {
-          const refreshCt = refreshRes.headers.get('content-type') || '';
-          const refreshData = refreshCt.includes('application/json') ? await refreshRes.json() : await refreshRes.text();
-          const newAccess = extractTokenFromResponse(refreshData);
-          const newRefresh = extractRefreshTokenFromResponse(refreshData);
-          if (newAccess) {
-            token = newAccess;
-            if (newRefresh) refreshToken = newRefresh;
-            const currentRole = await getAuthRole();
-            await saveAuthToken(token, currentRole ?? undefined, refreshToken);
-            response = await doSwitch(token);
-          }
-        }
-        if (response.status === 401) {
-          const fallbackRes = await fetch(endpoints.switchRole, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: nextRole, refresh_token: refreshToken }),
-          });
-          if (fallbackRes.ok) response = fallbackRes;
-        }
-      }
-
+      const response = await fetch(endpoints.switchRole, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: nextRole }),
+      });
       const contentType = response.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
       const payload = isJson ? await response.json() : await response.text();
@@ -147,8 +90,8 @@ export default function ProfileByIdScreen() {
       }
 
       const newToken = extractTokenFromResponse(payload) || token;
-      const newRefresh = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
-      await saveAuthToken(newToken, nextRole, newRefresh);
+      const refreshToken = extractRefreshTokenFromResponse(payload) || (await getRefreshToken()) || undefined;
+      await saveAuthToken(newToken, nextRole, refreshToken);
       setRole(nextRole);
     } catch (e: any) {
       const msg = e?.message ?? '';
