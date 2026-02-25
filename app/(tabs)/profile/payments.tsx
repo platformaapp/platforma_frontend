@@ -2,11 +2,13 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  AppStateStatus,
   Modal,
   Pressable,
   ScrollView,
@@ -115,6 +117,8 @@ export default function PaymentsScreen() {
     return () => sub.remove();
   }, [router]);
 
+  const pendingCallbackRef = useRef(false);
+
   const handleLinkCard = async () => {
     if (isLinking) return;
     if (cards.length >= MAX_CARDS) {
@@ -124,9 +128,15 @@ export default function PaymentsScreen() {
     setIsLinking(true);
     try {
       const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
-      await WebBrowser.openBrowserAsync(confirmationUrl);
-      router.push('/(tabs)/profile/payment-methods-callback');
+      pendingCallbackRef.current = true;
+      WebBrowser.openBrowserAsync(confirmationUrl).then(() => {
+        if (pendingCallbackRef.current) {
+          pendingCallbackRef.current = false;
+          router.push('/(tabs)/profile/payment-methods-callback');
+        }
+      });
     } catch (e: unknown) {
+      pendingCallbackRef.current = false;
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
@@ -136,6 +146,16 @@ export default function PaymentsScreen() {
       setIsLinking(false);
     }
   };
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && pendingCallbackRef.current) {
+        pendingCallbackRef.current = false;
+        router.push('/(tabs)/profile/payment-methods-callback');
+      }
+    });
+    return () => sub.remove();
+  }, [router]);
 
   const handleSetDefault = async (card: Card) => {
     if (settingDefaultId || card.isDefault) return;
