@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -23,12 +22,11 @@ import {
   deleteCurrentPaymentMethod,
   deletePaymentMethod,
   getStudentPayments,
-  getStudentPaymentsCallback,
+  setDefaultPaymentMethod,
   MAX_CARDS,
   type Card,
   type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
-import { setCardLinked } from '@/lib/payments';
 
 function formatDate(iso: string): string {
   try {
@@ -49,20 +47,20 @@ function formatAmount(amount: number): string {
   return `${amount.toLocaleString('ru-RU')} ₽`;
 }
 
+function cardDisplay(card: Card): string {
+  return card.cardMasked ?? card.card_masked ?? '****';
+}
+
 export default function PaymentsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isLinking, setIsLinking] = useState(false);
-  const [isCardModalVisible, setCardModalVisible] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
   const [cards, setCards] = useState<Card[]>([]);
   const [history, setHistory] = useState<PaymentHistoryItem[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
-  const [isEditModalVisible, setEditModalVisible] = useState(false);
-  const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
-  const [editCardNumber, setEditCardNumber] = useState('');
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -109,106 +107,50 @@ export default function PaymentsScreen() {
 
   useEffect(() => {
     const handleDeepLink = (event: { url: string }) => {
-      const url = event.url;
-      if (url.includes('payments/callback') || url.includes('payment-methods/callback')) {
-        const parsed = Linking.parse(url);
-        const params = parsed.queryParams as Record<string, string> | undefined;
-        if (params?.payment_id) {
-          getStudentPaymentsCallback(params).finally(() => loadData());
-        } else {
-          loadData();
-        }
+      if (event.url.includes('payment-methods/callback')) {
+        router.push('/(tabs)/profile/payment-methods-callback');
       }
     };
     const sub = Linking.addEventListener('url', handleDeepLink);
     return () => sub.remove();
-  }, [loadData]);
+  }, [router]);
 
-  const handleLinkCard = () => {
+  const handleLinkCard = async () => {
     if (isLinking) return;
     if (cards.length >= MAX_CARDS) {
       Alert.alert('Внимание', `Максимум ${MAX_CARDS} карты на пользователя`);
       return;
     }
-    setCardNumber('');
-    setCardModalVisible(true);
-  };
-
-  const handleEditCardClick = (card: Card) => {
-    setCardToEdit(card);
-    setEditCardNumber('');
-    setEditModalVisible(true);
-  };
-
-  const handleEditSubmit = async () => {
-    if (isLinking || !cardToEdit) return;
-    const number = editCardNumber.replace(/\s/g, '');
-    if (!number || number.length < 13) {
-      Alert.alert('Ошибка', 'Введите номер новой карты');
-      return;
-    }
     setIsLinking(true);
     try {
-      const result = await bindPaymentMethod({
-        provider: 'yookassa',
-        card_number: number,
-      });
-      if (result.redirect_url) {
-        setEditModalVisible(false);
-        setCardToEdit(null);
-        setEditCardNumber('');
-        await WebBrowser.openBrowserAsync(result.redirect_url);
-        await loadData();
-      } else if (result.card_masked) {
-        await setCardLinked(true, result.card_masked);
-        setEditModalVisible(false);
-        setCardToEdit(null);
-        setEditCardNumber('');
-        await loadData();
-      }
-    } catch (e: any) {
-      if (e instanceof AuthError || e?.name === 'AuthError') {
+      const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
+      await WebBrowser.openBrowserAsync(confirmationUrl);
+      router.push('/(tabs)/profile/payment-methods-callback');
+    } catch (e: unknown) {
+      if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
       }
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
+      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось привязать карту');
     } finally {
       setIsLinking(false);
     }
   };
 
-  const handleSubmitCard = async () => {
-    if (isLinking) return;
-    const number = cardNumber.replace(/\s/g, '');
-    if (!number || number.length < 13) {
-      Alert.alert('Ошибка', 'Введите номер карты');
-      return;
-    }
-    setIsLinking(true);
+  const handleSetDefault = async (card: Card) => {
+    if (settingDefaultId || card.isDefault) return;
+    setSettingDefaultId(card.id);
     try {
-      const result = await bindPaymentMethod({
-        provider: 'yookassa',
-        card_number: number,
-      });
-      if (result.redirect_url) {
-        setCardModalVisible(false);
-        setCardNumber('');
-        await WebBrowser.openBrowserAsync(result.redirect_url);
-        await loadData();
-      } else if (result.card_masked) {
-        await setCardLinked(true, result.card_masked);
-        setCardModalVisible(false);
-        setCardNumber('');
-        await loadData();
-      }
-    } catch (e: any) {
-      if (e instanceof AuthError || e?.name === 'AuthError') {
+      await setDefaultPaymentMethod(card.id);
+      await loadData();
+    } catch (e: unknown) {
+      if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
       }
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось привязать карту');
+      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось установить карту по умолчанию');
     } finally {
-      setIsLinking(false);
+      setSettingDefaultId(null);
     }
   };
 
@@ -227,20 +169,19 @@ export default function PaymentsScreen() {
     setDeletingId(cardToDelete.id);
     try {
       try {
-        await deleteCurrentPaymentMethod();
-      } catch {
         await deletePaymentMethod(cardToDelete.id);
+      } catch {
+        await deleteCurrentPaymentMethod();
       }
-      await setCardLinked(false);
       setDeleteModalVisible(false);
       setCardToDelete(null);
       await loadData();
-    } catch (e: any) {
-      if (e instanceof AuthError || e?.name === 'AuthError') {
+    } catch (e: unknown) {
+      if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
       }
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
+      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось удалить карту');
     } finally {
       setDeletingId(null);
     }
@@ -269,22 +210,29 @@ export default function PaymentsScreen() {
           cards.map((card) => (
             <View key={card.id} style={styles.card}>
               <View style={styles.cardInfo}>
-                <Text style={styles.cardTitle}>Карта {card.card_masked}</Text>
-                <Text style={styles.cardSubtitle}>{card.provider}</Text>
+                <Text style={styles.cardTitle}>
+                  Карта {cardDisplay(card)}
+                  {card.isDefault ? ' (по умолчанию)' : ''}
+                </Text>
+                <Text style={styles.cardSubtitle}>{card.cardType ?? card.provider ?? ''}</Text>
               </View>
               <View style={styles.cardActions}>
-                <Pressable
-                  style={styles.cardAction}
-                  onPress={() => handleEditCardClick(card)}
-                  disabled={deletingId !== null}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Text style={styles.cardActionText}>Изменить</Text>
-                </Pressable>
+                {!card.isDefault && (
+                  <Pressable
+                    style={styles.cardAction}
+                    onPress={() => handleSetDefault(card)}
+                    disabled={!!settingDefaultId}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Text style={styles.cardActionText}>
+                      {settingDefaultId === card.id ? '…' : 'По умолчанию'}
+                    </Text>
+                  </Pressable>
+                )}
                 <Pressable
                   style={[styles.cardAction, styles.cardActionDelete]}
                   onPress={() => handleDeleteCardClick(card)}
-                  disabled={deletingId !== null}
+                  disabled={!!deletingId}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <Text style={styles.cardActionDeleteText}>
@@ -360,77 +308,6 @@ export default function PaymentsScreen() {
         </Pressable>
       </Modal>
 
-      <Modal
-        transparent
-        animationType="none"
-        visible={isEditModalVisible && !!cardToEdit}
-        onRequestClose={() => { setEditModalVisible(false); setCardToEdit(null); }}
-      >
-        <Pressable style={styles.deleteModalOverlay} onPress={() => { setEditModalVisible(false); setCardToEdit(null); }}>
-          <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <ThemedText type="title" style={styles.modalTitle}>
-              ИЗМЕНИТЬ КАРТУ
-            </ThemedText>
-
-            <View style={styles.editCardInfo}>
-              <Text style={styles.editCardLabel}>Текущая карта</Text>
-              <Text style={styles.editCardMasked}>{cardToEdit?.card_masked ?? ''}</Text>
-              <Text style={styles.editCardProvider}>{cardToEdit?.provider ?? ''}</Text>
-            </View>
-
-            <TextInput
-              placeholder="Номер новой карты"
-              placeholderTextColor="#888"
-              style={styles.input}
-              value={editCardNumber}
-              onChangeText={(t) => setEditCardNumber(t.replace(/\D/g, ''))}
-              keyboardType="numeric"
-              maxLength={19}
-            />
-
-            <Pressable
-              style={[styles.btn, styles.btnPrimary, isLinking && styles.btnDisabled]}
-              onPress={handleEditSubmit}
-              disabled={isLinking}
-            >
-              <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
-                {isLinking ? 'Сохранение...' : 'Заменить'}
-              </ThemedText>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {isCardModalVisible && (
-        <View style={styles.modalOverlay}>
-          <Pressable style={styles.backdrop} onPress={() => setCardModalVisible(false)} />
-          <View style={styles.modalSheet}>
-            <ThemedText type="title" style={styles.modalTitle}>
-              НОВАЯ КАРТА
-            </ThemedText>
-
-            <TextInput
-              placeholder="Номер карты"
-              placeholderTextColor="#888"
-              style={styles.input}
-              value={cardNumber}
-              onChangeText={(t) => setCardNumber(t.replace(/\D/g, ''))}
-              keyboardType="numeric"
-              maxLength={19}
-            />
-
-            <Pressable
-              style={[styles.btn, styles.btnPrimary, isLinking && styles.btnDisabled]}
-              onPress={handleSubmitCard}
-              disabled={isLinking}
-            >
-              <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
-                {isLinking ? 'Привязка...' : 'Продолжить'}
-              </ThemedText>
-            </Pressable>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -660,97 +537,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  modalSheet: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    gap: 12,
-  },
-  editCardInfo: {
-    borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    padding: 12,
-    marginBottom: 12,
-  },
-  editCardLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#9B9B9B',
-    marginBottom: 4,
-  },
-  editCardMasked: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  editCardProvider: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#9B9B9B',
-    marginTop: 4,
-  },
-  modalTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-    fontSize: 28,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 36,
-    letterSpacing: -2,
-    color: '#181818',
-    textAlign: 'left',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    borderRadius: 0,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#181818',
-  },
-  btn: {
-    borderRadius: 0,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    height: 52,
-  },
-  btnPrimary: {
-    backgroundColor: '#111',
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  btnPrimaryText: {
-    color: '#FFF',
-  },
-  btnPrimaryTextCustom: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 20,
-    color: '#FAFAFA',
   },
 });

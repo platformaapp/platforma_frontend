@@ -2,14 +2,13 @@
  * API для платёжных операций ученика (student).
  *
  * Привязка карт (3D-Secure через YooKassa):
- * - POST api/student/payment-methods/bind — инициализация привязки (тестовый платёж 1₽)
- * - Редирект на 3D-Secure, YooKassa возвращает payment_method_id, карта сохраняется как ACTIVE
+ * - POST api/student/payment-methods/bind — body {} или { provider: "yookassa" }
+ * - Ответ: { success, data: { confirmationUrl, attachmentId } }
+ * - Редирект на confirmationUrl → пользователь вводит карту на YooKassa
+ * - Webhook → бэк обновляет карту в БД, YooKassa редиректит на /payment-methods/callback
+ * - Callback: опрос GET payment-methods до появления новой карты (webhook может задержаться)
  *
- * Оплата сессий:
- * - POST api/student/payments — создание платежа
- * - GET api/student/payments/callback — обработка 3D-Secure колбэка
- *
- * Валидации: макс. 3 карты, нельзя удалить карту с активными платежами.
+ * GET api/student/payment-methods — список карт: { success, data: { paymentMethods, total } }
  */
 
 import { endpoints } from '@/constants/env';
@@ -18,25 +17,40 @@ import { handle401 } from '@/lib/api/auth-error';
 
 // --- Типы ---
 
-export interface BindCardBody {
-  provider: 'yookassa';
-  card_number: string;
+export interface BindCardResponse {
+  success: boolean;
+  data?: {
+    confirmationUrl: string;
+    attachmentId?: string;
+  };
 }
 
-export interface PaymentMethodResponse {
-  id?: string;
-  provider?: string;
-  card_masked?: string;
-  /** URL для редиректа на 3D-Secure (YooKassa) */
-  redirect_url?: string;
-  confirmation_url?: string;
-  payment_method_id?: string;
+export interface PaymentMethod {
+  id: string;
+  cardMasked: string;
+  cardType?: string;
+  expiryMonth?: string;
+  expiryYear?: string;
+  isDefault: boolean;
+  createdAt?: string;
 }
 
+export interface PaymentMethodsResponse {
+  success: boolean;
+  data?: {
+    paymentMethods: PaymentMethod[];
+    total?: number;
+  };
+}
+
+/** Карта в унифицированном формате (поддержка legacy) */
 export interface Card {
   id: string;
-  card_masked: string;
-  provider: string;
+  card_masked?: string;
+  cardMasked?: string;
+  provider?: string;
+  cardType?: string;
+  isDefault?: boolean;
 }
 
 export interface PaymentHistoryItem {
@@ -100,75 +114,84 @@ const MAX_CARDS = 3;
 
 /**
  * POST api/student/payment-methods/bind — инициализация привязки карты.
- * Создаётся тестовый платёж 1₽, возвращается redirect_url для 3D-Secure.
- * После прохождения 3D-Secure — GET /student/payments/callback обрабатывает колбэк,
- * YooKassa возвращает payment_method_id, карта сохраняется как ACTIVE.
+ * Body: {} или { provider: "yookassa" }. Пользователь вводит карту на странице YooKassa.
+ * Ответ: { success, data: { confirmationUrl, attachmentId } }.
  */
-export async function bindPaymentMethod(body: BindCardBody): Promise<PaymentMethodResponse> {
-  const cardNumber = body.card_number.replace(/\s/g, '');
-  const payload = { provider: body.provider, card_number: cardNumber };
+export async function bindPaymentMethod(body?: { provider?: string }): Promise<{ confirmationUrl: string; attachmentId?: string }> {
+  const payload = body ?? { provider: 'yookassa' };
 
-  const url = endpoints.studentPaymentMethodsBind;
-  const res = await fetch(url, {
+  const res = await fetch(endpoints.studentPaymentMethodsBind, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(payload),
   });
 
-  if (!res.ok && (res.status === 404 || res.status === 405)) {
-    const legacyRes = await fetch(`${endpoints.studentPaymentMethodsLegacy}/bind`, {
-      method: 'POST',
-      headers: await authHeaders(),
-      body: JSON.stringify(payload),
-    });
-    if (legacyRes.status === 500) throw new Error('Ошибка при привязке карты, попробуйте позже');
-    return handleResponse<PaymentMethodResponse>(legacyRes);
-  }
-
   if (res.status === 500) throw new Error('Ошибка при привязке карты, попробуйте позже');
-  const data = await handleResponse<PaymentMethodResponse & { confirmation_url?: string }>(res);
+  const data = await handleResponse<BindCardResponse>(res);
+
+  if (!data.success || !data.data?.confirmationUrl) {
+    throw new Error((data as { message?: string }).message ?? 'Не удалось получить ссылку для привязки');
+  }
   return {
-    id: data.id,
-    provider: data.provider,
-    card_masked: data.card_masked,
-    redirect_url: data.redirect_url ?? data.confirmation_url,
-    payment_method_id: data.payment_method_id,
+    confirmationUrl: data.data.confirmationUrl,
+    attachmentId: data.data.attachmentId,
   };
 }
 
 /** Максимум карт на пользователя */
 export { MAX_CARDS };
 
-/**
- * GET /student/payments/callback — обработка 3D-Secure колбэка.
- * Вызывается после редиректа с YooKassa (или клиентом с query-параметрами).
- * Завершает привязку карты, сохраняет payment_method_id, карта → ACTIVE.
- */
-export async function getStudentPaymentsCallback(params?: {
-  payment_id?: string;
-  success?: string;
-  [key: string]: string | undefined;
-}): Promise<{ success?: boolean; card_masked?: string; message?: string }> {
-  const qs = params ? new URLSearchParams(params as Record<string, string>).toString() : '';
-  const url = qs ? `${endpoints.studentPaymentsCallback}?${qs}` : endpoints.studentPaymentsCallback;
-  const res = await fetch(url, { headers: await authHeaders() });
-  return handleResponse(res);
+/** GET api/student/payment-methods — список карт */
+export async function getPaymentMethods(): Promise<PaymentMethod[]> {
+  const res = await fetch(endpoints.studentPaymentMethods, { headers: await authHeaders() });
+  const data = await handleResponse<PaymentMethodsResponse & { cards?: Array<{ id: string; card_masked?: string; provider?: string }> }>(res);
+  const methods = data.data?.paymentMethods;
+  if (methods?.length) return methods;
+  const legacy = data.cards;
+  if (legacy?.length) {
+    return legacy.map((c) => ({
+      id: c.id,
+      cardMasked: (c as { card_masked?: string }).card_masked ?? (c as { cardMasked?: string }).cardMasked ?? '****',
+      isDefault: false,
+    }));
+  }
+  return [];
 }
 
-/** GET /student/payments — список карт и история оплат */
+/** Унифицированный список карт (поддержка legacy card_masked) */
+function toCard(pm: PaymentMethod): Card {
+  return {
+    id: pm.id,
+    card_masked: pm.cardMasked,
+    cardMasked: pm.cardMasked,
+    cardType: pm.cardType,
+    isDefault: pm.isDefault,
+  };
+}
+
+/** GET — список карт и история оплат (для совместимости) */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
-  let res = await fetch(endpoints.studentPayments, { headers: await authHeaders() });
-  if (!res.ok && (res.status === 404 || res.status === 405)) {
-    res = await fetch(endpoints.studentPayments.replace('/api/student/', '/student/'), {
-      headers: await authHeaders(),
-    });
+  const cards: Card[] = [];
+  try {
+    const methods = await getPaymentMethods();
+    cards.push(...methods.map(toCard));
+  } catch {
+    // fallback: GET /student/payments
+    const res = await fetch(endpoints.studentPayments, { headers: await authHeaders() });
+    const data = await handleResponse<{ cards?: Card[]; history?: PaymentHistoryItem[] }>(res);
+    if (data.cards?.length) cards.push(...data.cards);
   }
 
-  const data = await handleResponse<{ cards?: Card[]; history?: PaymentHistoryItem[] }>(res);
-  return {
-    cards: data.cards ?? [],
-    history: data.history ?? [],
-  };
+  let history: PaymentHistoryItem[] = [];
+  try {
+    const res = await fetch(endpoints.studentPayments, { headers: await authHeaders() });
+    const data = await handleResponse<{ cards?: Card[]; history?: PaymentHistoryItem[] }>(res);
+    history = data.history ?? [];
+  } catch {
+    // ignore
+  }
+
+  return { cards, history };
 }
 
 /** POST /student/payments — оплата сессии */
@@ -188,22 +211,25 @@ export async function paySession(body: PaySessionBody): Promise<PaySessionRespon
   };
 }
 
-/** DELETE /student/payment-methods/{id} — удалить карту по id */
+/** DELETE /api/student/payment-methods/{id} — удалить карту по id */
 export async function deletePaymentMethod(id: string): Promise<void> {
-  let res = await fetch(`${endpoints.studentPaymentMethods}/${id}`, {
+  const res = await fetch(`${endpoints.studentPaymentMethods}/${id}`, {
     method: 'DELETE',
     headers: await authHeaders(),
   });
-  if (!res.ok && (res.status === 404 || res.status === 405)) {
-    res = await fetch(`${endpoints.studentPaymentMethodsLegacy}/${id}`, {
-      method: 'DELETE',
-      headers: await authHeaders(),
-    });
-  }
   await handleResponse(res);
 }
 
-/** DELETE /payments/method — отвязать текущую карту */
+/** PATCH /api/student/payment-methods/{id}/default — установить карту по умолчанию */
+export async function setDefaultPaymentMethod(id: string): Promise<void> {
+  const res = await fetch(`${endpoints.studentPaymentMethods}/${id}/default`, {
+    method: 'PATCH',
+    headers: await authHeaders(),
+  });
+  await handleResponse(res);
+}
+
+/** DELETE /payments/method — отвязать текущую карту (legacy) */
 export async function deleteCurrentPaymentMethod(): Promise<void> {
   const res = await fetch(endpoints.paymentsMethod, {
     method: 'DELETE',

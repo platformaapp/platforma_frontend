@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -62,7 +61,6 @@ export default function TutorPaymentsScreen() {
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
-  const [editCardNumber, setEditCardNumber] = useState('');
   const [isLinking, setIsLinking] = useState(false);
   const [isMoneySentModalVisible, setMoneySentModalVisible] = useState(false);
   const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
@@ -164,32 +162,19 @@ export default function TutorPaymentsScreen() {
   };
 
   const handleEditCardClick = () => {
-    setEditCardNumber('');
     setEditModalVisible(true);
   };
 
   const handleEditSubmit = async () => {
     if (isLinking) return;
-    const number = editCardNumber.replace(/\s/g, '');
-    if (!number || number.length < 13) {
-      Alert.alert('Ошибка', 'Введите номер новой карты');
-      return;
-    }
     setIsLinking(true);
     try {
-      const result = await bindPaymentMethod({ provider: 'yookassa', card_number: number });
-      if (result.redirect_url) {
-        setEditModalVisible(false);
-        setEditCardNumber('');
-        await WebBrowser.openBrowserAsync(result.redirect_url);
-        await loadData();
-      } else if (result.card_masked) {
-        setEditModalVisible(false);
-        setEditCardNumber('');
-        await loadData();
-      }
-    } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось изменить карту');
+      const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
+      setEditModalVisible(false);
+      await WebBrowser.openBrowserAsync(confirmationUrl);
+      await loadData();
+    } catch (e: unknown) {
+      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось изменить карту');
     } finally {
       setIsLinking(false);
     }
@@ -404,12 +389,9 @@ export default function TutorPaymentsScreen() {
         transparent
         animationType="none"
         visible={isEditModalVisible}
-        onRequestClose={() => { setEditModalVisible(false); setEditCardNumber(''); }}
+        onRequestClose={() => setEditModalVisible(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => { setEditModalVisible(false); setEditCardNumber(''); }}
-        >
+        <Pressable style={styles.modalOverlay} onPress={() => setEditModalVisible(false)}>
           <Pressable style={styles.editModalSheet} onPress={() => {}}>
             <ThemedText type="title" style={styles.editModalTitle}>
               ИЗМЕНИТЬ КАРТУ
@@ -421,23 +403,13 @@ export default function TutorPaymentsScreen() {
               <Text style={styles.editCardProvider}>{cardBank}</Text>
             </View>
 
-            <TextInput
-              placeholder="Номер новой карты"
-              placeholderTextColor="#888"
-              style={styles.editInput}
-              value={editCardNumber}
-              onChangeText={(t) => setEditCardNumber(t.replace(/\D/g, ''))}
-              keyboardType="numeric"
-              maxLength={19}
-            />
-
             <Pressable
               style={[styles.editModalBtn, styles.editModalBtnPrimary, isLinking && styles.editModalBtnDisabled]}
               onPress={handleEditSubmit}
               disabled={isLinking}
             >
               <Text style={styles.editModalBtnText}>
-                {isLinking ? 'Сохранение...' : 'Заменить'}
+                {isLinking ? 'Открытие...' : 'Привязать новую карту'}
               </Text>
             </Pressable>
           </Pressable>
