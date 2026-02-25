@@ -171,27 +171,11 @@ function toCard(pm: PaymentMethod): Card {
   };
 }
 
-/** GET — список карт и история оплат. Карты только из /payment-methods (GET /payments → 404). */
+/** GET — список карт и история. Карты: GET /api/student/payment-methods. GET /payments не существует (404). */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
-  const cards: Card[] = [];
-  try {
-    const methods = await getPaymentMethods();
-    cards.push(...methods.map(toCard));
-  } catch {
-    // GET /api/student/payments не поддерживается (404) — карты только из /payment-methods
-  }
-
-  let history: PaymentHistoryItem[] = [];
-  try {
-    const res = await fetch(endpoints.studentPayments, { headers: await authHeaders() });
-    if (res.status === 404) return { cards, history };
-    const data = await handleResponse<{ cards?: Card[]; history?: PaymentHistoryItem[] }>(res);
-    history = data.history ?? [];
-  } catch {
-    // ignore — GET /payments может не существовать
-  }
-
-  return { cards, history };
+  const methods = await getPaymentMethods();
+  const cards = methods.map(toCard);
+  return { cards, history: [] };
 }
 
 /** POST /student/payments — оплата сессии */
