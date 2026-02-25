@@ -8,12 +8,12 @@ export const endpoints = {
   studentPayments: `${API_BASE}/api/student/payments`,
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
   studentPaymentMethods: `${API_BASE}/api/student/payment-methods`,
-  studentPaymentMethodsBind: `${API_BASE}/api/student/payment-methods/bind`,
+  studentPaymentMethodsBind: `${API_BASE}/student/payment-methods/bind`,
   paymentsMethod: `${API_BASE}/api/payments/method`,
-  studentPaymentMethodsLegacy: `${API_BASE}/student/payment-methods`,
-  paymentMethodsCallback: `${API_BASE}/payments/callback`,
-  paymentMethodsCallbackLegacy: `${API_BASE}/api/payments/callback`,
-  switchRole: `${API_BASE}/auth/switch-role`,
+  studentPaymentMethodsLegacy: `${API_BASE}/api/student/payment-methods`,
+  paymentMethodsCallback: `${API_BASE}/api/payments/callback`,
+  paymentMethodsCallbackLegacy: `${API_BASE}/payments/callback`,
+  switchRole: `${API_BASE}/api/auth/switch-role`,
   switchRoleLegacy: `${API_BASE}/api/auth/switch-role`,
 
   // Tutor (Наставник) — профиль, слоты, события, платежи
