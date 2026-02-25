@@ -1,77 +1,88 @@
+import * as ImagePicker from 'expo-image-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
 import { getAuthRole, getUserProfile } from '@/lib/auth';
 
-const FALLBACK = {
-  name: 'Андрей Осетров',
-  role: 'Куратор, исследователь визуальной культуры',
-  email: 'andrey_osetrov@yandex.ru',
-  telegram: 'Телеграм: @andrrrr',
-  bio: 'Преподаю на стыке современного искусства, медиа и теории восприятия. Веду открытые курсы по визуальной грамотности, сотрудничал с Третьяковской галереей, ГЭС-2 и Garage Digital. Умею объяснять сложно просто, без пафоса и скуки. Считаю, что понимание искусства — это не про образование, а про внимание.',
-  price: 'Стоимость часовой консультации: 600 ₽',
-};
+const SHORT_BIO_LIMIT = 70;
+const ABOUT_LIMIT = 400;
+
+function pick<T>(obj: T | null | undefined, ...keys: (keyof T)[]): string {
+  if (!obj) return '';
+  for (const k of keys) {
+    const v = (obj as Record<string, unknown>)[k as string];
+    if (v != null && typeof v === 'string') return v;
+  }
+  return '';
+}
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [shortBio, setShortBio] = useState('');
   const [email, setEmail] = useState('');
   const [telegram, setTelegram] = useState('');
-  const [bio, setBio] = useState('');
-  const [price, setPrice] = useState('');
+  const [about, setAbout] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
+  const [groupMeetings, setGroupMeetings] = useState('');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const shortBioRemaining = SHORT_BIO_LIMIT - shortBio.length;
+  const aboutRemaining = ABOUT_LIMIT - about.length;
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       const loginProfile = await getUserProfile();
       if (!cancelled && loginProfile) {
-        setName(loginProfile.full_name ?? '');
+        setFullName(loginProfile.full_name ?? '');
         setEmail(loginProfile.email ?? '');
-        setBio(loginProfile.bio ?? '');
       }
       const currentRole = await getAuthRole();
       if (currentRole === 'tutor') {
-        getTutorProfile()
-          .then((p) => {
-            if (!cancelled) {
-              setName(p.full_name ?? loginProfile?.full_name ?? FALLBACK.name);
-              setBio(p.bio ?? loginProfile?.bio ?? FALLBACK.bio);
-              setEmail(p.email ?? loginProfile?.email ?? FALLBACK.email);
+        try {
+          const p = await getTutorProfile();
+          if (!cancelled) {
+            setFullName((pick(p, 'fullName', 'full_name') || loginProfile?.full_name) ?? '');
+            setEmail((pick(p, 'email') || loginProfile?.email) ?? '');
+            setTelegram(pick(p, 'phone') ?? '');
+            const bio = pick(p, 'bio') ?? '';
+            setAbout(bio);
+            setShortBio(bio.slice(0, SHORT_BIO_LIMIT));
+            const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
+            setAvatarUrl(url);
+            if (url && !url.startsWith('file://')) setAvatarUri(url);
+          }
+        } catch (e: unknown) {
+          if (!cancelled) {
+            if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
+              router.replace('/login');
+              return;
             }
-          })
-          .catch((e) => {
-            if (!cancelled) {
-              if (e instanceof AuthError || e?.name === 'AuthError') {
-                setLoading(false);
-                router.replace('/login');
-                return;
-              }
-              if (!loginProfile) {
-                setName(FALLBACK.name);
-                setRole(FALLBACK.role);
-                setEmail(FALLBACK.email);
-                setTelegram(FALLBACK.telegram);
-                setBio(FALLBACK.bio);
-                setPrice(FALLBACK.price);
-              }
-            }
-          })
-          .finally(() => {
-            if (!cancelled) setLoading(false);
-          });
-      } else {
-        if (!cancelled && !loginProfile) {
-          setName(FALLBACK.name);
-          setEmail(FALLBACK.email);
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
         }
+      } else {
         if (!cancelled) setLoading(false);
       }
     };
@@ -79,14 +90,36 @@ export default function EditProfileScreen() {
     return () => { cancelled = true; };
   }, [router]);
 
+  async function pickImage() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+      setAvatarUrl(result.assets[0].uri);
+    }
+  }
+
   async function handleSave() {
     if (saving) return;
     setSaving(true);
     try {
-      await updateTutorProfile({
-        full_name: name.trim(),
-        bio: bio.trim(),
-      });
+      const bio = about.trim() || shortBio.trim();
+      const payload: Record<string, string | undefined> = {};
+      if (fullName.trim()) payload.fullName = fullName.trim();
+      if (email.trim()) payload.email = email.trim();
+      if (bio) payload.bio = bio;
+      if (telegram.trim()) payload.phone = telegram.trim();
+      if (avatarUrl) payload.avatarUrl = avatarUrl;
+      await updateTutorProfile(payload);
       router.back();
     } catch (e: any) {
       if (e instanceof AuthError || e?.name === 'AuthError') {
@@ -99,83 +132,153 @@ export default function EditProfileScreen() {
     }
   }
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialIcons name="chevron-left" size={24} color="#181818" />
-        </Pressable>
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ThemedText>Загрузка...</ThemedText>
       </View>
+    );
+  }
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>ИЗМЕНЕНИЕ ДАННЫХ</Text>
-
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-          placeholder="Имя"
-          placeholderTextColor="#9B9B9B"
-        />
-        <TextInput
-          value={role}
-          onChangeText={setRole}
-          style={styles.input}
-          placeholder="Роль"
-          placeholderTextColor="#9B9B9B"
-        />
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#9B9B9B"
-        />
-        <TextInput
-          value={telegram}
-          onChangeText={setTelegram}
-          style={styles.input}
-          placeholder="Телеграм"
-          placeholderTextColor="#9B9B9B"
-        />
-        <TextInput
-          value={bio}
-          onChangeText={setBio}
-          style={[styles.input, styles.textArea]}
-          multiline
-          textAlignVertical="top"
-          placeholder="О себе"
-          placeholderTextColor="#9B9B9B"
-        />
-        <TextInput
-          value={price}
-          onChangeText={setPrice}
-          style={styles.input}
-          placeholder="Стоимость"
-          placeholderTextColor="#9B9B9B"
-        />
-
-        <View style={styles.photoRow}>
-          <View style={styles.photoBox}>
-            <Image source={require('@/assets/images/avatar.png')} style={styles.photo} />
-          </View>
-          <View style={styles.photoAction}>
-            <Text style={styles.photoActionText}>Заменить фото</Text>
-          </View>
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <MaterialIcons name="chevron-left" size={24} color="#181818" />
+          </Pressable>
         </View>
 
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => router.push('/(tabs)/profile/new-password')}
-        >
-          <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
-        </Pressable>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>ИЗМЕНЕНИЕ ДАННЫХ</Text>
 
-        <Pressable style={[styles.primaryButton, saving && styles.primaryButtonDisabled]} onPress={handleSave} disabled={saving}>
-          <Text style={styles.primaryButtonText}>{saving ? 'Сохранение...' : 'Сохранить изменения'}</Text>
-        </Pressable>
-      </ScrollView>
-    </View>
+          <Text style={styles.label}>Имя и фамилия</Text>
+          <TextInput
+            value={fullName}
+            onChangeText={setFullName}
+            style={styles.input}
+            placeholder="Имя и фамилия"
+            placeholderTextColor="#9B9B9B"
+          />
+
+          <Text style={styles.label}>Короткое био</Text>
+          <View style={styles.inputWithCounter}>
+            <TextInput
+              value={shortBio}
+              onChangeText={(t) => t.length <= SHORT_BIO_LIMIT && setShortBio(t)}
+              style={[styles.input, styles.textArea]}
+              placeholder="Короткое био (например, фотограф в The Blueprint)"
+              placeholderTextColor="#9B9B9B"
+              multiline
+              numberOfLines={2}
+            />
+            <View style={styles.counter}>
+              <Text style={[styles.counterText, shortBioRemaining === 0 && styles.counterTextError]}>
+                {shortBioRemaining}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.label}>Почта</Text>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            style={styles.input}
+            placeholder="Почта"
+            placeholderTextColor="#9B9B9B"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.label}>Телеграм</Text>
+          <TextInput
+            value={telegram}
+            onChangeText={setTelegram}
+            style={styles.input}
+            placeholder="Телеграм"
+            placeholderTextColor="#9B9B9B"
+          />
+
+          <Text style={styles.label}>О себе</Text>
+          <View style={styles.inputWithCounter}>
+            <TextInput
+              value={about}
+              onChangeText={(t) => t.length <= ABOUT_LIMIT && setAbout(t)}
+              style={[styles.input, styles.textArea]}
+              placeholder="О себе в свободной форме"
+              placeholderTextColor="#9B9B9B"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <View style={styles.counter}>
+              <Text style={[styles.counterText, aboutRemaining === 0 && styles.counterTextError]}>
+                {aboutRemaining}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.label}>Стоимость часа</Text>
+          <TextInput
+            value={hourlyRate}
+            onChangeText={(t) => setHourlyRate(t.replace(/\D/g, ''))}
+            style={styles.input}
+            placeholder="Стоимость часа"
+            placeholderTextColor="#9B9B9B"
+            keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Собираетесь ли вы проводить групповые встречи</Text>
+          <TextInput
+            value={groupMeetings}
+            onChangeText={setGroupMeetings}
+            style={[styles.input, styles.textArea]}
+            placeholder="Собираетесь ли вы проводить групповые встречи? Как часто?"
+            placeholderTextColor="#9B9B9B"
+            multiline
+            numberOfLines={3}
+          />
+
+          <Text style={styles.label}>Заменить фото</Text>
+          <Pressable
+            style={[styles.upload, avatarUri && styles.uploadWithPhotoContainer]}
+            onPress={pickImage}
+          >
+            {avatarUri ? (
+              <View style={styles.uploadWithPhoto}>
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                <View style={styles.replacePhotoContainer}>
+                  <Text style={styles.replacePhotoText}>Заменить фото</Text>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.uploadPlaceholder}>Загрузить фото</Text>
+            )}
+          </Pressable>
+
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => router.push('/(tabs)/profile/new-password')}
+          >
+            <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.primaryButton, saving && styles.primaryButtonDisabled]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            <Text style={styles.primaryButtonText}>
+              {saving ? 'Сохранение...' : 'Сохранить изменения'}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -183,6 +286,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     paddingTop: 16,
@@ -205,6 +312,13 @@ const styles = StyleSheet.create({
     color: '#181818',
     marginBottom: 16,
   },
+  label: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 4,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#1E1E1E',
@@ -216,35 +330,72 @@ const styles = StyleSheet.create({
     color: '#181818',
     marginBottom: 12,
   },
-  textArea: {
-    minHeight: 120,
-    paddingTop: 12,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
+  inputWithCounter: {
+    position: 'relative',
     marginBottom: 12,
   },
-  photoBox: {
-    width: 64,
-    height: 64,
-    borderRightWidth: 1,
-    borderColor: '#1E1E1E',
+  textArea: {
+    minHeight: 80,
+    paddingTop: 12,
+    paddingRight: 50,
+    textAlignVertical: 'top',
   },
-  photo: {
-    width: '100%',
-    height: '100%',
-  },
-  photoAction: {
-    flex: 1,
+  counter: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#181818',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoActionText: {
-    fontSize: 14,
-    lineHeight: 20,
+  counterText: {
     fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  counterTextError: {
+    color: '#E02D2D',
+  },
+  upload: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  uploadWithPhotoContainer: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  uploadWithPhoto: {
+    flexDirection: 'row',
+    width: '100%',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    backgroundColor: '#f0f0f0',
+  },
+  replacePhotoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 64,
+  },
+  replacePhotoText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: '#181818',
+  },
+  uploadPlaceholder: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
     color: '#181818',
   },
   secondaryButton: {

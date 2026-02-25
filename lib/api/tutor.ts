@@ -20,18 +20,25 @@ import { handle401 } from '@/lib/api/auth-error';
 export interface TutorProfile {
   id?: string;
   email?: string;
-  full_name: string;
+  fullName?: string;
+  full_name?: string;
+  avatarUrl?: string;
   avatar_url?: string;
   bio?: string;
+  phone?: string;
   role?: 'tutor';
   created_at?: string;
   updated_at?: string;
 }
 
 export interface TutorProfileUpdate {
+  fullName?: string;
   full_name?: string;
-  bio?: string;
+  avatarUrl?: string;
   avatar_url?: string;
+  bio?: string;
+  email?: string;
+  phone?: string;
 }
 
 /** free (или available) | booked | cancelled */
