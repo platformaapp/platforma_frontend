@@ -17,7 +17,6 @@ import {
   View,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
 import {
   bindPaymentMethod,
