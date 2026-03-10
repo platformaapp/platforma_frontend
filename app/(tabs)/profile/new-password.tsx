@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { ThemedText } from '@/components/themed-text';
 
 export default function NewPasswordScreen() {
   const router = useRouter();
@@ -17,11 +17,9 @@ export default function NewPasswordScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ThemedText>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
+          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </Svg>
         </Pressable>
       </View>
 
@@ -37,12 +35,10 @@ export default function NewPasswordScreen() {
           secureTextEntry={!showOld}
         />
         <Pressable style={styles.eyeButton} onPress={() => setShowOld((prev) => !prev)}>
-          <ThemedText>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
-              <circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
-            </svg>
-          </ThemedText>
+          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
+            <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
+          </Svg>
         </Pressable>
       </View>
 
@@ -56,12 +52,10 @@ export default function NewPasswordScreen() {
           secureTextEntry={!showNew}
         />
         <Pressable style={styles.eyeButton} onPress={() => setShowNew((prev) => !prev)}>
-          <ThemedText>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
-              <circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
-            </svg>
-          </ThemedText>
+          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
+            <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
+          </Svg>
         </Pressable>
       </View>
 
@@ -75,12 +69,10 @@ export default function NewPasswordScreen() {
           secureTextEntry={!showRepeat}
         />
         <Pressable style={styles.eyeButton} onPress={() => setShowRepeat((prev) => !prev)}>
-          <ThemedText>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
-              <circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
-            </svg>
-          </ThemedText>
+          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
+            <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
+          </Svg>
         </Pressable>
       </View>
 

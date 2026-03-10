@@ -4,6 +4,7 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
@@ -182,14 +183,9 @@ export default function EventDetailScreen() {
     return (
       <View style={styles.container}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ThemedText>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
-</svg>
-
-
-
-          </ThemedText>
+          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
+          </Svg>
         </Pressable>
         <ThemedText style={styles.errorText}>Событие не найдено</ThemedText>
       </View>
@@ -205,13 +201,9 @@ export default function EventDetailScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/events')}>
-        <ThemedText>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
-</svg>
-
-
-        </ThemedText>
+        <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
+        </Svg>
       </Pressable>
 
       {/* Main Event Card */}
@@ -255,12 +247,11 @@ export default function EventDetailScreen() {
       {/* Share Button */}
       <Pressable style={styles.shareButton} onPress={handleShareEventTutor}>
         <Text style={styles.shareButtonText}>Поделиться событием</Text>
-        <ThemedText style={styles.shareButtonIcon}>
-          <svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
-          </svg>
-
-        </ThemedText>
+        <View style={styles.shareButtonIcon}>
+          <Svg width="25" height="25" viewBox="0 0 25 25" fill="none">
+            <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
+          </Svg>
+        </View>
       </Pressable>
 
       {/* Other Events Section */}

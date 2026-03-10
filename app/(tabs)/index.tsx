@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-import { ThemedText } from '@/components/themed-text';
 
 type RecordItem = {
   id: string;
@@ -61,11 +61,9 @@ export default function RecordsScreen() {
 
       <View style={styles.bottomPanel}>
         <View style={styles.nextEventRow}>
-          <ThemedText>
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 3H14L20 7V9L14 13H2V3Z" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round"/>
-            </svg>
-          </ThemedText>
+          <Svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+            <Path d="M2 3H14L20 7V9L14 13H2V3Z" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round"/>
+          </Svg>
           <Text style={styles.nextEventText}>До ближайшего события: 2 дня 3 часа и 15 минут</Text>
         </View>
         <Pressable style={styles.videoButton}>

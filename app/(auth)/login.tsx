@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -97,11 +98,9 @@ export default function LoginScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Pressable style={styles.close} onPress={() => router.back()}>
-            <ThemedText style={{ fontSize: 22 }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
-                </svg>
-            </ThemedText>
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
+            </Svg>
           </Pressable>
 
           <View style={{ marginBottom: 54 }}>
@@ -127,15 +126,10 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
               />
               <Pressable onPress={() => setShow(!show)} style={styles.eye}>
-                <ThemedText>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <mask id="path-1-inside-1_4159_5081" fill="white">
-                    <path d="M12.002 6C17.2261 6 21.6675 8.50517 23.3154 12C21.6675 15.4948 17.2261 18 12.002 18C6.7776 18 2.33524 15.495 0.6875 12C2.33524 8.50497 6.7776 6 12.002 6Z"/>
-                    </mask>
-                    <path d="M23.3154 12L24.2199 12.4265L24.421 12L24.2199 11.5735L23.3154 12ZM0.6875 12L-0.217017 11.5736L-0.418062 12L-0.217017 12.4264L0.6875 12ZM12.002 6V7C16.9557 7 20.9727 9.37624 22.4109 12.4265L23.3154 12L24.2199 11.5735C22.3624 7.6341 17.4965 5 12.002 5V6ZM23.3154 12L22.4109 11.5735C20.9727 14.6238 16.9557 17 12.002 17V18V19C17.4965 19 22.3624 16.3659 24.2199 12.4265L23.3154 12ZM12.002 18V17C7.04788 17 3.03009 14.6239 1.59202 11.5736L0.6875 12L-0.217017 12.4264C1.64039 16.3662 6.50732 19 12.002 19V18ZM0.6875 12L1.59202 12.4264C3.03009 9.37614 7.04788 7 12.002 7V6V5C6.50732 5 1.64039 7.63381 -0.217017 11.5736L0.6875 12Z" fill="black" mask="url(#path-1-inside-1_4159_5081)"/>
-                    <circle cx="12" cy="12" r="2.5" stroke="black"/>
-                  </svg>
-                </ThemedText>
+                <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
+                  <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
+                </Svg>
               </Pressable>
             </View>
 

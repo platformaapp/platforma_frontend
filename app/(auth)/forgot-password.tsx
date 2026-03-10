@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -76,11 +77,9 @@ export default function ForgotPasswordScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Pressable style={styles.close} onPress={() => router.back()}>
-            <ThemedText style={{ fontSize: 22 }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
-              </svg>
-            </ThemedText>
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
+            </Svg>
           </Pressable>
 
           <View style={{ marginBottom: 54 }}>
