@@ -115,6 +115,15 @@ export default function EditProfileScreen() {
 
   async function handleSave() {
     if (saving) return;
+    const role = await getAuthRole();
+    if (role !== 'tutor') {
+      Alert.alert(
+        'Доступ запрещён',
+        'Для изменения профиля наставника переключитесь на роль Наставник.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     setSaving(true);
     try {
       const bio = about.trim() || shortBio.trim();
