@@ -29,4 +29,7 @@ export const endpoints = {
 
   // Events (события) — POST /api/events, PATCH, GET, DELETE, register
   events: `${API_BASE}/api/events`,
+
+  // Student → booking slots
+  studentBookings: `${API_BASE}/api/student/bookings`,
 };

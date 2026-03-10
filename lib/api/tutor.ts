@@ -305,3 +305,46 @@ export async function getTutorPaymentsSummary(): Promise<PaymentsSummary> {
   });
   return handleResponse<PaymentsSummary>(res);
 }
+
+// ─── Публичные эндпоинты (для студентов) ────────────────────────────────────
+
+export interface PublicTutor {
+  id: string;
+  fullName: string;
+  bio?: string;
+  avatarUrl?: string;
+  roles: string[];
+}
+
+/**
+ * GET /api/users — все пользователи.
+ * Фильтруем на клиенте по roles.includes('tutor').
+ * Backend: не предоставляет /api/tutors или /api/users?role=tutor.
+ */
+export async function getPublicTutorList(): Promise<PublicTutor[]> {
+  const headers = await authHeaders();
+  const res = await fetch(endpoints.users, { headers });
+  const data = await handleResponse<PublicTutor[]>(res);
+  return (Array.isArray(data) ? data : []).filter((u) =>
+    Array.isArray(u.roles) && u.roles.includes('tutor')
+  );
+}
+
+/**
+ * GET /api/student/bookings — бронирования студента.
+ * POST /api/student/bookings { slotId } — забронировать слот.
+ *
+ * ПРИМЕЧАНИЕ: Публичного эндпоинта для получения слотов конкретного
+ * наставника со стороны студента пока нет.
+ * GET /api/tutor/slots возвращает 403 для студентов.
+ * Когда бэкенд добавит эндпоинт (например GET /api/student/tutor/{id}/slots),
+ * подключить его здесь.
+ */
+export async function bookTutorSlot(slotId: string): Promise<void> {
+  const res = await fetch(endpoints.studentBookings, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify({ slotId }),
+  });
+  await handleResponse(res);
+}
