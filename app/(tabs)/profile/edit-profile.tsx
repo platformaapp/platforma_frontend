@@ -67,10 +67,15 @@ export default function EditProfileScreen() {
             setTelegram(pick(p, 'phone') ?? '');
             const bio = pick(p, 'bio') ?? '';
             setAbout(bio);
-            setShortBio(bio.slice(0, SHORT_BIO_LIMIT));
+            const sb = pick(p, 'shortBio', 'short_bio') ?? bio.slice(0, SHORT_BIO_LIMIT);
+            setShortBio(sb);
             const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
             setAvatarUrl(url);
             if (url && !url.startsWith('file://')) setAvatarUri(url);
+            const rate = (p as Record<string, unknown>).hourlyRate ?? (p as Record<string, unknown>).hourly_rate ?? (p as Record<string, unknown>).pricePerHour;
+            if (typeof rate === 'number' && rate > 0) setHourlyRate(String(rate));
+            const gm = pick(p, 'groupMeetings', 'group_meetings');
+            if (gm) setGroupMeetings(gm);
           }
         } catch (e: unknown) {
           if (!cancelled) {
@@ -113,12 +118,22 @@ export default function EditProfileScreen() {
     setSaving(true);
     try {
       const bio = about.trim() || shortBio.trim();
-      const payload: Record<string, string | undefined> = {};
+      const payload: Record<string, string | number | undefined> = {};
       if (fullName.trim()) payload.fullName = fullName.trim();
       if (email.trim()) payload.email = email.trim();
       if (bio) payload.bio = bio;
+      if (shortBio.trim()) payload.shortBio = shortBio.trim();
       if (telegram.trim()) payload.phone = telegram.trim();
       if (avatarUrl) payload.avatarUrl = avatarUrl;
+      const rate = hourlyRate ? parseInt(hourlyRate, 10) : 0;
+      if (rate > 0) {
+        payload.hourlyRate = rate;
+        payload.hourly_rate = rate;
+      }
+      if (groupMeetings.trim()) {
+        payload.groupMeetings = groupMeetings.trim();
+        payload.group_meetings = groupMeetings.trim();
+      }
       await updateTutorProfile(payload);
       router.back();
     } catch (e: any) {
