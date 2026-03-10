@@ -1,5 +1,5 @@
-import * as ImagePicker from 'expo-image-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -128,11 +128,9 @@ export default function EditProfileScreen() {
       const rate = hourlyRate ? parseInt(hourlyRate, 10) : 0;
       if (rate > 0) {
         payload.hourlyRate = rate;
-        payload.hourly_rate = rate;
       }
       if (groupMeetings.trim()) {
         payload.groupMeetings = groupMeetings.trim();
-        payload.group_meetings = groupMeetings.trim();
       }
       await updateTutorProfile(payload);
       router.back();
