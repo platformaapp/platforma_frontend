@@ -17,6 +17,9 @@ export const endpoints = {
   paymentMethodsCallbackLegacy: `${API_BASE}/payments/callback`,
   switchRole: `${API_BASE}/api/auth/switch-role`,
 
+  // Student (Ученик) — профиль
+  studentProfile: `${API_BASE}/api/student/profile`,
+
   // Tutor (Наставник) — профиль, слоты, события, платежи
   tutorProfile: `${API_BASE}/api/tutor/profile`,
   tutorSlots: `${API_BASE}/api/tutor/slots`,
