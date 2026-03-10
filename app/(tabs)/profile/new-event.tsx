@@ -5,9 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { ThemedText } from '@/components/themed-text';
-import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { AuthError, createEvent } from '@/lib/api/events';
+import { getAuthRole, getAuthToken } from '@/lib/auth';
 
 function formatDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');

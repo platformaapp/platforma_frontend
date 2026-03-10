@@ -5,8 +5,10 @@
  * - POST api/student/payment-methods/bind — body {} или { provider: "yookassa" }
  * - Ответ: { success, data: { confirmationUrl, attachmentId } }
  * - Редирект на confirmationUrl → пользователь вводит карту на YooKassa
- * - Webhook → бэк обновляет карту в БД, YooKassa редиректит на /payment-methods/callback
- * - Callback: опрос GET payment-methods до появления новой карты (webhook может задержаться)
+ * - Webhook → бэк обновляет карту в БД, YooKassa редиректит на return_url
+ *
+ * Важно: return_url при создании платежа должен указывать на существующий эндпоинт,
+ * например GET /api/student/payment-methods/callback. GET /api/student/payments → 404.
  *
  * GET api/student/payment-methods — список карт: { success, data: { paymentMethods, total } }
  */
@@ -203,29 +205,11 @@ function toCard(pm: PaymentMethod): Card {
   };
 }
 
-/** GET — список карт и история оплат (для совместимости) */
+/** GET — список карт и история. Карты: GET /api/student/payment-methods. GET /payments не существует (404). */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
-  const cards: Card[] = [];
-  try {
-    const methods = await getPaymentMethods();
-    cards.push(...methods.map(toCard));
-  } catch {
-    // fallback: GET /student/payments
-    const res = await fetch(endpoints.studentPayments, { headers: await authHeaders() });
-    const data = await handleResponse<{ cards?: Card[]; history?: PaymentHistoryItem[] }>(res);
-    if (data.cards?.length) cards.push(...data.cards);
-  }
-
-  let history: PaymentHistoryItem[] = [];
-  try {
-    const res = await fetch(endpoints.studentPayments, { headers: await authHeaders() });
-    const data = await handleResponse<{ cards?: Card[]; history?: PaymentHistoryItem[] }>(res);
-    history = data.history ?? [];
-  } catch {
-    // ignore
-  }
-
-  return { cards, history };
+  const methods = await getPaymentMethods();
+  const cards = methods.map(toCard);
+  return { cards, history: [] };
 }
 
 /** POST /student/payments — оплата сессии */

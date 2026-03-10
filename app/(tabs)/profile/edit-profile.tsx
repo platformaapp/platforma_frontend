@@ -1,5 +1,5 @@
-import * as ImagePicker from 'expo-image-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -17,6 +17,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
+import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
 import { getAuthRole, getUserProfile } from '@/lib/auth';
 
@@ -34,9 +35,11 @@ function pick<T>(obj: T | null | undefined, ...keys: (keyof T)[]): string {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const [role, setRole] = useState<'student' | 'tutor' | null>(null);
   const [fullName, setFullName] = useState('');
   const [shortBio, setShortBio] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [telegram, setTelegram] = useState('');
   const [about, setAbout] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
@@ -48,17 +51,20 @@ export default function EditProfileScreen() {
 
   const shortBioRemaining = SHORT_BIO_LIMIT - shortBio.length;
   const aboutRemaining = ABOUT_LIMIT - about.length;
+  const isStudent = role === 'student';
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       const loginProfile = await getUserProfile();
-      if (!cancelled && loginProfile) {
-        setFullName(loginProfile.full_name ?? '');
-        setEmail(loginProfile.email ?? '');
-      }
       const currentRole = await getAuthRole();
+      if (!cancelled) setRole(currentRole === 'tutor' ? 'tutor' : 'student');
+
       if (currentRole === 'tutor') {
+        if (loginProfile && !cancelled) {
+          setFullName(loginProfile.full_name ?? '');
+          setEmail(loginProfile.email ?? '');
+        }
         try {
           const p = await getTutorProfile();
           if (!cancelled) {
@@ -67,10 +73,15 @@ export default function EditProfileScreen() {
             setTelegram(pick(p, 'phone') ?? '');
             const bio = pick(p, 'bio') ?? '';
             setAbout(bio);
-            setShortBio(bio.slice(0, SHORT_BIO_LIMIT));
+            const sb = pick(p, 'shortBio', 'short_bio') ?? bio.slice(0, SHORT_BIO_LIMIT);
+            setShortBio(sb);
             const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
             setAvatarUrl(url);
             if (url && !url.startsWith('file://')) setAvatarUri(url);
+            const rate = (p as Record<string, unknown>).hourlyRate ?? (p as Record<string, unknown>).hourly_rate ?? (p as Record<string, unknown>).pricePerHour;
+            if (typeof rate === 'number' && rate > 0) setHourlyRate(String(rate));
+            const gm = pick(p, 'groupMeetings', 'group_meetings');
+            if (gm) setGroupMeetings(gm);
           }
         } catch (e: unknown) {
           if (!cancelled) {
@@ -83,7 +94,33 @@ export default function EditProfileScreen() {
           if (!cancelled) setLoading(false);
         }
       } else {
-        if (!cancelled) setLoading(false);
+        if (loginProfile && !cancelled) {
+          setFullName(loginProfile.full_name ?? '');
+          setEmail(loginProfile.email ?? '');
+          setPhone(loginProfile.phone ?? '');
+          const url = loginProfile.avatar_url ?? '';
+          if (url) {
+            setAvatarUrl(url);
+            if (!url.startsWith('file://')) setAvatarUri(url);
+          }
+        }
+        try {
+          const p = await getStudentProfile();
+          if (!cancelled) {
+            setFullName((pick(p, 'fullName', 'full_name') || loginProfile?.full_name) ?? '');
+            setEmail((pick(p, 'email') || loginProfile?.email) ?? '');
+            setPhone(pick(p, 'phone') ?? loginProfile?.phone ?? '');
+            const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
+            if (url) {
+              setAvatarUrl(url);
+              if (!url.startsWith('file://')) setAvatarUri(url);
+            }
+          }
+        } catch {
+          // GET /api/student/profile может не существовать — используем данные из login
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
       }
     };
     load();
@@ -110,23 +147,46 @@ export default function EditProfileScreen() {
 
   async function handleSave() {
     if (saving) return;
+    const currentRole = await getAuthRole();
     setSaving(true);
     try {
-      const bio = about.trim() || shortBio.trim();
-      const payload: Record<string, string | undefined> = {};
-      if (fullName.trim()) payload.fullName = fullName.trim();
-      if (email.trim()) payload.email = email.trim();
-      if (bio) payload.bio = bio;
-      if (telegram.trim()) payload.phone = telegram.trim();
-      if (avatarUrl) payload.avatarUrl = avatarUrl;
-      await updateTutorProfile(payload);
+      if (currentRole === 'tutor') {
+        const bio = about.trim() || shortBio.trim();
+        const payload: Record<string, string | number | undefined> = {};
+        if (fullName.trim()) payload.fullName = fullName.trim();
+        if (email.trim()) payload.email = email.trim();
+        if (bio) payload.bio = bio;
+        if (shortBio.trim()) payload.shortBio = shortBio.trim();
+        if (telegram.trim()) payload.phone = telegram.trim();
+        if (avatarUrl) payload.avatarUrl = avatarUrl;
+        const rate = hourlyRate ? parseInt(hourlyRate, 10) : 0;
+        if (rate > 0) {
+          payload.hourlyRate = rate;
+          payload.hourly_rate = rate;
+        }
+        if (groupMeetings.trim()) {
+          payload.groupMeetings = groupMeetings.trim();
+          payload.group_meetings = groupMeetings.trim();
+        }
+        await updateTutorProfile(payload);
+      } else {
+        const payload: Record<string, string> = {};
+        if (fullName.trim()) payload.fullName = fullName.trim();
+        if (fullName.trim()) payload.full_name = fullName.trim();
+        if (email.trim()) payload.email = email.trim();
+        if (phone.trim()) payload.phone = phone.trim();
+        if (avatarUrl) payload.avatarUrl = avatarUrl;
+        if (avatarUrl) payload.avatar_url = avatarUrl;
+        await updateStudentProfile(payload);
+      }
       router.back();
-    } catch (e: any) {
-      if (e instanceof AuthError || e?.name === 'AuthError') {
+    } catch (e: unknown) {
+      const err = e as { name?: string; message?: string };
+      if (e instanceof AuthError || err?.name === 'AuthError') {
         router.replace('/login');
         return;
       }
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось сохранить');
+      Alert.alert('Ошибка', err?.message ?? 'Не удалось сохранить');
     } finally {
       setSaving(false);
     }
@@ -156,32 +216,14 @@ export default function EditProfileScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>ИЗМЕНЕНИЕ ДАННЫХ</Text>
 
-          <Text style={styles.label}>Имя и фамилия</Text>
+          <Text style={styles.label}>{isStudent ? 'Имя' : 'Имя и фамилия'}</Text>
           <TextInput
             value={fullName}
             onChangeText={setFullName}
             style={styles.input}
-            placeholder="Имя и фамилия"
+            placeholder={isStudent ? 'Имя' : 'Имя и фамилия'}
             placeholderTextColor="#9B9B9B"
           />
-
-          <Text style={styles.label}>Короткое био</Text>
-          <View style={styles.inputWithCounter}>
-            <TextInput
-              value={shortBio}
-              onChangeText={(t) => t.length <= SHORT_BIO_LIMIT && setShortBio(t)}
-              style={[styles.input, styles.textArea]}
-              placeholder="Короткое био (например, фотограф в The Blueprint)"
-              placeholderTextColor="#9B9B9B"
-              multiline
-              numberOfLines={2}
-            />
-            <View style={styles.counter}>
-              <Text style={[styles.counterText, shortBioRemaining === 0 && styles.counterTextError]}>
-                {shortBioRemaining}
-              </Text>
-            </View>
-          </View>
 
           <Text style={styles.label}>Почта</Text>
           <TextInput
@@ -194,54 +236,90 @@ export default function EditProfileScreen() {
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Телеграм</Text>
-          <TextInput
-            value={telegram}
-            onChangeText={setTelegram}
-            style={styles.input}
-            placeholder="Телеграм"
-            placeholderTextColor="#9B9B9B"
-          />
+          {isStudent && (
+            <>
+              <Text style={styles.label}>Телефон</Text>
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                style={styles.input}
+                placeholder="Телефон"
+                placeholderTextColor="#9B9B9B"
+                keyboardType="phone-pad"
+              />
+            </>
+          )}
 
-          <Text style={styles.label}>О себе</Text>
-          <View style={styles.inputWithCounter}>
-            <TextInput
-              value={about}
-              onChangeText={(t) => t.length <= ABOUT_LIMIT && setAbout(t)}
-              style={[styles.input, styles.textArea]}
-              placeholder="О себе в свободной форме"
-              placeholderTextColor="#9B9B9B"
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-            <View style={styles.counter}>
-              <Text style={[styles.counterText, aboutRemaining === 0 && styles.counterTextError]}>
-                {aboutRemaining}
-              </Text>
-            </View>
-          </View>
+          {!isStudent && (
+            <>
+              <Text style={styles.label}>Короткое био</Text>
+              <View style={styles.inputWithCounter}>
+                <TextInput
+                  value={shortBio}
+                  onChangeText={(t) => t.length <= SHORT_BIO_LIMIT && setShortBio(t)}
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Короткое био (например, фотограф в The Blueprint)"
+                  placeholderTextColor="#9B9B9B"
+                  multiline
+                  numberOfLines={2}
+                />
+                <View style={styles.counter}>
+                  <Text style={[styles.counterText, shortBioRemaining === 0 && styles.counterTextError]}>
+                    {shortBioRemaining}
+                  </Text>
+                </View>
+              </View>
 
-          <Text style={styles.label}>Стоимость часа</Text>
-          <TextInput
-            value={hourlyRate}
-            onChangeText={(t) => setHourlyRate(t.replace(/\D/g, ''))}
-            style={styles.input}
-            placeholder="Стоимость часа"
-            placeholderTextColor="#9B9B9B"
-            keyboardType="numeric"
-          />
+              <Text style={styles.label}>Телеграм</Text>
+              <TextInput
+                value={telegram}
+                onChangeText={setTelegram}
+                style={styles.input}
+                placeholder="Телеграм"
+                placeholderTextColor="#9B9B9B"
+              />
 
-          <Text style={styles.label}>Собираетесь ли вы проводить групповые встречи</Text>
-          <TextInput
-            value={groupMeetings}
-            onChangeText={setGroupMeetings}
-            style={[styles.input, styles.textArea]}
-            placeholder="Собираетесь ли вы проводить групповые встречи? Как часто?"
-            placeholderTextColor="#9B9B9B"
-            multiline
-            numberOfLines={3}
-          />
+              <Text style={styles.label}>О себе</Text>
+              <View style={styles.inputWithCounter}>
+                <TextInput
+                  value={about}
+                  onChangeText={(t) => t.length <= ABOUT_LIMIT && setAbout(t)}
+                  style={[styles.input, styles.textArea]}
+                  placeholder="О себе в свободной форме"
+                  placeholderTextColor="#9B9B9B"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+                <View style={styles.counter}>
+                  <Text style={[styles.counterText, aboutRemaining === 0 && styles.counterTextError]}>
+                    {aboutRemaining}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.label}>Стоимость часа</Text>
+              <TextInput
+                value={hourlyRate}
+                onChangeText={(t) => setHourlyRate(t.replace(/\D/g, ''))}
+                style={styles.input}
+                placeholder="Стоимость часа"
+                placeholderTextColor="#9B9B9B"
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Собираетесь ли вы проводить групповые встречи</Text>
+              <TextInput
+                value={groupMeetings}
+                onChangeText={setGroupMeetings}
+                style={[styles.input, styles.textArea]}
+                placeholder="Собираетесь ли вы проводить групповые встречи? Как часто?"
+                placeholderTextColor="#9B9B9B"
+                multiline
+                numberOfLines={3}
+              />
+            </>
+          )}
 
           <Text style={styles.label}>Заменить фото</Text>
           <Pressable

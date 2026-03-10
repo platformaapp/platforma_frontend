@@ -25,7 +25,14 @@ export interface TutorProfile {
   avatarUrl?: string;
   avatar_url?: string;
   bio?: string;
+  shortBio?: string;
+  short_bio?: string;
   phone?: string;
+  hourlyRate?: number;
+  hourly_rate?: number;
+  pricePerHour?: number;
+  groupMeetings?: string;
+  group_meetings?: string;
   role?: 'tutor';
   created_at?: string;
   updated_at?: string;
@@ -37,8 +44,15 @@ export interface TutorProfileUpdate {
   avatarUrl?: string;
   avatar_url?: string;
   bio?: string;
+  shortBio?: string;
+  short_bio?: string;
   email?: string;
   phone?: string;
+  hourlyRate?: number;
+  hourly_rate?: number;
+  pricePerHour?: number;
+  groupMeetings?: string;
+  group_meetings?: string;
 }
 
 /** free (или available) | booked | cancelled */
@@ -136,6 +150,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401) await handle401(res, payload);
+    if (res.status === 403) {
+      const msg =
+        typeof payload === 'string'
+          ? payload
+          : payload?.message ?? payload?.error ?? 'Доступ запрещён. Переключитесь на роль Наставник.';
+      throw new Error(msg);
+    }
     const msg =
       typeof payload === 'string'
         ? payload

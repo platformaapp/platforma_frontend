@@ -9,11 +9,16 @@ export const endpoints = {
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
   studentPaymentMethods: `${API_BASE}/api/student/payment-methods`,
   studentPaymentMethodsBind: `${API_BASE}/api/student/payment-methods/bind`,
+  /** return_url для YooKassa — бэкенд должен использовать этот путь, не /api/student/payments */
+  studentPaymentMethodsCallback: `${API_BASE}/api/student/payment-methods/callback`,
   paymentsMethod: `${API_BASE}/api/payments/method`,
   studentPaymentMethodsLegacy: `${API_BASE}/api/student/payment-methods`,
   paymentMethodsCallback: `${API_BASE}/api/payments/callback`,
   paymentMethodsCallbackLegacy: `${API_BASE}/payments/callback`,
   switchRole: `${API_BASE}/api/auth/switch-role`,
+
+  // Student (Ученик) — профиль
+  studentProfile: `${API_BASE}/api/student/profile`,
 
   // Tutor (Наставник) — профиль, слоты, события, платежи
   tutorProfile: `${API_BASE}/api/tutor/profile`,

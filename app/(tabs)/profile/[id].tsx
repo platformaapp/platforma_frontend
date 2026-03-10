@@ -1,16 +1,15 @@
+import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { AuthError } from '@/lib/api/auth-error';
 import { getTutorSlots } from '@/lib/api/tutor';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
 export default function ProfileByIdScreen() {

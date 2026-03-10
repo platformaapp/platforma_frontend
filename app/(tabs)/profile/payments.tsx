@@ -1,11 +1,13 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  AppStateStatus,
   Modal,
   Pressable,
   ScrollView,
@@ -14,15 +16,14 @@ import {
   View,
 } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
 import {
   bindPaymentMethod,
   deleteCurrentPaymentMethod,
   deletePaymentMethod,
   getStudentPayments,
-  setDefaultPaymentMethod,
   MAX_CARDS,
+  setDefaultPaymentMethod,
   type Card,
   type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
@@ -104,6 +105,18 @@ export default function PaymentsScreen() {
     }, [router])
   );
 
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      if (event.url.includes('payment-methods/callback')) {
+        router.push('/(tabs)/profile/payment-methods-callback');
+      }
+    };
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    return () => sub.remove();
+  }, [router]);
+
+  const pendingCallbackRef = useRef(false);
+
   const handleLinkCard = async () => {
     if (isLinking) return;
     if (cards.length >= MAX_CARDS) {
@@ -112,16 +125,16 @@ export default function PaymentsScreen() {
     }
     setIsLinking(true);
     try {
-      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
-      // Navigate to callback screen first; pass orderId + attachmentId so it can call
-      // the backend confirmation endpoint (GET /api/student/payments/callback?orderId=...)
-      // which triggers the backend to verify the payment with YooKassa and save the card.
-      router.push({
-        pathname: '/(tabs)/profile/payment-methods-callback',
-        params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '' },
+      const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
+      pendingCallbackRef.current = true;
+      WebBrowser.openBrowserAsync(confirmationUrl).then(() => {
+        if (pendingCallbackRef.current) {
+          pendingCallbackRef.current = false;
+          router.push('/(tabs)/profile/payment-methods-callback');
+        }
       });
-      WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
+      pendingCallbackRef.current = false;
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
@@ -131,6 +144,16 @@ export default function PaymentsScreen() {
       setIsLinking(false);
     }
   };
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && pendingCallbackRef.current) {
+        pendingCallbackRef.current = false;
+        router.push('/(tabs)/profile/payment-methods-callback');
+      }
+    });
+    return () => sub.remove();
+  }, [router]);
 
   const handleSetDefault = async (card: Card) => {
     if (settingDefaultId || card.isDefault) return;
