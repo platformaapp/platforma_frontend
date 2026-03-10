@@ -116,8 +116,9 @@ const MAX_CARDS = 3;
  * POST api/student/payment-methods/bind — инициализация привязки карты.
  * Body: {} или { provider: "yookassa" }. Пользователь вводит карту на странице YooKassa.
  * Ответ: { success, data: { confirmationUrl, attachmentId } }.
+ * orderId извлекается из confirmationUrl (param ?orderId=...) для последующего подтверждения.
  */
-export async function bindPaymentMethod(body?: { provider?: string }): Promise<{ confirmationUrl: string; attachmentId?: string }> {
+export async function bindPaymentMethod(body?: { provider?: string }): Promise<{ confirmationUrl: string; attachmentId?: string; orderId?: string }> {
   const payload = body ?? { provider: 'yookassa' };
 
   const res = await fetch(endpoints.studentPaymentMethodsBind, {
@@ -132,10 +133,43 @@ export async function bindPaymentMethod(body?: { provider?: string }): Promise<{
   if (!data.success || !data.data?.confirmationUrl) {
     throw new Error((data as { message?: string }).message ?? 'Не удалось получить ссылку для привязки');
   }
+
+  // Extract orderId from confirmationUrl query string (e.g. ?orderId=3142803d-...)
+  let orderId: string | undefined;
+  try {
+    orderId = new URL(data.data.confirmationUrl).searchParams.get('orderId') ?? undefined;
+  } catch {
+    // ignore URL parse errors
+  }
+
   return {
     confirmationUrl: data.data.confirmationUrl,
     attachmentId: data.data.attachmentId,
+    orderId,
   };
+}
+
+/**
+ * GET api/student/payments/callback — подтверждение привязки карты после возврата из YooKassa.
+ * Бэкенд проверяет статус платежа у YooKassa по orderId/attachmentId и сохраняет карту в БД.
+ * Этот вызов должен выполняться с токеном авторизации (браузер при redirect его не передаёт).
+ */
+export async function confirmCardBinding(orderId?: string, attachmentId?: string): Promise<void> {
+  const params = new URLSearchParams();
+  if (orderId) params.set('orderId', orderId);
+  if (attachmentId) params.set('attachmentId', attachmentId);
+  const qs = params.toString();
+  const url = `${endpoints.studentPaymentsCallback}${qs ? '?' + qs : ''}`;
+
+  try {
+    const res = await fetch(url, { headers: await authHeaders() });
+    if (res.status === 401) await handle401(res, null);
+    // 500 means the backend can't confirm yet (payment may still be processing) — not fatal
+  } catch (e) {
+    // Re-throw AuthErrors so the caller can redirect to login
+    if ((e as { name?: string })?.name === 'AuthError') throw e;
+    // All other errors are ignored — we fall back to polling
+  }
 }
 
 /** Максимум карт на пользователя */

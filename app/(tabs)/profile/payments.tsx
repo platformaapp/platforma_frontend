@@ -112,12 +112,14 @@ export default function PaymentsScreen() {
     }
     setIsLinking(true);
     try {
-      const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
-      // Navigate to callback screen first so polling starts before the browser blocks
-      router.push('/(tabs)/profile/payment-methods-callback');
-      // Open browser without awaiting — the in-app browser stays open until the user
-      // closes it or YooKassa redirects. Polling on the callback screen will detect
-      // the new card once the webhook fires, regardless of when the browser closes.
+      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      // Navigate to callback screen first; pass orderId + attachmentId so it can call
+      // the backend confirmation endpoint (GET /api/student/payments/callback?orderId=...)
+      // which triggers the backend to verify the payment with YooKassa and save the card.
+      router.push({
+        pathname: '/(tabs)/profile/payment-methods-callback',
+        params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '' },
+      });
       WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {

@@ -169,10 +169,12 @@ export default function TutorPaymentsScreen() {
     if (isLinking) return;
     setIsLinking(true);
     try {
-      const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
+      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
       setEditModalVisible(false);
-      // Open browser without awaiting — useFocusEffect will reload data when
-      // the user closes the browser and returns to this screen.
+      router.push({
+        pathname: '/(tabs)/profile/payment-methods-callback',
+        params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '', returnTo: 'tutor-payments' },
+      });
       WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
       Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось изменить карту');
