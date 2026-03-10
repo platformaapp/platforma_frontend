@@ -171,8 +171,9 @@ export default function TutorPaymentsScreen() {
     try {
       const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
       setEditModalVisible(false);
-      await WebBrowser.openBrowserAsync(confirmationUrl);
-      await loadData();
+      // Open browser without awaiting — useFocusEffect will reload data when
+      // the user closes the browser and returns to this screen.
+      WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
       Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось изменить карту');
     } finally {

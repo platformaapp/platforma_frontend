@@ -1,8 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -105,16 +104,6 @@ export default function PaymentsScreen() {
     }, [router])
   );
 
-  useEffect(() => {
-    const handleDeepLink = (event: { url: string }) => {
-      if (event.url.includes('payment-methods/callback')) {
-        router.push('/(tabs)/profile/payment-methods-callback');
-      }
-    };
-    const sub = Linking.addEventListener('url', handleDeepLink);
-    return () => sub.remove();
-  }, [router]);
-
   const handleLinkCard = async () => {
     if (isLinking) return;
     if (cards.length >= MAX_CARDS) {
@@ -124,8 +113,12 @@ export default function PaymentsScreen() {
     setIsLinking(true);
     try {
       const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
-      await WebBrowser.openBrowserAsync(confirmationUrl);
+      // Navigate to callback screen first so polling starts before the browser blocks
       router.push('/(tabs)/profile/payment-methods-callback');
+      // Open browser without awaiting — the in-app browser stays open until the user
+      // closes it or YooKassa redirects. Polling on the callback screen will detect
+      // the new card once the webhook fires, regardless of when the browser closes.
+      WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
