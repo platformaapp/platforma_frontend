@@ -105,16 +105,6 @@ export default function PaymentsScreen() {
     }, [router])
   );
 
-  useEffect(() => {
-    const handleDeepLink = (event: { url: string }) => {
-      if (event.url.includes('payment-methods/callback')) {
-        router.push('/(tabs)/profile/payment-methods-callback');
-      }
-    };
-    const sub = Linking.addEventListener('url', handleDeepLink);
-    return () => sub.remove();
-  }, [router]);
-
   const pendingCallbackRef = useRef(false);
 
   const handleLinkCard = async () => {

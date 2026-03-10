@@ -20,9 +20,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // Slot grid: 5 columns with gaps
 const SLOT_COLS = 5;
 const SLOT_GAP = 6;
-const SLOT_HORIZONTAL_PADDING = 16;
+const SLOT_PADDING = 16;
 const SLOT_WIDTH =
-  (SCREEN_WIDTH - SLOT_HORIZONTAL_PADDING * 2 - SLOT_GAP * (SLOT_COLS - 1)) / SLOT_COLS;
+  (SCREEN_WIDTH - SLOT_PADDING * 2 - SLOT_GAP * (SLOT_COLS - 1)) / SLOT_COLS;
 
 type SlotItem = {
   id: string;
@@ -37,7 +37,10 @@ function generateDemoSlots(tutorId: string): SlotItem[] {
   const base = new Date();
   const slots: SlotItem[] = [];
   const times = ['18:00', '20:00'];
-  const statuses: SlotItem['status'][] = ['available', 'available', 'pending', 'available', 'available'];
+  const statuses: SlotItem['status'][] = [
+    'available', 'available', 'pending', 'available', 'available',
+    'pending', 'available', 'available', 'available', 'available',
+  ];
 
   for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
     const d = new Date(base);
@@ -80,6 +83,7 @@ export default function TutorCardScreen() {
   const handleSelectSlot = (slot: SlotItem) => {
     if (slot.status !== 'available') return;
     setSelectedSlot(slot);
+    setShowSlots(false);
   };
 
   const handleBook = async () => {
@@ -87,7 +91,6 @@ export default function TutorCardScreen() {
     setIsBooking(true);
     try {
       await bookTutorSlot(selectedSlot.id);
-      setShowSlots(false);
       setSelectedSlot(null);
       Alert.alert('Успешно', 'Вы записались на встречу!');
     } catch (e: any) {
@@ -95,11 +98,6 @@ export default function TutorCardScreen() {
     } finally {
       setIsBooking(false);
     }
-  };
-
-  const handleCloseSlots = () => {
-    setShowSlots(false);
-    setSelectedSlot(null);
   };
 
   return (
@@ -150,26 +148,26 @@ export default function TutorCardScreen() {
         </View>
       </View>
 
-      {/* ─── SLOT SELECTION MODAL ─────────────────────────────────────── */}
+      {/* ─── SLOT SELECTION — bottom sheet ──────────────────────────────── */}
       <Modal
-        visible={showSlots && selectedSlot === null}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={handleCloseSlots}
+        transparent
+        animationType="none"
+        visible={showSlots}
+        onRequestClose={() => setShowSlots(false)}
       >
-        <ScrollView style={styles.modalContainer} contentContainerStyle={styles.modalContent}>
-          {/* Tutor photo at top of modal */}
-          <Image source={imageSource} style={styles.modalHeroImage} resizeMode="cover" />
+        <Pressable style={styles.overlay} onPress={() => setShowSlots(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>СВОБОДНЫЕ СЛОТЫ{'\n'}ДЛЯ ЗАПИСИ</Text>
 
-          <View style={styles.modalBody}>
-            <Text style={styles.modalTitle}>СВОБОДНЫЕ СЛОТЫ{'\n'}ДЛЯ ЗАПИСИ</Text>
-
-            {/* Slot grid */}
-            <View style={styles.slotGrid}>
+            {/* Slot grid — scrollable if many rows */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.slotScroll}
+              contentContainerStyle={styles.slotGrid}
+            >
               {slots.map((slot) => {
                 const isAvailable = slot.status === 'available';
                 const isPending = slot.status === 'pending';
-                const isBooked = slot.status === 'booked';
                 return (
                   <Pressable
                     key={slot.id}
@@ -193,30 +191,27 @@ export default function TutorCardScreen() {
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
 
-            <Pressable style={styles.modalCloseButton} onPress={handleCloseSlots}>
-              <Text style={styles.modalCloseButtonText}>Закрыть</Text>
+            <Pressable style={styles.sheetSecondaryButton} onPress={() => setShowSlots(false)}>
+              <Text style={styles.sheetSecondaryButtonText}>Закрыть</Text>
             </Pressable>
-          </View>
-        </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
 
-      {/* ─── BOOKING CONFIRMATION MODAL ───────────────────────────────── */}
+      {/* ─── BOOKING CONFIRMATION — bottom sheet ────────────────────────── */}
       <Modal
+        transparent
+        animationType="none"
         visible={selectedSlot !== null}
-        animationType="slide"
-        transparent={false}
         onRequestClose={() => setSelectedSlot(null)}
       >
-        <ScrollView style={styles.modalContainer} contentContainerStyle={styles.modalContent}>
-          {/* Tutor photo */}
-          <Image source={imageSource} style={styles.modalHeroImage} resizeMode="cover" />
+        <Pressable style={styles.overlay} onPress={() => setSelectedSlot(null)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>ПОДТВЕРЖДЕНИЕ{'\n'}ЗАПИСИ</Text>
 
-          <View style={styles.modalBody}>
-            <Text style={styles.modalTitle}>ПОДТВЕРЖДЕНИЕ{'\n'}ЗАПИСИ</Text>
-
-            {/* Booking card */}
+            {/* Booking card — mirrors the event detail card style */}
             <View style={styles.bookingCard}>
               <View style={styles.bookingCardTop}>
                 <Text style={styles.bookingCardName}>{displayName}</Text>
@@ -231,23 +226,23 @@ export default function TutorCardScreen() {
             </View>
 
             <Pressable
-              style={[styles.payButton, isBooking && styles.payButtonDisabled]}
+              style={[styles.sheetPrimaryButton, isBooking && styles.sheetPrimaryButtonDisabled]}
               onPress={handleBook}
               disabled={isBooking}
             >
-              <Text style={styles.payButtonText}>
+              <Text style={styles.sheetPrimaryButtonText}>
                 {isBooking ? 'Оплата...' : 'Оплатить'}
               </Text>
             </Pressable>
 
             <Pressable
-              style={styles.modalCloseButton}
-              onPress={() => { setSelectedSlot(null); }}
+              style={styles.sheetSecondaryButton}
+              onPress={() => { setSelectedSlot(null); setShowSlots(true); }}
             >
-              <Text style={styles.modalCloseButtonText}>Назад</Text>
+              <Text style={styles.sheetSecondaryButtonText}>Назад</Text>
             </Pressable>
-          </View>
-        </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
     </ScrollView>
   );
@@ -348,7 +343,7 @@ const styles = StyleSheet.create({
     color: '#181818',
   },
 
-  // Buttons
+  // CTA buttons
   primaryButton: {
     marginHorizontal: 16,
     marginTop: 16,
@@ -410,39 +405,69 @@ const styles = StyleSheet.create({
     color: '#181818',
   },
 
-  // ─── Modal ────────────────────────────────────────────────────────────────
-  modalContainer: {
+  // ─── Bottom sheet shared styles ──────────────────────────────────────────
+  overlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  sheetTitle: {
+    marginTop: 0,
+    marginBottom: 16,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    lineHeight: 34,
+    letterSpacing: -1,
+    color: '#181818',
+    textAlign: 'left',
+  },
+  sheetPrimaryButton: {
+    marginTop: 16,
+    backgroundColor: '#1E1E1E',
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetPrimaryButtonDisabled: {
+    opacity: 0.6,
+  },
+  sheetPrimaryButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  sheetSecondaryButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#fff',
   },
-  modalContent: {
-    paddingBottom: 40,
-  },
-  modalHeroImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.75,
-    backgroundColor: '#E5E5E5',
-  },
-  modalBody: {
-    paddingHorizontal: SLOT_HORIZONTAL_PADDING,
-    paddingTop: 24,
-  },
-  modalTitle: {
-    fontSize: 28,
-    lineHeight: 34,
+  sheetSecondaryButtonText: {
+    fontSize: 16,
     fontFamily: 'Inter-Regular',
-    fontWeight: '400',
     color: '#181818',
-    marginBottom: 24,
-    letterSpacing: -1,
   },
 
   // Slot grid
+  slotScroll: {
+    maxHeight: 280,
+  },
   slotGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SLOT_GAP,
-    marginBottom: 24,
+    paddingBottom: 4,
   },
   slotCard: {
     width: SLOT_WIDTH,
@@ -495,31 +520,15 @@ const styles = StyleSheet.create({
     color: '#9B9B9B',
   },
 
-  // Close button
-  modalCloseButton: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 8,
-  },
-  modalCloseButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-
-  // Booking card
+  // Booking confirmation card
   bookingCard: {
     borderWidth: 1,
     borderColor: '#1E1E1E',
-    marginBottom: 24,
+    backgroundColor: '#FFFFFF',
   },
   bookingCardTop: {
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderColor: '#1E1E1E',
   },
@@ -527,7 +536,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#1E1E1E',
   },
   bookingCardBottom: {
     flexDirection: 'row',
@@ -536,12 +545,12 @@ const styles = StyleSheet.create({
   },
   bookingCardDateTime: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#1E1E1E',
   },
   bookingCardDivider: {
     width: 1,
@@ -550,30 +559,12 @@ const styles = StyleSheet.create({
   },
   bookingCardPrice: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#1E1E1E',
     textAlign: 'right',
-  },
-
-  // Pay button
-  payButton: {
-    backgroundColor: '#111',
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  payButtonDisabled: {
-    opacity: 0.6,
-  },
-  payButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#FAFAFA',
   },
 });
