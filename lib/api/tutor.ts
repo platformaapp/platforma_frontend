@@ -150,6 +150,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401) await handle401(res, payload);
+    if (res.status === 403) {
+      const msg =
+        typeof payload === 'string'
+          ? payload
+          : payload?.message ?? payload?.error ?? 'Доступ запрещён. Переключитесь на роль Наставник.';
+      throw new Error(msg);
+    }
     const msg =
       typeof payload === 'string'
         ? payload

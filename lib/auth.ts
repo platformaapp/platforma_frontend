@@ -12,6 +12,7 @@ export interface UserProfile {
   id: string;
   email?: string;
   full_name?: string;
+  phone?: string;
   role?: string;
   avatar_url?: string;
   bio?: string;
@@ -209,6 +210,7 @@ export function extractUserFromResponse(data: any): UserProfile | undefined {
     id: String(user.id),
     email: user.email,
     full_name: user.full_name ?? user.fullName ?? user.name,
+    phone: user.phone,
     role: user.role,
     avatar_url: user.avatar_url ?? user.avatarUrl,
     bio: user.bio,
