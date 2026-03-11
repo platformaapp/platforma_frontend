@@ -1,88 +1,128 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
+import { endpoints } from '@/constants/env';
+import { getAuthToken, getUserProfile } from '@/lib/auth';
 
 export default function NewPasswordScreen() {
   const router = useRouter();
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [repeatPassword, setRepeatPassword] = useState('');
-  const [showOld, setShowOld] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showRepeat, setShowRepeat] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const token = await getAuthToken();
+        if (!token) { router.replace('/login'); return; }
+        const profile = await getUserProfile();
+        if (active && profile?.email) setEmail(profile.email);
+      } catch {
+        // ignore — user will see empty email
+      } finally {
+        if (active) setLoadingEmail(false);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, [router]);
+
+  const handleSend = async () => {
+    if (isSending || isSent) return;
+    if (!email) {
+      Alert.alert('Ошибка', 'Не удалось определить email. Попробуйте позже.');
+      return;
+    }
+    setIsSending(true);
+    try {
+      const res = await fetch(endpoints.forgotPassword, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.message ?? data?.error ?? `Ошибка (${res.status})`;
+        throw new Error(typeof msg === 'string' ? msg : 'Ошибка отправки');
+      }
+      setIsSent(true);
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось отправить ссылку');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <Path
+              d="M15 18L9 12L15 6"
+              stroke="#181818"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </Svg>
         </Pressable>
       </View>
 
       <Text style={styles.title}>НОВЫЙ ПАРОЛЬ</Text>
 
-      <View style={styles.fieldRow}>
-        <TextInput
-          value={oldPassword}
-          onChangeText={setOldPassword}
-          style={styles.input}
-          placeholder="Старый пароль"
-          placeholderTextColor="#9B9B9B"
-          secureTextEntry={!showOld}
-        />
-        <Pressable style={styles.eyeButton} onPress={() => setShowOld((prev) => !prev)}>
-          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
-            <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
-          </Svg>
-        </Pressable>
-      </View>
+      {loadingEmail ? (
+        <ActivityIndicator style={styles.loader} color="#181818" />
+      ) : (
+        <>
+          {isSent ? (
+            <View style={styles.successBlock}>
+              <Text style={styles.successText}>
+                Ссылка для смены пароля отправлена на{'\n'}
+                <Text style={styles.successEmail}>{email}</Text>
+              </Text>
+              <Text style={styles.successHint}>
+                Проверьте почту и перейдите по ссылке, чтобы задать новый пароль.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.description}>
+                Мы отправим ссылку для смены пароля на вашу почту
+              </Text>
 
-      <View style={styles.fieldRow}>
-        <TextInput
-          value={newPassword}
-          onChangeText={setNewPassword}
-          style={styles.input}
-          placeholder="Новый пароль"
-          placeholderTextColor="#9B9B9B"
-          secureTextEntry={!showNew}
-        />
-        <Pressable style={styles.eyeButton} onPress={() => setShowNew((prev) => !prev)}>
-          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
-            <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
-          </Svg>
-        </Pressable>
-      </View>
+              <View style={styles.emailCard}>
+                <Text style={styles.emailLabel}>Почта</Text>
+                <Text style={styles.emailValue}>{email || '—'}</Text>
+              </View>
 
-      <View style={styles.fieldRow}>
-        <TextInput
-          value={repeatPassword}
-          onChangeText={setRepeatPassword}
-          style={styles.input}
-          placeholder="Повторите пароль"
-          placeholderTextColor="#9B9B9B"
-          secureTextEntry={!showRepeat}
-        />
-        <Pressable style={styles.eyeButton} onPress={() => setShowRepeat((prev) => !prev)}>
-          <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5"/>
-            <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5"/>
-          </Svg>
-        </Pressable>
-      </View>
+              <Text style={styles.helperText}>
+                Пароль должен быть не меньше 7 символов и состоять из букв, цифр и символов
+              </Text>
+            </>
+          )}
+        </>
+      )}
 
-      <Text style={styles.helperText}>
-        Пароль должен быть не меньше 7 символов{'\n'}
-        и состоять из букв, цифр и прикольных символов
-      </Text>
-
-      <Pressable style={styles.saveButton}>
-        <Text style={styles.saveButtonText}>Сохранить</Text>
+      <Pressable
+        style={[
+          styles.saveButton,
+          (isSending || isSent || loadingEmail) && styles.saveButtonDisabled,
+        ]}
+        onPress={isSent ? () => router.back() : handleSend}
+        disabled={isSending || loadingEmail}
+      >
+        {isSending ? (
+          <ActivityIndicator color="#FAFAFA" />
+        ) : (
+          <Text style={styles.saveButtonText}>
+            {isSent ? 'Закрыть' : 'Отправить ссылку'}
+          </Text>
+        )}
       </Pressable>
     </View>
   );
@@ -105,42 +145,73 @@ const styles = StyleSheet.create({
   },
   title: {
     marginTop: 12,
-    marginBottom: 16,
+    marginBottom: 20,
     fontSize: 20,
     lineHeight: 26,
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
-  fieldRow: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    height: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+  loader: {
+    marginTop: 40,
   },
-  input: {
-    flex: 1,
-    paddingHorizontal: 12,
+  description: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+    marginBottom: 16,
   },
-  eyeButton: {
-    width: 44,
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderLeftWidth: 1,
+  emailCard: {
+    borderWidth: 1,
     borderColor: '#1E1E1E',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  emailLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+  },
+  emailValue: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    flexShrink: 1,
+    textAlign: 'right',
+    marginLeft: 8,
   },
   helperText: {
     fontSize: 13,
     lineHeight: 18,
     fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+  },
+  successBlock: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  successText: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: 'Inter-Regular',
     color: '#181818',
-    marginTop: 4,
+    marginBottom: 12,
+  },
+  successEmail: {
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  successHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
   },
   saveButton: {
     marginTop: 'auto',
@@ -150,7 +221,11 @@ const styles = StyleSheet.create({
     borderColor: '#111',
     paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     height: 52,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
   saveButtonText: {
     fontSize: 14,
