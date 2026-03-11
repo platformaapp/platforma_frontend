@@ -21,8 +21,11 @@ export default function ProfileByIdScreen() {
   const [slots, setSlots] = useState<{ date: string; time: string }[]>([]);
   const [isShareVisible, setShareVisible] = useState(false);
   const [isShareCopied, setShareCopied] = useState(false);
+  const [isInviteVisible, setInviteVisible] = useState(false);
+  const [isInviteCopied, setInviteCopied] = useState(false);
 
   const profileUrl = Linking.createURL(`/(tabs)/profile/${id ?? ''}`);
+  const platformUrl = Linking.createURL('/');
 
   const handleCopyProfileLink = async () => {
     await Clipboard.setStringAsync(profileUrl);
@@ -133,8 +136,8 @@ export default function ProfileByIdScreen() {
       </View>
 
        {/* Share Button */}
-
-      <View style={styles.studentInviteCard}>
+       <Pressable style={styles.studentInviteCard} onPress={() => { setInviteCopied(false); setInviteVisible(true); }}>
+      
         <View style={styles.studentInviteContent}>
           <Text style={styles.studentInviteText}>
             Отправьте товарищу ссылку на платформу и ходите на мастер-классы вместе
@@ -145,7 +148,35 @@ export default function ProfileByIdScreen() {
             <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
           </Svg>
         </View>
-      </View>
+      </Pressable>
+
+      <Modal transparent animationType="none" visible={isInviteVisible} onRequestClose={() => setInviteVisible(false)}>
+        <Pressable style={styles.shareModalOverlay} onPress={() => setInviteVisible(false)}>
+          <Pressable style={styles.shareModalSheet} onPress={() => {}}>
+            <Text style={styles.shareModalTitle}>Поделиться платформой</Text>
+            <View style={styles.shareModalCard}>
+              <Text style={styles.shareModalUrl} numberOfLines={2}>{platformUrl}</Text>
+            </View>
+            {isInviteCopied ? (
+              <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
+            ) : null}
+            <Pressable
+              style={styles.shareModalButton}
+              onPress={async () => {
+                await Clipboard.setStringAsync(platformUrl);
+                setInviteCopied(true);
+              }}
+            >
+              <Text style={styles.shareModalButtonText}>
+                {isInviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.shareModalClose} onPress={() => setInviteVisible(false)}>
+              <Text style={styles.shareModalCloseText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 
@@ -461,22 +492,29 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   shareModalTitle: {
-    fontSize: 20,
-    lineHeight: 28,
+    marginTop: 0,
+    marginBottom: 8,
     fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    fontSize: 28,
+    textTransform: 'uppercase',
+    lineHeight: 36,
+    letterSpacing: -1,
     color: '#181818',
-    marginBottom: 12,
+    textAlign: 'left',
   },
   shareModalCard: {
     borderWidth: 1,
     borderColor: '#1E1E1E',
-    padding: 12,
+    backgroundColor: '#FFFFFF',
   },
   shareModalUrl: {
-    fontSize: 14,
-    lineHeight: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    lineHeight: 22,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#1E1E1E',
   },
   shareModalButton: {
     marginTop: 16,
@@ -489,12 +527,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
   },
+  shareCopiedText: {
+    marginTop: 4,
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
+  },
   shareModalClose: {
     marginTop: 12,
+    height: 52,
+    width: '100%',
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
   },
   shareModalCloseText: {
     fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
