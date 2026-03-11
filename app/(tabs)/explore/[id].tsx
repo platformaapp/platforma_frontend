@@ -1,3 +1,5 @@
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -75,6 +77,10 @@ export default function TutorCardScreen() {
   const [showSlots, setShowSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<SlotItem | null>(null);
   const [isBooking, setIsBooking] = useState(false);
+  const [isShareVisible, setShareVisible] = useState(false);
+  const [isShareCopied, setShareCopied] = useState(false);
+
+  const profileUrl = Linking.createURL(`/(tabs)/explore/${id ?? ''}`);
 
   const slots = generateDemoSlots(id ?? 'demo');
   const imageSource = avatarUrl ? { uri: avatarUrl } : PLACEHOLDER_AVATAR;
@@ -142,14 +148,48 @@ export default function TutorCardScreen() {
       </Pressable>
 
       {/* Share row */}
-      <View style={styles.shareRow}>
+      <Pressable style={styles.shareRow} onPress={() => { setShareCopied(false); setShareVisible(true); }}>
         <Text style={styles.shareText}>Поделиться профилем</Text>
         <View style={styles.shareIconBox}>
         <Svg width="25" height="25" viewBox="0 0 25 25" fill="none">
             <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
           </Svg>
         </View>
-      </View>
+      </Pressable>
+
+      {/* Share profile popup */}
+      <Modal
+        transparent
+        animationType="none"
+        visible={isShareVisible}
+        onRequestClose={() => setShareVisible(false)}
+      >
+        <Pressable style={styles.overlay} onPress={() => setShareVisible(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>Поделиться профилем</Text>
+            <View style={styles.shareCard}>
+              <Text style={styles.shareUrl} numberOfLines={2}>{profileUrl}</Text>
+            </View>
+            {isShareCopied ? (
+              <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
+            ) : null}
+            <Pressable
+              style={styles.sheetPrimaryButton}
+              onPress={async () => {
+                await Clipboard.setStringAsync(profileUrl);
+                setShareCopied(true);
+              }}
+            >
+              <Text style={styles.sheetPrimaryButtonText}>
+                {isShareCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.sheetSecondaryButton} onPress={() => setShareVisible(false)}>
+              <Text style={styles.sheetSecondaryButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* ─── SLOT SELECTION — bottom sheet ──────────────────────────────── */}
       <Modal
@@ -422,15 +462,37 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     marginTop: 0,
-    marginBottom: 16,
+    marginBottom: 8,
     fontFamily: 'Inter-Regular',
     fontWeight: '700',
     fontSize: 28,
     textTransform: 'uppercase',
-    lineHeight: 34,
+    lineHeight: 36,
     letterSpacing: -1,
     color: '#181818',
     textAlign: 'left',
+  },
+
+  // Share popup
+  shareCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    backgroundColor: '#FFFFFF',
+  },
+  shareUrl: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#1E1E1E',
+  },
+  shareCopiedText: {
+    marginTop: 4,
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#181818',
   },
   sheetPrimaryButton: {
     marginTop: 16,
