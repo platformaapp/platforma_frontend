@@ -1,4 +1,4 @@
-export const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'http://194.67.88.237';
+export const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://platformaapp.ru';
 
 export const endpoints = {
   register: `${API_BASE}/api/auth/register`,
