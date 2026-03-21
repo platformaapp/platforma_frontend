@@ -42,11 +42,18 @@ export default function PaymentMethodCallbackPage() {
           return;
         }
 
-        // Backend reads req.query.paymentId — not orderId
-        const paymentId = params.orderId || params.payment_id;
-        const qs = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : '';
-        const url = `${endpoints.studentPaymentsCallback}${qs}`;
-
+        // YooKassa does NOT append orderId to return_url — read it from localStorage
+        // where it was saved before the browser was opened.
+        const paymentId =
+          params.orderId ||
+          params.payment_id ||
+          ls?.getItem('pending_payment_id');
+        const attachmentId = ls?.getItem('pending_attachment_id');
+        // Backend reads @Query('payment_id') — snake_case
+        const qs = new URLSearchParams();
+        if (paymentId) qs.set('payment_id', paymentId);
+        if (attachmentId) qs.set('attachment_id', attachmentId);
+        const qsStr = qs.toString();
         const res = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -54,8 +61,10 @@ export default function PaymentMethodCallbackPage() {
           },
         });
 
+        // Clean up localStorage regardless of result
+        try { ls?.removeItem('pending_payment_id'); ls?.removeItem('pending_attachment_id'); } catch {}
+
         if (res.ok || res.status === 500) {
-          // 200 = confirmed; 500 = backend tried but may need more time (webhook delayed)
           setMessage('Карта привязана! Вернитесь в приложение.');
           setStatus('done');
         } else {

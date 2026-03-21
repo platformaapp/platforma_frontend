@@ -158,9 +158,10 @@ export async function bindPaymentMethod(body?: { provider?: string }): Promise<{
  */
 export async function confirmCardBinding(orderId?: string, attachmentId?: string): Promise<void> {
   const params = new URLSearchParams();
-  // Бэкенд читает req.query.paymentId (PaymentsController), а не orderId или attachmentId
-  if (orderId) params.set('paymentId', orderId);
-  if (attachmentId) params.set('attachmentId', attachmentId);
+  // Backend reads @Query('payment_id') — snake_case, NOT camelCase paymentId.
+  // LOG evidence: "Processing payment callback for: undefined" even with ?paymentId=X
+  if (orderId) params.set('payment_id', orderId);
+  if (attachmentId) params.set('attachment_id', attachmentId);
   const qs = params.toString();
   const url = `${endpoints.studentPaymentsCallback}${qs ? '?' + qs : ''}`;
 

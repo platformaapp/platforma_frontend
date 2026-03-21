@@ -127,6 +127,15 @@ export default function PaymentsScreen() {
     try {
       const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
       pendingBindParams.current = { orderId, attachmentId };
+      // Save to localStorage so the web callback page (opened in browser by YooKassa)
+      // can read payment_id even though YooKassa doesn't append it to return_url
+      try {
+        const ls = (globalThis as any)?.localStorage;
+        if (ls) {
+          if (orderId) ls.setItem('pending_payment_id', orderId);
+          if (attachmentId) ls.setItem('pending_attachment_id', attachmentId);
+        }
+      } catch { /* ignore */ }
       pendingCallbackRef.current = true;
       WebBrowser.openBrowserAsync(confirmationUrl).then(() => {
         if (pendingCallbackRef.current) {
