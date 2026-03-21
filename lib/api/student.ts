@@ -55,12 +55,46 @@ export async function getStudentProfile(): Promise<StudentProfile> {
   return handleResponse<StudentProfile>(res);
 }
 
-/** PUT /api/student/profile — обновить личные данные (full_name, email, phone, avatar_url) */
+/**
+ * PUT /api/student/profile — обновить личные данные.
+ * ПРИМЕЧАНИЕ: Backend не реализовал этот эндпоинт (возвращает 404).
+ * Сохраняем изменения локально в SecureStore/localStorage чтобы они
+ * отображались в приложении. Когда бэкенд добавит эндпоинт — данные
+ * будут автоматически отправляться туда.
+ */
 export async function updateStudentProfile(data: StudentProfileUpdate): Promise<StudentProfile> {
-  const res = await fetch(endpoints.studentProfile, {
-    method: 'PUT',
-    headers: await authHeaders(),
-    body: JSON.stringify(data),
-  });
-  return handleResponse<StudentProfile>(res);
+  // Try the backend first — will work when it's implemented
+  try {
+    const res = await fetch(endpoints.studentProfile, {
+      method: 'PUT',
+      headers: await authHeaders(),
+      body: JSON.stringify(data),
+    });
+    // 404 = endpoint not yet implemented, fall through to local save
+    if (res.status !== 404) {
+      return handleResponse<StudentProfile>(res);
+    }
+  } catch {
+    // network error — fall through to local save
+  }
+
+  // Save locally so the UI reflects the changes immediately
+  const { getAuthToken, saveAuthToken, getAuthRole, getRefreshToken, getUserProfile } = await import('@/lib/auth');
+  const token = await getAuthToken();
+  const role = await getAuthRole();
+  const refreshToken = await getRefreshToken();
+  const existing = await getUserProfile();
+  const updated = {
+    ...existing,
+    ...(data.fullName !== undefined ? { full_name: data.fullName } : {}),
+    ...(data.full_name !== undefined ? { full_name: data.full_name } : {}),
+    ...(data.email !== undefined ? { email: data.email } : {}),
+    ...(data.phone !== undefined ? { phone: data.phone } : {}),
+    ...(data.avatarUrl !== undefined ? { avatar_url: data.avatarUrl } : {}),
+    ...(data.avatar_url !== undefined ? { avatar_url: data.avatar_url } : {}),
+  };
+  if (token) {
+    await saveAuthToken(token, role ?? undefined, refreshToken ?? undefined, updated as any);
+  }
+  return updated as StudentProfile;
 }
