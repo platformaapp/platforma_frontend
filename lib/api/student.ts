@@ -4,7 +4,7 @@
  */
 
 import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
+import { getAuthToken, getAuthRole, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { handle401 } from '@/lib/api/auth-error';
 
 export interface StudentProfile {
@@ -57,44 +57,52 @@ export async function getStudentProfile(): Promise<StudentProfile> {
 
 /**
  * PUT /api/student/profile — обновить личные данные.
- * ПРИМЕЧАНИЕ: Backend не реализовал этот эндпоинт (возвращает 404).
- * Сохраняем изменения локально в SecureStore/localStorage чтобы они
- * отображались в приложении. Когда бэкенд добавит эндпоинт — данные
- * будут автоматически отправляться туда.
+ *
+ * Backend не реализовал этот эндпоинт (возвращает 404).
+ * При 404 сохраняем изменения локально в SecureStore/localStorage,
+ * чтобы они отображались в приложении сразу.
+ * Когда бэкенд добавит эндпоинт — данные будут отправляться туда.
  */
 export async function updateStudentProfile(data: StudentProfileUpdate): Promise<StudentProfile> {
-  // Try the backend first — will work when it's implemented
+  // Try the real backend endpoint first — works automatically when implemented
   try {
     const res = await fetch(endpoints.studentProfile, {
       method: 'PUT',
       headers: await authHeaders(),
       body: JSON.stringify(data),
     });
-    // 404 = endpoint not yet implemented, fall through to local save
     if (res.status !== 404) {
       return handleResponse<StudentProfile>(res);
     }
+    // 404 → endpoint not implemented, fall through to local save
   } catch {
-    // network error — fall through to local save
+    // network error → fall through to local save
   }
 
-  // Save locally so the UI reflects the changes immediately
-  const { getAuthToken, saveAuthToken, getAuthRole, getRefreshToken, getUserProfile } = await import('@/lib/auth');
+  // Save locally so profile changes persist and are visible in the app
   const token = await getAuthToken();
   const role = await getAuthRole();
   const refreshToken = await getRefreshToken();
   const existing = await getUserProfile();
+
   const updated = {
     ...existing,
-    ...(data.fullName !== undefined ? { full_name: data.fullName } : {}),
-    ...(data.full_name !== undefined ? { full_name: data.full_name } : {}),
-    ...(data.email !== undefined ? { email: data.email } : {}),
-    ...(data.phone !== undefined ? { phone: data.phone } : {}),
-    ...(data.avatarUrl !== undefined ? { avatar_url: data.avatarUrl } : {}),
-    ...(data.avatar_url !== undefined ? { avatar_url: data.avatar_url } : {}),
+    ...(data.fullName   !== undefined ? { full_name:   data.fullName }   : {}),
+    ...(data.full_name  !== undefined ? { full_name:   data.full_name }  : {}),
+    ...(data.email      !== undefined ? { email:       data.email }      : {}),
+    ...(data.phone      !== undefined ? { phone:       data.phone }      : {}),
+    ...(data.avatarUrl  !== undefined ? { avatar_url:  data.avatarUrl }  : {}),
+    ...(data.avatar_url !== undefined ? { avatar_url:  data.avatar_url } : {}),
   };
+
   if (token) {
-    await saveAuthToken(token, role ?? undefined, refreshToken ?? undefined, updated as any);
+    await saveAuthToken(
+      token,
+      role ?? undefined,
+      refreshToken ?? undefined,
+      updated as Parameters<typeof saveAuthToken>[3],
+    );
   }
+
   return updated as StudentProfile;
 }
