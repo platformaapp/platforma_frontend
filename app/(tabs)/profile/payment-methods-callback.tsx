@@ -54,8 +54,8 @@ export default function PaymentMethodsCallbackScreen() {
     // Call the backend confirmation endpoint so it verifies the payment with YooKassa
     // and saves the card to the DB. The browser redirect from YooKassa doesn't carry
     // an auth token, so this call must be made explicitly from the app.
+    // Even without orderId the backend can look up the pending payment by user identity.
     const triggerConfirmation = async () => {
-      if (!orderId && !attachmentId) return;
       try {
         await confirmCardBinding(orderId || undefined, attachmentId || undefined);
       } catch (e) {

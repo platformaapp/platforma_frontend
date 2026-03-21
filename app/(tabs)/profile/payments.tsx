@@ -106,6 +106,16 @@ export default function PaymentsScreen() {
   );
 
   const pendingCallbackRef = useRef(false);
+  // Stores orderId + attachmentId between browser open and callback navigation
+  const pendingBindParams = useRef<{ orderId?: string; attachmentId?: string }>({});
+
+  const navigateToCallback = () => {
+    const { orderId, attachmentId } = pendingBindParams.current;
+    router.push({
+      pathname: '/(tabs)/profile/payment-methods-callback',
+      params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '' },
+    });
+  };
 
   const handleLinkCard = async () => {
     if (isLinking) return;
@@ -115,16 +125,18 @@ export default function PaymentsScreen() {
     }
     setIsLinking(true);
     try {
-      const { confirmationUrl } = await bindPaymentMethod({ provider: 'yookassa' });
+      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      pendingBindParams.current = { orderId, attachmentId };
       pendingCallbackRef.current = true;
       WebBrowser.openBrowserAsync(confirmationUrl).then(() => {
         if (pendingCallbackRef.current) {
           pendingCallbackRef.current = false;
-          router.push('/(tabs)/profile/payment-methods-callback');
+          navigateToCallback();
         }
       });
     } catch (e: unknown) {
       pendingCallbackRef.current = false;
+      pendingBindParams.current = {};
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
@@ -139,10 +151,11 @@ export default function PaymentsScreen() {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active' && pendingCallbackRef.current) {
         pendingCallbackRef.current = false;
-        router.push('/(tabs)/profile/payment-methods-callback');
+        navigateToCallback();
       }
     });
     return () => sub.remove();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const handleSetDefault = async (card: Card) => {
