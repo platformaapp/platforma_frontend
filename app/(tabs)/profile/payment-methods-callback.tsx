@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, AppStateStatus, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthError } from '@/lib/api/auth-error';
 import { confirmCardBinding, getPaymentMethods } from '@/lib/api/student-payments';
@@ -51,10 +51,6 @@ export default function PaymentMethodsCallbackScreen() {
       }
     };
 
-    // Call the backend confirmation endpoint so it verifies the payment with YooKassa
-    // and saves the card to the DB. The browser redirect from YooKassa doesn't carry
-    // an auth token, so this call must be made explicitly from the app.
-    // Even without orderId the backend can look up the pending payment by user identity.
     const triggerConfirmation = async () => {
       try {
         await confirmCardBinding(orderId || undefined, attachmentId || undefined);
@@ -63,12 +59,18 @@ export default function PaymentMethodsCallbackScreen() {
           router.replace('/login');
           return;
         }
-        // Ignore other errors — polling will detect the card if confirmation succeeds async
       }
     };
 
-    // Fire confirmation immediately, then start polling
-    triggerConfirmation();
+    // When the app comes back to the foreground (user closed the browser after
+    // entering the card on YooKassa), call confirmation — the payment is now
+    // succeeded and the backend can verify it and save the card.
+    const appStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        triggerConfirmation();
+      }
+    });
+
     pollInterval = setInterval(poll, POLL_INTERVAL_MS);
     poll();
 
@@ -80,6 +82,7 @@ export default function PaymentMethodsCallbackScreen() {
     }, POLL_TIMEOUT_MS);
 
     return () => {
+      appStateSub.remove();
       if (pollInterval) clearInterval(pollInterval);
       if (timeout) clearTimeout(timeout);
     };
