@@ -153,12 +153,13 @@ export async function bindPaymentMethod(body?: { provider?: string }): Promise<{
 
 /**
  * GET api/student/payments/callback — подтверждение привязки карты после возврата из YooKassa.
- * Бэкенд проверяет статус платежа у YooKassa по orderId/attachmentId и сохраняет карту в БД.
- * Этот вызов должен выполняться с токеном авторизации (браузер при redirect его не передаёт).
+ * Бэкенд ожидает параметр paymentId (=orderId из confirmationUrl).
+ * LOG: "Processing payment callback for: undefined" означал что параметр назывался неверно.
  */
 export async function confirmCardBinding(orderId?: string, attachmentId?: string): Promise<void> {
   const params = new URLSearchParams();
-  if (orderId) params.set('orderId', orderId);
+  // Бэкенд читает req.query.paymentId (PaymentsController), а не orderId или attachmentId
+  if (orderId) params.set('paymentId', orderId);
   if (attachmentId) params.set('attachmentId', attachmentId);
   const qs = params.toString();
   const url = `${endpoints.studentPaymentsCallback}${qs ? '?' + qs : ''}`;

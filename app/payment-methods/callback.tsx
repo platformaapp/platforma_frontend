@@ -42,8 +42,9 @@ export default function PaymentMethodCallbackPage() {
           return;
         }
 
-        const orderId = params.orderId || params.payment_id;
-        const qs = orderId ? `?orderId=${encodeURIComponent(orderId)}` : '';
+        // Backend reads req.query.paymentId — not orderId
+        const paymentId = params.orderId || params.payment_id;
+        const qs = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : '';
         const url = `${endpoints.studentPaymentsCallback}${qs}`;
 
         const res = await fetch(url, {
