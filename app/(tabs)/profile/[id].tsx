@@ -8,7 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
-import { getTutorSlots } from '@/lib/api/tutor';
+import { getTutorProfile, getTutorSlots } from '@/lib/api/tutor';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
@@ -18,6 +18,8 @@ export default function ProfileByIdScreen() {
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [isSwitching, setIsSwitching] = useState(false);
   const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string; bio?: string } | null>(null);
+  const [tutorAvatarUrl, setTutorAvatarUrl] = useState<string | null>(null);
+  const [tutorHourlyRate, setTutorHourlyRate] = useState<number | null>(null);
   const [slots, setSlots] = useState<{ date: string; time: string }[]>([]);
   const [isShareVisible, setShareVisible] = useState(false);
   const [isShareCopied, setShareCopied] = useState(false);
@@ -61,6 +63,20 @@ export default function ProfileByIdScreen() {
       if (isMounted) {
         if (storedRole === 'student' || storedRole === 'tutor') setRole(storedRole);
         if (profile) setUserProfile(profile);
+      }
+      // Fetch extra tutor data (photo, hourly rate) from the tutor profile endpoint
+      if (storedRole === 'tutor' && isMounted) {
+        try {
+          const tp = await getTutorProfile();
+          if (isMounted) {
+            const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
+            if (avatar) setTutorAvatarUrl(avatar);
+            const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
+            if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
+          }
+        } catch {
+          // ignore — show placeholder
+        }
       }
     };
     load();
@@ -192,11 +208,17 @@ export default function ProfileByIdScreen() {
     <>
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
-          <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
+          <Image
+            source={tutorAvatarUrl ? { uri: tutorAvatarUrl } : require('@/assets/images/avatar.png')}
+            style={styles.profileImage}
+          />
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{displayName}</Text>
           {displayRole ? <Text style={styles.profileRole}>{displayRole}</Text> : null}
+          {tutorHourlyRate ? (
+            <Text style={styles.profileRate}>{tutorHourlyRate.toLocaleString('ru-RU')} ₽ / час</Text>
+          ) : null}
         </View>
       </View>
 
@@ -377,6 +399,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  profileRate: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginTop: 4,
   },
   actionsCard: {
     borderWidth: 1,

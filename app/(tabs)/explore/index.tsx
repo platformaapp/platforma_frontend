@@ -44,15 +44,8 @@ export default function MentorsScreen() {
   );
 
   const handleContact = (tutor: PublicTutor) => {
-    router.push({
-      pathname: '/(tabs)/explore/[id]',
-      params: {
-        id: tutor.id,
-        fullName: tutor.fullName,
-        bio: tutor.bio ?? '',
-        avatarUrl: tutor.avatarUrl ?? '',
-      },
-    });
+    // Pass only the id — detail screen fetches profile itself so the URL stays short
+    router.push(`/(tabs)/explore/${tutor.id}`);
   };
 
   if (loading) {
