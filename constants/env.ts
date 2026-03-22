@@ -31,6 +31,6 @@ export const endpoints = {
   events: `${API_BASE}/api/events`,
   eventsFeed: `${API_BASE}/api/events/feed`,
 
-  // Student → booking slots
+  // Student → booking slots (личные встречи с наставниками)
   studentBookings: `${API_BASE}/api/student/bookings`,
 };

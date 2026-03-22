@@ -43,11 +43,17 @@ export default function TabLayout() {
       />
 
 <Tabs.Screen
-        name="index"
+        name="myevents"
         options={{
           title: '',
           tabBarButton: HapticTab,
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          href: null, // hidden from tab bar, kept for backward compat
         }}
       />
       
