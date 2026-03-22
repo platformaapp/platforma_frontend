@@ -1,174 +1,157 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-type EventItem = {
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
+
+type EventFeedItem = {
   id: string;
   title: string;
-  subtitle?: string;
   description?: string;
-  time: string;
-  price: string;
-  image: any;
+  datetimeStart?: string;
+  price?: number;
+  coverUrl?: string | null;
+  mentor?: { id: string; name: string; avatarUrl?: string | null };
+  status?: string;
 };
 
-const EVENTS: EventItem[] = [
-  {
-    id: 'a1f2c3d4-1111-4a1b-9f1a-1a1a1a1a1a1a',
-    title: 'Как подойти к выставкам с умом, подготовиться и взять от них максимум?',
-    subtitle: undefined,
-    description: `Современное искусство часто кажется непонятным, провокационным или «слишком простым». Но за этой внешней неоднозначностью скрываются системы знаков, логики и контекста.
-    Этот мастер-класс — не про искусствоведение, а про зрение. Мы научимся распознавать художественные жесты, читать работы как тексты и ощущать в них интонации. Через реальные примеры, диалоги и упражнения ты откроешь, что видеть — это навык. И что современное искусство не про сложность, а про внимание.`,
-    time: 'Через час',
-    price: '500 ₽',
-    image: require('@/assets/images/img.png'),
-  },
-  {
-    id: 'b2e3f4a5-2222-4b2c-9f2b-2b2b2b2b2b2b',
-    title: 'Как читать критику на кино и бороться с чувством «я ничего не понял»?',
-    description: 'Обсудим с Егором Москвитяным может ли кино быть настоящим хобби, и как вообще начать в нем разбираться. Не выпуск, а мандари с сладкими косточками',
-    time: '13 июня 20:00',
-    price: '800 ₽',
-    image: require('@/assets/images/img1.png'),
-  },
-  {
-    id: 'c3f4a5b6-3333-4c3d-9f3c-3c3c3c3c3c3c',
-    title: 'Как вовлечь своих подписчиков в создание контента и привлечь новых',
-    description: 'Рассказал на фестивале G8 о своем опыте взаимодейсвия с подписчиками бренда и создания с их помощью целого усс. На себя посмотреть и вас показать',
-    time: '15 июня 20:00',
-    price: '800 ₽',
-    image: require('@/assets/images/img2.png'),
-  },
-  {
-    id: 'd4a5b6c7-4444-4d4e-9f4d-4d4d4d4d4d4d',
-    title: 'Типографика без пафоса',
-    description: 'Практика в модульной сетке, гротесках и линий ритма. Дизайн, который не «кричит».',
-    time: '13 июня 20:00',
-    price: '800 ₽',
-    image: require('@/assets/images/img3.png'),
-  },
-];
+function formatEventTime(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = d.toLocaleString('ru-RU', { month: 'long' });
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${month} ${hh}:${mm}`;
+  } catch {
+    return '';
+  }
+}
 
 export default function EventsScreen() {
   const router = useRouter();
+  const [events, setEvents] = useState<EventFeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      setError('');
+      const token = await getAuthToken();
+      const res = await fetch(endpoints.eventsFeed, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const data = await res.json();
+      const items: EventFeedItem[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+          ? data.items
+          : [];
+      setEvents(items);
+    } catch (e: any) {
+      setError(e?.message ?? 'Не удалось загрузить события');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      load();
+    }, [load])
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#181818" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
-      <FlatList
-        data={EVENTS}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Pressable 
-            style={styles.card} 
-            onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
-          >
-            <Image source={item.image} style={styles.image} resizeMode="cover" />
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitleText}>{item.title}</Text>
-              {item.description ? (
-                <Text style={styles.description} numberOfLines={4} ellipsizeMode="tail">
-                  {item.description}
-                </Text>
-              ) : null}
-            </View>
-            <View style={styles.footer}>
-              <Text style={styles.footerTime}>{item.time}</Text>
-              <View style={styles.priceContainer}>
-                <Text style={styles.footerPrice}>{item.price}</Text>
+      {error ? (
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={events}
+          keyExtractor={(item) => item.id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+          renderItem={({ item }) => (
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+            >
+              {item.coverUrl ? (
+                <Image source={{ uri: item.coverUrl }} style={styles.image} resizeMode="cover" />
+              ) : (
+                <View style={[styles.image, styles.imagePlaceholder]} />
+              )}
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitleText}>{item.title}</Text>
+                {item.description ? (
+                  <Text style={styles.description} numberOfLines={3} ellipsizeMode="tail">
+                    {item.description}
+                  </Text>
+                ) : null}
               </View>
-            </View>
-          </Pressable>
-        )}
-        contentContainerStyle={styles.listContent}
-      />
+              <View style={styles.footer}>
+                <Text style={styles.footerTime}>{formatEventTime(item.datetimeStart)}</Text>
+                {typeof item.price === 'number' ? (
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.footerPrice}>{item.price.toLocaleString('ru-RU')} ₽</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+          )}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 12,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   titleText: {
-    marginBottom: 12,
-    fontSize: 28,
-    fontWeight: 'regular',
-    lineHeight: 36,
-    fontFamily: 'Inter-Light',
-    color: '#181818',
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12,
+    fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818',
   },
-  card: {
-    backgroundColor: '#fff',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-  },
-  image: {
-    width: '100%',
-    height: 220,
-    backgroundColor: '#eee',
-    borderBottomWidth: 1,
-    borderColor: '#1E1E1E',
-  },
-  cardBody: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 24,
-    backgroundColor: '#fff',
-  },
-  cardTitleText: {
-    marginBottom: 14,
-    fontSize: 20,
-    lineHeight: 24,
-    fontFamily: 'Inter-Light',
-    fontWeight: 700,
-    color: '#1E1E1E',
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#1E1E1E',
-  },
+  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },
+  card: { borderWidth: 1, borderColor: '#1E1E1E', marginHorizontal: 16, marginBottom: 16, backgroundColor: '#fff' },
+  image: { width: '100%', height: 200, borderBottomWidth: 1, borderColor: '#1E1E1E' },
+  imagePlaceholder: { backgroundColor: '#E5E5E5' },
+  cardBody: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
+  cardTitleText: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 6 },
+  description: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    backgroundColor: '#fff',
-    borderTopWidth: 0,
-    borderColor: '#1E1E1E',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    minHeight: 44,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    borderTopWidth: 1, borderColor: '#1E1E1E', minHeight: 44,
   },
   footerTime: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-    backgroundColor: '#1E1E1E',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    fontSize: 14, fontFamily: 'Inter-Regular', color: '#FFFFFF',
+    backgroundColor: '#1E1E1E', paddingHorizontal: 16, paddingVertical: 10,
   },
-  priceContainer: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-  },
-  footerPrice: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#1E1E1E',
-    
-  },
-  listContent: {
-    paddingBottom: 16,
-  },
+  priceContainer: { borderLeftWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 14, paddingVertical: 8 },
+  footerPrice: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#1E1E1E' },
 });
-
-

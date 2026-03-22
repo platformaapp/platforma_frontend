@@ -312,7 +312,12 @@ export interface PublicTutor {
   id: string;
   fullName: string;
   bio?: string;
+  shortBio?: string;
+  short_bio?: string;
   avatarUrl?: string;
+  hourlyRate?: number;
+  hourly_rate?: number;
+  pricePerHour?: number;
   roles: string[];
 }
 

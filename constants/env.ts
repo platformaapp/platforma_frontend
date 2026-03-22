@@ -27,8 +27,9 @@ export const endpoints = {
   tutorPayments: `${API_BASE}/api/tutor/payments`,
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
 
-  // Events (события) — POST /api/events, PATCH, GET, DELETE, register
+  // Events (события)
   events: `${API_BASE}/api/events`,
+  eventsFeed: `${API_BASE}/api/events/feed`,
 
   // Student → booking slots
   studentBookings: `${API_BASE}/api/student/bookings`,

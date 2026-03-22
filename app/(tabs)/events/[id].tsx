@@ -3,13 +3,13 @@ import * as Linking from 'expo-linking';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
+import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
-import { getStudentPayments, paySession } from '@/lib/api/student-payments';
-import { useWindowDimensions } from 'react-native';
+import { getStudentPayments } from '@/lib/api/student-payments';
 
 type EventItem = {
   id: string;
@@ -143,17 +143,32 @@ export default function EventDetailScreen() {
         return;
       }
 
-      const result = await paySession({
-        session_id: event.id,
-        payment_method_id: paymentsData.cards[0].id,
+      // Use POST /api/events/{id}/register — the correct event registration endpoint.
+      // paySession (POST /api/student/payments) uses "session_id" which refers to
+      // booking sessions (tutor slots), not events, and always returns 404.
+      const res = await fetch(`${endpoints.events}/${event.id}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ payment_method_id: paymentsData.cards[0].id }),
       });
 
-      if (result.status === 'failed') {
-        throw new Error(result.error_message ?? 'Оплата не прошла');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // 409 = already registered — treat as success
+        if (res.status === 409) {
+          setCardModalVisible(false);
+          setCardModalDoneVisible(true);
+          return;
+        }
+        throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);
       }
 
-      if (result.redirect_url) {
-        await WebBrowser.openBrowserAsync(result.redirect_url);
+      if (data?.redirect_url) {
+        await WebBrowser.openBrowserAsync(data.redirect_url);
       }
 
       setCardModalVisible(false);
@@ -410,7 +425,12 @@ export default function EventDetailScreen() {
             </Pressable>
             <Pressable
               style={styles.modalSecondaryButton}
-              onPress={() => { setPaymentFailedModalVisible(false); router.push('/(tabs)/profile/payments'); }}
+              onPress={() => {
+                // Close ALL modals before navigating so they don't reappear on back
+                setPaymentFailedModalVisible(false);
+                setCardModalVisible(false);
+                router.push('/(tabs)/profile/payments');
+              }}
             >
               <Text style={styles.modalSecondaryButtonText}>Сменить карту</Text>
             </Pressable>

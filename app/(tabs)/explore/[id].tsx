@@ -67,7 +67,9 @@ export default function TutorCardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [displayName, setDisplayName] = useState('');
-  const [displayBio, setDisplayBio] = useState('');
+  const [displayBio, setDisplayBio] = useState('');   // long bio for body text
+  const [displayRole, setDisplayRole] = useState(''); // shortBio for role label
+  const [displayPrice, setDisplayPrice] = useState(''); // hourlyRate
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(true);
 
@@ -97,8 +99,17 @@ export default function TutorCardScreen() {
         const tutor = list.find((t) => t.id === id);
         if (active && tutor) {
           setDisplayName(tutor.fullName ?? '');
+          // shortBio = role label (e.g. "Куратор, исследователь")
+          const role = tutor.shortBio ?? tutor.short_bio ?? '';
+          setDisplayRole(role);
+          // bio = long description text
           setDisplayBio(tutor.bio ?? '');
           setAvatarUrl(tutor.avatarUrl ?? '');
+          // hourlyRate for price row
+          const rate = tutor.hourlyRate ?? tutor.hourly_rate ?? tutor.pricePerHour;
+          if (typeof rate === 'number' && rate > 0) {
+            setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
+          }
         }
       } catch {
         // ignore — show placeholder
@@ -153,8 +164,8 @@ export default function TutorCardScreen() {
 
       <View style={styles.nameRow}>
         <Text style={styles.name}>{displayName || 'Наставник'}</Text>
-        {displayBio ? (
-          <Text style={styles.roleText} numberOfLines={2}>{displayBio}</Text>
+        {displayRole ? (
+          <Text style={styles.roleText} numberOfLines={2}>{displayRole}</Text>
         ) : null}
       </View>
 
@@ -164,10 +175,12 @@ export default function TutorCardScreen() {
         </View>
       ) : null}
 
-      <View style={styles.priceRow}>
-        <Text style={styles.priceLabel}>Стоимость консультации</Text>
-        <Text style={styles.priceValue}>2 500 ₽ в час</Text>
-      </View>
+      {displayPrice ? (
+        <View style={styles.priceRow}>
+          <Text style={styles.priceLabel}>Стоимость консультации</Text>
+          <Text style={styles.priceValue}>{displayPrice}</Text>
+        </View>
+      ) : null}
 
       {/* Booking button — hidden for tutors */}
       {!isTutor ? (
