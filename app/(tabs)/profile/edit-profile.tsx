@@ -19,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
 import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
-import { getAuthRole, getUserProfile } from '@/lib/auth';
+import { getAuthRole, getUserProfile, getAuthToken } from '@/lib/auth';
 
 const SHORT_BIO_LIMIT = 70;
 const ABOUT_LIMIT = 400;
@@ -36,6 +36,7 @@ function pick<T>(obj: T | null | undefined, ...keys: (keyof T)[]): string {
 export default function EditProfileScreen() {
   const router = useRouter();
   const [role, setRole] = useState<'student' | 'tutor' | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [shortBio, setShortBio] = useState('');
   const [email, setEmail] = useState('');
@@ -56,9 +57,14 @@ export default function EditProfileScreen() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      const token = await getAuthToken();
+      if (!token) { router.replace('/login'); return; }
       const loginProfile = await getUserProfile();
       const currentRole = await getAuthRole();
-      if (!cancelled) setRole(currentRole === 'tutor' ? 'tutor' : 'student');
+      if (!cancelled) {
+        setRole(currentRole === 'tutor' ? 'tutor' : 'student');
+        if (loginProfile?.id) setProfileId(loginProfile.id);
+      }
 
       if (currentRole === 'tutor') {
         if (loginProfile && !cancelled) {
@@ -179,7 +185,11 @@ export default function EditProfileScreen() {
         if (avatarUrl) payload.avatar_url = avatarUrl;
         await updateStudentProfile(payload);
       }
-      router.back();
+      if (profileId) {
+        router.replace(`/(tabs)/profile/${profileId}`);
+      } else {
+        router.back();
+      }
     } catch (e: unknown) {
       const err = e as { name?: string; message?: string };
       if (e instanceof AuthError || err?.name === 'AuthError') {
@@ -208,7 +218,16 @@ export default function EditProfileScreen() {
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => {
+              if (profileId) {
+                router.replace(`/(tabs)/profile/${profileId}`);
+              } else {
+                router.back();
+              }
+            }}
+          >
             <MaterialIcons name="chevron-left" size={24} color="#181818" />
           </Pressable>
         </View>

@@ -24,7 +24,9 @@ export default function ProfileByIdScreen() {
   const [isInviteVisible, setInviteVisible] = useState(false);
   const [isInviteCopied, setInviteCopied] = useState(false);
 
-  const profileUrl = Linking.createURL(`/(tabs)/profile/${id ?? ''}`);
+  // Strip the internal (tabs) segment so shared links look clean:
+  // https://platformaapp.ru/profile/bb234b50-... instead of .../(tabs)/profile/...
+  const profileUrl = Linking.createURL(`/profile/${id ?? ''}`);
   const platformUrl = Linking.createURL('/');
 
   const handleCopyProfileLink = async () => {
@@ -69,8 +71,7 @@ export default function ProfileByIdScreen() {
     if (isSwitching || nextRole === role) return;
     const token = await getAuthToken();
     if (!token) {
-      Alert.alert('Ошибка', 'Для смены роли нужно войти в аккаунт');
-      router.push('/login');
+      router.replace('/login');
       return;
     }
     setIsSwitching(true);
@@ -83,6 +84,13 @@ export default function ProfileByIdScreen() {
         },
         body: JSON.stringify({ role: nextRole }),
       });
+
+      // Any 401/403 → session expired, send to login
+      if (response.status === 401 || response.status === 403) {
+        router.replace('/login');
+        return;
+      }
+
       const contentType = response.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
       const payload = isJson ? await response.json() : await response.text();
@@ -98,7 +106,7 @@ export default function ProfileByIdScreen() {
       setRole(nextRole);
     } catch (e: any) {
       const msg = e?.message ?? '';
-      if (msg.includes('Unauthorized') || msg.includes('401')) {
+      if (msg.includes('Unauthorized') || msg.includes('401') || msg.includes('403')) {
         router.replace('/login');
         return;
       }
