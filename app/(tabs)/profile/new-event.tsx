@@ -1,8 +1,19 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { AuthError, createEvent } from '@/lib/api/events';
@@ -15,21 +26,19 @@ function formatDate(d: Date): string {
   return `${day}.${month}.${year}`;
 }
 
-/** Парсит "20:00" или "20:00:00" → [hours, minutes] */
-function parseTime(t: string): [number, number] | null {
-  const m = t.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+function formatTime(d: Date): string {
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+/** Formulates ISO datetime_start / datetime_end (duration 1 h) */
+function toDatetimeRange(date: Date, timeStr: string): { start: string; end: string } | null {
+  const m = timeStr.trim().match(/^(\d{1,2}):(\d{2})/);
   if (!m) return null;
   const h = parseInt(m[1], 10);
   const min = parseInt(m[2], 10);
   if (h < 0 || h > 23 || min < 0 || min > 59) return null;
-  return [h, min];
-}
-
-/** Формирует datetime_start и datetime_end (ISO 8601), длительность 1 час */
-function toDatetimeRange(date: Date, timeStr: string): { start: string; end: string } | null {
-  const parsed = parseTime(timeStr);
-  if (!parsed) return null;
-  const [h, min] = parsed;
   const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, min, 0);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
   return { start: start.toISOString(), end: end.toISOString() };
@@ -39,10 +48,16 @@ export default function NewEventScreen() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+
+  // Date state
   const [date, setDate] = useState<Date | null>(null);
-  const [dateInputText, setDateInputText] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [time, setTime] = useState('');
+
+  // Time state
+  const [timeDate, setTimeDate] = useState<Date | null>(null); // native: Date object
+  const [timeStr, setTimeStr] = useState('');                  // display / web input
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
   const [price, setPrice] = useState('');
   const [isEditingPrice, setIsEditingPrice] = useState(true);
   const [maxParticipants, setMaxParticipants] = useState('');
@@ -50,14 +65,13 @@ export default function NewEventScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     let isMounted = true;
     const checkAuth = async () => {
       const token = await getAuthToken();
-      if (!token) {
-        router.replace('/login');
-        return;
-      }
+      if (!token) { router.replace('/login'); return; }
       const role = await getAuthRole();
       if (isMounted && role !== 'tutor') {
         Alert.alert('Доступ запрещён', 'Создавать события могут только наставники.');
@@ -67,6 +81,9 @@ export default function NewEventScreen() {
     checkAuth();
     return () => { isMounted = false; };
   }, [router]);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   const priceValue = price ? parseInt(price) || 0 : 0;
   const commission = priceValue * 0.1;
@@ -84,46 +101,29 @@ export default function NewEventScreen() {
       aspect: [16, 9],
       quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]) {
-      setCoverUri(result.assets[0].uri);
-    }
+    if (!result.canceled && result.assets[0]) setCoverUri(result.assets[0].uri);
   }
 
   async function handleCreate() {
     setStatusMessage(null);
-    const eventDate = date ?? (dateInputText ? (() => {
-      const m = dateInputText.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-      return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
-    })() : null);
-    if (!title.trim()) {
-      setStatusMessage('Введите название');
-      Alert.alert('Ошибка', 'Введите название');
-      return;
-    }
-    if (!eventDate) {
-      setStatusMessage('Выберите дату');
-      Alert.alert('Ошибка', 'Выберите дату');
-      return;
-    }
-    if (!time.trim()) {
-      setStatusMessage('Введите время');
-      Alert.alert('Ошибка', 'Введите время');
-      return;
-    }
-    const range = toDatetimeRange(eventDate, time.trim());
-    if (!range) {
-      setStatusMessage('Введите время в формате ЧЧ:ММ');
-      Alert.alert('Ошибка', 'Введите время в формате ЧЧ:ММ (например, 20:00)');
-      return;
-    }
-    if (priceValue <= 0) {
-      setStatusMessage('Введите стоимость участия');
-      Alert.alert('Ошибка', 'Введите стоимость участия');
-      return;
-    }
+    if (!title.trim()) { Alert.alert('Ошибка', 'Введите название'); return; }
+    if (!date) { Alert.alert('Ошибка', 'Выберите дату'); return; }
+    const effectiveTime = timeStr.trim() || (timeDate ? formatTime(timeDate) : '');
+    if (!effectiveTime) { Alert.alert('Ошибка', 'Выберите время'); return; }
+    const range = toDatetimeRange(date, effectiveTime);
+    if (!range) { Alert.alert('Ошибка', 'Неверный формат времени'); return; }
+    if (priceValue <= 0) { Alert.alert('Ошибка', 'Введите стоимость участия'); return; }
+
     const max = maxParticipants ? Math.max(1, parseInt(maxParticipants) || 30) : 30;
+
     setIsSubmitting(true);
-    setStatusMessage('Создание...');
+    setStatusMessage('Создание события...');
+
+    // 20-second timeout — POST /api/events can hang (backend creates video room)
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timer = setTimeout(() => controller.abort(), 20000);
+
     try {
       await createEvent({
         title: title.trim(),
@@ -133,20 +133,45 @@ export default function NewEventScreen() {
         price: priceValue,
         max_participants: max,
       });
-      setStatusMessage('Событие создано');
-      router.back();
+      clearTimeout(timer);
+      setStatusMessage('Событие создано!');
+      setTimeout(() => router.back(), 800);
     } catch (e: any) {
+      clearTimeout(timer);
       if (e instanceof AuthError || e?.name === 'AuthError') {
         router.replace('/login');
         return;
       }
-      const msg = e?.message ?? 'Не удалось создать событие';
+      const isTimeout = e?.name === 'AbortError' || e?.message?.includes('aborted');
+      const msg = isTimeout
+        ? 'Сервер не ответил (504). Событие возможно создано — проверьте список событий.'
+        : (e?.message ?? 'Не удалось создать событие');
       setStatusMessage(msg);
-      Alert.alert('Ошибка', msg);
+      Alert.alert(isTimeout ? 'Время ожидания истекло' : 'Ошибка', msg);
     } finally {
       setIsSubmitting(false);
     }
   }
+
+  // ─── Date picker helpers ─────────────────────────────────────────────────────
+
+  const handleDateChange = (_: any, selected?: Date) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (selected) setDate(selected);
+  };
+
+  const handleTimeChange = (_: any, selected?: Date) => {
+    if (Platform.OS === 'android') setShowTimePicker(false);
+    if (selected) {
+      setTimeDate(selected);
+      setTimeStr(formatTime(selected));
+    }
+  };
+
+  // ─── Web native <input> via ref hack ─────────────────────────────────────────
+  // On web we render an invisible <input type="date"> and trigger click on it
+  const webDateRef = useRef<any>(null);
+  const webTimeRef = useRef<any>(null);
 
   return (
     <View style={styles.container}>
@@ -155,352 +180,269 @@ export default function NewEventScreen() {
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
       >
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </Svg>
-        </Pressable>
-      </View>
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </Svg>
+          </Pressable>
+        </View>
 
-      <Text style={styles.title}>НОВОЕ СОБЫТИЕ</Text>
+        <Text style={styles.title}>НОВОЕ СОБЫТИЕ</Text>
 
-      <TextInput
-        value={title}
-        onChangeText={setTitle}
-        style={styles.input}
-        placeholder="Название"
-        placeholderTextColor="#9B9B9B"
-      />
-      <TextInput
-        value={description}
-        onChangeText={setDescription}
-        style={[styles.input, styles.textArea]}
-        placeholder="Описание"
-        placeholderTextColor="#9B9B9B"
-        multiline
-        textAlignVertical="top"
-      />
-      {Platform.OS === 'web' ? (
         <TextInput
-          value={dateInputText}
-          onChangeText={(v) => {
-            setDateInputText(v);
-            const m = v.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-            setDate(m ? new Date(+m[3], +m[2] - 1, +m[1]) : null);
-          }}
+          value={title}
+          onChangeText={setTitle}
           style={styles.input}
-          placeholder="Дата (ДД.ММ.ГГГГ)"
+          placeholder="Название"
           placeholderTextColor="#9B9B9B"
         />
-      ) : (
-        <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
-          <Text style={[styles.dateText, !date && styles.placeholderText]}>
-            {date ? formatDate(date) : 'Дата'}
-          </Text>
-        </Pressable>
-      )}
-      {showDatePicker && Platform.OS === 'ios' && (
-        <Modal transparent animationType="slide">
-          <Pressable style={styles.datePickerOverlay} onPress={() => setShowDatePicker(false)}>
-            <Pressable style={styles.datePickerSheet} onPress={(e) => e.stopPropagation()}>
-              <View style={styles.datePickerHeader}>
-                <Pressable onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.datePickerDone}>Готово</Text>
-                </Pressable>
-              </View>
-              <DateTimePicker
-                value={date ?? new Date()}
-                mode="date"
-                display="spinner"
-                minimumDate={new Date()}
-                onChange={(_, selectedDate) => selectedDate && setDate(selectedDate)}
-              />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
-      {showDatePicker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={date ?? new Date()}
-          mode="date"
-          display="default"
-          minimumDate={new Date()}
-          onChange={(_, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) setDate(selectedDate);
-          }}
+        <TextInput
+          value={description}
+          onChangeText={setDescription}
+          style={[styles.input, styles.textArea]}
+          placeholder="Описание"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          textAlignVertical="top"
         />
-      )}
-      <TextInput
-        value={time}
-        onChangeText={setTime}
-        style={styles.input}
-        placeholder="Время"
-        placeholderTextColor="#9B9B9B"
-      />
 
-      <View style={styles.priceRow}>
-        {price && !isEditingPrice ? (
-          <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
-            <Text style={styles.priceDisplay}>
-              Стоимость участия — {priceValue} ₽
+        {/* ── Date picker ─────────────────────────────────────────────── */}
+        {Platform.OS === 'web' ? (
+          <Pressable
+            style={styles.input}
+            onPress={() => webDateRef.current?.showPicker?.() ?? webDateRef.current?.click?.()}
+          >
+            <Text style={date ? styles.dateText : styles.placeholderText}>
+              {date ? formatDate(date) : 'Дата'}
             </Text>
+            {/* invisible native date input */}
+            <input
+              ref={webDateRef}
+              type="date"
+              style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e: any) => {
+                const v = e.target.value;
+                if (v) {
+                  const [y, mo, d] = v.split('-').map(Number);
+                  setDate(new Date(y, mo - 1, d));
+                }
+              }}
+            />
           </Pressable>
         ) : (
-          <TextInput
-            value={price}
-            onChangeText={(text) => setPrice(text.replace(/\D/g, ''))}
-            style={styles.priceInput}
-            placeholder="Стоимость участия"
-            placeholderTextColor="#9B9B9B"
-            keyboardType="numeric"
-            onBlur={() => {
-              if (price && parseInt(price) > 0) {
-                setIsEditingPrice(false);
-              }
-            }}
+          <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <Text style={date ? styles.dateText : styles.placeholderText}>
+              {date ? formatDate(date) : 'Дата'}
+            </Text>
+          </Pressable>
+        )}
+
+        {/* iOS date modal */}
+        {showDatePicker && Platform.OS === 'ios' && (
+          <Modal transparent animationType="slide">
+            <Pressable style={styles.pickerOverlay} onPress={() => setShowDatePicker(false)}>
+              <Pressable style={styles.pickerSheet} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.pickerHeader}>
+                  <Pressable onPress={() => setShowDatePicker(false)}>
+                    <Text style={styles.pickerDone}>Готово</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={date ?? new Date()}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date()}
+                  onChange={handleDateChange}
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
+        )}
+        {/* Android date picker */}
+        {showDatePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={date ?? new Date()}
+            mode="date"
+            display="default"
+            minimumDate={new Date()}
+            onChange={handleDateChange}
           />
         )}
-        {price && priceValue > 0 ? (
-          <View style={styles.commissionInfo}>
-            <Text style={styles.commissionText}>Комиссия 10%</Text>
-            <Text style={styles.finalAmountText}>
-              Вы получите {Math.round(finalAmount)} ₽
+
+        {/* ── Time picker ─────────────────────────────────────────────── */}
+        {Platform.OS === 'web' ? (
+          <Pressable
+            style={styles.input}
+            onPress={() => webTimeRef.current?.showPicker?.() ?? webTimeRef.current?.click?.()}
+          >
+            <Text style={timeStr ? styles.dateText : styles.placeholderText}>
+              {timeStr || 'Время'}
             </Text>
-          </View>
+            <input
+              ref={webTimeRef}
+              type="time"
+              style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+              onChange={(e: any) => {
+                const v = e.target.value; // "HH:mm"
+                if (v) setTimeStr(v);
+              }}
+            />
+          </Pressable>
         ) : (
-          <Text style={styles.commissionText}>Комиссия 10%</Text>
+          <Pressable style={styles.input} onPress={() => setShowTimePicker(true)}>
+            <Text style={timeStr ? styles.dateText : styles.placeholderText}>
+              {timeStr || 'Время'}
+            </Text>
+          </Pressable>
         )}
-      </View>
 
-      <TextInput
-        value={maxParticipants}
-        onChangeText={(text) => setMaxParticipants(text.replace(/\D/g, ''))}
-        style={styles.input}
-        placeholder="Максимальное количество участников"
-        placeholderTextColor="#9B9B9B"
-        keyboardType="numeric"
-      />
+        {/* iOS time modal */}
+        {showTimePicker && Platform.OS === 'ios' && (
+          <Modal transparent animationType="slide">
+            <Pressable style={styles.pickerOverlay} onPress={() => setShowTimePicker(false)}>
+              <Pressable style={styles.pickerSheet} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.pickerHeader}>
+                  <Pressable onPress={() => setShowTimePicker(false)}>
+                    <Text style={styles.pickerDone}>Готово</Text>
+                  </Pressable>
+                </View>
+                <DateTimePicker
+                  value={timeDate ?? (() => { const d = new Date(); d.setHours(18, 0, 0, 0); return d; })()}
+                  mode="time"
+                  display="spinner"
+                  minuteInterval={15}
+                  onChange={handleTimeChange}
+                />
+              </Pressable>
+            </Pressable>
+          </Modal>
+        )}
+        {/* Android time picker */}
+        {showTimePicker && Platform.OS === 'android' && (
+          <DateTimePicker
+            value={timeDate ?? (() => { const d = new Date(); d.setHours(18, 0, 0, 0); return d; })()}
+            mode="time"
+            display="default"
+            minuteInterval={15}
+            onChange={handleTimeChange}
+          />
+        )}
 
-      <Pressable
-        style={[styles.uploadButton, coverUri && styles.uploadWithPhotoContainer]}
-        onPress={pickCover}
-      >
-        {coverUri ? (
-          <View style={styles.uploadWithPhoto}>
-            <Image source={{ uri: coverUri }} style={styles.coverImage} />
-            <View style={styles.replacePhotoContainer}>
-              <Text style={styles.replacePhotoText}>Заменить обложку</Text>
+        {/* ── Price ───────────────────────────────────────────────────── */}
+        <View style={styles.priceRow}>
+          {price && !isEditingPrice ? (
+            <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
+              <Text style={styles.priceDisplay}>Стоимость участия — {priceValue} ₽</Text>
+            </Pressable>
+          ) : (
+            <TextInput
+              value={price}
+              onChangeText={(t) => setPrice(t.replace(/\D/g, ''))}
+              style={styles.priceInput}
+              placeholder="Стоимость участия"
+              placeholderTextColor="#9B9B9B"
+              keyboardType="numeric"
+              onBlur={() => { if (price && parseInt(price) > 0) setIsEditingPrice(false); }}
+            />
+          )}
+          {price && priceValue > 0 ? (
+            <View style={styles.commissionInfo}>
+              <Text style={styles.commissionText}>Комиссия 10%</Text>
+              <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} ₽</Text>
             </View>
-          </View>
-        ) : (
-          <Text style={styles.uploadButtonText}>Загрузить обложку</Text>
-        )}
-      </Pressable>
+          ) : (
+            <Text style={styles.commissionText}>Комиссия 10%</Text>
+          )}
+        </View>
 
-        {statusMessage ? (
-          <Text style={styles.statusMessage}>{statusMessage}</Text>
-        ) : null}
-      <Pressable
-        style={[styles.createButton, isSubmitting && styles.createButtonDisabled]}
-        onPress={handleCreate}
-        disabled={isSubmitting}
-      >
-        <Text style={styles.createButtonText}>
-          {isSubmitting ? 'Создание...' : 'Создать событие'}
-        </Text>
-      </Pressable>
+        <TextInput
+          value={maxParticipants}
+          onChangeText={(t) => setMaxParticipants(t.replace(/\D/g, ''))}
+          style={styles.input}
+          placeholder="Максимальное количество участников"
+          placeholderTextColor="#9B9B9B"
+          keyboardType="numeric"
+        />
+
+        <Pressable
+          style={[styles.uploadButton, coverUri && styles.uploadWithPhotoContainer]}
+          onPress={pickCover}
+        >
+          {coverUri ? (
+            <View style={styles.uploadWithPhoto}>
+              <Image source={{ uri: coverUri }} style={styles.coverImage} />
+              <View style={styles.replacePhotoContainer}>
+                <Text style={styles.replacePhotoText}>Заменить обложку</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.uploadButtonText}>Загрузить обложку</Text>
+          )}
+        </Pressable>
+
+        {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
+
+        <Pressable
+          style={[styles.createButton, isSubmitting && styles.createButtonDisabled]}
+          onPress={handleCreate}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.createButtonText}>
+            {isSubmitting ? 'Создание...' : 'Создать событие'}
+          </Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  header: {
-    paddingTop: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    marginTop: 8,
-    marginBottom: 16,
-    fontSize: 20,
-    lineHeight: 26,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: { paddingHorizontal: 16, paddingBottom: 24 },
+  header: { paddingTop: 16 },
+  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  title: { marginTop: 8, marginBottom: 16, fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818' },
   input: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    marginBottom: 12,
-  },
-  dateText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  placeholderText: {
-    color: '#9B9B9B',
-  },
-  datePickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  datePickerSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  datePickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  datePickerDone: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#E02D2D',
-  },
-  textArea: {
-    minHeight: 96,
-    paddingTop: 12,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    minHeight: 52,
-  },
-  priceInput: {
-    flex: 1,
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#181818',
-    padding: 0,
-    margin: 0,
-    minHeight: 24,
-    borderWidth: 0,
-  },
-  priceDisplayWrap: {
-    flex: 1,
-  },
-  priceDisplay: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#181818',
-    minHeight: 24,
-    paddingVertical: 4,
-  },
-  commissionInfo: {
-    alignItems: 'flex-end',
-    marginLeft: 12,
-  },
-  commissionText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#9B9B9B',
-    marginBottom: 4,
-  },
-  finalAmountText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#181818',
-  },
-  uploadButton: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    paddingVertical: 16,
-    alignItems: 'center',
-    height: 52,
-    marginBottom: 24,
-  },
-  uploadWithPhotoContainer: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    overflow: 'hidden',
-  },
-  uploadWithPhoto: {
-    flexDirection: 'row',
-    width: '100%',
-    alignItems: 'center',
-  },
-  coverImage: {
-    width: 96,
-    height: 54,
-    backgroundColor: '#E5E5E5',
-  },
-  replacePhotoContainer: {
-    flex: 1,
+    borderWidth: 1, borderColor: '#1E1E1E',
+    paddingHorizontal: 12, paddingVertical: 12,
+    fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular',
+    color: '#181818', marginBottom: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingLeft: 16,
-    height: 52,
+    position: 'relative',
   },
-  replacePhotoText: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  uploadButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  statusMessage: {
-    marginTop: 12,
-    marginBottom: 8,
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    textAlign: 'center',
-  },
-  createButton: {
-    marginTop: 12,
-    marginBottom: 24,
-    backgroundColor: '#111',
-    borderWidth: 1,
-    borderColor: '#111',
-    paddingVertical: 16,
-    alignItems: 'center',
-    height: 52,
-  },
-  createButtonDisabled: {
-    opacity: 0.6,
-  },
-  createButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#FAFAFA',
-  },
+  dateText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  placeholderText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  textArea: { minHeight: 96, paddingTop: 12 },
+
+  // Picker modal
+  pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+  pickerHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#E5E5E5' },
+  pickerDone: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#E02D2D' },
+
+  // Price
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 12, minHeight: 52 },
+  priceInput: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', padding: 0, margin: 0, minHeight: 24, borderWidth: 0 },
+  priceDisplayWrap: { flex: 1 },
+  priceDisplay: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', minHeight: 24, paddingVertical: 4 },
+  commissionInfo: { alignItems: 'flex-end', marginLeft: 12 },
+  commissionText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#9B9B9B', marginBottom: 4 },
+  finalAmountText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+
+  // Cover
+  uploadButton: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 16, alignItems: 'center', height: 52, marginBottom: 24 },
+  uploadWithPhotoContainer: { paddingVertical: 0, paddingHorizontal: 0, overflow: 'hidden' },
+  uploadWithPhoto: { flexDirection: 'row', width: '100%', alignItems: 'center' },
+  coverImage: { width: 96, height: 54, backgroundColor: '#E5E5E5' },
+  replacePhotoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingLeft: 16, height: 52 },
+  replacePhotoText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  uploadButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+
+  // Status / Submit
+  statusMessage: { marginTop: 12, marginBottom: 8, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
+  createButton: { marginTop: 12, marginBottom: 24, backgroundColor: '#111', borderWidth: 1, borderColor: '#111', paddingVertical: 16, alignItems: 'center', height: 52 },
+  createButtonDisabled: { opacity: 0.6 },
+  createButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FAFAFA' },
 });
