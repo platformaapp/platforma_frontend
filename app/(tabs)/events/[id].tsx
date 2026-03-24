@@ -172,9 +172,9 @@ export default function EventDetailScreen() {
 
       if (!res.ok) {
         if (res.status === 409) {
-          // Already registered — treat as success
+          // Already registered — update state so button shows correct label
+          setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
           setCardModalVisible(false);
-          setCardModalDoneVisible(true);
           return;
         }
         throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);
@@ -266,9 +266,13 @@ export default function EventDetailScreen() {
       </View>
 
       {/* Register Button */}
-      <Pressable style={styles.registerButton} onPress={handleLinkNow}>
+      <Pressable
+        style={[styles.registerButton, event.isRegistered && styles.registerButtonDisabled]}
+        onPress={event.isRegistered ? undefined : handleLinkNow}
+        disabled={event.isRegistered}
+      >
         <Text style={styles.registerButtonText}>
-          {event.isRegistered ? 'Вы записаны' : 'Зарегистрироваться'}
+          {event.isRegistered ? 'Вы уже зарегистрированы' : 'Зарегистрироваться'}
         </Text>
       </Pressable>
 
@@ -475,6 +479,7 @@ const styles = StyleSheet.create({
   mainFooterPrice: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#1E1E1E' },
 
   registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 24 },
+  registerButtonDisabled: { backgroundColor: '#9B9B9B' },
   registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
 
   curatorSection: { alignItems: 'center', marginBottom: 24, width: '100%' },

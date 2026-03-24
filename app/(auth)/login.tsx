@@ -97,7 +97,16 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Pressable style={styles.close} onPress={() => router.back()}>
+          <Pressable
+            style={styles.close}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/events');
+              }
+            }}
+          >
             <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
             </Svg>
