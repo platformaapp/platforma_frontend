@@ -99,8 +99,8 @@ export default function MyEventsScreen() {
         const items: EventItem[] = Array.isArray(data)
           ? data
           : Array.isArray(data?.items) ? data.items : [];
-        // Keep only registered events
-        setEvents(items.filter((e) => e.isRegistered));
+        // Keep only events the user has registered for
+        setEvents(items.filter((e) => e.isRegistered === true));
       }
 
       if (bookRes.status === 'fulfilled' && bookRes.value.ok) {

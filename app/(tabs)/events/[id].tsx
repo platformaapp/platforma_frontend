@@ -119,6 +119,14 @@ export default function EventDetailScreen() {
         if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
           const d = await feedRes.value.json();
           const items: FeedItem[] = Array.isArray(d) ? d : (d?.items ?? []);
+          // Cross-reference: feed has isRegistered; detail endpoint may not
+          const thisItem = (items as Array<FeedItem & { isRegistered?: boolean }>)
+            .find((e) => e.id === id);
+          if (active && thisItem?.isRegistered) {
+            setEvent((prev) =>
+              prev ? { ...prev, isRegistered: true } : prev
+            );
+          }
           if (active) setOtherEvents(items.filter((e) => e.id !== id).slice(0, 4));
         }
       } catch { /* ignore */ } finally {
