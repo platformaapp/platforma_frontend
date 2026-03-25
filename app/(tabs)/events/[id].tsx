@@ -76,6 +76,7 @@ export default function EventDetailScreen() {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [otherEvents, setOtherEvents] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [isCardModalVisible, setCardModalVisible] = useState(false);
   const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
@@ -94,6 +95,13 @@ export default function EventDetailScreen() {
       try {
         const token = await getAuthToken();
         const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+        // Also get current user profile to detect if they own this event
+        if (token) {
+          const { getUserProfile } = await import('@/lib/auth');
+          const profile = await getUserProfile().catch(() => null);
+          if (active && profile?.id) setCurrentUserId(profile.id);
+        }
 
         const [detailRes, feedRes] = await Promise.allSettled([
           fetch(`${endpoints.events}/${id}`, { headers }),
@@ -279,15 +287,29 @@ export default function EventDetailScreen() {
       </View>
 
       {/* Register Button */}
-      <Pressable
-        style={[styles.registerButton, event.isRegistered && styles.registerButtonDisabled]}
-        onPress={event.isRegistered ? undefined : handleLinkNow}
-        disabled={event.isRegistered}
-      >
-        <Text style={styles.registerButtonText}>
-          {event.isRegistered ? 'Вы уже зарегистрированы' : 'Зарегистрироваться'}
-        </Text>
-      </Pressable>
+      {(() => {
+        const isOwnEvent = currentUserId != null && event.mentor?.id === currentUserId;
+        if (isOwnEvent) {
+          return (
+            <View style={[styles.registerButton, styles.registerButtonDisabled]}>
+              <Text style={styles.registerButtonText}>
+                Вы не можете зарегистрироваться на своё мероприятие
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <Pressable
+            style={[styles.registerButton, event.isRegistered && styles.registerButtonDisabled]}
+            onPress={event.isRegistered ? undefined : handleLinkNow}
+            disabled={event.isRegistered}
+          >
+            <Text style={styles.registerButtonText}>
+              {event.isRegistered ? 'Вы уже зарегистрированы' : 'Зарегистрироваться'}
+            </Text>
+          </Pressable>
+        );
+      })()}
 
       {/* Curator Section */}
       {event.mentor && (

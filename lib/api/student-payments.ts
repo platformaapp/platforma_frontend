@@ -213,7 +213,7 @@ function toCard(pm: PaymentMethod): Card {
 /**
  * GET — список карт + история платежей.
  * Карты: GET /api/student/payment-methods (работает).
- * История: GET /api/events/feed (isRegistered=true, isPaid=true) — временный источник
+ * История: GET /api/events/feed (isRegistered=true) — временный источник
  * пока бэкенд не добавит /api/student/payments (сейчас 404).
  */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
@@ -221,13 +221,10 @@ export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
   const methods = await getPaymentMethods();
   const cards = methods.map(toCard);
 
-  // Try to build payment history from registered/paid events
+  // Build payment history from registered events (static import, no dynamic)
   let history: PaymentHistoryItem[] = [];
   try {
-    const feedRes = await fetch(
-      `${(await import('@/constants/env')).endpoints.eventsFeed}`,
-      { headers }
-    );
+    const feedRes = await fetch(endpoints.eventsFeed, { headers });
     if (feedRes.ok) {
       const data = await feedRes.json();
       const items: Array<Record<string, any>> = Array.isArray(data)

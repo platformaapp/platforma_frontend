@@ -80,27 +80,36 @@ export default function PaymentsScreen() {
     useCallback(() => {
       let cancelled = false;
       setLoading(true);
-      getStudentPayments()
-        .then((data) => {
-          if (!cancelled) {
-            setCards(data.cards);
-            setHistory(data.history);
-          }
-        })
-        .catch((e) => {
-          if (!cancelled) {
-            if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
-              router.replace('/login');
-              return;
+
+      // Auth guard — payments screen requires login
+      import('@/lib/auth').then(({ getAuthToken }) => getAuthToken()).then((token) => {
+        if (!token) {
+          router.replace('/login');
+          return;
+        }
+        getStudentPayments()
+          .then((data) => {
+            if (!cancelled) {
+              setCards(data.cards);
+              setHistory(data.history);
             }
-            setCards([]);
-            setHistory([]);
-            Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось загрузить данные');
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
+          })
+          .catch((e) => {
+            if (!cancelled) {
+              if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
+                router.replace('/login');
+                return;
+              }
+              setCards([]);
+              setHistory([]);
+              Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось загрузить данные');
+            }
+          })
+          .finally(() => {
+            if (!cancelled) setLoading(false);
+          });
+      });
+
       return () => { cancelled = true; };
     }, [router])
   );
