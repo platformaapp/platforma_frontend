@@ -288,31 +288,39 @@ export default function PaymentsScreen() {
           </View>
         )}
 
+        <Text style={[styles.sectionTitle, styles.sectionTitleHistory]}>История платежей</Text>
         {history.length > 0 ? (
-          <>
-            <Text style={[styles.sectionTitle, styles.sectionTitleHistory]}>История оплат</Text>
-            {history.map((item) => (
-              <View key={item.id} style={styles.historyRow}>
-                <View style={styles.historyMain}>
-                  <Text style={styles.historyTutor}>{item.tutor}</Text>
-                  <Text style={styles.historyDate}>{formatDate(item.created_at)}</Text>
+          history.map((item) => {
+            const statusLabel = item.status === 'success' ? 'оплачено'
+              : item.status === 'failed' ? 'ошибка' : 'в обработке';
+            const statusStyle = item.status === 'success' ? styles.historyStatusSuccess
+              : item.status === 'failed' ? styles.historyStatusFailed
+              : styles.historyStatusPending;
+            const shortId = item.id.replace(/-/g, '').slice(0, 5).toUpperCase();
+            return (
+              <View key={item.id} style={styles.historyCard}>
+                <View style={styles.historyCardHeader}>
+                  <Text style={styles.historyNumber}>№{shortId}</Text>
+                  <Text style={[styles.historyStatusLabel, statusStyle]}>{statusLabel}</Text>
                 </View>
-                <View style={styles.historyRight}>
+                <Text style={styles.historyTitle} numberOfLines={2}>
+                  {item.title ?? item.tutor ?? ''}
+                </Text>
+                {item.subtitle ? (
+                  <Text style={styles.historySubtitle}>{item.subtitle}</Text>
+                ) : null}
+                <View style={styles.historyCardFooter}>
+                  <Text style={styles.historyDate}>{formatDate(item.created_at)}</Text>
                   <Text style={styles.historyAmount}>{formatAmount(item.amount)}</Text>
-                  <Text
-                    style={[
-                      styles.historyStatus,
-                      item.status === 'success' && styles.historyStatusSuccess,
-                      item.status === 'failed' && styles.historyStatusFailed,
-                    ]}
-                  >
-                    {item.status === 'success' ? 'Оплачено' : item.status === 'failed' ? 'Ошибка' : 'В обработке'}
-                  </Text>
                 </View>
               </View>
-            ))}
-          </>
-        ) : null}
+            );
+          })
+        ) : (
+          <View style={styles.historyEmpty}>
+            <Text style={styles.historyEmptyText}>История платежей пока пуста</Text>
+          </View>
+        )}
       </ScrollView>
 
       <Modal
@@ -472,34 +480,60 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#E02D2D',
   },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+  // New history card design (matches screenshot)
+  historyCard: {
     borderWidth: 1,
     borderColor: '#1E1E1E',
     marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  historyMain: {
-    flex: 1,
+  historyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
   },
-  historyTutor: {
+  historyNumber: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
-  historyDate: {
-    fontSize: 12,
-    lineHeight: 16,
+  historyStatusLabel: {
+    fontSize: 13,
+    lineHeight: 18,
     fontFamily: 'Inter-Regular',
     color: '#9B9B9B',
+  },
+  historyStatusSuccess: { color: '#181818' },
+  historyStatusFailed: { color: '#E02D2D' },
+  historyStatusPending: { color: '#9B9B9B' },
+  historyTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 2,
+  },
+  historySubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 6,
+  },
+  historyCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 4,
   },
-  historyRight: {
-    alignItems: 'flex-end',
+  historyDate: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
   },
   historyAmount: {
     fontSize: 14,
@@ -507,18 +541,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#181818',
   },
-  historyStatus: {
-    fontSize: 12,
-    lineHeight: 16,
+  historyEmpty: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  historyEmptyText: {
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#9B9B9B',
-    marginTop: 4,
-  },
-  historyStatusSuccess: {
-    color: '#2E7D32',
-  },
-  historyStatusFailed: {
-    color: '#E02D2D',
   },
   deleteModalOverlay: {
     flex: 1,

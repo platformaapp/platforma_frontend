@@ -57,10 +57,13 @@ export interface Card {
 
 export interface PaymentHistoryItem {
   id: string;
-  tutor: string;
+  tutor?: string;           // tutor name (for slot bookings)
+  title?: string;           // event title (for events)
+  subtitle?: string;        // e.g. "Мероприятие 13.06.25 18:00" or "Сессия 13.06.25 20:00"
   amount: number;
   status: 'success' | 'failed' | 'pending';
   created_at: string;
+  type?: 'event' | 'session';
 }
 
 export interface StudentPaymentsResponse {
@@ -207,11 +210,51 @@ function toCard(pm: PaymentMethod): Card {
   };
 }
 
-/** GET — список карт и история. Карты: GET /api/student/payment-methods. GET /payments не существует (404). */
+/**
+ * GET — список карт + история платежей.
+ * Карты: GET /api/student/payment-methods (работает).
+ * История: GET /api/events/feed (isRegistered=true, isPaid=true) — временный источник
+ * пока бэкенд не добавит /api/student/payments (сейчас 404).
+ */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
+  const headers = await authHeaders();
   const methods = await getPaymentMethods();
   const cards = methods.map(toCard);
-  return { cards, history: [] };
+
+  // Try to build payment history from registered/paid events
+  let history: PaymentHistoryItem[] = [];
+  try {
+    const feedRes = await fetch(
+      `${(await import('@/constants/env')).endpoints.eventsFeed}`,
+      { headers }
+    );
+    if (feedRes.ok) {
+      const data = await feedRes.json();
+      const items: Array<Record<string, any>> = Array.isArray(data)
+        ? data
+        : (data?.items ?? []);
+      history = items
+        .filter((e) => e.isRegistered)
+        .map((e) => {
+          const d = e.datetimeStart ? new Date(e.datetimeStart) : null;
+          const dateStr = d
+            ? `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+            : '';
+          return {
+            id: e.id,
+            title: e.title ?? '',
+            subtitle: dateStr ? `Мероприятие ${dateStr}` : undefined,
+            tutor: e.mentor?.name,
+            amount: typeof e.price === 'number' ? e.price : 0,
+            status: (e.isPaid ? 'success' : 'pending') as 'success' | 'failed' | 'pending',
+            created_at: e.datetimeStart ?? new Date().toISOString(),
+            type: 'event' as const,
+          };
+        });
+    }
+  } catch { /* ignore */ }
+
+  return { cards, history };
 }
 
 /** POST /student/payments — оплата сессии */

@@ -1,40 +1,93 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AuthError } from '@/lib/api/auth-error';
+import { bindPaymentMethod } from '@/lib/api/student-payments';
 
 export default function RegistrationCompleteScreen() {
   const router = useRouter();
-  const [isCardModalVisible, setCardModalVisible] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [remember, setRemember] = useState(true);
+  const [isLinking, setIsLinking] = useState(false);
 
-  function handleLinkNow() {
-    setCardModalVisible(true);
-  }
+  const pendingCallbackRef = useRef(false);
+  const pendingBindParams = useRef<{ orderId?: string; attachmentId?: string }>({});
+
+  const navigateToCallback = () => {
+    const { orderId, attachmentId } = pendingBindParams.current;
+    router.push({
+      pathname: '/(tabs)/profile/payment-methods-callback',
+      params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '' },
+    });
+  };
+
+  const handleLinkNow = async () => {
+    if (isLinking) return;
+    setIsLinking(true);
+    try {
+      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      pendingBindParams.current = { orderId, attachmentId };
+      try {
+        const ls = (globalThis as any)?.localStorage;
+        if (ls) {
+          if (orderId) ls.setItem('pending_payment_id', orderId);
+          if (attachmentId) ls.setItem('pending_attachment_id', attachmentId);
+        }
+      } catch { /* ignore */ }
+      pendingCallbackRef.current = true;
+      WebBrowser.openBrowserAsync(confirmationUrl).then(() => {
+        if (pendingCallbackRef.current) {
+          pendingCallbackRef.current = false;
+          navigateToCallback();
+        }
+      });
+    } catch (e: unknown) {
+      pendingCallbackRef.current = false;
+      pendingBindParams.current = {};
+      if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
+      // On error just go to events — card can be added later
+      router.replace('/(tabs)/events');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && pendingCallbackRef.current) {
+        pendingCallbackRef.current = false;
+        navigateToCallback();
+      }
+    });
+    return () => sub.remove();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleLinkLater() {
-    // Пропускаем привязку карты и переходим на экран событий
-    router.replace('/(tabs)/events');
-  }
-
-  function handleSubmitCard() {
-    // Здесь может быть вызов API для привязки карты
-    // Пока закрываем попап и переходим к событиям
-    setCardModalVisible(false);
     router.replace('/(tabs)/events');
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
+    >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={styles.inner}>
-          <Pressable style={styles.close} onPress={() => router.back()}>
+          <Pressable
+            style={styles.close}
+            onPress={() => {
+              if (router.canGoBack()) router.back();
+              else router.replace('/(tabs)/events');
+            }}
+          >
             <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
             </Svg>
@@ -46,14 +99,18 @@ export default function RegistrationCompleteScreen() {
             </ThemedText>
 
             <ThemedText style={styles.description}>
-              Привяжите карту, чтобы ни в чем себе{"\n"}не отказывать
+              Привяжите карту, чтобы ни в чём себе{"\n"}не отказывать
             </ThemedText>
           </View>
 
           <View style={styles.buttonsContainer}>
-            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={handleLinkNow}>
+            <Pressable
+              style={[styles.btn, styles.btnPrimary, isLinking && { opacity: 0.6 }]}
+              onPress={handleLinkNow}
+              disabled={isLinking}
+            >
               <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
-                Привязать сейчас
+                {isLinking ? 'Открываем YooKassa...' : 'Привязать сейчас'}
               </ThemedText>
             </Pressable>
 
@@ -64,58 +121,6 @@ export default function RegistrationCompleteScreen() {
             </Pressable>
           </View>
         </ThemedView>
-
-        {isCardModalVisible && (
-          <View style={styles.modalOverlay}>
-            <Pressable style={styles.backdrop} onPress={() => setCardModalVisible(false)} />
-            <View style={styles.modalSheet}>
-              <ThemedText type="title" style={styles.modalTitle}>НОВАЯ КАРТА</ThemedText>
-
-              <TextInput
-                placeholder="Номер карты"
-                placeholderTextColor="#888"
-                style={styles.input}
-                value={cardNumber}
-                onChangeText={setCardNumber}
-                keyboardType="numeric"
-              />
-
-              <View style={styles.row}>
-                <TextInput
-                  placeholder="MM/ГГ"
-                  placeholderTextColor="#888"
-                  style={[styles.input, styles.inputHalf]}
-                  value={expiry}
-                  onChangeText={setExpiry}
-                  keyboardType="numeric"
-                />
-                <TextInput
-                  placeholder="CVC2/CVV"
-                  placeholderTextColor="#888"
-                  style={[styles.input, styles.inputHalf]}
-                  value={cvc}
-                  onChangeText={setCvc}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <Pressable style={styles.checkboxRow} onPress={() => setRemember((prev) => !prev)}>
-                <View style={styles.checkbox}>
-                  {remember && (
-                    <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
-                  )}
-                </View>
-                <ThemedText style={styles.checkboxLabel}>Запомнить карту</ThemedText>
-              </Pressable>
-
-              <Pressable style={[styles.btn, styles.btnPrimary]} onPress={handleSubmitCard}>
-                <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
-                  Продолжить
-                </ThemedText>
-              </Pressable>
-            </View>
-          </View>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -139,20 +144,19 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 48,
     marginBottom: 24,
-    fontFamily: "Inter-Regular",
+    fontFamily: 'Inter-Regular',
     fontSize: 28,
-    fontWeight: "400",
-    fontStyle: "normal",
+    fontWeight: '400',
     lineHeight: 36,
     letterSpacing: -2,
-    color: "#181818",
+    color: '#181818',
     textAlign: 'left',
   },
   description: {
-    fontFamily: "Inter-Regular",
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
     lineHeight: 20,
-    color: "#181818",
+    color: '#181818',
     textAlign: 'left',
   },
   buttonsContainer: {
@@ -169,33 +173,27 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     backgroundColor: '#111',
-    borderColor: "rgba(24, 24, 24, 1.0)",
+    borderColor: '#181818',
   },
-  btnPrimaryText: {
-    color: '#FFF',
-  },
+  btnPrimaryText: { color: '#FFF' },
   btnPrimaryTextCustom: {
-    fontFamily: "Inter-Regular",
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
-    fontWeight: "400",
-    fontStyle: "normal",
+    fontWeight: '400',
     lineHeight: 20,
-    color: "#FAFAFA",
+    color: '#FAFAFA',
   },
   btnOutline: {
     backgroundColor: 'transparent',
-    borderColor: "rgba(24, 24, 24, 1.0)",
+    borderColor: '#181818',
   },
-  btnOutlineText: {
-    color: '#111',
-  },
+  btnOutlineText: { color: '#111' },
   btnOutlineTextCustom: {
-    fontFamily: "Inter-Regular",
+    fontFamily: 'Inter-Regular',
     fontSize: 14,
-    fontWeight: "400",
-    fontStyle: "normal",
+    fontWeight: '400',
     lineHeight: 20,
-    color: "#181818",
+    color: '#181818',
   },
   close: {
     position: 'absolute',
@@ -204,81 +202,4 @@ const styles = StyleSheet.create({
     zIndex: 1,
     padding: 8,
   },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  modalSheet: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    gap: 12,
-  },
-  modalTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-    fontSize: 28,
-    fontWeight: '400',
-    fontStyle: 'normal',
-    lineHeight: 36,
-    letterSpacing: -2,
-    color: '#181818',
-    textAlign: 'left',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: 'rgba(24, 24, 24, 1.0)',
-    borderRadius: 0,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: '#181818',
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 1,
-    borderColor: '#181818',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxCheckmark: {
-    fontSize: 16,
-    color: '#181818',
-    fontWeight: 'bold',
-    lineHeight: 20,
-  },
-  checkboxLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
 });
-

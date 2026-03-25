@@ -47,13 +47,19 @@ export default function EventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
+    const load = useCallback(async () => {
     try {
       setError('');
       const token = await getAuthToken();
       const res = await fetch(endpoints.eventsFeed, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      // 401 = not authorized; show empty list gracefully so unauthenticated
+      // users can still open the app and see the events tab (just no content)
+      if (res.status === 401) {
+        setEvents([]);
+        return;
+      }
       const data = await res.json();
       const items: EventFeedItem[] = Array.isArray(data)
         ? data

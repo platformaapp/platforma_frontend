@@ -86,7 +86,7 @@ export default function EventDetailScreen() {
   const [payError, setPayError] = useState('');
   const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
 
-  // Load event + feed
+  // Load event + feed (works without auth; 401 handled gracefully)
   useEffect(() => {
     if (!id) return;
     let active = true;
@@ -100,9 +100,12 @@ export default function EventDetailScreen() {
           fetch(endpoints.eventsFeed, { headers }),
         ]);
 
-        if (detailRes.status === 'fulfilled' && detailRes.value.ok) {
-          const d = await detailRes.value.json();
-          if (active) setEvent(d);
+        if (detailRes.status === 'fulfilled') {
+          if (detailRes.value.ok) {
+            const d = await detailRes.value.json();
+            if (active) setEvent(d);
+          }
+          // 401 = not logged in; event stays null → show "войдите" state below
         }
 
         if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
@@ -122,7 +125,11 @@ export default function EventDetailScreen() {
 
   async function handleLinkNow() {
     const token = await getAuthToken();
-    if (!token) { router.push('/login'); return; }
+    if (!token) {
+      // Unauthenticated — send to login with return path info
+      router.push('/login');
+      return;
+    }
     setCardModalVisible(true);
     setIsShareCopied(false);
     setPayError('');
@@ -152,13 +159,16 @@ export default function EventDetailScreen() {
       if (!token) throw new Error('Для оплаты нужно войти в аккаунт');
       if (role && role !== 'student') throw new Error('Оплата доступна только для студентов');
 
+      // No card bound — redirect to add card
       if (!paymentsData.cards?.length) {
         setCardModalVisible(false);
         router.push('/(tabs)/profile/payments');
         return;
       }
 
-      // POST /api/events/{id}/register — correct event registration endpoint
+      // POST /api/events/{id}/register with payment_method_id
+      // Backend handles charge via YooKassa using the saved payment method.
+      // Response: { success, userEvent: { id, status, payment_status } }
       const res = await fetch(`${endpoints.events}/${event.id}/register`, {
         method: 'POST',
         headers: {
@@ -172,7 +182,7 @@ export default function EventDetailScreen() {
 
       if (!res.ok) {
         if (res.status === 409) {
-          // Already registered — update state so button shows correct label
+          // Already registered — update button state
           setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
           setCardModalVisible(false);
           return;
@@ -180,14 +190,17 @@ export default function EventDetailScreen() {
         throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);
       }
 
-      if (data?.redirect_url) {
-        await WebBrowser.openBrowserAsync(data.redirect_url);
+      // If registration returned a payment redirect URL (future-proofing)
+      if (data?.redirect_url || data?.confirmationUrl || data?.userEvent?.redirect_url) {
+        const url = data.redirect_url ?? data.confirmationUrl ?? data.userEvent?.redirect_url;
+        await WebBrowser.openBrowserAsync(url);
       }
 
+      setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
       setCardModalVisible(false);
       setCardModalDoneVisible(true);
     } catch (e: any) {
-      const rawMessage = e?.message ?? 'Не удалось оплатить';
+      const rawMessage = e?.message ?? 'Не удалось зарегистрироваться';
       const message = rawMessage.toLowerCase().includes('token expired')
         ? 'Авторизуйтесь заново'
         : rawMessage;
