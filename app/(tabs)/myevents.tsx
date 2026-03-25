@@ -14,6 +14,8 @@ import {
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
+import { getStudentPayments, type PaymentHistoryItem } from '@/lib/api/student-payments';
+import { isRegisteredOnEventItem, parseFeedItems } from '@/lib/event-feed';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,9 +68,30 @@ function formatBookingDate(date?: string, time?: string): string {
   return parts.join(' ');
 }
 
+function formatPaymentDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function paymentStatusLabel(status: PaymentHistoryItem['status']): string {
+  if (status === 'success') return 'оплачено';
+  if (status === 'failed') return 'ошибка';
+  return 'в обработке';
+}
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
-type Tab = 'events' | 'meetings';
+type Tab = 'events' | 'meetings' | 'payments';
 
 export default function MyEventsScreen() {
   const router = useRouter();
@@ -76,6 +99,7 @@ export default function MyEventsScreen() {
 
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -88,24 +112,27 @@ export default function MyEventsScreen() {
 
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
-      // Load registered events and bookings in parallel
-      const [feedRes, bookRes] = await Promise.allSettled([
+      const [feedRes, bookRes, paymentsData] = await Promise.allSettled([
         fetch(endpoints.eventsFeed, { headers }),
         fetch(endpoints.studentBookings, { headers }),
+        getStudentPayments().catch(() => ({ cards: [], history: [] })),
       ]);
 
       if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
         const data = await feedRes.value.json();
-        const items: EventItem[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.items) ? data.items : [];
-        // Keep only events the user has registered for
-        setEvents(items.filter((e) => e.isRegistered === true));
+        const items: EventItem[] = parseFeedItems(data) as EventItem[];
+        setEvents(items.filter((e) => isRegisteredOnEventItem(e)));
       }
 
       if (bookRes.status === 'fulfilled' && bookRes.value.ok) {
         const data = await bookRes.value.json();
         setBookings(Array.isArray(data) ? data : []);
+      }
+
+      if (paymentsData.status === 'fulfilled') {
+        setPaymentHistory(paymentsData.value.history ?? []);
+      } else {
+        setPaymentHistory([]);
       }
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить данные');
@@ -197,12 +224,51 @@ export default function MyEventsScreen() {
     return map[s.toLowerCase()] ?? s;
   }
 
+  const renderPaymentRow = (item: PaymentHistoryItem) => {
+    const statusStyle =
+      item.status === 'success'
+        ? styles.paymentStatusOk
+        : item.status === 'failed'
+          ? styles.paymentStatusFail
+          : styles.paymentStatusPending;
+    return (
+      <View key={item.id} style={styles.paymentCard}>
+        <View style={styles.paymentCardHeader}>
+          <Text style={styles.paymentNumber}>
+            №{item.id.replace(/-/g, '').slice(0, 5).toUpperCase()}
+          </Text>
+          <Text style={[styles.paymentStatusLabel, statusStyle]}>
+            {paymentStatusLabel(item.status)}
+          </Text>
+        </View>
+        <Text style={styles.paymentTitle} numberOfLines={2}>
+          {item.title ?? item.tutor ?? 'Платёж'}
+        </Text>
+        {item.subtitle ? (
+          <Text style={styles.paymentSubtitle}>{item.subtitle}</Text>
+        ) : null}
+        <View style={styles.paymentFooter}>
+          <Text style={styles.paymentDate}>{formatPaymentDate(item.created_at)}</Text>
+          <Text style={styles.paymentAmount}>{item.amount.toLocaleString('ru-RU')} ₽</Text>
+        </View>
+      </View>
+    );
+  };
+
   // ─── Empty state ─────────────────────────────────────────────────────────
 
-  const isEmpty = activeTab === 'events' ? events.length === 0 : bookings.length === 0;
-  const emptyText = activeTab === 'events'
-    ? 'Вы ещё не записались ни на одно событие'
-    : 'У вас пока нет личных встреч с наставниками';
+  const isEmpty =
+    activeTab === 'events'
+      ? events.length === 0
+      : activeTab === 'meetings'
+        ? bookings.length === 0
+        : paymentHistory.length === 0;
+  const emptyText =
+    activeTab === 'events'
+      ? 'Вы ещё не записались ни на одно событие'
+      : activeTab === 'meetings'
+        ? 'У вас пока нет личных встреч с наставниками'
+        : 'История платежей пока пуста';
 
   return (
     <View style={styles.container}>
@@ -224,6 +290,14 @@ export default function MyEventsScreen() {
         >
           <Text style={[styles.tabText, activeTab === 'meetings' && styles.tabTextActive]}>
             ЛИЧНЫЕ ВСТРЕЧИ
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.tabButton, activeTab === 'payments' && styles.tabButtonActive]}
+          onPress={() => setActiveTab('payments')}
+        >
+          <Text style={[styles.tabText, activeTab === 'payments' && styles.tabTextActive]}>
+            ПЛАТЕЖИ
           </Text>
         </Pressable>
       </View>
@@ -252,12 +326,19 @@ export default function MyEventsScreen() {
                 >
                   <Text style={styles.browseButtonText}>Смотреть события</Text>
                 </Pressable>
-              ) : (
+              ) : activeTab === 'meetings' ? (
                 <Pressable
                   style={styles.browseButton}
                   onPress={() => router.push('/(tabs)/explore')}
                 >
                   <Text style={styles.browseButtonText}>Найти наставника</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={styles.browseButton}
+                  onPress={() => router.push('/(tabs)/profile/payments')}
+                >
+                  <Text style={styles.browseButtonText}>Перейти к платежам</Text>
                 </Pressable>
               )}
             </View>
@@ -265,7 +346,9 @@ export default function MyEventsScreen() {
             <>
               {activeTab === 'events'
                 ? events.map(renderEventCard)
-                : bookings.map(renderBookingCard)}
+                : activeTab === 'meetings'
+                  ? bookings.map(renderBookingCard)
+                  : paymentHistory.map(renderPaymentRow)}
             </>
           )}
         </ScrollView>
@@ -308,11 +391,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
   },
   tabText: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 14,
     fontFamily: 'Inter-Regular',
     color: '#181818',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   tabTextActive: {
     color: '#FAFAFA',
@@ -431,6 +514,67 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   browseButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+
+  paymentCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  paymentCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  paymentNumber: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  paymentStatusLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+  },
+  paymentStatusOk: { color: '#181818' },
+  paymentStatusFail: { color: '#E02D2D' },
+  paymentStatusPending: { color: '#9B9B9B' },
+  paymentTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 2,
+  },
+  paymentSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 6,
+  },
+  paymentFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  paymentDate: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+  },
+  paymentAmount: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',

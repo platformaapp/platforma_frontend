@@ -19,6 +19,7 @@ import Svg, { Path } from 'react-native-svg';
 import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { getStudentPayments } from '@/lib/api/student-payments';
+import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -110,19 +111,25 @@ export default function EventDetailScreen() {
 
         if (detailRes.status === 'fulfilled') {
           if (detailRes.value.ok) {
-            const d = await detailRes.value.json();
-            if (active) setEvent(d);
+            const raw = await detailRes.value.json();
+            const unwrapped = unwrapApiData<EventDetail & Record<string, unknown>>(raw) ?? (raw as EventDetail);
+            const registeredFromDetail = isRegisteredOnEventItem(unwrapped);
+            if (active) {
+              setEvent({
+                ...unwrapped,
+                isRegistered: Boolean(unwrapped.isRegistered) || registeredFromDetail,
+              });
+            }
           }
           // 401 = not logged in; event stays null → show "войдите" state below
         }
 
         if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
           const d = await feedRes.value.json();
-          const items: FeedItem[] = Array.isArray(d) ? d : (d?.items ?? []);
-          // Cross-reference: feed has isRegistered; detail endpoint may not
-          const thisItem = (items as Array<FeedItem & { isRegistered?: boolean }>)
-            .find((e) => e.id === id);
-          if (active && thisItem?.isRegistered) {
+          const items: FeedItem[] = parseFeedItems(d) as FeedItem[];
+          const thisItem = items.find((e) => e.id === id);
+          const registeredFromFeed = thisItem ? isRegisteredOnEventItem(thisItem) : false;
+          if (active && registeredFromFeed) {
             setEvent((prev) =>
               prev ? { ...prev, isRegistered: true } : prev
             );
