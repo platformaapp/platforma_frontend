@@ -21,8 +21,11 @@ import {
   bindPaymentMethod,
   deleteCurrentPaymentMethod,
   deletePaymentMethod,
+  getPaymentMethods,
   getStudentPayments,
   MAX_CARDS,
+  PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
+  PENDING_CARD_BINDING_PAYMENT_ID_KEY,
   setDefaultPaymentMethod,
   type Card,
   type PaymentHistoryItem,
@@ -115,14 +118,20 @@ export default function PaymentsScreen() {
   );
 
   const pendingCallbackRef = useRef(false);
-  // Stores orderId + attachmentId between browser open and callback navigation
-  const pendingBindParams = useRef<{ orderId?: string; attachmentId?: string }>({});
+  const pendingBindParams = useRef<{
+    yookassaPaymentId?: string;
+    initialCardCount?: number;
+  }>({});
 
   const navigateToCallback = () => {
-    const { orderId, attachmentId } = pendingBindParams.current;
+    const { yookassaPaymentId, initialCardCount } = pendingBindParams.current;
     router.push({
       pathname: '/(tabs)/profile/payment-methods-callback',
-      params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '' },
+      params: {
+        yookassaPaymentId: yookassaPaymentId ?? '',
+        orderId: yookassaPaymentId ?? '',
+        initialCardCount: String(initialCardCount ?? 0),
+      },
     });
   };
 
@@ -134,15 +143,22 @@ export default function PaymentsScreen() {
     }
     setIsLinking(true);
     try {
-      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
-      pendingBindParams.current = { orderId, attachmentId };
-      // Save to localStorage so the web callback page (opened in browser by YooKassa)
-      // can read payment_id even though YooKassa doesn't append it to return_url
+      let cardCountBefore = cards.length;
+      try {
+        const methods = await getPaymentMethods();
+        cardCountBefore = methods.length;
+      } catch {
+        /* use cards.length */
+      }
+
+      const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      const paymentId = yookassaPaymentId;
+      pendingBindParams.current = { yookassaPaymentId: paymentId, initialCardCount: cardCountBefore };
       try {
         const ls = (globalThis as any)?.localStorage;
-        if (ls) {
-          if (orderId) ls.setItem('pending_payment_id', orderId);
-          if (attachmentId) ls.setItem('pending_attachment_id', attachmentId);
+        if (ls && paymentId) {
+          ls.setItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY, paymentId);
+          ls.setItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY, String(cardCountBefore));
         }
       } catch { /* ignore */ }
       pendingCallbackRef.current = true;
@@ -155,6 +171,11 @@ export default function PaymentsScreen() {
     } catch (e: unknown) {
       pendingCallbackRef.current = false;
       pendingBindParams.current = {};
+      try {
+        const ls = (globalThis as any)?.localStorage;
+        ls?.removeItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY);
+        ls?.removeItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
+      } catch { /* ignore */ }
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;

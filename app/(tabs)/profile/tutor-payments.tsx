@@ -20,7 +20,13 @@ import {
   type Payment,
   type PaymentsSummary,
 } from '@/lib/api/tutor';
-import { bindPaymentMethod, deleteCurrentPaymentMethod } from '@/lib/api/student-payments';
+import {
+  bindPaymentMethod,
+  deleteCurrentPaymentMethod,
+  getPaymentMethods,
+  PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
+  PENDING_CARD_BINDING_PAYMENT_ID_KEY,
+} from '@/lib/api/student-payments';
 import * as WebBrowser from 'expo-web-browser';
 
 function formatDate(iso: string): string {
@@ -169,11 +175,33 @@ export default function TutorPaymentsScreen() {
     if (isLinking) return;
     setIsLinking(true);
     try {
-      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      let cardCountBefore = 0;
+      try {
+        const methods = await getPaymentMethods();
+        cardCountBefore = methods.length;
+      } catch {
+        /* ignore */
+      }
+      const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      const paymentId = yookassaPaymentId;
+      try {
+        const ls = (globalThis as any)?.localStorage;
+        if (ls && paymentId) {
+          ls.setItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY, paymentId);
+          ls.setItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY, String(cardCountBefore));
+        }
+      } catch {
+        /* ignore */
+      }
       setEditModalVisible(false);
       router.push({
         pathname: '/(tabs)/profile/payment-methods-callback',
-        params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '', returnTo: 'tutor-payments' },
+        params: {
+          yookassaPaymentId: paymentId ?? '',
+          orderId: paymentId ?? '',
+          initialCardCount: String(cardCountBefore),
+          returnTo: 'tutor-payments',
+        },
       });
       WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {

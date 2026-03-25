@@ -1,110 +1,130 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthError } from '@/lib/api/auth-error';
-import { confirmCardBinding, getPaymentMethods } from '@/lib/api/student-payments';
+import { fetchPaymentBindingCallback, getPaymentMethods } from '@/lib/api/student-payments';
 
-const POLL_INTERVAL_MS = 2000;
-const POLL_TIMEOUT_MS = 30000;
+type ScreenStatus = 'loading' | 'success' | 'error' | 'fallback';
 
 export default function PaymentMethodsCallbackScreen() {
   const router = useRouter();
-  const { orderId, attachmentId, returnTo } = useLocalSearchParams<{
+  const { yookassaPaymentId, orderId, returnTo, initialCardCount } = useLocalSearchParams<{
+    yookassaPaymentId?: string;
     orderId?: string;
-    attachmentId?: string;
     returnTo?: string;
+    initialCardCount?: string;
   }>();
-  const [status, setStatus] = useState<'loading' | 'success' | 'not_found'>('loading');
-  const initialCountRef = useRef<number | null>(null);
-  const cardFoundRef = useRef(false);
+  const [status, setStatus] = useState<ScreenStatus>('loading');
+  const [message, setMessage] = useState('Обрабатываем привязку карты...');
+  const ranRef = useRef(false);
 
   const paymentsRoute = returnTo === 'tutor-payments'
     ? '/(tabs)/profile/tutor-payments'
     : '/(tabs)/profile/payments';
 
+  const baselineCount = (() => {
+    const n = parseInt(initialCardCount ?? '0', 10);
+    return Number.isFinite(n) ? n : 0;
+  })();
+
+  const effectivePaymentId =
+    (yookassaPaymentId && String(yookassaPaymentId)) ||
+    (orderId && String(orderId)) ||
+    '';
+
   useEffect(() => {
-    let pollInterval: ReturnType<typeof setInterval> | null = null;
-    let timeout: ReturnType<typeof setTimeout> | null = null;
+    if (ranRef.current) return;
+    ranRef.current = true;
 
-    const poll = async () => {
+    const goPayments = () => {
+      setTimeout(() => router.replace(paymentsRoute as never), 1500);
+    };
+
+    const run = async () => {
+      if (!effectivePaymentId) {
+        setStatus('fallback');
+        setMessage('Нет данных о платеже. Проверьте статус вручную.');
+        return;
+      }
       try {
-        const methods = await getPaymentMethods();
-        const count = methods.length;
-
-        if (initialCountRef.current === null) {
-          initialCountRef.current = count;
-        }
-
-        if (count > initialCountRef.current) {
-          cardFoundRef.current = true;
+        const result = await fetchPaymentBindingCallback(effectivePaymentId);
+        if (result.status === 'succeeded') {
           setStatus('success');
-          if (pollInterval) clearInterval(pollInterval);
-          if (timeout) clearTimeout(timeout);
-          setTimeout(() => router.replace(paymentsRoute as never), 1500);
+          setMessage('Карта успешно привязана!');
+          goPayments();
+        } else {
+          setStatus('error');
+          setMessage(result.message || 'Ошибка привязки карты');
+          setTimeout(() => router.replace(paymentsRoute as never), 2000);
         }
       } catch (e) {
         if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
           router.replace('/login');
           return;
         }
+        setStatus('fallback');
+        setMessage((e as Error)?.message ?? 'Не удалось подтвердить привязку.');
       }
     };
 
-    const triggerConfirmation = async () => {
-      try {
-        await confirmCardBinding(orderId || undefined, attachmentId || undefined);
-      } catch (e) {
-        if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
-          router.replace('/login');
-          return;
-        }
-      }
-    };
-
-    // When the app comes back to the foreground (user closed the browser after
-    // entering the card on YooKassa), call confirmation — the payment is now
-    // succeeded and the backend can verify it and save the card.
-    const appStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') {
-        triggerConfirmation();
-      }
-    });
-
-    pollInterval = setInterval(poll, POLL_INTERVAL_MS);
-    poll();
-
-    timeout = setTimeout(() => {
-      if (pollInterval) clearInterval(pollInterval);
-      if (!cardFoundRef.current) {
-        setStatus('not_found');
-      }
-    }, POLL_TIMEOUT_MS);
-
-    return () => {
-      appStateSub.remove();
-      if (pollInterval) clearInterval(pollInterval);
-      if (timeout) clearTimeout(timeout);
-    };
+    run();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCheckStatus = async () => {
+    setStatus('loading');
+    setMessage('Проверяем карты...');
+    try {
+      const methods = await getPaymentMethods();
+      if (methods.length > baselineCount) {
+        setStatus('success');
+        setMessage('Карта успешно привязана!');
+        setTimeout(() => router.replace(paymentsRoute as never), 1500);
+      } else {
+        setStatus('error');
+        setMessage('Активная карта не найдена. Привяжите карту снова.');
+        setTimeout(() => router.replace(paymentsRoute as never), 2000);
+      }
+    } catch (e) {
+      if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
+        router.replace('/login');
+        return;
+      }
+      setStatus('error');
+      setMessage('Ошибка соединения');
+      setTimeout(() => router.replace(paymentsRoute as never), 2000);
+    }
+  };
+
+  const handleGoToPayments = () => {
+    router.replace(paymentsRoute as never);
+  };
 
   return (
     <View style={styles.container}>
       {status === 'loading' && (
-        <Text style={styles.text}>Обрабатываем привязку карты...</Text>
+        <Text style={styles.text}>{message}</Text>
       )}
       {status === 'success' && (
-        <Text style={styles.text}>Карта успешно привязана!</Text>
+        <Text style={styles.text}>{message}</Text>
       )}
-      {status === 'not_found' && (
+      {status === 'error' && (
         <>
-          <Text style={styles.text}>
-            Карта не появилась за 30 секунд.{'\n\n'}
-            Возможно, бэкенд ещё обрабатывает запрос — проверьте раздел «Платежи» через несколько секунд.
-          </Text>
-          <Pressable style={styles.button} onPress={() => router.replace(paymentsRoute as never)}>
+          <Text style={styles.text}>{message}</Text>
+          <Pressable style={styles.button} onPress={handleGoToPayments}>
             <Text style={styles.buttonText}>К платежам</Text>
+          </Pressable>
+        </>
+      )}
+      {status === 'fallback' && (
+        <>
+          <Text style={styles.text}>{message}</Text>
+          <Pressable style={styles.button} onPress={handleCheckStatus}>
+            <Text style={styles.buttonText}>Проверить статус привязки</Text>
+          </Pressable>
+          <Pressable style={[styles.button, styles.buttonSecondary]} onPress={handleGoToPayments}>
+            <Text style={styles.buttonTextSecondary}>К платежам</Text>
           </Pressable>
         </>
       )}
@@ -126,19 +146,29 @@ const styles = StyleSheet.create({
     color: '#181818',
     textAlign: 'center',
     lineHeight: 24,
+    marginBottom: 16,
   },
   button: {
-    marginTop: 24,
+    marginTop: 12,
     backgroundColor: '#111',
     paddingVertical: 14,
     paddingHorizontal: 32,
-    height: 52,
+    minWidth: 200,
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  buttonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
   },
   buttonText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#FAFAFA',
+  },
+  buttonTextSecondary: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
 });
