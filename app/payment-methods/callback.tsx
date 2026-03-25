@@ -1,90 +1,134 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { endpoints } from '@/constants/env';
+import {
+  fetchPaymentBindingCallback,
+  getPaymentMethods,
+  PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
+  PENDING_CARD_BINDING_PAYMENT_ID_KEY,
+} from '@/lib/api/student-payments';
+import { getAuthToken } from '@/lib/auth';
 
 /**
- * This screen is the return_url target that YooKassa redirects the user's browser
- * to after card entry: https://platformaapp.ru/payment-methods/callback
+ * return_url после YooKassa: https://platformaapp.ru/payment-methods/callback
  *
- * On the web (inside SFSafariViewController / Chrome Custom Tab):
- *   1. Reads the JWT from localStorage (saved there by the native app via auth.ts)
- *   2. Calls GET /api/student/payments/callback?orderId=... with that token
- *   3. Shows a success/wait message and closes the browser (window.close())
+ * 1) Читает pendingCardBindingPaymentId из localStorage (yookassaPaymentId с /bind)
+ * 2) GET /api/student/payments/callback?payment_id=... с Bearer
+ * 3) Редирект в приложение на экран платежей
  *
- * On native (deep-link opens the app instead of this route):
- *   Redirects immediately to the in-app callback screen.
+ * Без payment_id в storage — сразу на профиль платежей (нет активной привязки).
  */
 export default function PaymentMethodCallbackPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ orderId?: string; payment_id?: string }>();
-  const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'done' | 'fallback'>('loading');
   const [message, setMessage] = useState('Подтверждаем привязку карты...');
+  const [initialCardCount, setInitialCardCount] = useState<number | null>(null);
 
   useEffect(() => {
-    // On native this route is not reachable via return_url — the OS opens the app.
-    // Redirect to the in-app callback screen which handles everything.
     if (Platform.OS !== 'web') {
       router.replace('/(tabs)/profile/payment-methods-callback');
       return;
     }
 
-    const confirm = async () => {
+    const ls = (globalThis as any)?.localStorage;
+    const readStoredCount = (): number | null => {
       try {
-        // Read JWT from localStorage — the native app writes it there via auth.ts
-        const ls = (globalThis as any)?.localStorage;
-        const token = ls?.getItem('auth_token') || ls?.getItem('access_token');
-
-        if (!token) {
-          setMessage('Привязка карты обрабатывается. Вернитесь в приложение.');
-          setStatus('done');
-          return;
-        }
-
-        // YooKassa does NOT append orderId to return_url — read it from localStorage
-        // where it was saved before the browser was opened.
-        const paymentId =
-          params.orderId ||
-          params.payment_id ||
-          ls?.getItem('pending_payment_id');
-        const attachmentId = ls?.getItem('pending_attachment_id');
-        // Backend reads @Query('payment_id') — snake_case
-        const qs = new URLSearchParams();
-        if (paymentId) qs.set('payment_id', paymentId);
-        if (attachmentId) qs.set('attachment_id', attachmentId);
-        const qsStr = qs.toString();
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        // Clean up localStorage regardless of result
-        try { ls?.removeItem('pending_payment_id'); ls?.removeItem('pending_attachment_id'); } catch {}
-
-        if (res.ok || res.status === 500) {
-          setMessage('Карта привязана! Вернитесь в приложение.');
-          setStatus('done');
-        } else {
-          setMessage('Обработка... Вернитесь в приложение.');
-          setStatus('done');
-        }
+        const raw = ls?.getItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
+        if (raw == null || raw === '') return null;
+        const n = parseInt(raw, 10);
+        return Number.isFinite(n) ? n : null;
       } catch {
-        setMessage('Вернитесь в приложение — привязка будет проверена автоматически.');
-        setStatus('done');
-      } finally {
-        // Try to close the in-app browser automatically after a short pause
-        setTimeout(() => {
-          try { (globalThis as any)?.window?.close?.(); } catch { /* ignore */ }
-        }, 1500);
+        return null;
       }
     };
 
-    confirm();
+    const run = async () => {
+      const token = await getAuthToken();
+      if (!token) {
+        setMessage('Войдите в приложение и проверьте карты в разделе «Платежи».');
+        setStatus('done');
+        setTimeout(() => router.replace('/login'), 2000);
+        return;
+      }
+
+      const yookassaPaymentId =
+        ls?.getItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY) ||
+        ls?.getItem('pending_payment_id');
+      const storedCount = readStoredCount();
+      setInitialCardCount(storedCount);
+
+      if (!yookassaPaymentId) {
+        try {
+          ls?.removeItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
+        } catch {
+          /* ignore */
+        }
+        router.replace('/(tabs)/profile/payments');
+        return;
+      }
+
+      try {
+        const result = await fetchPaymentBindingCallback(yookassaPaymentId);
+        try {
+          ls?.removeItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY);
+          ls?.removeItem('pending_payment_id');
+          ls?.removeItem('pending_attachment_id');
+          ls?.removeItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
+        } catch {
+          /* ignore */
+        }
+
+        if (result.status === 'succeeded') {
+          setMessage('Карта успешно привязана.');
+          setStatus('done');
+        } else {
+          setMessage(result.message || 'Ошибка привязки карты');
+          setStatus('done');
+        }
+        setTimeout(() => router.replace('/(tabs)/profile/payments'), 1500);
+      } catch {
+        try {
+          ls?.removeItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY);
+          ls?.removeItem('pending_payment_id');
+        } catch {
+          /* ignore */
+        }
+        setMessage('Не удалось подтвердить привязку. Проверьте статус ниже.');
+        setStatus('fallback');
+      }
+    };
+
+    run();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCheckStatus = async () => {
+    setStatus('loading');
+    setMessage('Проверяем карты...');
+    try {
+      const methods = await getPaymentMethods();
+      const baseline = initialCardCount ?? 0;
+      try {
+        (globalThis as any)?.localStorage?.removeItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
+      } catch {
+        /* ignore */
+      }
+      if (methods.length > baseline) {
+        setMessage('Карта успешно привязана.');
+        setStatus('done');
+        setTimeout(() => router.replace('/(tabs)/profile/payments'), 1500);
+      } else {
+        setMessage('Активная карта не найдена. Привяжите карту снова в разделе «Платежи».');
+        setStatus('done');
+        setTimeout(() => router.replace('/(tabs)/profile/payments'), 2500);
+      }
+    } catch {
+      setMessage('Ошибка соединения. Откройте раздел «Платежи» позже.');
+      setStatus('done');
+      setTimeout(() => router.replace('/(tabs)/profile/payments'), 2000);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -94,11 +138,17 @@ export default function PaymentMethodCallbackPage() {
           <Text style={styles.text}>{message}</Text>
         </>
       )}
-      {status !== 'loading' && (
-        <Text style={styles.text}>{message}</Text>
+      {status === 'fallback' && (
+        <>
+          <Text style={styles.text}>{message}</Text>
+          <Pressable style={styles.button} onPress={handleCheckStatus}>
+            <Text style={styles.buttonText}>Проверить статус привязки</Text>
+          </Pressable>
+        </>
       )}
+      {status === 'done' && <Text style={styles.text}>{message}</Text>}
       <Text style={styles.hint}>
-        Это окно закроется автоматически.{'\n'}Если нет — закройте его вручную.
+        {status === 'loading' ? 'Это окно закроется после перехода в приложение.' : ''}
       </Text>
     </View>
   );
@@ -129,5 +179,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#9B9B9B',
     textAlign: 'center',
+  },
+  button: {
+    marginTop: 8,
+    backgroundColor: '#111',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+  },
+  buttonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#FAFAFA',
   },
 });

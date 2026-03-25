@@ -2,16 +2,21 @@
  * API для платёжных операций ученика (student).
  *
  * Привязка карт (3D-Secure через YooKassa):
- * - POST api/student/payment-methods/bind — body {} или { provider: "yookassa" }
- * - Ответ: { success, data: { confirmationUrl, attachmentId } }
- * - Редирект на confirmationUrl → пользователь вводит карту на YooKassa
- * - Webhook → бэк обновляет карту в БД, YooKassa редиректит на return_url
+ * - POST /api/student/payment-methods/bind — body {} или { provider: "yookassa" }
+ * - Ответ: { success, data: { confirmationUrl, attachmentId, yookassaPaymentId } }
+ * - Сохранить yookassaPaymentId в localStorage (pendingCardBindingPaymentId), редирект на confirmationUrl
+ * - После return_url: GET /api/student/payments/callback?payment_id=<yookassaPaymentId> (JWT)
  *
- * Важно: return_url при создании платежа должен указывать на существующий эндпоинт,
- * например GET /api/student/payment-methods/callback. GET /api/student/payments → 404.
+ * payment_id в callback — это yookassaPaymentId, не внутренний attachmentId.
  *
- * GET api/student/payment-methods — список карт: { success, data: { paymentMethods, total } }
+ * GET /api/student/payment-methods — список карт: { success, data: { paymentMethods, total } }
  */
+
+/** Ключ localStorage для id платежа YooKassa до возврата с checkout */
+export const PENDING_CARD_BINDING_PAYMENT_ID_KEY = 'pendingCardBindingPaymentId';
+
+/** Сколько карт было до привязки — для fallback «Проверить статус» на веб-callback */
+export const PENDING_CARD_BINDING_INITIAL_COUNT_KEY = 'pendingCardBindingInitialCount';
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
@@ -24,7 +29,14 @@ export interface BindCardResponse {
   data?: {
     confirmationUrl: string;
     attachmentId?: string;
+    /** Id платежа в YooKassa — его передают в GET .../payments/callback?payment_id= */
+    yookassaPaymentId?: string;
   };
+}
+
+export interface PaymentCallbackResult {
+  status?: string;
+  message?: string;
 }
 
 export interface PaymentMethod {
@@ -118,12 +130,16 @@ async function handleResponse<T>(res: Response): Promise<T> {
 const MAX_CARDS = 3;
 
 /**
- * POST api/student/payment-methods/bind — инициализация привязки карты.
+ * POST /api/student/payment-methods/bind — инициализация привязки карты.
  * Body: {} или { provider: "yookassa" }. Пользователь вводит карту на странице YooKassa.
- * Ответ: { success, data: { confirmationUrl, attachmentId } }.
- * orderId извлекается из confirmationUrl (param ?orderId=...) для последующего подтверждения.
+ * Ответ: { success, data: { confirmationUrl, attachmentId, yookassaPaymentId } }.
  */
-export async function bindPaymentMethod(body?: { provider?: string }): Promise<{ confirmationUrl: string; attachmentId?: string; orderId?: string }> {
+export async function bindPaymentMethod(body?: { provider?: string }): Promise<{
+  confirmationUrl: string;
+  attachmentId?: string;
+  yookassaPaymentId?: string;
+  orderId?: string;
+}> {
   const payload = body ?? { provider: 'yookassa' };
 
   const res = await fetch(endpoints.studentPaymentMethodsBind, {
@@ -139,7 +155,7 @@ export async function bindPaymentMethod(body?: { provider?: string }): Promise<{
     throw new Error((data as { message?: string }).message ?? 'Не удалось получить ссылку для привязки');
   }
 
-  // Extract orderId from confirmationUrl query string (e.g. ?orderId=3142803d-...)
+  // Fallback: orderId из URL checkout (если бэкенд не прислал yookassaPaymentId)
   let orderId: string | undefined;
   try {
     orderId = new URL(data.data.confirmationUrl).searchParams.get('orderId') ?? undefined;
@@ -147,36 +163,41 @@ export async function bindPaymentMethod(body?: { provider?: string }): Promise<{
     // ignore URL parse errors
   }
 
+  const yookassaPaymentId = data.data.yookassaPaymentId ?? orderId;
+
   return {
     confirmationUrl: data.data.confirmationUrl,
     attachmentId: data.data.attachmentId,
+    yookassaPaymentId,
     orderId,
   };
 }
 
 /**
- * GET api/student/payments/callback — подтверждение привязки карты после возврата из YooKassa.
- * Бэкенд ожидает параметр paymentId (=orderId из confirmationUrl).
- * LOG: "Processing payment callback for: undefined" означал что параметр назывался неверно.
+ * GET /api/student/payments/callback — синхронная проверка статуса привязки после возврата из YooKassa.
+ * Query: payment_id = yookassaPaymentId (не attachmentId).
  */
-export async function confirmCardBinding(orderId?: string, attachmentId?: string): Promise<void> {
+export async function fetchPaymentBindingCallback(yookassaPaymentId: string): Promise<PaymentCallbackResult> {
   const params = new URLSearchParams();
-  // Backend reads @Query('payment_id') — snake_case, NOT camelCase paymentId.
-  // LOG evidence: "Processing payment callback for: undefined" even with ?paymentId=X
-  if (orderId) params.set('payment_id', orderId);
-  if (attachmentId) params.set('attachment_id', attachmentId);
-  const qs = params.toString();
-  const url = `${endpoints.studentPaymentsCallback}${qs ? '?' + qs : ''}`;
+  params.set('payment_id', yookassaPaymentId);
+  const url = `${endpoints.studentPaymentsCallback}?${params.toString()}`;
 
-  try {
-    const res = await fetch(url, { headers: await authHeaders() });
-    if (res.status === 401) await handle401(res, null);
-    // 500 means the backend can't confirm yet (payment may still be processing) — not fatal
-  } catch (e) {
-    // Re-throw AuthErrors so the caller can redirect to login
-    if ((e as { name?: string })?.name === 'AuthError') throw e;
-    // All other errors are ignored — we fall back to polling
+  const res = await fetch(url, { headers: await authHeaders() });
+  const contentType = res.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  const payload = isJson ? await res.json() : await res.text();
+
+  if (res.status === 401) await handle401(res, payload);
+
+  if (!res.ok) {
+    const msg =
+      typeof payload === 'string'
+        ? payload
+        : (payload as { message?: string })?.message ?? 'Ошибка при подтверждении привязки';
+    throw new Error(msg);
   }
+
+  return (typeof payload === 'object' && payload !== null ? payload : {}) as PaymentCallbackResult;
 }
 
 /** Максимум карт на пользователя */

@@ -7,20 +7,28 @@ import Svg, { Path } from 'react-native-svg';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AuthError } from '@/lib/api/auth-error';
-import { bindPaymentMethod } from '@/lib/api/student-payments';
+import {
+  bindPaymentMethod,
+  PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
+  PENDING_CARD_BINDING_PAYMENT_ID_KEY,
+} from '@/lib/api/student-payments';
 
 export default function RegistrationCompleteScreen() {
   const router = useRouter();
   const [isLinking, setIsLinking] = useState(false);
 
   const pendingCallbackRef = useRef(false);
-  const pendingBindParams = useRef<{ orderId?: string; attachmentId?: string }>({});
+  const pendingBindParams = useRef<{ yookassaPaymentId?: string }>({});
 
   const navigateToCallback = () => {
-    const { orderId, attachmentId } = pendingBindParams.current;
+    const { yookassaPaymentId } = pendingBindParams.current;
     router.push({
       pathname: '/(tabs)/profile/payment-methods-callback',
-      params: { orderId: orderId ?? '', attachmentId: attachmentId ?? '' },
+      params: {
+        yookassaPaymentId: yookassaPaymentId ?? '',
+        orderId: yookassaPaymentId ?? '',
+        initialCardCount: '0',
+      },
     });
   };
 
@@ -28,13 +36,14 @@ export default function RegistrationCompleteScreen() {
     if (isLinking) return;
     setIsLinking(true);
     try {
-      const { confirmationUrl, orderId, attachmentId } = await bindPaymentMethod({ provider: 'yookassa' });
-      pendingBindParams.current = { orderId, attachmentId };
+      const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      const paymentId = yookassaPaymentId;
+      pendingBindParams.current = { yookassaPaymentId: paymentId };
       try {
         const ls = (globalThis as any)?.localStorage;
-        if (ls) {
-          if (orderId) ls.setItem('pending_payment_id', orderId);
-          if (attachmentId) ls.setItem('pending_attachment_id', attachmentId);
+        if (ls && paymentId) {
+          ls.setItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY, paymentId);
+          ls.setItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY, '0');
         }
       } catch { /* ignore */ }
       pendingCallbackRef.current = true;
@@ -47,6 +56,11 @@ export default function RegistrationCompleteScreen() {
     } catch (e: unknown) {
       pendingCallbackRef.current = false;
       pendingBindParams.current = {};
+      try {
+        const ls = (globalThis as any)?.localStorage;
+        ls?.removeItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY);
+        ls?.removeItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
+      } catch { /* ignore */ }
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
