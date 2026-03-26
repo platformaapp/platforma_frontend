@@ -353,15 +353,34 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
   );
 }
 
+/** Слот тьютора, видимый студенту: GET /api/student/tutors/:tutorId/slots */
+export interface StudentSlot {
+  id: string;
+  date: string;  // YYYY-MM-DD
+  time: string;  // HH:mm
+  price?: number;
+  status: SlotStatus;
+}
+
+/**
+ * GET /api/student/tutors/:tutorId/slots — свободные будущие слоты тьютора.
+ * Доступен студентам. Возвращает только слоты со статусом free/available.
+ */
+export async function getStudentTutorSlots(tutorId: string): Promise<StudentSlot[]> {
+  const url = `${endpoints.studentTutorSlotsBase}/${tutorId}/slots`;
+  const res = await fetch(url, {
+    headers: await authHeaders(),
+  });
+  const data = await handleResponse<StudentSlot[] | { slots?: StudentSlot[]; data?: StudentSlot[] }>(res);
+  if (Array.isArray(data)) return data;
+  return (data as { slots?: StudentSlot[]; data?: StudentSlot[] }).slots
+    ?? (data as { slots?: StudentSlot[]; data?: StudentSlot[] }).data
+    ?? [];
+}
+
 /**
  * GET /api/student/bookings — бронирования студента.
  * POST /api/student/bookings { slotId } — забронировать слот.
- *
- * ПРИМЕЧАНИЕ: Публичного эндпоинта для получения слотов конкретного
- * наставника со стороны студента пока нет.
- * GET /api/tutor/slots возвращает 403 для студентов.
- * Когда бэкенд добавит эндпоинт (например GET /api/student/tutor/{id}/slots),
- * подключить его здесь.
  */
 export async function bookTutorSlot(slotId: string): Promise<void> {
   const res = await fetch(endpoints.studentBookings, {

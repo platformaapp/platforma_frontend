@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 
-import { bookTutorSlot, getPublicTutorList } from '@/lib/api/tutor';
+import { bookTutorSlot, getPublicTutorList, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthRole } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
@@ -29,37 +29,17 @@ const SLOT_WIDTH =
 
 type SlotItem = {
   id: string;
-  date: string;
-  time: string;
+  date: string;  // DD.MM для отображения
+  time: string;  // HH:mm
+  price?: number;
   status: 'available' | 'booked' | 'pending';
 };
 
-// Demo slots — replace with real API when backend exposes GET /api/student/tutor/{id}/slots
-function generateDemoSlots(tutorId: string): SlotItem[] {
-  const base = new Date();
-  const slots: SlotItem[] = [];
-  const times = ['18:00', '20:00'];
-  const statuses: SlotItem['status'][] = [
-    'available', 'available', 'pending', 'available', 'available',
-    'pending', 'available', 'available', 'available', 'available',
-  ];
-  for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {
-    const d = new Date(base);
-    d.setDate(d.getDate() + dayOffset);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const dateStr = `${day}.${month}`;
-    times.forEach((time, ti) => {
-      const idx = (dayOffset - 1) * times.length + ti;
-      slots.push({
-        id: `${tutorId}-${dayOffset}-${time}`,
-        date: dateStr,
-        time,
-        status: statuses[idx % statuses.length],
-      });
-    });
-  }
-  return slots;
+function formatSlotDate(apiDate: string): string {
+  // YYYY-MM-DD → DD.MM
+  const parts = apiDate.split('-');
+  if (parts.length === 3) return `${parts[2]}.${parts[1]}`;
+  return apiDate;
 }
 
 export default function TutorCardScreen() {
@@ -76,6 +56,9 @@ export default function TutorCardScreen() {
   const [isTutor, setIsTutor] = useState(false);
 
   const [showSlots, setShowSlots] = useState(false);
+  const [slots, setSlots] = useState<SlotItem[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
   const [selectedSlot, setSelectedSlot] = useState<SlotItem | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [isShareVisible, setShareVisible] = useState(false);
@@ -122,8 +105,27 @@ export default function TutorCardScreen() {
     return () => { active = false; };
   }, [id]);
 
-  const slots = generateDemoSlots(id ?? 'demo');
   const imageSource = avatarUrl ? { uri: avatarUrl } : PLACEHOLDER_AVATAR;
+
+  const handleOpenSlots = async () => {
+    setShowSlots(true);
+    setLoadingSlots(true);
+    setSlotsError('');
+    try {
+      const apiSlots = await getStudentTutorSlots(id ?? '');
+      setSlots(apiSlots.map((s) => ({
+        id: s.id,
+        date: formatSlotDate(s.date),
+        time: s.time,
+        price: s.price,
+        status: s.status === 'free' || s.status === 'available' ? 'available' : 'booked',
+      })));
+    } catch (e: any) {
+      setSlotsError(e?.message ?? 'Не удалось загрузить слоты');
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
 
   const handleSelectSlot = (slot: SlotItem) => {
     if (slot.status !== 'available') return;
@@ -184,7 +186,7 @@ export default function TutorCardScreen() {
 
       {/* Booking button — hidden for tutors */}
       {!isTutor ? (
-        <Pressable style={styles.primaryButton} onPress={() => setShowSlots(true)}>
+        <Pressable style={styles.primaryButton} onPress={handleOpenSlots}>
           <Text style={styles.primaryButtonText}>Записаться на встречу</Text>
         </Pressable>
       ) : (
@@ -210,27 +212,41 @@ export default function TutorCardScreen() {
         <Pressable style={styles.overlay} onPress={() => setShowSlots(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>СВОБОДНЫЕ СЛОТЫ{'\n'}ДЛЯ ЗАПИСИ</Text>
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.slotScroll} contentContainerStyle={styles.slotGrid}>
-              {slots.map((slot) => {
-                const isAvailable = slot.status === 'available';
-                const isPending = slot.status === 'pending';
-                return (
-                  <Pressable
-                    key={slot.id}
-                    onPress={() => handleSelectSlot(slot)}
-                    style={[styles.slotCard, !isAvailable && styles.slotCardUnavailable]}
-                  >
-                    {isPending && (
-                      <View style={styles.slotBadge}>
-                        <Text style={styles.slotBadgeText}>?</Text>
-                      </View>
-                    )}
-                    <Text style={[styles.slotDate, !isAvailable && styles.slotTextMuted]}>{slot.date}</Text>
-                    <Text style={[styles.slotTime, !isAvailable && styles.slotTextMuted]}>{slot.time}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            {loadingSlots ? (
+              <View style={styles.slotsCentered}>
+                <ActivityIndicator size="small" color="#181818" />
+              </View>
+            ) : slotsError ? (
+              <View style={styles.slotsCentered}>
+                <Text style={styles.slotsErrorText}>{slotsError}</Text>
+              </View>
+            ) : slots.length === 0 ? (
+              <View style={styles.slotsCentered}>
+                <Text style={styles.slotsEmptyText}>Нет доступных слотов</Text>
+              </View>
+            ) : (
+              <ScrollView showsVerticalScrollIndicator={false} style={styles.slotScroll} contentContainerStyle={styles.slotGrid}>
+                {slots.map((slot) => {
+                  const isAvailable = slot.status === 'available';
+                  const isPending = slot.status === 'pending';
+                  return (
+                    <Pressable
+                      key={slot.id}
+                      onPress={() => handleSelectSlot(slot)}
+                      style={[styles.slotCard, !isAvailable && styles.slotCardUnavailable]}
+                    >
+                      {isPending && (
+                        <View style={styles.slotBadge}>
+                          <Text style={styles.slotBadgeText}>?</Text>
+                        </View>
+                      )}
+                      <Text style={[styles.slotDate, !isAvailable && styles.slotTextMuted]}>{slot.date}</Text>
+                      <Text style={[styles.slotTime, !isAvailable && styles.slotTextMuted]}>{slot.time}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
             <Pressable style={styles.sheetSecondaryButton} onPress={() => setShowSlots(false)}>
               <Text style={styles.sheetSecondaryButtonText}>Закрыть</Text>
             </Pressable>
@@ -250,7 +266,11 @@ export default function TutorCardScreen() {
               <View style={styles.bookingCardBottom}>
                 <Text style={styles.bookingCardDateTime}>{selectedSlot?.date} {selectedSlot?.time}</Text>
                 <View style={styles.bookingCardDivider} />
-                <Text style={styles.bookingCardPrice}>2 500 ₽</Text>
+                <Text style={styles.bookingCardPrice}>
+                  {selectedSlot?.price != null
+                    ? `${selectedSlot.price.toLocaleString('ru-RU')} ₽`
+                    : displayPrice || '—'}
+                </Text>
               </View>
             </View>
             <Pressable
@@ -348,6 +368,9 @@ const styles = StyleSheet.create({
   sheetSecondaryButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#181818' },
 
   // Slot grid
+  slotsCentered: { height: 120, alignItems: 'center', justifyContent: 'center' },
+  slotsErrorText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },
+  slotsEmptyText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
   slotScroll: { maxHeight: 280 },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SLOT_GAP, paddingBottom: 4 },
   slotCard: { width: SLOT_WIDTH, height: SLOT_WIDTH * 0.9, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', position: 'relative' },
