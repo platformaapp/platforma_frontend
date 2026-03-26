@@ -70,13 +70,16 @@ export interface Card {
 
 export interface PaymentHistoryItem {
   id: string;
-  tutor?: string;           // tutor name (for slot bookings)
-  title?: string;           // event title (for events)
-  subtitle?: string;        // e.g. "Мероприятие 13.06.25 18:00" or "Сессия 13.06.25 20:00"
+  tutor?: string;           // tutor / counterparty display
+  title?: string;           // event title or session label
+  subtitle?: string;        // e.g. kind label + date
   amount: number;
   status: 'success' | 'failed' | 'pending';
   created_at: string;
   type?: 'event' | 'session';
+  /** Из GET /student/payments: session | event */
+  kind?: 'session' | 'event';
+  eventId?: string;
 }
 
 export interface StudentPaymentsResponse {
@@ -128,7 +131,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // --- API ---
 
-const MAX_CARDS = 3;
+/** Бэкенд: одна активная карта; при новой привязке сначала DELETE текущей */
+const MAX_CARDS = 1;
 
 /**
  * POST /api/student/payment-methods/bind — инициализация привязки карты.
@@ -232,47 +236,158 @@ function toCard(pm: PaymentMethod): Card {
   };
 }
 
+function mapApiPaymentStatus(raw: unknown): 'success' | 'failed' | 'pending' {
+  const s = typeof raw === 'string' ? raw.toLowerCase() : '';
+  if (['success', 'succeeded', 'paid', 'completed', 'complete'].includes(s)) return 'success';
+  if (['failed', 'error', 'cancelled', 'canceled'].includes(s)) return 'failed';
+  return 'pending';
+}
+
+function mapPaymentRow(raw: Record<string, unknown>): PaymentHistoryItem {
+  const kind = (raw.kind as string)?.toLowerCase();
+  const isEvent = kind === 'event';
+  const eventId =
+    (raw.eventId as string) ??
+    (raw.event_id as string) ??
+    (isEvent ? String(raw.id ?? '') : undefined);
+
+  const tutorName =
+    (raw.tutorName as string) ??
+    (raw.tutor_name as string) ??
+    (raw.counterpartyName as string) ??
+    (raw.counterparty_name as string) ??
+    '';
+
+  let title =
+    (raw.eventTitle as string) ??
+    (raw.event_title as string) ??
+    (raw.title as string);
+  if (!title && isEvent) title = String(raw.description ?? '');
+  if (!title) title = kind === 'session' ? 'Сессия с наставником' : 'Платёж';
+
+  const amount =
+    typeof raw.amount === 'number'
+      ? raw.amount
+      : typeof raw.sum === 'number'
+        ? raw.sum
+        : typeof raw.total === 'number'
+          ? raw.total
+          : 0;
+
+  const created =
+    (raw.created_at as string) ??
+    (raw.createdAt as string) ??
+    (raw.date as string) ??
+    new Date().toISOString();
+
+  const subtitleParts: string[] = [];
+  if (kind === 'event') subtitleParts.push('Мероприятие');
+  else if (kind === 'session') subtitleParts.push('Сессия');
+  const statusRaw = raw.status ?? raw.payment_status;
+  return {
+    id: String(raw.id ?? ''),
+    title,
+    tutor: tutorName || undefined,
+    subtitle: subtitleParts.length ? subtitleParts.join(' · ') : undefined,
+    amount,
+    status: mapApiPaymentStatus(statusRaw),
+    created_at: created,
+    type: isEvent ? 'event' : 'session',
+    kind: kind === 'event' ? 'event' : kind === 'session' ? 'session' : undefined,
+    eventId,
+  };
+}
+
+/**
+ * GET /api/student/payments?page=&limit= — история оплат (сессии + мероприятия).
+ * ok: true если ответ успешный и тело разобрано (даже при пустом списке).
+ */
+export async function fetchStudentPaymentHistory(
+  page = 1,
+  limit = 50
+): Promise<{ items: PaymentHistoryItem[]; ok: boolean }> {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('limit', String(limit));
+
+  const res = await fetch(`${endpoints.studentPayments}?${params.toString()}`, {
+    headers: await authHeaders(),
+  });
+
+  if (res.status === 404) return { items: [], ok: false };
+
+  const contentType = res.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  const payload = isJson ? await res.json() : await res.text();
+
+  if (!res.ok) {
+    if (res.status === 401) await handle401(res, payload);
+    return { items: [], ok: false };
+  }
+
+  const root = (typeof payload === 'object' && payload !== null ? payload : {}) as Record<string, unknown>;
+  const rawList = root.data ?? root.items ?? root.payments ?? [];
+  const rows = Array.isArray(rawList) ? rawList : [];
+  const items = rows.map((row) =>
+    mapPaymentRow(typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {})
+  );
+  return { items, ok: true };
+}
+
+/**
+ * Fallback: история из feed, если GET /student/payments недоступен.
+ */
+async function historyFromFeed(headers: HeadersInit): Promise<PaymentHistoryItem[]> {
+  try {
+    const feedRes = await fetch(endpoints.eventsFeed, { headers });
+    if (!feedRes.ok) return [];
+    const data = await feedRes.json();
+    const items = parseFeedItems(data) as Array<Record<string, any>>;
+    return items
+      .filter((e) => isRegisteredOnEventItem(e))
+      .map((e) => {
+        const start = e.datetimeStart ?? e.datetime_start;
+        const d = start ? new Date(start as string) : null;
+        const dateStr = d
+          ? `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+          : '';
+        const paid = e.isPaid ?? e.is_paid ?? e.paid;
+        const mentor = e.mentor as { name?: string } | undefined;
+        return {
+          id: String(e.id),
+          title: (e.title as string) ?? '',
+          subtitle: dateStr ? `Мероприятие ${dateStr}` : undefined,
+          tutor: mentor?.name,
+          amount: typeof e.price === 'number' ? e.price : 0,
+          status: (paid ? 'success' : 'pending') as 'success' | 'failed' | 'pending',
+          created_at: (start as string) ?? new Date().toISOString(),
+          type: 'event' as const,
+          kind: 'event' as const,
+          eventId: String(e.id),
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
 /**
  * GET — список карт + история платежей.
- * Карты: GET /api/student/payment-methods (работает).
- * История: GET /api/events/feed (isRegistered=true) — временный источник
- * пока бэкенд не добавит /api/student/payments (сейчас 404).
+ * Карты: GET /api/student/payment-methods.
+ * История: GET /api/student/payments; если эндпоинт недоступен — fallback на feed.
  */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
   const headers = await authHeaders();
   const methods = await getPaymentMethods();
   const cards = methods.map(toCard);
 
-  // История: зарегистрированные события из feed (тот же контракт, что в myevents / event detail)
   let history: PaymentHistoryItem[] = [];
   try {
-    const feedRes = await fetch(endpoints.eventsFeed, { headers });
-    if (feedRes.ok) {
-      const data = await feedRes.json();
-      const items = parseFeedItems(data) as Array<Record<string, any>>;
-      history = items
-        .filter((e) => isRegisteredOnEventItem(e))
-        .map((e) => {
-          const start = e.datetimeStart ?? e.datetime_start;
-          const d = start ? new Date(start as string) : null;
-          const dateStr = d
-            ? `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-            : '';
-          const paid = e.isPaid ?? e.is_paid ?? e.paid;
-          const mentor = e.mentor as { name?: string } | undefined;
-          return {
-            id: String(e.id),
-            title: (e.title as string) ?? '',
-            subtitle: dateStr ? `Мероприятие ${dateStr}` : undefined,
-            tutor: mentor?.name,
-            amount: typeof e.price === 'number' ? e.price : 0,
-            status: (paid ? 'success' : 'pending') as 'success' | 'failed' | 'pending',
-            created_at: (start as string) ?? new Date().toISOString(),
-            type: 'event' as const,
-          };
-        });
-    }
-  } catch { /* ignore */ }
+    const { items, ok } = await fetchStudentPaymentHistory(1, 50);
+    history = ok ? items : await historyFromFeed(headers);
+  } catch {
+    history = await historyFromFeed(headers);
+  }
 
   return { cards, history };
 }

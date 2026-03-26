@@ -14,21 +14,14 @@ import {
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
-import { isRegisteredOnEventItem, parseFeedItems } from '@/lib/event-feed';
+import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type EventItem = {
-  id: string;
-  title: string;
-  description?: string;
+type EventItem = MyEventItem & {
+  /** для UI: дата начала как в ленте */
   datetimeStart?: string;
-  price?: number;
-  coverUrl?: string | null;
   mentor?: { id: string; name: string; avatarUrl?: string | null };
-  status?: string;
-  isRegistered?: boolean;
-  isPaid?: boolean;
 };
 
 type BookingItem = {
@@ -89,15 +82,26 @@ export default function MyEventsScreen() {
 
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
-      const [feedRes, bookRes] = await Promise.allSettled([
-        fetch(endpoints.eventsFeed, { headers }),
+      const [myEventsRes, bookRes] = await Promise.allSettled([
+        getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 }),
         fetch(endpoints.studentBookings, { headers }),
       ]);
 
-      if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
-        const data = await feedRes.value.json();
-        const items: EventItem[] = parseFeedItems(data) as EventItem[];
-        setEvents(items.filter((e) => isRegisteredOnEventItem(e)));
+      if (myEventsRes.status === 'fulfilled') {
+        const { items } = myEventsRes.value;
+        const mapped: EventItem[] = items.map((it) => {
+          const start = it.start_at ?? it.startAt;
+          return {
+            ...it,
+            datetimeStart: start,
+            mentor: { id: '', name: teacherName(it.teacher) },
+          };
+        });
+        setEvents(mapped);
+      } else {
+        setEvents([]);
+        const err = myEventsRes.reason;
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить мои мероприятия');
       }
 
       if (bookRes.status === 'fulfilled' && bookRes.value.ok) {
@@ -137,6 +141,9 @@ export default function MyEventsScreen() {
         )}
         <View style={styles.cardTitleBox}>
           <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+          {item.status ? (
+            <Text style={styles.eventStatus}>{translateEventStatus(item.status)}</Text>
+          ) : null}
         </View>
       </View>
       <View style={styles.cardBottom}>
@@ -182,6 +189,17 @@ export default function MyEventsScreen() {
       </View>
     );
   };
+
+  function translateEventStatus(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'Ожидает оплаты',
+      confirmed: 'Подтверждено',
+      cancelled: 'Отменено',
+      completed: 'Завершено',
+      paid: 'Оплачено',
+    };
+    return map[s.toLowerCase()] ?? s;
+  }
 
   function translateStatus(s: string): string {
     const map: Record<string, string> = {
@@ -344,6 +362,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  eventStatus: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
   },
   bookingStatus: {
     marginTop: 4,

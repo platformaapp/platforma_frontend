@@ -138,7 +138,10 @@ export default function PaymentsScreen() {
   const handleLinkCard = async () => {
     if (isLinking) return;
     if (cards.length >= MAX_CARDS) {
-      Alert.alert('Внимание', `Максимум ${MAX_CARDS} карты на пользователя`);
+      Alert.alert(
+        'Внимание',
+        'Можно привязать только одну карту. Удалите текущую, чтобы привязать новую.'
+      );
       return;
     }
     setIsLinking(true);
@@ -314,7 +317,7 @@ export default function PaymentsScreen() {
           </Pressable>
         ) : (
           <View style={styles.linkRowDisabled}>
-            <Text style={styles.linkTextDisabled}>Максимум {MAX_CARDS} карты</Text>
+            <Text style={styles.linkTextDisabled}>Уже привязана карта — удалите её, чтобы добавить новую</Text>
           </View>
         )}
 
@@ -327,8 +330,18 @@ export default function PaymentsScreen() {
               : item.status === 'failed' ? styles.historyStatusFailed
               : styles.historyStatusPending;
             const shortId = item.id.replace(/-/g, '').slice(0, 5).toUpperCase();
+            const openEvent =
+              item.kind === 'event' && item.eventId
+                ? () => router.push(`/(tabs)/events/${item.eventId}` as any)
+                : undefined;
+
             return (
-              <View key={item.id} style={styles.historyCard}>
+              <Pressable
+                key={item.id}
+                style={styles.historyCard}
+                onPress={openEvent}
+                disabled={!openEvent}
+              >
                 <View style={styles.historyCardHeader}>
                   <Text style={styles.historyNumber}>№{shortId}</Text>
                   <Text style={[styles.historyStatusLabel, statusStyle]}>{statusLabel}</Text>
@@ -343,7 +356,7 @@ export default function PaymentsScreen() {
                   <Text style={styles.historyDate}>{formatDate(item.created_at)}</Text>
                   <Text style={styles.historyAmount}>{formatAmount(item.amount)}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })
         ) : (

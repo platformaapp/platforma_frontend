@@ -30,6 +30,8 @@ export const endpoints = {
   // Events (события)
   events: `${API_BASE}/api/events`,
   eventsFeed: `${API_BASE}/api/events/feed`,
+  /** Мои мероприятия / session_based (студент): GET ?role=student&filter=... */
+  eventsMy: `${API_BASE}/api/events/my`,
 
   // Student → booking slots (личные встречи с наставниками)
   studentBookings: `${API_BASE}/api/student/bookings`,
