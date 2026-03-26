@@ -21,6 +21,7 @@ export const PENDING_CARD_BINDING_INITIAL_COUNT_KEY = 'pendingCardBindingInitial
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { handle401 } from '@/lib/api/auth-error';
+import { isRegisteredOnEventItem, parseFeedItems } from '@/lib/event-feed';
 
 // --- Типы ---
 
@@ -242,30 +243,31 @@ export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
   const methods = await getPaymentMethods();
   const cards = methods.map(toCard);
 
-  // Build payment history from registered events (static import, no dynamic)
+  // История: зарегистрированные события из feed (тот же контракт, что в myevents / event detail)
   let history: PaymentHistoryItem[] = [];
   try {
     const feedRes = await fetch(endpoints.eventsFeed, { headers });
     if (feedRes.ok) {
       const data = await feedRes.json();
-      const items: Array<Record<string, any>> = Array.isArray(data)
-        ? data
-        : (data?.items ?? []);
+      const items = parseFeedItems(data) as Array<Record<string, any>>;
       history = items
-        .filter((e) => e.isRegistered)
+        .filter((e) => isRegisteredOnEventItem(e))
         .map((e) => {
-          const d = e.datetimeStart ? new Date(e.datetimeStart) : null;
+          const start = e.datetimeStart ?? e.datetime_start;
+          const d = start ? new Date(start as string) : null;
           const dateStr = d
             ? `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getFullYear()).slice(2)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
             : '';
+          const paid = e.isPaid ?? e.is_paid ?? e.paid;
+          const mentor = e.mentor as { name?: string } | undefined;
           return {
-            id: e.id,
-            title: e.title ?? '',
+            id: String(e.id),
+            title: (e.title as string) ?? '',
             subtitle: dateStr ? `Мероприятие ${dateStr}` : undefined,
-            tutor: e.mentor?.name,
+            tutor: mentor?.name,
             amount: typeof e.price === 'number' ? e.price : 0,
-            status: (e.isPaid ? 'success' : 'pending') as 'success' | 'failed' | 'pending',
-            created_at: e.datetimeStart ?? new Date().toISOString(),
+            status: (paid ? 'success' : 'pending') as 'success' | 'failed' | 'pending',
+            created_at: (start as string) ?? new Date().toISOString(),
             type: 'event' as const,
           };
         });

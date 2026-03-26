@@ -324,13 +324,31 @@ export interface PublicTutor {
 /**
  * GET /api/users — все пользователи.
  * Фильтруем на клиенте по roles.includes('tutor').
- * Backend: не предоставляет /api/tutors или /api/users?role=tutor.
+ * Запрос без Authorization, если пользователь не вошёл — список доступен гостям.
+ * (handleResponse с 401 вызывал бы clearAuth — для публичного списка не используем.)
  */
 export async function getPublicTutorList(): Promise<PublicTutor[]> {
-  const headers = await authHeaders();
+  const token = await getAuthToken();
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
   const res = await fetch(endpoints.users, { headers });
-  const data = await handleResponse<PublicTutor[]>(res);
-  return (Array.isArray(data) ? data : []).filter((u) =>
+  const contentType = res.headers.get('content-type') || '';
+  const isJson = contentType.includes('application/json');
+  const payload = isJson ? await res.json() : await res.text();
+
+  if (!res.ok) {
+    const msg =
+      typeof payload === 'string'
+        ? payload
+        : (payload as { message?: string })?.message ??
+          (payload as { error?: string })?.error ??
+          'Не удалось загрузить наставников';
+    throw new Error(msg);
+  }
+
+  const raw = Array.isArray(payload) ? payload : (payload as { data?: unknown })?.data;
+  const list = Array.isArray(raw) ? raw : [];
+  return (list as PublicTutor[]).filter((u) =>
     Array.isArray(u.roles) && u.roles.includes('tutor')
   );
 }
