@@ -261,7 +261,7 @@ export default function PaymentsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/profile')}>
           <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
         <Text style={styles.title}>ПЛАТЕЖИ</Text>

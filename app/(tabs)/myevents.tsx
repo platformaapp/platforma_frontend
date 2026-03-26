@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Modal,
   Pressable,
@@ -90,6 +91,7 @@ export default function MyEventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [menuEvent, setMenuEvent] = useState<EventItem | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -141,6 +143,53 @@ export default function MyEventsScreen() {
   );
 
   const onRefresh = () => { setRefreshing(true); load(); };
+
+  const handleWriteToMentor = () => {
+    const mentorId = menuEvent?.mentor?.id;
+    setMenuEvent(null);
+    if (mentorId) {
+      router.push(`/(tabs)/explore/${mentorId}` as any);
+    }
+  };
+
+  const handleCancelRegistration = () => {
+    if (!menuEvent) return;
+    const eventId = menuEvent.id;
+    const eventTitle = menuEvent.title;
+    Alert.alert(
+      'Отменить запись',
+      `Вы уверены, что хотите отменить запись на «${eventTitle}»?`,
+      [
+        { text: 'Нет', style: 'cancel' },
+        {
+          text: 'Отменить запись',
+          style: 'destructive',
+          onPress: async () => {
+            setMenuEvent(null);
+            setIsCancelling(true);
+            try {
+              const token = await getAuthToken();
+              if (!token) { router.replace('/login'); return; }
+              const res = await fetch(`${endpoints.events}/${eventId}/register`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (res.ok || res.status === 404) {
+                setEvents((prev) => prev.filter((e) => e.id !== eventId));
+              } else {
+                const data = await res.json().catch(() => ({}));
+                Alert.alert('Ошибка', data?.message ?? `Не удалось отменить запись (${res.status})`);
+              }
+            } catch (e: any) {
+              Alert.alert('Ошибка', e?.message ?? 'Не удалось отменить запись');
+            } finally {
+              setIsCancelling(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // ─── Render event card ───────────────────────────────────────────────────
 
@@ -325,15 +374,18 @@ export default function MyEventsScreen() {
             </View>
             <Pressable
               style={styles.modalWriteButton}
-              onPress={() => setMenuEvent(null)}
+              onPress={handleWriteToMentor}
             >
               <Text style={styles.modalWriteButtonText}>Написать наставнику</Text>
             </Pressable>
             <Pressable
-              style={styles.modalCancelButton}
-              onPress={() => setMenuEvent(null)}
+              style={[styles.modalCancelButton, isCancelling && styles.modalCancelButtonDisabled]}
+              onPress={handleCancelRegistration}
+              disabled={isCancelling}
             >
-              <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
+              <Text style={styles.modalCancelButtonText}>
+                {isCancelling ? 'Отмена...' : 'Отменить запись'}
+              </Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -563,6 +615,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 12,
+  },
+  modalCancelButtonDisabled: {
+    opacity: 0.5,
   },
   modalCancelButtonText: {
     fontSize: 14,

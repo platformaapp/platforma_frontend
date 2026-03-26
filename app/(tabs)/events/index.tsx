@@ -14,6 +14,7 @@ import {
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
+import { isRegisteredOnEventItem } from '@/lib/event-feed';
 
 type EventFeedItem = {
   id: string;
@@ -63,12 +64,12 @@ export default function EventsScreen() {
         return;
       }
       const data = await res.json();
-      const items: EventFeedItem[] = Array.isArray(data)
+      const raw: EventFeedItem[] = Array.isArray(data)
         ? data
         : Array.isArray(data?.items)
           ? data.items
           : [];
-      setEvents(items);
+      setEvents(raw.filter((item) => !isRegisteredOnEventItem(item)));
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить события');
     } finally {
