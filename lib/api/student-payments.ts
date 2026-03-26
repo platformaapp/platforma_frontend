@@ -310,27 +310,41 @@ export async function fetchStudentPaymentHistory(
   params.set('page', String(page));
   params.set('limit', String(limit));
 
-  const res = await fetch(`${endpoints.studentPayments}?${params.toString()}`, {
+  const url = `${endpoints.studentPayments}?${params.toString()}`;
+  console.log('[DEBUG][payments] fetchStudentPaymentHistory url:', url);
+
+  const res = await fetch(url, {
     headers: await authHeaders(),
   });
 
-  if (res.status === 404) return { items: [], ok: false };
+  console.log('[DEBUG][payments] response status:', res.status, 'content-type:', res.headers.get('content-type'));
+
+  if (res.status === 404) {
+    console.log('[DEBUG][payments] 404 — endpoint not found, will fallback to feed');
+    return { items: [], ok: false };
+  }
 
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const payload = isJson ? await res.json() : await res.text();
 
+  console.log('[DEBUG][payments] raw payload:', JSON.stringify(payload).slice(0, 500));
+
   if (!res.ok) {
+    console.log('[DEBUG][payments] non-ok response:', res.status, payload);
     if (res.status === 401) await handle401(res, payload);
     return { items: [], ok: false };
   }
 
   const root = (typeof payload === 'object' && payload !== null ? payload : {}) as Record<string, unknown>;
+  console.log('[DEBUG][payments] root keys:', Object.keys(root));
   const rawList = root.data ?? root.items ?? root.payments ?? [];
+  console.log('[DEBUG][payments] rawList isArray:', Array.isArray(rawList), 'length:', Array.isArray(rawList) ? (rawList as unknown[]).length : typeof rawList);
   const rows = Array.isArray(rawList) ? rawList : [];
   const items = rows.map((row) =>
     mapPaymentRow(typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {})
   );
+  console.log('[DEBUG][payments] parsed items count:', items.length);
   return { items, ok: true };
 }
 
@@ -339,10 +353,16 @@ export async function fetchStudentPaymentHistory(
  */
 async function historyFromFeed(headers: HeadersInit): Promise<PaymentHistoryItem[]> {
   try {
+    console.log('[DEBUG][payments] historyFromFeed fallback — fetching:', endpoints.eventsFeed);
     const feedRes = await fetch(endpoints.eventsFeed, { headers });
-    if (!feedRes.ok) return [];
+    console.log('[DEBUG][payments] feed response status:', feedRes.status);
+    if (!feedRes.ok) {
+      console.log('[DEBUG][payments] feed not ok, returning empty');
+      return [];
+    }
     const data = await feedRes.json();
     const items = parseFeedItems(data) as Array<Record<string, any>>;
+    console.log('[DEBUG][payments] feed parsed items:', items.length, 'registered:', items.filter((e) => isRegisteredOnEventItem(e)).length);
     return items
       .filter((e) => isRegisteredOnEventItem(e))
       .map((e) => {
@@ -366,7 +386,8 @@ async function historyFromFeed(headers: HeadersInit): Promise<PaymentHistoryItem
           eventId: String(e.id),
         };
       });
-  } catch {
+  } catch (err) {
+    console.log('[DEBUG][payments] historyFromFeed error:', err);
     return [];
   }
 }

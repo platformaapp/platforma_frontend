@@ -86,13 +86,19 @@ export async function getMyEventsForStudent(
   params.set('per_page', String(query.per_page ?? 50));
 
   const url = `${endpoints.eventsMy}?${params.toString()}`;
+  console.log('[DEBUG][events] getMyEventsForStudent url:', url);
+
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
+  console.log('[DEBUG][events] response status:', res.status, 'content-type:', res.headers.get('content-type'));
+
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const payload = isJson ? await res.json() : await res.text();
+
+  console.log('[DEBUG][events] raw payload:', JSON.stringify(payload).slice(0, 500));
 
   if (!res.ok) {
     const msg =
@@ -101,15 +107,19 @@ export async function getMyEventsForStudent(
         : (payload as { message?: string })?.message ??
           (payload as { error?: string })?.error ??
           `Ошибка загрузки (${res.status})`;
+    console.log('[DEBUG][events] non-ok, throwing:', msg);
     throw new Error(msg);
   }
 
   const root = payload as Record<string, unknown>;
+  console.log('[DEBUG][events] root keys:', typeof root === 'object' && root !== null ? Object.keys(root) : typeof root);
   const rawItems = root.data ?? root.items ?? [];
+  console.log('[DEBUG][events] rawItems isArray:', Array.isArray(rawItems), 'value type:', typeof rawItems, Array.isArray(rawItems) ? 'length:' + (rawItems as unknown[]).length : JSON.stringify(rawItems).slice(0, 200));
   const list = Array.isArray(rawItems) ? rawItems : [];
   const items = list.map((row) =>
     normalizeMyEventItem(typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {})
   );
+  console.log('[DEBUG][events] parsed items count:', items.length);
 
   const pag = (root.pagination ?? root.meta) as Record<string, unknown> | undefined;
   const pagination: MyEventsPagination = {
