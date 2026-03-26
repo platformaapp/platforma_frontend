@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -52,6 +53,21 @@ function formatDatetime(iso?: string): string {
   }
 }
 
+function formatMenuDatetime(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day}.${month}  ${weekday}  ${hh}:${mm}`;
+  } catch {
+    return iso;
+  }
+}
+
 function formatBookingDate(date?: string, time?: string): string {
   if (!date && !time) return '';
   const parts: string[] = [];
@@ -73,6 +89,7 @@ export default function MyEventsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [menuEvent, setMenuEvent] = useState<EventItem | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -151,9 +168,13 @@ export default function MyEventsScreen() {
           {item.mentor?.name ?? ''}
         </Text>
         <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
-        <View style={styles.cardMenu}>
+        <Pressable
+          style={styles.cardMenu}
+          onPress={(e) => { e.stopPropagation(); setMenuEvent(item); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
           <Text style={styles.cardMenuText}>•••</Text>
-        </View>
+        </Pressable>
       </View>
     </Pressable>
   );
@@ -284,6 +305,39 @@ export default function MyEventsScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* ─── Event menu popup (•••) ──────────────────────────────────────── */}
+      <Modal
+        transparent
+        animationType="none"
+        visible={menuEvent !== null}
+        onRequestClose={() => setMenuEvent(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setMenuEvent(null)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>{menuEvent?.title}</Text>
+              {menuEvent?.datetimeStart ? (
+                <Text style={styles.modalEventDate}>
+                  {formatMenuDatetime(menuEvent.datetimeStart)}
+                </Text>
+              ) : null}
+            </View>
+            <Pressable
+              style={styles.modalWriteButton}
+              onPress={() => setMenuEvent(null)}
+            >
+              <Text style={styles.modalWriteButtonText}>Написать наставнику</Text>
+            </Pressable>
+            <Pressable
+              style={styles.modalCancelButton}
+              onPress={() => setMenuEvent(null)}
+            >
+              <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -450,5 +504,70 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+
+  // ─── Event menu modal (•••) ─────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  modalEventCard: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
+    marginBottom: 0,
+  },
+  modalEventTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontFamily: 'Inter-Regular',
+    color: '#1E1E1E',
+    marginBottom: 12,
+  },
+  modalEventDate: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#1E1E1E',
+  },
+  modalWriteButton: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    height: 52,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 0,
+  },
+  modalWriteButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  modalCancelButton: {
+    borderWidth: 1,
+    borderColor: '#E02D2D',
+    height: 52,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  modalCancelButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
   },
 });

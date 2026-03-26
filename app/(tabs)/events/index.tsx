@@ -51,12 +51,14 @@ export default function EventsScreen() {
     try {
       setError('');
       const token = await getAuthToken();
-      const res = await fetch(endpoints.eventsFeed, {
+      let res = await fetch(endpoints.eventsFeed, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      // 401 = not authorized; show empty list gracefully so unauthenticated
-      // users can still open the app and see the events tab (just no content)
-      if (res.status === 401) {
+      // If token is invalid/expired, retry as public request
+      if (res.status === 401 && token) {
+        res = await fetch(endpoints.eventsFeed, {});
+      }
+      if (!res.ok) {
         setEvents([]);
         return;
       }
