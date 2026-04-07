@@ -1,7 +1,9 @@
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { endpoints } from '@/constants/env';
 import { getMyEventsForStudent } from '@/lib/api/student-events';
 import { getAuthToken } from '@/lib/auth';
 
@@ -33,12 +35,14 @@ function formatCountdown(targetIso: string): string | null {
   return `${parts.join(', ')} и ${last}`;
 }
 
+type EventEntry = { id: string; datetimeStart?: string; canJoin?: boolean };
+
 type BannerState =
   | { kind: 'none' }
   | { kind: 'countdown'; text: string; eventId: string }
   | { kind: 'ongoing'; eventId: string };
 
-function computeBanner(events: { id: string; datetimeStart?: string }[]): BannerState {
+function computeBanner(events: EventEntry[]): BannerState {
   const now = Date.now();
   // Check for ongoing first
   for (const e of events) {
@@ -63,10 +67,22 @@ function computeBanner(events: { id: string; datetimeStart?: string }[]): Banner
   return { kind: 'none' };
 }
 
+async function joinEvent(eventId: string): Promise<string | null> {
+  const token = await getAuthToken();
+  if (!token) return null;
+  const res = await fetch(`${endpoints.events}/${eventId}/join`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data?.join_url ?? data?.joinUrl ?? null;
+}
+
 export function EventBanner() {
   const router = useRouter();
   const [banner, setBanner] = useState<BannerState>({ kind: 'none' });
-  const eventsRef = useRef<{ id: string; datetimeStart?: string }[]>([]);
+  const [joining, setJoining] = useState(false);
+  const eventsRef = useRef<EventEntry[]>([]);
 
   const fetchEvents = async () => {
     try {
@@ -76,18 +92,17 @@ export function EventBanner() {
       eventsRef.current = items.map((it) => ({
         id: it.id,
         datetimeStart: it.start_at ?? it.startAt,
+        canJoin: (it as any).can_join ?? (it as any).canJoin,
       }));
       setBanner(computeBanner(eventsRef.current));
     } catch {
-      // silently ignore — banner just stays hidden
+      // silently ignore — banner stays hidden
     }
   };
 
   useEffect(() => {
     fetchEvents();
-    // Re-fetch every 5 minutes
     const fetchInterval = setInterval(fetchEvents, 5 * 60 * 1000);
-    // Update countdown text every 30 seconds
     const tickInterval = setInterval(() => {
       setBanner(computeBanner(eventsRef.current));
     }, 30_000);
@@ -97,16 +112,38 @@ export function EventBanner() {
     };
   }, []);
 
+  const handleJoin = async (eventId: string) => {
+    setJoining(true);
+    try {
+      const url = await joinEvent(eventId);
+      if (url) {
+        await Linking.openURL(url);
+      } else {
+        // Can't join yet or no room — open event detail
+        router.push(`/(tabs)/events/${eventId}` as any);
+      }
+    } catch {
+      router.push(`/(tabs)/events/${eventId}` as any);
+    } finally {
+      setJoining(false);
+    }
+  };
+
   if (banner.kind === 'none') return null;
 
   if (banner.kind === 'ongoing') {
     return (
       <View style={styles.container}>
         <Pressable
-          style={styles.ongoingRow}
-          onPress={() => router.push(`/(tabs)/events/${banner.eventId}` as any)}
+          style={[styles.button, joining && styles.buttonDisabled]}
+          onPress={() => !joining && handleJoin(banner.eventId)}
+          disabled={joining}
         >
-          <Text style={styles.ongoingText}>Встреча уже идет, присоединяйся!</Text>
+          {joining ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Встреча уже идет, присоединяйся!</Text>
+          )}
         </Pressable>
       </View>
     );
@@ -122,10 +159,15 @@ export function EventBanner() {
         </Text>
       </View>
       <Pressable
-        style={styles.button}
-        onPress={() => router.push(`/(tabs)/events/${banner.eventId}` as any)}
+        style={[styles.button, joining && styles.buttonDisabled]}
+        onPress={() => !joining && handleJoin(banner.eventId)}
+        disabled={joining}
       >
-        <Text style={styles.buttonText}>Открыть</Text>
+        {joining ? (
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Открыть видео</Text>
+        )}
       </Pressable>
     </View>
   );
@@ -137,18 +179,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 12,
-  },
-  ongoingRow: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ongoingText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
@@ -174,6 +204,9 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     fontSize: 14,
