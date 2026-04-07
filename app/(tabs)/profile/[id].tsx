@@ -9,7 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { getTutorProfile, getTutorSlots } from '@/lib/api/tutor';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
+import { clearAuth, extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
 export default function ProfileByIdScreen() {
@@ -201,6 +201,16 @@ export default function ProfileByIdScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Pressable
+        style={styles.logoutButton}
+        onPress={async () => {
+          await clearAuth();
+          router.replace('/login');
+        }}
+      >
+        <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+      </Pressable>
     </>
   );
 
@@ -286,6 +296,16 @@ export default function ProfileByIdScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Pressable
+        style={styles.logoutButton}
+        onPress={async () => {
+          await clearAuth();
+          router.replace('/login');
+        }}
+      >
+        <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+      </Pressable>
     </>
   );
 
@@ -602,5 +622,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  logoutButton: {
+    marginTop: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#E02D2D',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
   },
 });

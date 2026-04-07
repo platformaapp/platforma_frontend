@@ -1,12 +1,21 @@
+import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
 
+import { EventBanner } from '@/components/event-banner';
 import { HapticTab } from '@/components/haptic-tab';
 import { TabIcon } from '@/components/tab-icons';
 
 export default function TabLayout() {
   return (
     <Tabs
+      tabBar={(props) => (
+        <View>
+          <EventBanner />
+          <BottomTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#E02D2D',

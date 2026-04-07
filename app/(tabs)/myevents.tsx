@@ -133,6 +133,9 @@ export default function MyEventsScreen() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [soonestEvent, setSoonestEvent] = useState<EventItem | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<EventItem | null>(null);
+  const [cancelConfirmVisible, setCancelConfirmVisible] = useState(false);
+  const [cancelSuccessVisible, setCancelSuccessVisible] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -233,41 +236,37 @@ export default function MyEventsScreen() {
 
   const handleCancelRegistration = () => {
     if (!menuEvent) return;
-    const eventId = menuEvent.id;
-    const eventTitle = menuEvent.title;
-    Alert.alert(
-      'Отменить запись',
-      `Вы уверены, что хотите отменить запись на «${eventTitle}»?`,
-      [
-        { text: 'Нет', style: 'cancel' },
-        {
-          text: 'Отменить запись',
-          style: 'destructive',
-          onPress: async () => {
-            setMenuEvent(null);
-            setIsCancelling(true);
-            try {
-              const token = await getAuthToken();
-              if (!token) { router.replace('/login'); return; }
-              const res = await fetch(`${endpoints.events}/${eventId}/register`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (res.ok || res.status === 404) {
-                setEvents((prev) => prev.filter((e) => e.id !== eventId));
-              } else {
-                const data = await res.json().catch(() => ({}));
-                Alert.alert('Ошибка', data?.message ?? `Не удалось отменить запись (${res.status})`);
-              }
-            } catch (e: any) {
-              Alert.alert('Ошибка', e?.message ?? 'Не удалось отменить запись');
-            } finally {
-              setIsCancelling(false);
-            }
-          },
-        },
-      ]
-    );
+    setCancelTarget(menuEvent);
+    setMenuEvent(null);
+    setCancelConfirmVisible(true);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const eventId = cancelTarget.id;
+    setCancelConfirmVisible(false);
+    setIsCancelling(true);
+    try {
+      const token = await getAuthToken();
+      if (!token) { router.replace('/login'); return; }
+      const res = await fetch(`${endpoints.events}/${eventId}/register`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok || res.status === 404) {
+        setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        setCancelSuccessVisible(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        Alert.alert('Ошибка', data?.message ?? `Не удалось отменить запись (${res.status})`);
+        setCancelTarget(null);
+      }
+    } catch (e: any) {
+      Alert.alert('Ошибка', e?.message ?? 'Не удалось отменить запись');
+      setCancelTarget(null);
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   // ─── Render event card ───────────────────────────────────────────────────
@@ -500,6 +499,74 @@ export default function MyEventsScreen() {
                 </Pressable>
               </>
             )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Cancel confirmation modal ──────────────────────────────────── */}
+      <Modal
+        transparent
+        animationType="none"
+        visible={cancelConfirmVisible}
+        onRequestClose={() => { setCancelConfirmVisible(false); setCancelTarget(null); }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => { setCancelConfirmVisible(false); setCancelTarget(null); }}
+        >
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.cancelModalTitle}>ВЫ ДЕЙСТВИТЕЛЬНО ХОТИТЕ ОТМЕНИТЬ ЗАПИСЬ?</Text>
+            {cancelTarget?.datetimeStart &&
+              new Date(cancelTarget.datetimeStart).getTime() - Date.now() < 24 * 60 * 60 * 1000 ? (
+              <Text style={styles.cancelModalWarning}>
+                Вы отменяете запись позднее, чем за 24 часа. Вернуть деньги за нее уже не получится.
+              </Text>
+            ) : (
+              <Text style={styles.cancelModalSubtext}>
+                После отмены вы потеряете место на этом мероприятии.
+              </Text>
+            )}
+            <Pressable
+              style={styles.cancelModalKeepButton}
+              onPress={() => { setCancelConfirmVisible(false); setCancelTarget(null); }}
+            >
+              <Text style={styles.cancelModalKeepText}>Оставить</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.cancelModalConfirmButton, isCancelling && styles.modalCancelButtonDisabled]}
+              onPress={confirmCancel}
+              disabled={isCancelling}
+            >
+              <Text style={styles.cancelModalConfirmText}>
+                {isCancelling ? 'Отмена...' : 'Отменить запись'}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Cancel success modal ───────────────────────────────────────── */}
+      <Modal
+        transparent
+        animationType="none"
+        visible={cancelSuccessVisible}
+        onRequestClose={() => { setCancelSuccessVisible(false); setCancelTarget(null); }}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => { setCancelSuccessVisible(false); setCancelTarget(null); }}
+        >
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.cancelModalTitle}>ЗАПИСЬ ОТМЕНЕНА</Text>
+            <Text style={styles.cancelModalSubtext}>
+              Деньги вернутся на карту в течении 3 рабочих дней
+            </Text>
+            <Pressable
+              style={styles.cancelSuccessCloseButton}
+              onPress={() => { setCancelSuccessVisible(false); setCancelTarget(null); }}
+            >
+              <Text style={styles.cancelSuccessCloseText}>Закрыть</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
@@ -776,5 +843,71 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#E02D2D',
+  },
+
+  // ─── Cancel confirm / success modals ────────────────────────────────────
+  cancelModalTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    color: '#181818',
+    textTransform: 'uppercase',
+    letterSpacing: -0.5,
+    marginBottom: 12,
+  },
+  cancelModalSubtext: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 20,
+  },
+  cancelModalWarning: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
+    marginBottom: 20,
+  },
+  cancelModalKeepButton: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  cancelModalKeepText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+  },
+  cancelModalConfirmButton: {
+    height: 52,
+    backgroundColor: '#E02D2D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalConfirmText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  cancelSuccessCloseButton: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  cancelSuccessCloseText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
 });
