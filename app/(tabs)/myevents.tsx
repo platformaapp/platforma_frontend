@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 
 import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
+import { getAuthToken, getAuthRole } from '@/lib/auth';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -38,6 +38,35 @@ type BookingItem = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// ─── Countdown helpers ────────────────────────────────────────────────────────
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function pluralizeRu(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n) % 100;
+  const rem = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (rem === 1) return one;
+  if (rem >= 2 && rem <= 4) return few;
+  return many;
+}
+
+function formatCountdown(targetIso: string): string | null {
+  const diff = new Date(targetIso).getTime() - Date.now();
+  if (diff <= 0 || diff > WEEK_MS) return null;
+  const totalSec = Math.floor(diff / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} ${pluralizeRu(days, 'день', 'дня', 'дней')}`);
+  if (hours > 0) parts.push(`${hours} ${pluralizeRu(hours, 'час', 'часа', 'часов')}`);
+  if (minutes > 0 || parts.length === 0) parts.push(`${minutes} ${pluralizeRu(minutes, 'минуту', 'минуты', 'минут')}`);
+  if (parts.length === 1) return parts[0];
+  const last = parts.pop()!;
+  return `${parts.join(', ')} и ${last}`;
+}
 
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
@@ -92,18 +121,22 @@ export default function MyEventsScreen() {
   const [error, setError] = useState('');
   const [menuEvent, setMenuEvent] = useState<EventItem | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+  const [soonestEvent, setSoonestEvent] = useState<EventItem | null>(null);
 
   const load = useCallback(async () => {
     try {
       setError('');
-      const token = await getAuthToken();
+      const [token, userRole] = await Promise.all([getAuthToken(), getAuthRole()]);
       if (!token) { router.replace('/login'); return; }
+      setRole(userRole);
 
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
+      const bookingsUrl = userRole === 'tutor' ? endpoints.tutorBookings : endpoints.studentBookings;
 
       const [myEventsRes, bookRes] = await Promise.allSettled([
         getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 }),
-        fetch(endpoints.studentBookings, { headers }),
+        fetch(bookingsUrl, { headers }),
       ]);
 
       if (myEventsRes.status === 'fulfilled') {
@@ -117,8 +150,20 @@ export default function MyEventsScreen() {
           };
         });
         setEvents(mapped);
+
+        // Find soonest upcoming event within a week
+        const now = Date.now();
+        const soon = mapped
+          .filter((e) => {
+            if (!e.datetimeStart) return false;
+            const diff = new Date(e.datetimeStart).getTime() - now;
+            return diff > 0 && diff <= WEEK_MS;
+          })
+          .sort((a, b) => new Date(a.datetimeStart!).getTime() - new Date(b.datetimeStart!).getTime())[0] ?? null;
+        setSoonestEvent(soon);
       } else {
         setEvents([]);
+        setSoonestEvent(null);
         const err = myEventsRes.reason;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить мои мероприятия');
       }
@@ -287,7 +332,10 @@ export default function MyEventsScreen() {
   const isEmpty = activeTab === 'events' ? events.length === 0 : bookings.length === 0;
   const emptyText = activeTab === 'events'
     ? 'Вы ещё не записались ни на одно событие'
-    : 'У вас пока нет личных встреч с наставниками';
+    : role === 'tutor'
+      ? 'У вас пока нет встреч с учениками'
+      : 'У вас пока нет личных встреч с наставниками';
+  const countdown = soonestEvent?.datetimeStart ? formatCountdown(soonestEvent.datetimeStart) : null;
 
   return (
     <View style={styles.container}>
@@ -336,14 +384,14 @@ export default function MyEventsScreen() {
                 >
                   <Text style={styles.browseButtonText}>Смотреть события</Text>
                 </Pressable>
-              ) : (
+              ) : role !== 'tutor' ? (
                 <Pressable
                   style={styles.browseButton}
                   onPress={() => router.push('/(tabs)/explore')}
                 >
                   <Text style={styles.browseButtonText}>Найти наставника</Text>
                 </Pressable>
-              )}
+              ) : null}
             </View>
           ) : (
             <>
@@ -354,6 +402,24 @@ export default function MyEventsScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* ─── Countdown banner ───────────────────────────────────────────── */}
+      {countdown ? (
+        <View style={styles.bannerContainer}>
+          <View style={styles.bannerRow}>
+            <Text style={styles.bannerIcon}>{'□|'}</Text>
+            <Text style={styles.bannerText} numberOfLines={1}>
+              {'До ближайшего события: ' + countdown}
+            </Text>
+          </View>
+          <Pressable
+            style={styles.bannerButton}
+            onPress={() => soonestEvent && router.push(`/(tabs)/events/${soonestEvent.id}` as any)}
+          >
+            <Text style={styles.bannerButtonText}>Открыть видео</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* ─── Event menu popup (•••) ──────────────────────────────────────── */}
       <Modal
@@ -556,6 +622,45 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+
+  // ─── Countdown banner ───────────────────────────────────────────────────
+  bannerContainer: {
+    backgroundColor: '#181818',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  bannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  bannerIcon: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginRight: 8,
+    fontFamily: 'Inter-Regular',
+  },
+  bannerText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  bannerButton: {
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
   },
 
   // ─── Event menu modal (•••) ─────────────────────────────────────────────

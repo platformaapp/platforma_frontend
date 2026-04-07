@@ -36,6 +36,9 @@ export const endpoints = {
   // Student → booking slots (личные встречи с наставниками)
   studentBookings: `${API_BASE}/api/student/bookings`,
 
+  // Tutor → встречи с учениками
+  tutorBookings: `${API_BASE}/api/tutor/bookings`,
+
   // Student → публичные слоты конкретного тьютора
   studentTutorSlotsBase: `${API_BASE}/api/student/tutors`,
 };

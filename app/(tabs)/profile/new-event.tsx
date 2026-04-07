@@ -211,7 +211,7 @@ export default function NewEventScreen() {
         {Platform.OS === 'web' ? (
           <Pressable
             style={styles.input}
-            onPress={() => webDateRef.current?.showPicker?.() ?? webDateRef.current?.click?.()}
+            onPress={() => { try { webDateRef.current?.showPicker?.(); } catch { webDateRef.current?.click?.(); } }}
           >
             <Text style={date ? styles.dateText : styles.placeholderText}>
               {date ? formatDate(date) : 'Дата'}
@@ -255,6 +255,7 @@ export default function NewEventScreen() {
                   display="spinner"
                   minimumDate={new Date()}
                   onChange={handleDateChange}
+                  textColor="#181818"
                 />
               </Pressable>
             </Pressable>
@@ -275,7 +276,7 @@ export default function NewEventScreen() {
         {Platform.OS === 'web' ? (
           <Pressable
             style={styles.input}
-            onPress={() => webTimeRef.current?.showPicker?.() ?? webTimeRef.current?.click?.()}
+            onPress={() => { try { webTimeRef.current?.showPicker?.(); } catch { webTimeRef.current?.click?.(); } }}
           >
             <Text style={timeStr ? styles.dateText : styles.placeholderText}>
               {timeStr || 'Время'}
@@ -314,6 +315,7 @@ export default function NewEventScreen() {
                   display="spinner"
                   minuteInterval={15}
                   onChange={handleTimeChange}
+                  textColor="#181818"
                 />
               </Pressable>
             </Pressable>
