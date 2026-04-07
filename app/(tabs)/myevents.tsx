@@ -16,6 +16,7 @@ import {
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken, getAuthRole } from '@/lib/auth';
+import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -106,6 +107,15 @@ function formatBookingDate(date?: string, time?: string): string {
   return parts.join(' ');
 }
 
+function isAuthError(e: unknown): boolean {
+  if (!e) return false;
+  if (e instanceof AuthError) return true;
+  const err = e as any;
+  if (err?.name === 'AuthError') return true;
+  const msg: string = (err?.message ?? '').toLowerCase();
+  return msg.includes('token expired') || msg.includes('refresh failed') || msg.includes('требуется авторизация');
+}
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 type Tab = 'events' | 'meetings';
@@ -165,6 +175,7 @@ export default function MyEventsScreen() {
         setEvents([]);
         setSoonestEvent(null);
         const err = myEventsRes.reason;
+        if (isAuthError(err)) { router.replace('/login'); return; }
         setError(err instanceof Error ? err.message : 'Не удалось загрузить мои мероприятия');
       }
 
@@ -173,6 +184,7 @@ export default function MyEventsScreen() {
         setBookings(Array.isArray(data) ? data : []);
       }
     } catch (e: any) {
+      if (isAuthError(e)) { router.replace('/login'); return; }
       setError(e?.message ?? 'Не удалось загрузить данные');
     } finally {
       setLoading(false);
