@@ -197,6 +197,28 @@ export default function MyEventsScreen() {
     }
   };
 
+  const handleWriteToStudent = () => {
+    const student = menuEvent?.student as Record<string, unknown> | undefined;
+    const studentId = (student?.id ?? student?.userId ?? student?.user_id) as string | undefined;
+    setMenuEvent(null);
+    if (studentId) {
+      router.push(`/(tabs)/explore/${studentId}` as any);
+    }
+  };
+
+  const handleEventSettings = () => {
+    setMenuEvent(null);
+    router.push('/(tabs)/profile' as any);
+  };
+
+  const handleEditEvent = () => {
+    const eventId = menuEvent?.id;
+    setMenuEvent(null);
+    if (eventId) {
+      router.push(`/(tabs)/profile/edit-event?id=${eventId}` as any);
+    }
+  };
+
   const handleCancelRegistration = () => {
     if (!menuEvent) return;
     const eventId = menuEvent.id;
@@ -438,21 +460,34 @@ export default function MyEventsScreen() {
                 </Text>
               ) : null}
             </View>
-            <Pressable
-              style={styles.modalWriteButton}
-              onPress={handleWriteToMentor}
-            >
-              <Text style={styles.modalWriteButtonText}>Написать наставнику</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.modalCancelButton, isCancelling && styles.modalCancelButtonDisabled]}
-              onPress={handleCancelRegistration}
-              disabled={isCancelling}
-            >
-              <Text style={styles.modalCancelButtonText}>
-                {isCancelling ? 'Отмена...' : 'Отменить запись'}
-              </Text>
-            </Pressable>
+            {role === 'tutor' ? (
+              <>
+                <Pressable style={styles.modalWriteButton} onPress={handleWriteToStudent}>
+                  <Text style={styles.modalWriteButtonText}>Написать ученику</Text>
+                </Pressable>
+                <Pressable style={styles.modalWriteButton} onPress={handleEventSettings}>
+                  <Text style={styles.modalWriteButtonText}>Настройки</Text>
+                </Pressable>
+                <Pressable style={styles.modalWriteButton} onPress={handleEditEvent}>
+                  <Text style={styles.modalWriteButtonText}>Редактировать событие</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable style={styles.modalWriteButton} onPress={handleWriteToMentor}>
+                  <Text style={styles.modalWriteButtonText}>Написать наставнику</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modalCancelButton, isCancelling && styles.modalCancelButtonDisabled]}
+                  onPress={handleCancelRegistration}
+                  disabled={isCancelling}
+                >
+                  <Text style={styles.modalCancelButtonText}>
+                    {isCancelling ? 'Отмена...' : 'Отменить запись'}
+                  </Text>
+                </Pressable>
+              </>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
