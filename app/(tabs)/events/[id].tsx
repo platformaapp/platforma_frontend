@@ -18,7 +18,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
-import { getStudentPayments } from '@/lib/api/student-payments';
+import { getPaymentMethods } from '@/lib/api/student-payments';
 import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -36,6 +36,14 @@ type EventDetail = {
   isPaid?: boolean;
   maxParticipants?: number;
   registeredCount?: number;
+  // Video conference fields
+  canJoin?: boolean;
+  videoRoom?: { url?: string | null; moderatorUrl?: string | null };
+  recordingUrl?: string | null;
+  currentUserParticipation?: {
+    status?: string;       // "registered" | "pending" | "attended"
+    paymentStatus?: string; // "paid" | "pending"
+  };
 };
 
 type FeedItem = {
@@ -49,6 +57,84 @@ type FeedItem = {
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Normalize raw API response (snake_case + various nesting) into EventDetail */
+function normalizeEvent(raw: Record<string, unknown>): EventDetail {
+  // Unwrap { data: { ... } } or { event: { ... } } envelope
+  const unwrapped = unwrapApiData<Record<string, unknown>>(raw) ?? raw;
+
+  const r = unwrapped as Record<string, unknown>;
+
+  const datetimeStart =
+    (r.datetimeStart as string) ??
+    (r.datetime_start as string) ??
+    (r.startAt as string) ??
+    (r.start_at as string) ??
+    undefined;
+
+  const price =
+    typeof r.price === 'number' ? r.price :
+    typeof (r as any).price === 'string' ? parseFloat((r as any).price) :
+    undefined;
+
+  // Mentor / teacher
+  const mentorRaw = (r.mentor ?? r.teacher ?? r.tutor) as Record<string, unknown> | undefined;
+  const mentor = mentorRaw ? {
+    id: String(mentorRaw.id ?? mentorRaw.userId ?? mentorRaw.user_id ?? ''),
+    name: String(mentorRaw.name ?? mentorRaw.fullName ?? mentorRaw.full_name ?? mentorRaw.displayName ?? ''),
+    avatarUrl: (mentorRaw.avatarUrl ?? mentorRaw.avatar_url ?? null) as string | null,
+    bio: (mentorRaw.bio ?? mentorRaw.description ?? '') as string,
+  } : undefined;
+
+  // Cover image
+  const coverUrl =
+    (r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? null) as string | null;
+
+  // Registration flag
+  const isRegistered = isRegisteredOnEventItem(r);
+
+  // Payment status
+  const cupRaw = (r.currentUserParticipation ?? r.current_user_participation) as Record<string, unknown> | undefined;
+  const currentUserParticipation = cupRaw ? {
+    status: (cupRaw.status as string) ?? undefined,
+    paymentStatus: (cupRaw.paymentStatus ?? cupRaw.payment_status) as string | undefined,
+  } : undefined;
+
+  const isPaid =
+    currentUserParticipation?.paymentStatus?.toLowerCase() === 'paid' ||
+    Boolean(r.isPaid ?? r.is_paid);
+
+  // Video room
+  const vrRaw = (r.videoRoom ?? r.video_room) as Record<string, unknown> | undefined;
+  const videoRoom = vrRaw ? {
+    url: (vrRaw.url ?? null) as string | null,
+    moderatorUrl: (vrRaw.moderatorUrl ?? vrRaw.moderator_url ?? null) as string | null,
+  } : undefined;
+
+  const canJoin = Boolean(r.canJoin ?? r.can_join ?? false);
+  const recordingUrl = (r.recordingUrl ?? r.recording_url ?? null) as string | null;
+
+  return {
+    id: String(r.id ?? ''),
+    title: String(r.title ?? ''),
+    description: (r.description as string) ?? undefined,
+    datetimeStart,
+    price,
+    coverUrl,
+    mentor,
+    status: (r.status as string) ?? undefined,
+    isRegistered,
+    isPaid,
+    maxParticipants: typeof r.maxParticipants === 'number' ? r.maxParticipants
+      : typeof r.max_participants === 'number' ? r.max_participants : undefined,
+    registeredCount: typeof r.registeredCount === 'number' ? r.registeredCount
+      : typeof r.registered_count === 'number' ? r.registered_count : undefined,
+    canJoin,
+    videoRoom,
+    recordingUrl,
+    currentUserParticipation,
+  };
+}
 
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
@@ -87,125 +173,94 @@ export default function EventDetailScreen() {
   const [isPaying, setIsPaying] = useState(false);
   const [payError, setPayError] = useState('');
   const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
 
-  // Load event + feed (works without auth; 401 handled gracefully)
+  const loadEvent = async (active: { value: boolean }) => {
+    try {
+      const token = await getAuthToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+      if (token) {
+        const { getUserProfile } = await import('@/lib/auth');
+        const profile = await getUserProfile().catch(() => null);
+        if (active.value && profile?.id) setCurrentUserId(profile.id);
+      }
+
+      const [detailRes, feedRes] = await Promise.allSettled([
+        fetch(`${endpoints.events}/${id}`, { headers }),
+        fetch(endpoints.eventsFeed, { headers }),
+      ]);
+
+      if (detailRes.status === 'fulfilled' && detailRes.value.ok) {
+        const raw = await detailRes.value.json();
+        const normalized = normalizeEvent(raw as Record<string, unknown>);
+        if (active.value) setEvent(normalized);
+      }
+
+      if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
+        const d = await feedRes.value.json();
+        const items: FeedItem[] = parseFeedItems(d) as FeedItem[];
+        const thisItem = items.find((e) => e.id === id);
+        if (active.value && thisItem && isRegisteredOnEventItem(thisItem)) {
+          setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
+        }
+        if (active.value) setOtherEvents(items.filter((e) => e.id !== id).slice(0, 4));
+      }
+    } catch { /* ignore */ } finally {
+      if (active.value) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
-    let active = true;
-    const load = async () => {
-      try {
-        const token = await getAuthToken();
-        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
-        // Also get current user profile to detect if they own this event
-        if (token) {
-          const { getUserProfile } = await import('@/lib/auth');
-          const profile = await getUserProfile().catch(() => null);
-          if (active && profile?.id) setCurrentUserId(profile.id);
-        }
-
-        const [detailRes, feedRes] = await Promise.allSettled([
-          fetch(`${endpoints.events}/${id}`, { headers }),
-          fetch(endpoints.eventsFeed, { headers }),
-        ]);
-
-        if (detailRes.status === 'fulfilled') {
-          if (detailRes.value.ok) {
-            const raw = await detailRes.value.json();
-            const unwrapped = unwrapApiData<EventDetail & Record<string, unknown>>(raw) ?? (raw as EventDetail);
-            const registeredFromDetail = isRegisteredOnEventItem(unwrapped);
-            if (active) {
-              setEvent({
-                ...unwrapped,
-                isRegistered: Boolean(unwrapped.isRegistered) || registeredFromDetail,
-              });
-            }
-          }
-          // 401 = not logged in; event stays null → show "войдите" state below
-        }
-
-        if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
-          const d = await feedRes.value.json();
-          const items: FeedItem[] = parseFeedItems(d) as FeedItem[];
-          const thisItem = items.find((e) => e.id === id);
-          const registeredFromFeed = thisItem ? isRegisteredOnEventItem(thisItem) : false;
-          if (active && registeredFromFeed) {
-            setEvent((prev) =>
-              prev ? { ...prev, isRegistered: true } : prev
-            );
-          }
-          if (active) setOtherEvents(items.filter((e) => e.id !== id).slice(0, 4));
-        }
-      } catch { /* ignore */ } finally {
-        if (active) setLoading(false);
-      }
-    };
-    load();
-    return () => { active = false; };
+    const active = { value: true };
+    loadEvent(active);
+    return () => { active.value = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────
 
   async function handleLinkNow() {
     const token = await getAuthToken();
-    if (!token) {
-      // Unauthenticated — send to login with return path info
-      router.push('/login');
-      return;
-    }
+    if (!token) { router.push('/login'); return; }
     setCardModalVisible(true);
     setIsShareCopied(false);
     setPayError('');
   }
 
-  function handleLinkTutor() {
-    setLinkTutorVisible(true);
-    setIsShareCopied(false);
-  }
-
-  function handleShareEventTutor() {
-    setIsShareCopied(false);
-    setShareEventVisible(true);
-  }
+  function handleLinkTutor() { setLinkTutorVisible(true); }
+  function handleShareEventTutor() { setIsShareCopied(false); setShareEventVisible(true); }
 
   async function handleGetPay() {
     if (isPaying || !event) return;
     setIsPaying(true);
-    setIsShareCopied(false);
     setPayError('');
     try {
-      const [token, role, paymentsData] = await Promise.all([
+      const [token, role, cards] = await Promise.all([
         getAuthToken(),
         getAuthRole(),
-        getStudentPayments(),
+        getPaymentMethods(),
       ]);
       if (!token) throw new Error('Для оплаты нужно войти в аккаунт');
       if (role && role !== 'student') throw new Error('Оплата доступна только для студентов');
 
-      // No card bound — redirect to add card
-      if (!paymentsData.cards?.length) {
+      if (!cards?.length) {
         setCardModalVisible(false);
         router.push('/(tabs)/profile/payments');
         return;
       }
 
-      // POST /api/events/{id}/register with payment_method_id
-      // Backend handles charge via YooKassa using the saved payment method.
-      // Response: { success, userEvent: { id, status, payment_status } }
       const res = await fetch(`${endpoints.events}/${event.id}/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ payment_method_id: paymentsData.cards[0].id }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ payment_method_id: cards[0].id }),
       });
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         if (res.status === 409) {
-          // Already registered — update button state
           setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
           setCardModalVisible(false);
           return;
@@ -213,24 +268,50 @@ export default function EventDetailScreen() {
         throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);
       }
 
-      // If registration returned a payment redirect URL (future-proofing)
-      if (data?.redirect_url || data?.confirmationUrl || data?.userEvent?.redirect_url) {
-        const url = data.redirect_url ?? data.confirmationUrl ?? data.userEvent?.redirect_url;
-        await WebBrowser.openBrowserAsync(url);
+      // 3DS redirect: open browser, then re-fetch event for real status
+      const redirectUrl = data?.redirect_url ?? data?.confirmationUrl ?? data?.userEvent?.redirect_url;
+      if (redirectUrl) {
+        setCardModalVisible(false);
+        await WebBrowser.openBrowserAsync(redirectUrl);
+        // Re-fetch event to get actual payment/registration status
+        const active = { value: true };
+        await loadEvent(active);
+        return;
       }
 
-      setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
+      // Direct charge succeeded
+      setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
       setCardModalVisible(false);
       setCardModalDoneVisible(true);
     } catch (e: any) {
       const rawMessage = e?.message ?? 'Не удалось зарегистрироваться';
-      const message = rawMessage.toLowerCase().includes('token expired')
-        ? 'Авторизуйтесь заново'
-        : rawMessage;
+      const message = rawMessage.toLowerCase().includes('token expired') ? 'Авторизуйтесь заново' : rawMessage;
       setPayError(message);
       setPaymentFailedModalVisible(true);
     } finally {
       setIsPaying(false);
+    }
+  }
+
+  async function handleJoin() {
+    if (isJoining || !event) return;
+    setIsJoining(true);
+    try {
+      const token = await getAuthToken();
+      if (!token) { router.push('/login'); return; }
+      const res = await fetch(`${endpoints.events}/${event.id}/join`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const url = data?.join_url ?? data?.joinUrl ?? data?.url;
+        if (url) { await Linking.openURL(url); return; }
+      }
+      // Fallback: use video_room.url if available
+      const fallbackUrl = event.videoRoom?.url;
+      if (fallbackUrl) await Linking.openURL(fallbackUrl);
+    } catch { /* ignore */ } finally {
+      setIsJoining(false);
     }
   }
 
@@ -268,6 +349,12 @@ export default function EventDetailScreen() {
     );
   }
 
+  const isOwnEvent = currentUserId != null && event.mentor?.id === currentUserId;
+  const paymentPending =
+    event.isRegistered &&
+    !event.isPaid &&
+    event.currentUserParticipation?.paymentStatus === 'pending';
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -301,30 +388,50 @@ export default function EventDetailScreen() {
         </View>
       </View>
 
-      {/* Register Button */}
-      {(() => {
-        const isOwnEvent = currentUserId != null && event.mentor?.id === currentUserId;
-        if (isOwnEvent) {
-          return (
-            <View style={[styles.registerButton, styles.registerButtonDisabled]}>
-              <Text style={styles.registerButtonText}>
-                Вы не можете зарегистрироваться на своё мероприятие
-              </Text>
-            </View>
-          );
-        }
-        return (
-          <Pressable
-            style={[styles.registerButton, event.isRegistered && styles.registerButtonDisabled]}
-            onPress={event.isRegistered ? undefined : handleLinkNow}
-            disabled={event.isRegistered}
-          >
-            <Text style={styles.registerButtonText}>
-              {event.isRegistered ? 'Вы уже зарегистрированы' : 'Зарегистрироваться'}
-            </Text>
-          </Pressable>
-        );
-      })()}
+      {/* Join / Recording / Register button */}
+      {event.recordingUrl ? (
+        // Event ended — show recording
+        <Pressable
+          style={styles.joinButton}
+          onPress={() => Linking.openURL(event.recordingUrl!)}
+        >
+          <Text style={styles.joinButtonText}>Смотреть запись</Text>
+        </Pressable>
+      ) : event.canJoin ? (
+        // Event is live (or starts in <15 min) — show join button
+        <Pressable
+          style={[styles.joinButton, isJoining && styles.joinButtonDisabled]}
+          onPress={handleJoin}
+          disabled={isJoining}
+        >
+          {isJoining ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.joinButtonText}>Войти в конференцию</Text>
+          )}
+        </Pressable>
+      ) : isOwnEvent ? (
+        <View style={[styles.registerButton, styles.registerButtonDisabled]}>
+          <Text style={styles.registerButtonText}>Вы не можете зарегистрироваться на своё мероприятие</Text>
+        </View>
+      ) : (
+        <Pressable
+          style={[styles.registerButton, event.isRegistered && styles.registerButtonDisabled]}
+          onPress={event.isRegistered ? undefined : handleLinkNow}
+          disabled={event.isRegistered}
+        >
+          <Text style={styles.registerButtonText}>
+            {event.isRegistered ? 'Вы уже зарегистрированы' : 'Зарегистрироваться'}
+          </Text>
+        </Pressable>
+      )}
+
+      {/* Payment pending notice */}
+      {paymentPending ? (
+        <View style={styles.paymentPendingBadge}>
+          <Text style={styles.paymentPendingText}>Оплата в обработке</Text>
+        </View>
+      ) : null}
 
       {/* Curator Section */}
       {event.mentor && (
@@ -528,11 +635,21 @@ const styles = StyleSheet.create({
   mainPriceContainer: { borderWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 0, borderRightWidth: 0 },
   mainFooterPrice: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#1E1E1E' },
 
-  registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 24 },
+  // Join conference / recording button (prominent, dark red)
+  joinButton: { backgroundColor: '#E02D2D', paddingVertical: 16, alignItems: 'center', marginBottom: 8, minHeight: 52, justifyContent: 'center' },
+  joinButtonDisabled: { opacity: 0.6 },
+  joinButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
+
+  // Register button
+  registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 8 },
   registerButtonDisabled: { backgroundColor: '#9B9B9B' },
   registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
 
-  curatorSection: { alignItems: 'center', marginBottom: 24, width: '100%' },
+  // Payment pending badge
+  paymentPendingBadge: { backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#F0C040', paddingVertical: 8, paddingHorizontal: 12, marginBottom: 16, alignItems: 'center' },
+  paymentPendingText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#856404' },
+
+  curatorSection: { alignItems: 'center', marginBottom: 24, width: '100%', marginTop: 16 },
   curatorSectionWrapper: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', width: '100%', borderBottomWidth: 0 },
   curatorAvatar: { width: 96, height: 96, borderRightWidth: 1, borderColor: '#1E1E1E' },
   curatorAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
@@ -573,8 +690,8 @@ const styles = StyleSheet.create({
   modalPayButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   modalSecondaryButton: { marginTop: 12, borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, alignItems: 'center', backgroundColor: '#fff' },
   modalSecondaryButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#181818' },
-  payErrorText: { marginTop: 8, fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  payErrorText: { marginTop: 8, fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   paymentFailedTitle: { marginBottom: 12, fontFamily: 'Inter-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#E2372A' },
-  paymentFailedMessage: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#E2372A' },
+  paymentFailedMessage: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#E2372A', marginBottom: 4 },
   shareCopiedText: { marginTop: 4, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
 });
