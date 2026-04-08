@@ -52,6 +52,18 @@ export function isRegisteredOnEventItem(item: unknown): boolean {
     return ['registered', 'confirmed', 'active', 'paid', 'completed', 'success'].includes(s);
   }
 
+  // Check current_user_participation / currentUserParticipation
+  const cup = r.currentUserParticipation ?? r.current_user_participation;
+  if (cup && typeof cup === 'object') {
+    const cupObj = cup as Record<string, unknown>;
+    const cupStatus = (cupObj.status as string | undefined)?.toLowerCase();
+    if (cupStatus && ['registered', 'confirmed', 'active', 'paid', 'attended', 'completed'].includes(cupStatus)) {
+      return true;
+    }
+    const payStatus = (cupObj.paymentStatus ?? cupObj.payment_status) as string | undefined;
+    if (payStatus?.toLowerCase() === 'paid') return true;
+  }
+
   const nested = r.userEvent ?? r.user_event;
   if (nested && typeof nested === 'object') {
     return isRegisteredOnEventItem(nested);

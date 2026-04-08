@@ -90,15 +90,19 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const coverUrl =
     (r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? null) as string | null;
 
-  // Registration flag
-  const isRegistered = isRegisteredOnEventItem(r);
-
-  // Payment status
+  // Payment status + participation (extract before isRegistered so we can use it)
   const cupRaw = (r.currentUserParticipation ?? r.current_user_participation) as Record<string, unknown> | undefined;
   const currentUserParticipation = cupRaw ? {
     status: (cupRaw.status as string) ?? undefined,
     paymentStatus: (cupRaw.paymentStatus ?? cupRaw.payment_status) as string | undefined,
   } : undefined;
+
+  // Registration flag — check both top-level fields and current_user_participation
+  const cupStatus = currentUserParticipation?.status?.toLowerCase();
+  const registeredFromCup = cupStatus
+    ? ['registered', 'confirmed', 'active', 'paid', 'attended', 'completed'].includes(cupStatus)
+    : (currentUserParticipation?.paymentStatus?.toLowerCase() === 'paid');
+  const isRegistered = isRegisteredOnEventItem(r) || registeredFromCup;
 
   const isPaid =
     currentUserParticipation?.paymentStatus?.toLowerCase() === 'paid' ||

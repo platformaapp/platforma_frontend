@@ -208,17 +208,20 @@ export default function MyEventsScreen() {
       const token = await getAuthToken();
       if (!token) { router.replace('/login'); return; }
 
-      // Try POST .../unregister first; fall back to DELETE .../register
-      let res = await fetch(`${endpoints.events}/${eventId}/unregister`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 404 || res.status === 405) {
-        res = await fetch(`${endpoints.events}/${eventId}/register`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      // Try multiple cancellation endpoint patterns (backend API may differ)
+      const cancelAttempts = [
+        () => fetch(`${endpoints.events}/${eventId}/registration`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+        () => fetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }),
+        () => fetch(`${endpoints.studentBookings}/${eventId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+        () => fetch(`${endpoints.events}/${eventId}/unregister`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }),
+        () => fetch(`${endpoints.events}/${eventId}/register`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }),
+      ];
+      let res: Response | null = null;
+      for (const attempt of cancelAttempts) {
+        const r = await attempt();
+        if (r.status !== 404 && r.status !== 405) { res = r; break; }
       }
+      if (!res) res = await cancelAttempts[cancelAttempts.length - 1]();
 
       if (res.ok || res.status === 404) {
         setEvents((prev) => prev.filter((e) => e.id !== eventId));
