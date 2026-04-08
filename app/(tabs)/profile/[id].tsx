@@ -93,24 +93,36 @@ export default function ProfileByIdScreen() {
     setIsSwitching(true);
     try {
       const refreshToken = await getRefreshToken();
+      // Build body — send refresh token under both naming conventions if available
+      const body: Record<string, unknown> = { role: nextRole };
+      if (refreshToken) {
+        body.refreshToken = refreshToken;
+        body.refresh_token = refreshToken;
+      }
+
       const response = await fetch(endpoints.switchRole, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ role: nextRole, refreshToken }),
+        body: JSON.stringify(body),
       });
-
-      // Any 401/403 → session expired, send to login
-      if (response.status === 401 || response.status === 403) {
-        router.replace('/login');
-        return;
-      }
 
       const contentType = response.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
       const payload = isJson ? await response.json() : await response.text();
+
+      if (response.status === 401 || response.status === 403) {
+        const msg = typeof payload === 'object' && payload?.message
+          ? String(payload.message)
+          : 'Сессия истекла. Войдите снова для смены роли.';
+        Alert.alert('Ошибка', msg, [
+          { text: 'Отмена', style: 'cancel' },
+          { text: 'Войти', onPress: () => router.replace('/login') },
+        ]);
+        return;
+      }
 
       if (!response.ok) {
         const message = typeof payload === 'string' ? payload : payload?.message || 'Не удалось сменить роль';
@@ -118,8 +130,8 @@ export default function ProfileByIdScreen() {
       }
 
       const newToken = extractTokenFromResponse(payload) || token;
-      const refreshToken = extractRefreshTokenFromResponse(payload) || (await getRefreshToken()) || undefined;
-      await saveAuthToken(newToken, nextRole, refreshToken);
+      const newRefreshToken = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
+      await saveAuthToken(newToken, nextRole, newRefreshToken);
       setRole(nextRole);
     } catch (e: any) {
       const msg = e?.message ?? '';
