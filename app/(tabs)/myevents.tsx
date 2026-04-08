@@ -207,10 +207,19 @@ export default function MyEventsScreen() {
     try {
       const token = await getAuthToken();
       if (!token) { router.replace('/login'); return; }
-      const res = await fetch(`${endpoints.events}/${eventId}/register`, {
-        method: 'DELETE',
+
+      // Try POST .../unregister first; fall back to DELETE .../register
+      let res = await fetch(`${endpoints.events}/${eventId}/unregister`, {
+        method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (res.status === 404 || res.status === 405) {
+        res = await fetch(`${endpoints.events}/${eventId}/register`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
       if (res.ok || res.status === 404) {
         setEvents((prev) => prev.filter((e) => e.id !== eventId));
         setCancelSuccessVisible(true);

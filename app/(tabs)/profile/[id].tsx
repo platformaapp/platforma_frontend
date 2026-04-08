@@ -92,13 +92,14 @@ export default function ProfileByIdScreen() {
     }
     setIsSwitching(true);
     try {
+      const refreshToken = await getRefreshToken();
       const response = await fetch(endpoints.switchRole, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ role: nextRole }),
+        body: JSON.stringify({ role: nextRole, refreshToken }),
       });
 
       // Any 401/403 → session expired, send to login
