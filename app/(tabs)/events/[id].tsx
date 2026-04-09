@@ -98,10 +98,12 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   } : undefined;
 
   // Registration flag — check both top-level fields and current_user_participation
+  // payment_status "pending" also means registered (payment in processing)
   const cupStatus = currentUserParticipation?.status?.toLowerCase();
+  const cupPayStatus = currentUserParticipation?.paymentStatus?.toLowerCase();
   const registeredFromCup = cupStatus
-    ? ['registered', 'confirmed', 'active', 'paid', 'attended', 'completed'].includes(cupStatus)
-    : (currentUserParticipation?.paymentStatus?.toLowerCase() === 'paid');
+    ? ['registered', 'confirmed', 'active', 'paid', 'attended', 'completed', 'pending'].includes(cupStatus)
+    : (['paid', 'pending'].includes(cupPayStatus ?? ''));
   const isRegistered = isRegisteredOnEventItem(r) || registeredFromCup;
 
   const isPaid =
@@ -265,8 +267,10 @@ export default function EventDetailScreen() {
 
       if (!res.ok) {
         if (res.status === 409) {
-          setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
+          // Already registered — treat as success
+          setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
           setCardModalVisible(false);
+          setCardModalDoneVisible(true);
           return;
         }
         throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);

@@ -61,7 +61,7 @@ export function isRegisteredOnEventItem(item: unknown): boolean {
       return true;
     }
     const payStatus = (cupObj.paymentStatus ?? cupObj.payment_status) as string | undefined;
-    if (payStatus?.toLowerCase() === 'paid') return true;
+    if (payStatus && ['paid', 'pending'].includes(payStatus.toLowerCase())) return true;
   }
 
   const nested = r.userEvent ?? r.user_event;

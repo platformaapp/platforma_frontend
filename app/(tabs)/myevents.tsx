@@ -117,22 +117,53 @@ export default function MyEventsScreen() {
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
       const bookingsUrl = userRole === 'tutor' ? endpoints.tutorBookings : endpoints.studentBookings;
 
+      // Tutor: load their created events from /api/tutor/events
+      // Student: load events they are registered for from /api/events/my
+      const eventsPromise = userRole === 'tutor'
+        ? fetch(endpoints.tutorEvents, { headers })
+            .then(async (res) => {
+              if (!res.ok) throw new Error(`Ошибка загрузки событий (${res.status})`);
+              const data = await res.json();
+              const rawList = data.data ?? data.items ?? data.events ?? data ?? [];
+              const list = Array.isArray(rawList) ? rawList : [];
+              return list.map((row: Record<string, unknown>) => {
+                const start = (row.start_at ?? row.startAt ?? row.datetimeStart ?? row.datetime_start) as string | undefined;
+                const teacherRaw = (row.teacher ?? row.tutor ?? row.mentor) as Record<string, unknown> | undefined;
+                return {
+                  id: String(row.id ?? ''),
+                  title: (row.title as string) ?? '',
+                  type: row.type as string | undefined,
+                  teacher: row.teacher,
+                  student: row.student,
+                  start_at: start,
+                  startAt: start,
+                  price: typeof row.price === 'number' ? row.price : undefined,
+                  status: row.status as string | undefined,
+                  coverUrl: (row.coverUrl ?? row.cover_url) as string | null | undefined,
+                  datetimeStart: start,
+                  mentor: { id: String(teacherRaw?.id ?? ''), name: teacherName(teacherRaw) },
+                } as EventItem;
+              });
+            })
+        : getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 })
+            .then(({ items }) =>
+              items.map((it) => {
+                const start = it.start_at ?? it.startAt;
+                return {
+                  ...it,
+                  datetimeStart: start,
+                  mentor: { id: '', name: teacherName(it.teacher) },
+                } as EventItem;
+              })
+            );
+
       const [myEventsRes, bookRes] = await Promise.allSettled([
-        getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 }),
+        eventsPromise,
         fetch(bookingsUrl, { headers }),
       ]);
 
       if (myEventsRes.status === 'fulfilled') {
-        const { items } = myEventsRes.value;
-        const mapped: EventItem[] = items.map((it) => {
-          const start = it.start_at ?? it.startAt;
-          return {
-            ...it,
-            datetimeStart: start,
-            mentor: { id: '', name: teacherName(it.teacher) },
-          };
-        });
-        setEvents(mapped);
+        setEvents(myEventsRes.value);
       } else {
         setEvents([]);
         const err = myEventsRes.reason;
