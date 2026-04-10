@@ -1,13 +1,15 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { endpoints } from '@/constants/env';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { token } = useLocalSearchParams<{ token?: string }>();
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [show1, setShow1] = useState(false);
@@ -49,20 +51,26 @@ export default function ResetPasswordScreen() {
       return;
     }
 
+    if (!token) {
+      setError1('Ссылка для сброса пароля недействительна. Запросите новую.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // Здесь будет запрос к API для сброса пароля
-      // const res = await fetch(endpoints.resetPassword, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ password, token: router.params?.token }),
-      // });
-      // Пока просто имитируем задержку
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // После успешного сброса пароля переходим на экран событий
-      router.replace('/(tabs)/events');
+      const res = await fetch(endpoints.resetPassword, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password, new_password: password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError1(data?.message ?? data?.error ?? `Ошибка сброса пароля (${res.status})`);
+        return;
+      }
+      router.replace('/login');
     } catch (e: any) {
-      setError1('Ошибка при сбросе пароля');
+      setError1(e?.message ?? 'Ошибка при сбросе пароля');
     } finally {
       setIsSubmitting(false);
     }

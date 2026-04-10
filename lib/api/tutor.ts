@@ -319,6 +319,10 @@ export interface PublicTutor {
   hourly_rate?: number;
   pricePerHour?: number;
   roles: string[];
+  /** Telegram handle (e.g. "@username" or "username") */
+  telegram?: string;
+  telegramUsername?: string;
+  telegram_username?: string;
 }
 
 /**

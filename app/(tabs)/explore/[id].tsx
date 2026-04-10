@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import { bookTutorSlot, getPublicTutorList, getStudentTutorSlots } from '@/lib/api/tutor';
-import { getAuthRole } from '@/lib/auth';
+import { getAuthRole, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -54,6 +54,8 @@ export default function TutorCardScreen() {
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const [isTutor, setIsTutor] = useState(false);
+  const [telegramHandle, setTelegramHandle] = useState('');
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   const [showSlots, setShowSlots] = useState(false);
   const [slots, setSlots] = useState<SlotItem[]>([]);
@@ -74,17 +76,23 @@ export default function TutorCardScreen() {
     const load = async () => {
       try {
         // Check viewer role — tutors cannot book other tutors
-        const role = await getAuthRole();
-        if (active) setIsTutor(role === 'tutor');
+        const [viewerRole, profile, list] = await Promise.all([
+          getAuthRole(),
+          getUserProfile(),
+          getPublicTutorList(),
+        ]);
+        if (active) {
+          setIsTutor(viewerRole === 'tutor');
+          setIsOwnProfile(profile?.id === id);
+        }
 
         // Fetch tutor info from user list
-        const list = await getPublicTutorList();
         const tutor = list.find((t) => t.id === id);
         if (active && tutor) {
           setDisplayName(tutor.fullName ?? '');
           // shortBio = role label (e.g. "Куратор, исследователь")
-          const role = tutor.shortBio ?? tutor.short_bio ?? '';
-          setDisplayRole(role);
+          const roleLabel = tutor.shortBio ?? tutor.short_bio ?? '';
+          setDisplayRole(roleLabel);
           // bio = long description text
           setDisplayBio(tutor.bio ?? '');
           setAvatarUrl(tutor.avatarUrl ?? '');
@@ -93,6 +101,9 @@ export default function TutorCardScreen() {
           if (typeof rate === 'number' && rate > 0) {
             setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
           }
+          // Telegram handle
+          const tg = tutor.telegram ?? tutor.telegramUsername ?? tutor.telegram_username ?? '';
+          setTelegramHandle(tg.replace(/^@/, ''));
         }
       } catch {
         // ignore — show placeholder
@@ -195,9 +206,14 @@ export default function TutorCardScreen() {
         </View>
       )}
 
-      <Pressable style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Написать наставнику</Text>
-      </Pressable>
+      {!isOwnProfile && telegramHandle ? (
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => Linking.openURL(`https://t.me/${telegramHandle}`)}
+        >
+          <Text style={styles.secondaryButtonText}>Написать наставнику</Text>
+        </Pressable>
+      ) : null}
 
       {/* Share row */}
       <Pressable style={styles.shareRow} onPress={() => { setShareCopied(false); setShareVisible(true); }}>

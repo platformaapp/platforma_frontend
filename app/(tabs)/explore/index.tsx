@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -13,8 +14,13 @@ import {
 } from 'react-native';
 
 import { getPublicTutorList, type PublicTutor } from '@/lib/api/tutor';
+import { getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
+
+function getTelegramHandle(tutor: PublicTutor): string {
+  return tutor.telegram ?? tutor.telegramUsername ?? tutor.telegram_username ?? '';
+}
 
 export default function MentorsScreen() {
   const router = useRouter();
@@ -22,12 +28,19 @@ export default function MentorsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setError(null);
-      const data = await getPublicTutorList();
-      setTutors(data);
+      const [data, profile] = await Promise.all([
+        getPublicTutorList(),
+        getUserProfile(),
+      ]);
+      const myId = profile?.id ?? null;
+      setCurrentUserId(myId);
+      // Tutors with role=tutor, excluding own profile
+      setTutors(myId ? data.filter((t) => t.id !== myId) : data);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить наставников');
     } finally {
@@ -43,9 +56,14 @@ export default function MentorsScreen() {
     }, [load])
   );
 
-  const handleContact = (tutor: PublicTutor) => {
-    // Pass only the id — detail screen fetches profile itself so the URL stays short
-    router.push(`/(tabs)/explore/${tutor.id}`);
+  const handleContact = async (tutor: PublicTutor) => {
+    const tg = getTelegramHandle(tutor);
+    if (tg) {
+      const handle = tg.replace(/^@/, '');
+      await Linking.openURL(`https://t.me/${handle}`);
+    } else {
+      router.push(`/(tabs)/explore/${tutor.id}`);
+    }
   };
 
   if (loading) {

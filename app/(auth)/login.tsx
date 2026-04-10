@@ -52,12 +52,15 @@ export default function LoginScreen() {
       const res = await fetch(endpoints.login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email: email.trim(), password, role }),
       });
       const contentType = res.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
       const data = isJson ? await res.json() : await res.text();
       if (!res.ok) {
+        if (res.status >= 500) {
+          throw new Error('Ошибка сервера. Попробуйте позже.');
+        }
         const message = typeof data === 'string' ? data : data?.message || 'Не удалось войти';
         throw new Error(message);
       }
