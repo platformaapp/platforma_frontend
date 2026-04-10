@@ -34,17 +34,28 @@ export default function ForgotPasswordScreen() {
     setError(null);
     setIsSubmitting(true);
     try {
-      const res = await fetch(endpoints.forgotPassword, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+      let res: Response;
+      try {
+        res = await fetch(endpoints.forgotPassword, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim() }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         const errorMessage = data?.message || data?.error || `Ошибка восстановления пароля (${res.status})`;
-        if (res.status === 404 || errorMessage.toLowerCase().includes('не найден') || errorMessage.toLowerCase().includes('not found')) {
+        if (res.status === 504 || res.status === 502 || res.status === 503) {
+          setError('Сервис отправки почты недоступен. Попробуйте позже.');
+        } else if (res.status === 404 || errorMessage.toLowerCase().includes('не найден') || errorMessage.toLowerCase().includes('not found')) {
           setError('Пользователь не найден!');
         } else if (res.status >= 500) {
           setError('Ошибка сервера. Попробуйте позже.');
@@ -55,9 +66,14 @@ export default function ForgotPasswordScreen() {
         return;
       }
 
+      // Backend accepted the request — show check-email screen regardless of email delivery
       router.push('/check-email');
     } catch (e: any) {
-      setError(e?.message ?? 'Неизвестная ошибка');
+      if (e?.name === 'AbortError') {
+        setError('Превышено время ожидания. Попробуйте позже.');
+      } else {
+        setError(e?.message ?? 'Неизвестная ошибка');
+      }
     } finally {
       setIsSubmitting(false);
     }
