@@ -53,6 +53,9 @@ export default function EventsScreen() {
       // Public endpoint — never send auth token
       const res = await fetch(endpoints.eventsFeed);
       if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.message ?? body?.error ?? `Ошибка загрузки событий (${res.status})`;
+        setError(msg);
         setEvents([]);
         return;
       }

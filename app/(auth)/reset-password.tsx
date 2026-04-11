@@ -9,7 +9,21 @@ import { endpoints } from '@/constants/env';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const { token } = useLocalSearchParams<{ token?: string }>();
+  const { token: tokenParam } = useLocalSearchParams<{ token?: string }>();
+
+  // Fallback: read token directly from the URL in case the router hasn't
+  // hydrated search params yet (static-export SPA fallback via nginx).
+  const [token, setToken] = useState<string | undefined>(tokenParam || undefined);
+  React.useEffect(() => {
+    if (!token && typeof window !== 'undefined') {
+      const t = new URLSearchParams(window.location.search).get('token');
+      if (t) setToken(t);
+    }
+  }, []);
+  React.useEffect(() => {
+    if (tokenParam) setToken(tokenParam);
+  }, [tokenParam]);
+
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [show1, setShow1] = useState(false);
