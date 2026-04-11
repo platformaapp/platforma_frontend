@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import { getPublicTutorList, type PublicTutor } from '@/lib/api/tutor';
-import { getUserProfile } from '@/lib/auth';
+import { getAuthToken, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
@@ -57,6 +57,8 @@ export default function MentorsScreen() {
   );
 
   const handleContact = async (tutor: PublicTutor) => {
+    const token = await getAuthToken();
+    if (!token) { router.push('/login'); return; }
     const tg = getTelegramHandle(tutor);
     if (tg) {
       const handle = tg.replace(/^@/, '');

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import { bookTutorSlot, getPublicTutorList, getStudentTutorSlots } from '@/lib/api/tutor';
-import { getAuthRole, getUserProfile } from '@/lib/auth';
+import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -119,6 +119,8 @@ export default function TutorCardScreen() {
   const imageSource = avatarUrl ? { uri: avatarUrl } : PLACEHOLDER_AVATAR;
 
   const handleOpenSlots = async () => {
+    const token = await getAuthToken();
+    if (!token) { router.push('/login'); return; }
     setShowSlots(true);
     setLoadingSlots(true);
     setSlotsError('');
@@ -146,6 +148,8 @@ export default function TutorCardScreen() {
 
   const handleBook = async () => {
     if (!selectedSlot || isBooking) return;
+    const token = await getAuthToken();
+    if (!token) { setSelectedSlot(null); router.push('/login'); return; }
     setIsBooking(true);
     try {
       await bookTutorSlot(selectedSlot.id);
@@ -209,7 +213,11 @@ export default function TutorCardScreen() {
       {!isOwnProfile && telegramHandle ? (
         <Pressable
           style={styles.secondaryButton}
-          onPress={() => Linking.openURL(`https://t.me/${telegramHandle}`)}
+          onPress={async () => {
+            const token = await getAuthToken();
+            if (!token) { router.push('/login'); return; }
+            Linking.openURL(`https://t.me/${telegramHandle}`);
+          }}
         >
           <Text style={styles.secondaryButtonText}>Написать наставнику</Text>
         </Pressable>
