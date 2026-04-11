@@ -183,18 +183,10 @@ export default function EventDetailScreen() {
 
   const loadEvent = async (active: { value: boolean }) => {
     try {
-      const token = await getAuthToken();
-      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
-      if (token) {
-        const { getUserProfile } = await import('@/lib/auth');
-        const profile = await getUserProfile().catch(() => null);
-        if (active.value && profile?.id) setCurrentUserId(profile.id);
-      }
-
+      // Public requests — no auth header (backend rejects auth on public routes)
       const [detailRes, feedRes] = await Promise.allSettled([
-        fetch(`${endpoints.events}/${id}`, { headers }),
-        fetch(endpoints.eventsFeed, { headers }),
+        fetch(`${endpoints.events}/${id}`),
+        fetch(endpoints.eventsFeed),
       ]);
 
       if (detailRes.status === 'fulfilled' && detailRes.value.ok) {
@@ -206,11 +198,25 @@ export default function EventDetailScreen() {
       if (feedRes.status === 'fulfilled' && feedRes.value.ok) {
         const d = await feedRes.value.json();
         const items: FeedItem[] = parseFeedItems(d) as FeedItem[];
-        const thisItem = items.find((e) => e.id === id);
-        if (active.value && thisItem && isRegisteredOnEventItem(thisItem)) {
-          setEvent((prev) => prev ? { ...prev, isRegistered: true } : prev);
-        }
         if (active.value) setOtherEvents(items.filter((e) => e.id !== id).slice(0, 4));
+      }
+
+      // Overlay user-specific registration state (authenticated request to a private endpoint)
+      const token = await getAuthToken();
+      if (token && active.value) {
+        const { getUserProfile } = await import('@/lib/auth');
+        const profile = await getUserProfile().catch(() => null);
+        if (active.value && profile?.id) setCurrentUserId(profile.id);
+
+        // Fetch the same event with auth to get current_user_participation
+        const authRes = await fetch(`${endpoints.events}/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => null);
+        if (authRes?.ok && active.value) {
+          const raw = await authRes.json();
+          const normalized = normalizeEvent(raw as Record<string, unknown>);
+          if (active.value) setEvent(normalized);
+        }
       }
     } catch { /* ignore */ } finally {
       if (active.value) setLoading(false);

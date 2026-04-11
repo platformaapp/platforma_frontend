@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 
 import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
 import { isRegisteredOnEventItem } from '@/lib/event-feed';
 
 type EventFeedItem = {
@@ -51,14 +50,8 @@ export default function EventsScreen() {
     const load = useCallback(async () => {
     try {
       setError('');
-      const token = await getAuthToken();
-      let res = await fetch(endpoints.eventsFeed, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      // If token is invalid/expired, retry as public request
-      if (res.status === 401 && token) {
-        res = await fetch(endpoints.eventsFeed, {});
-      }
+      // Public endpoint — never send auth token
+      const res = await fetch(endpoints.eventsFeed);
       if (!res.ok) {
         setEvents([]);
         return;

@@ -326,16 +326,12 @@ export interface PublicTutor {
 }
 
 /**
- * GET /api/users — все пользователи.
+ * GET /api/users — публичный список пользователей.
  * Фильтруем на клиенте по roles.includes('tutor').
- * Запрос без Authorization, если пользователь не вошёл — список доступен гостям.
- * (handleResponse с 401 вызывал бы clearAuth — для публичного списка не используем.)
+ * Никогда не отправляем Authorization — эндпоинт публичный.
  */
 export async function getPublicTutorList(): Promise<PublicTutor[]> {
-  const token = await getAuthToken();
-  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
-  const res = await fetch(endpoints.users, { headers });
+  const res = await fetch(endpoints.users);
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const payload = isJson ? await res.json() : await res.text();
