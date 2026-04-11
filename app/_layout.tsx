@@ -12,7 +12,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  // No anchor — router must start at the actual URL (important for web deep links
+  // such as /reset-password?token=...). Setting anchor:'(tabs)' caused Expo Router
+  // to initialise at the (tabs) group first, firing the index redirect to /events
+  // and cancelling any in-flight deep-link navigation.
 };
 
 export default function RootLayout() {

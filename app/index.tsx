@@ -26,6 +26,17 @@ export default function IntroScreen() {
   const screenAnim  = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    // On web: if the user opened a deep link (e.g. /reset-password?token=…),
+    // skip the intro and navigate straight to that path so the browser URL is
+    // honoured and nothing is cancelled.
+    if (typeof window !== 'undefined') {
+      const { pathname, search } = window.location;
+      if (pathname && pathname !== '/' && pathname !== '/index.html') {
+        router.replace((pathname + search) as any);
+        return;
+      }
+    }
+
     Animated.sequence([
       // Lines appear one by one
       Animated.stagger(
