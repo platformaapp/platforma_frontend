@@ -61,7 +61,7 @@ export default function ResetPasswordScreen() {
       const res = await fetch(endpoints.resetPassword, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password, new_password: password }),
+        body: JSON.stringify({ reset_token: token, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
