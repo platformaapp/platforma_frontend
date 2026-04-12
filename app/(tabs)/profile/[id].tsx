@@ -1,9 +1,9 @@
 import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
-import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
@@ -14,6 +14,7 @@ import { toDisplayDate } from '@/lib/slots-utils';
 
 export default function ProfileByIdScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [isSwitching, setIsSwitching] = useState(false);
@@ -26,10 +27,8 @@ export default function ProfileByIdScreen() {
   const [isInviteVisible, setInviteVisible] = useState(false);
   const [isInviteCopied, setInviteCopied] = useState(false);
 
-  // Strip the internal (tabs) segment so shared links look clean:
-  // https://platformaapp.ru/profile/bb234b50-... instead of .../(tabs)/profile/...
-  const profileUrl = Linking.createURL(`/profile/${id ?? ''}`);
-  const platformUrl = Linking.createURL('/');
+  const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
+  const platformUrl = 'https://platformaapp.ru';
 
   const handleCopyProfileLink = async () => {
     await Clipboard.setStringAsync(profileUrl);
@@ -323,7 +322,7 @@ export default function ProfileByIdScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
       <View style={styles.roleSwitch}>
         <Pressable
           style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
@@ -356,7 +355,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   roleSwitch: {
     flexDirection: 'row',

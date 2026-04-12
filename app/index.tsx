@@ -16,7 +16,6 @@ const EXIT_MS    = 350;   // final fade-out duration
 
 // ─── Content ─────────────────────────────────────────────────────────────────
 const LINES = ['НАЙТИ', 'НОВЫЕ', 'ХОББИ', 'ТЕПЕРЬ ЛЕГКО'];
-const NUM_STRIPES = 8;
 
 export default function IntroScreen() {
   const router = useRouter();
@@ -72,13 +71,6 @@ export default function IntroScreen() {
 
   return (
     <Animated.View style={[styles.container, { opacity: screenAnim }]}>
-      {/* ─── Vertical stripe background ─────────────────────────────── */}
-      <View style={styles.stripes} pointerEvents="none">
-        {Array.from({ length: NUM_STRIPES }, (_, i) => (
-          <View key={i} style={[styles.stripe, i % 2 === 1 && styles.stripeAlt]} />
-        ))}
-      </View>
-
       {/* ─── Animated text ──────────────────────────────────────────── */}
       <View style={styles.textBlock}>
         {LINES.map((word, i) => (
@@ -116,18 +108,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-
-  // Striped background
-  stripes: {
-    ...StyleSheet.absoluteFillObject,
-    flexDirection: 'row',
-  },
-  stripe: {
-    flex: 1,
-  },
-  stripeAlt: {
-    backgroundColor: 'rgba(0,0,0,0.07)',
   },
 
   // Text block — vertically centred, left-aligned

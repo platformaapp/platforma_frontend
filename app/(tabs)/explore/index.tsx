@@ -12,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getPublicTutorList, type PublicTutor } from '@/lib/api/tutor';
 import { getAuthToken, getUserProfile } from '@/lib/auth';
@@ -24,6 +25,7 @@ function getTelegramHandle(tutor: PublicTutor): string {
 
 export default function MentorsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [tutors, setTutors] = useState<PublicTutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,8 +43,8 @@ export default function MentorsScreen() {
       setCurrentUserId(myId);
       // Tutors with role=tutor, excluding own profile
       setTutors(myId ? data.filter((t) => t.id !== myId) : data);
-    } catch (e: any) {
-      setError(e?.message ?? 'Не удалось загрузить наставников');
+    } catch {
+      setError('Не удалось загрузить наставников');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -82,7 +84,7 @@ export default function MentorsScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
     >
-      <Text style={styles.title}>НАСТАВНИКИ</Text>
+      <Text style={[styles.title, { paddingTop: insets.top + 16 }]}>НАСТАВНИКИ</Text>
 
       {error ? (
         <View style={styles.centered}>
@@ -135,7 +137,6 @@ const styles = StyleSheet.create({
     paddingTop: 80,
   },
   title: {
-    paddingTop: 16,
     paddingBottom: 12,
     fontSize: 20,
     lineHeight: 26,
