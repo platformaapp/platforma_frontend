@@ -14,6 +14,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { bookTutorSlot, getPublicTutorList, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -45,6 +46,7 @@ function formatSlotDate(apiDate: string): string {
 export default function TutorCardScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
 
   const [displayName, setDisplayName] = useState('');
   const [displayBio, setDisplayBio] = useState('');   // long bio for body text
@@ -172,7 +174,7 @@ export default function TutorCardScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Back */}
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
+      <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <Text style={styles.backArrow}>‹</Text>
       </Pressable>
 

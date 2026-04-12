@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
@@ -142,12 +143,14 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   };
 }
 
+const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, '0');
-    const month = d.toLocaleString('ru-RU', { month: 'long' });
+    const month = MONTHS_GEN[d.getMonth()];
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
     return `${day} ${month} ${hh}:${mm}`;
@@ -165,6 +168,7 @@ export default function EventDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [otherEvents, setOtherEvents] = useState<FeedItem[]>([]);
@@ -353,7 +357,7 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <View style={styles.container}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
           <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
           </Svg>
@@ -373,14 +377,14 @@ export default function EventDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/events')}>
+      <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.replace('/(tabs)/events')}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
         </Svg>
       </Pressable>
 
       {/* Main Event Card */}
-      <View style={styles.mainCard}>
+      <View style={[styles.mainCard, { marginTop: insets.top + 60 }]}>
         {event.coverUrl ? (
           <Image source={{ uri: event.coverUrl }} style={styles.mainImage} resizeMode="cover" />
         ) : (

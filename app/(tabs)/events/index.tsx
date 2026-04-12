@@ -27,12 +27,14 @@ type EventFeedItem = {
   status?: string;
 };
 
+const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
 function formatEventTime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, '0');
-    const month = d.toLocaleString('ru-RU', { month: 'long' });
+    const month = MONTHS_GEN[d.getMonth()];
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
     return `${day} ${month} ${hh}:${mm}`;
@@ -110,9 +112,7 @@ export default function EventsScreen() {
             >
               {item.coverUrl ? (
                 <Image source={{ uri: item.coverUrl }} style={styles.image} resizeMode="cover" />
-              ) : (
-                <View style={[styles.image, styles.imagePlaceholder]} />
-              )}
+              ) : null}
               <View style={styles.cardBody}>
                 <Text style={styles.cardTitleText}>{item.title}</Text>
                 {item.description ? (

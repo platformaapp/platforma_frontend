@@ -41,12 +41,14 @@ type BookingItem = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+const MONTHS_GEN = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
     const day = String(d.getDate()).padStart(2, '0');
-    const month = d.toLocaleString('ru-RU', { month: 'short' });
+    const month = MONTHS_GEN[d.getMonth()];
     const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
@@ -489,15 +491,17 @@ export default function MyEventsScreen() {
                 <Pressable style={styles.modalWriteButton} onPress={handleWriteToMentor}>
                   <Text style={styles.modalWriteButtonText}>Написать наставнику</Text>
                 </Pressable>
-                <Pressable
-                  style={[styles.modalCancelButton, isCancelling && styles.modalCancelButtonDisabled]}
-                  onPress={handleCancelRegistration}
-                  disabled={isCancelling}
-                >
-                  <Text style={styles.modalCancelButtonText}>
-                    {isCancelling ? 'Отмена...' : 'Отменить запись'}
-                  </Text>
-                </Pressable>
+                {(!menuEvent?.datetimeStart || new Date(menuEvent.datetimeStart).getTime() > Date.now()) && (
+                  <Pressable
+                    style={[styles.modalCancelButton, isCancelling && styles.modalCancelButtonDisabled]}
+                    onPress={handleCancelRegistration}
+                    disabled={isCancelling}
+                  >
+                    <Text style={styles.modalCancelButtonText}>
+                      {isCancelling ? 'Отмена...' : 'Отменить запись'}
+                    </Text>
+                  </Pressable>
+                )}
               </>
             )}
           </Pressable>
