@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
 import { isRegisteredOnEventItem } from '@/lib/event-feed';
@@ -42,6 +43,7 @@ function formatEventTime(iso?: string): string {
 
 export default function EventsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,7 +93,7 @@ export default function EventsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
+      <Text style={[styles.titleText, { paddingTop: insets.top + 16 }]}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
       {error ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   titleText: {
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12,
+    paddingHorizontal: 16, paddingBottom: 12,
     fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818',
   },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },

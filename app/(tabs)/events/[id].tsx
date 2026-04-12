@@ -334,7 +334,7 @@ export default function EventDetailScreen() {
     router.replace('/(tabs)/events');
   }
 
-  const eventUrl = Linking.createURL(`/events/${id}`);
+  const eventUrl = `https://platformaapp.ru/events/${id}`;
   const handleCopyLink = async () => {
     await Clipboard.setStringAsync(eventUrl);
     setIsShareCopied(true);

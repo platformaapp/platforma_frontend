@@ -13,6 +13,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken, getAuthRole } from '@/lib/auth';
@@ -84,7 +85,14 @@ function isAuthError(e: unknown): boolean {
   const err = e as any;
   if (err?.name === 'AuthError') return true;
   const msg: string = (err?.message ?? '').toLowerCase();
-  return msg.includes('token expired') || msg.includes('refresh failed') || msg.includes('требуется авторизация');
+  return (
+    msg.includes('token expired') ||
+    msg.includes('refresh failed') ||
+    msg.includes('требуется авторизация') ||
+    msg.includes('session not found') ||
+    msg.includes('unauthorized') ||
+    msg.includes('not authenticated')
+  );
 }
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
@@ -93,6 +101,7 @@ type Tab = 'events' | 'meetings';
 
 export default function MyEventsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>('events');
 
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -101,6 +110,7 @@ export default function MyEventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [menuEvent, setMenuEvent] = useState<EventItem | null>(null);
+  const [menuBooking, setMenuBooking] = useState<BookingItem | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<EventItem | null>(null);
@@ -171,9 +181,12 @@ export default function MyEventsScreen() {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить мои мероприятия');
       }
 
-      if (bookRes.status === 'fulfilled' && bookRes.value.ok) {
-        const data = await bookRes.value.json();
-        setBookings(Array.isArray(data) ? data : []);
+      if (bookRes.status === 'fulfilled') {
+        if (bookRes.value.status === 401) { router.replace('/login'); return; }
+        if (bookRes.value.ok) {
+          const data = await bookRes.value.json();
+          setBookings(Array.isArray(data) ? data : []);
+        }
       }
     } catch (e: any) {
       if (isAuthError(e)) { router.replace('/login'); return; }
@@ -273,12 +286,11 @@ export default function MyEventsScreen() {
   // ─── Render event card ───────────────────────────────────────────────────
 
   const renderEventCard = (item: EventItem) => (
-    <Pressable
-      key={item.id}
-      style={styles.card}
-      onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
-    >
-      <View style={styles.cardTop}>
+    <View key={item.id} style={styles.card}>
+      <Pressable
+        style={styles.cardTop}
+        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+      >
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={styles.cardImage} />
         ) : (
@@ -290,7 +302,7 @@ export default function MyEventsScreen() {
             <Text style={styles.eventStatus}>{translateEventStatus(item.status)}</Text>
           ) : null}
         </View>
-      </View>
+      </Pressable>
       <View style={styles.cardBottom}>
         <Text style={styles.cardAuthor} numberOfLines={1}>
           {item.mentor?.name ?? ''}
@@ -298,13 +310,13 @@ export default function MyEventsScreen() {
         <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
         <Pressable
           style={styles.cardMenu}
-          onPress={(e) => { e.stopPropagation(); setMenuEvent(item); }}
+          onPress={() => setMenuEvent(item)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={styles.cardMenuText}>•••</Text>
         </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 
   // ─── Render booking card (личная встреча с наставником) ─────────────────
@@ -313,9 +325,13 @@ export default function MyEventsScreen() {
     const tutorName = item.tutor?.fullName ?? item.tutor?.name ?? 'Наставник';
     const avatarUrl = item.tutor?.avatarUrl;
     const dateStr = formatBookingDate(item.date, item.time);
+    const tutorId = item.tutor?.id ?? item.tutorId;
     return (
       <View key={item.id} style={styles.card}>
-        <View style={styles.cardTop}>
+        <Pressable
+          style={styles.cardTop}
+          onPress={() => tutorId && router.push(`/(tabs)/explore/${tutorId}` as any)}
+        >
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.cardImage} />
           ) : (
@@ -327,13 +343,17 @@ export default function MyEventsScreen() {
               <Text style={styles.bookingStatus}>{translateStatus(item.status)}</Text>
             ) : null}
           </View>
-        </View>
+        </Pressable>
         <View style={styles.cardBottom}>
           <Text style={styles.cardAuthor} numberOfLines={1}>{tutorName}</Text>
           <Text style={styles.cardDate}>{dateStr}</Text>
-          <View style={styles.cardMenu}>
+          <Pressable
+            style={styles.cardMenu}
+            onPress={() => setMenuBooking(item)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Text style={styles.cardMenuText}>•••</Text>
-          </View>
+          </Pressable>
         </View>
       </View>
     );
@@ -371,7 +391,7 @@ export default function MyEventsScreen() {
       : 'У вас пока нет личных встреч с наставниками';
   return (
     <View style={styles.container}>
-      <Text style={styles.screenTitle}>МОИ ЗАПИСИ</Text>
+      <Text style={[styles.screenTitle, { paddingTop: insets.top + 16 }]}>МОИ ЗАПИСИ</Text>
 
       <View style={styles.tabRow}>
         <Pressable
@@ -484,6 +504,35 @@ export default function MyEventsScreen() {
         </Pressable>
       </Modal>
 
+      {/* ─── Booking menu popup (•••) ───────────────────────────────────── */}
+      <Modal
+        transparent
+        animationType="none"
+        visible={menuBooking !== null}
+        onRequestClose={() => setMenuBooking(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setMenuBooking(null)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>Личная встреча</Text>
+              {menuBooking?.date ? (
+                <Text style={styles.modalEventDate}>{formatBookingDate(menuBooking.date, menuBooking.time)}</Text>
+              ) : null}
+            </View>
+            <Pressable
+              style={styles.modalWriteButton}
+              onPress={() => {
+                const tutorId = menuBooking?.tutor?.id ?? menuBooking?.tutorId;
+                setMenuBooking(null);
+                if (tutorId) router.push(`/(tabs)/explore/${tutorId}` as any);
+              }}
+            >
+              <Text style={styles.modalWriteButtonText}>Написать наставнику</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* ─── Cancel confirmation modal ──────────────────────────────────── */}
       <Modal
         transparent
@@ -562,7 +611,6 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 12,
     fontSize: 20,
     lineHeight: 26,

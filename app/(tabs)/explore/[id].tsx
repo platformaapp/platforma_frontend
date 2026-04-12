@@ -66,8 +66,7 @@ export default function TutorCardScreen() {
   const [isShareVisible, setShareVisible] = useState(false);
   const [isShareCopied, setShareCopied] = useState(false);
 
-  // Clean URL: /profile/{id} without (tabs) or query params
-  const profileUrl = Linking.createURL(`/profile/${id ?? ''}`);
+  const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
 
   useEffect(() => {
     if (!id) return;
