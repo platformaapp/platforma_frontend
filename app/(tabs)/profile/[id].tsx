@@ -186,7 +186,7 @@ export default function ProfileByIdScreen() {
         </View>
       </Pressable>
 
-      <Modal transparent animationType="none" visible={isInviteVisible} onRequestClose={() => setInviteVisible(false)}>
+      <Modal transparent animationType="slide" visible={isInviteVisible} onRequestClose={() => setInviteVisible(false)}>
         <Pressable style={styles.shareModalOverlay} onPress={() => setInviteVisible(false)}>
           <Pressable style={styles.shareModalSheet} onPress={() => {}}>
             <Text style={styles.shareModalTitle}>Поделиться платформой</Text>
@@ -290,7 +290,7 @@ export default function ProfileByIdScreen() {
         </View>
       </Pressable>
 
-      <Modal transparent animationType="none" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
+      <Modal transparent animationType="slide" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
         <Pressable style={styles.shareModalOverlay} onPress={() => setShareVisible(false)}>
           <Pressable style={styles.shareModalSheet} onPress={() => {}}>
             <Text style={styles.shareModalTitle}>Поделиться профилем</Text>
@@ -323,26 +323,28 @@ export default function ProfileByIdScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      <View style={styles.roleSwitch}>
-        <Pressable
-          style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
-          onPress={() => handleSwitchRole('student')}
-          disabled={isSwitching}
-        >
-          <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>
-            Ученик
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.roleButton, role === 'tutor' && styles.roleButtonActive]}
-          onPress={() => handleSwitchRole('tutor')}
-          disabled={isSwitching}
-        >
-          <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>
-            Наставник
-          </Text>
-        </Pressable>
-      </View>
+      {role !== 'tutor' && (
+        <View style={styles.roleSwitch}>
+          <Pressable
+            style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
+            onPress={() => handleSwitchRole('student')}
+            disabled={isSwitching}
+          >
+            <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>
+              Ученик
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.roleButton, role === 'tutor' && styles.roleButtonActive]}
+            onPress={() => handleSwitchRole('tutor')}
+            disabled={isSwitching}
+          >
+            <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>
+              Наставник
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {role === 'student' ? renderStudentContent() : renderTutorContent()}

@@ -454,7 +454,10 @@ export default function EventDetailScreen() {
       {/* Curator Section */}
       {event.mentor && (
         <View style={styles.curatorSection}>
-          <View style={styles.curatorSectionWrapper}>
+          <Pressable
+            style={styles.curatorSectionWrapper}
+            onPress={() => event.mentor?.id ? router.push(`/(tabs)/explore/${event.mentor.id}` as any) : undefined}
+          >
             {event.mentor.avatarUrl ? (
               <Image source={{ uri: event.mentor.avatarUrl }} style={styles.curatorAvatar} />
             ) : (
@@ -466,7 +469,7 @@ export default function EventDetailScreen() {
                 <Text style={styles.curatorRole}>{event.mentor.bio}</Text>
               ) : null}
             </View>
-          </View>
+          </Pressable>
           <Pressable style={styles.writeToCuratorButton} onPress={handleLinkTutor}>
             <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
           </Pressable>
@@ -520,7 +523,7 @@ export default function EventDetailScreen() {
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
 
       {/* Registration modal */}
-      <Modal transparent animationType="none" visible={isCardModalVisible} onRequestClose={() => setCardModalVisible(false)}>
+      <Modal transparent animationType="slide" visible={isCardModalVisible} onRequestClose={() => setCardModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
@@ -548,7 +551,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Share event modal */}
-      <Modal transparent animationType="none" visible={isShareEventVisible} onRequestClose={() => setShareEventVisible(false)}>
+      <Modal transparent animationType="slide" visible={isShareEventVisible} onRequestClose={() => setShareEventVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShareEventVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Поделиться событием</Text>
@@ -567,7 +570,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Payment done modal */}
-      <Modal transparent animationType="none" visible={isCardModalDoneVisible} onRequestClose={() => setCardModalDoneVisible(false)}>
+      <Modal transparent animationType="slide" visible={isCardModalDoneVisible} onRequestClose={() => setCardModalDoneVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Оплата прошла</Text>
@@ -584,7 +587,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Write to tutor modal */}
-      <Modal transparent animationType="none" visible={isLinkTutorVisible} onRequestClose={() => setLinkTutorVisible(false)}>
+      <Modal transparent animationType="slide" visible={isLinkTutorVisible} onRequestClose={() => setLinkTutorVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setLinkTutorVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Пожалуйста, проводите встречи на платформе</Text>
@@ -603,7 +606,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Payment failed modal */}
-      <Modal transparent animationType="none" visible={isPaymentFailedModalVisible} onRequestClose={() => setPaymentFailedModalVisible(false)}>
+      <Modal transparent animationType="slide" visible={isPaymentFailedModalVisible} onRequestClose={() => setPaymentFailedModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setPaymentFailedModalVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.paymentFailedTitle}>ОПЛАТА НЕ ПРОШЛА</Text>

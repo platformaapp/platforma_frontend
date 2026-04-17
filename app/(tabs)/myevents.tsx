@@ -180,7 +180,7 @@ export default function MyEventsScreen() {
         setEvents([]);
         const err = myEventsRes.reason;
         if (isAuthError(err)) { router.replace('/login'); return; }
-        setError(err instanceof Error ? err.message : 'Не удалось загрузить мои мероприятия');
+        // Non-auth error → show empty state instead of full-screen error
       }
 
       if (bookRes.status === 'fulfilled') {
@@ -188,11 +188,17 @@ export default function MyEventsScreen() {
         if (bookRes.value.ok) {
           const data = await bookRes.value.json();
           setBookings(Array.isArray(data) ? data : []);
+        } else {
+          setBookings([]);
         }
+      } else {
+        setBookings([]);
       }
     } catch (e: any) {
       if (isAuthError(e)) { router.replace('/login'); return; }
-      setError(e?.message ?? 'Не удалось загрузить данные');
+      // Show empty state on error instead of error message
+      setEvents([]);
+      setBookings([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -418,10 +424,6 @@ export default function MyEventsScreen() {
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#181818" />
         </View>
-      ) : error ? (
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.list}
@@ -460,7 +462,7 @@ export default function MyEventsScreen() {
       {/* ─── Event menu popup (•••) ──────────────────────────────────────── */}
       <Modal
         transparent
-        animationType="none"
+        animationType="slide"
         visible={menuEvent !== null}
         onRequestClose={() => setMenuEvent(null)}
       >
@@ -511,7 +513,7 @@ export default function MyEventsScreen() {
       {/* ─── Booking menu popup (•••) ───────────────────────────────────── */}
       <Modal
         transparent
-        animationType="none"
+        animationType="slide"
         visible={menuBooking !== null}
         onRequestClose={() => setMenuBooking(null)}
       >
@@ -540,7 +542,7 @@ export default function MyEventsScreen() {
       {/* ─── Cancel confirmation modal ──────────────────────────────────── */}
       <Modal
         transparent
-        animationType="none"
+        animationType="slide"
         visible={cancelConfirmVisible}
         onRequestClose={() => { setCancelConfirmVisible(false); setCancelTarget(null); }}
       >
@@ -582,7 +584,7 @@ export default function MyEventsScreen() {
       {/* ─── Cancel success modal ───────────────────────────────────────── */}
       <Modal
         transparent
-        animationType="none"
+        animationType="slide"
         visible={cancelSuccessVisible}
         onRequestClose={() => { setCancelSuccessVisible(false); setCancelTarget(null); }}
       >

@@ -233,7 +233,7 @@ export default function TutorCardScreen() {
       </Pressable>
 
       {/* ─── Slot selection ───────────────────────────────────── */}
-      <Modal transparent animationType="none" visible={showSlots} onRequestClose={() => setShowSlots(false)}>
+      <Modal transparent animationType="slide" visible={showSlots} onRequestClose={() => setShowSlots(false)}>
         <Pressable style={styles.overlay} onPress={() => setShowSlots(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>СВОБОДНЫЕ СЛОТЫ{'\n'}ДЛЯ ЗАПИСИ</Text>
@@ -280,7 +280,7 @@ export default function TutorCardScreen() {
       </Modal>
 
       {/* ─── Booking confirmation ─────────────────────────────── */}
-      <Modal transparent animationType="none" visible={selectedSlot !== null} onRequestClose={() => setSelectedSlot(null)}>
+      <Modal transparent animationType="slide" visible={selectedSlot !== null} onRequestClose={() => setSelectedSlot(null)}>
         <Pressable style={styles.overlay} onPress={() => setSelectedSlot(null)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>ПОДТВЕРЖДЕНИЕ{'\n'}ЗАПИСИ</Text>
@@ -313,7 +313,7 @@ export default function TutorCardScreen() {
       </Modal>
 
       {/* ─── Share popup ──────────────────────────────────────── */}
-      <Modal transparent animationType="none" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
+      <Modal transparent animationType="slide" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setShareVisible(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <Text style={styles.sheetTitle}>Поделиться профилем</Text>
