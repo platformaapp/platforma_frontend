@@ -25,6 +25,7 @@ type EventFeedItem = {
   coverUrl?: string | null;
   mentor?: { id: string; name: string; avatarUrl?: string | null };
   status?: string;
+  [key: string]: unknown;
 };
 
 const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
@@ -64,12 +65,27 @@ export default function EventsScreen() {
         return;
       }
       const data = await res.json();
-      const raw: EventFeedItem[] = Array.isArray(data)
+      const rawList: Record<string, unknown>[] = Array.isArray(data)
         ? data
         : Array.isArray(data?.items)
           ? data.items
           : [];
-      setEvents(raw.filter((item) => !isRegisteredOnEventItem(item)));
+      // Нормализуем snake_case → camelCase для картинок и дат
+      const normalized: EventFeedItem[] = rawList.map((r) => ({
+        id: String(r.id ?? ''),
+        title: String(r.title ?? ''),
+        description: (r.description as string) ?? undefined,
+        datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
+        price: typeof r.price === 'number' ? r.price : undefined,
+        coverUrl: (r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? null) as string | null,
+        mentor: r.mentor ? {
+          id: String((r.mentor as any).id ?? ''),
+          name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? ''),
+          avatarUrl: ((r.mentor as any).avatarUrl ?? (r.mentor as any).avatar_url ?? null) as string | null,
+        } : undefined,
+        status: (r.status as string) ?? undefined,
+      }));
+      setEvents(normalized.filter((item) => !isRegisteredOnEventItem(item)));
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить события');
     } finally {

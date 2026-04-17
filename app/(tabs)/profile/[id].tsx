@@ -26,6 +26,7 @@ export default function ProfileByIdScreen() {
   const [isShareCopied, setShareCopied] = useState(false);
   const [isInviteVisible, setInviteVisible] = useState(false);
   const [isInviteCopied, setInviteCopied] = useState(false);
+  const [isBecomeTutorVisible, setBecomeTutorVisible] = useState(false);
 
   const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
   const platformUrl = 'https://platformaapp.ru';
@@ -209,6 +210,45 @@ export default function ProfileByIdScreen() {
             </Pressable>
             <Pressable style={styles.shareModalClose} onPress={() => setInviteVisible(false)}>
               <Text style={styles.shareModalCloseText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Стать наставником */}
+      <Pressable style={styles.becomeTutorCard} onPress={() => setBecomeTutorVisible(true)}>
+        <View style={styles.becomeTutorContent}>
+          <Text style={styles.becomeTutorTitle}>Стать наставником</Text>
+          <Text style={styles.becomeTutorSubtitle}>Проводите мастер-классы и личные встречи на платформе</Text>
+        </View>
+        <View style={styles.becomeTutorArrow}>
+          <Text style={styles.becomeTutorArrowText}>›</Text>
+        </View>
+      </Pressable>
+
+      <Modal transparent animationType="slide" visible={isBecomeTutorVisible} onRequestClose={() => setBecomeTutorVisible(false)}>
+        <Pressable style={styles.shareModalOverlay} onPress={() => setBecomeTutorVisible(false)}>
+          <Pressable style={styles.shareModalSheet} onPress={() => {}}>
+            <Text style={styles.shareModalTitle}>Стать наставником</Text>
+            <View style={styles.shareModalCard}>
+              <Text style={styles.shareModalUrl}>
+                После подтверждения ваш профиль переключится в режим наставника. Вы сможете заполнить информацию о себе, добавить слоты и создавать события.
+              </Text>
+            </View>
+            <Pressable
+              style={[styles.shareModalButton, isSwitching && { opacity: 0.6 }]}
+              disabled={isSwitching}
+              onPress={async () => {
+                setBecomeTutorVisible(false);
+                await handleSwitchRole('tutor');
+              }}
+            >
+              <Text style={styles.shareModalButtonText}>
+                {isSwitching ? 'Переключение...' : 'Подтвердить'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.shareModalClose} onPress={() => setBecomeTutorVisible(false)}>
+              <Text style={styles.shareModalCloseText}>Отмена</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -651,5 +691,42 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#E02D2D',
+  },
+  becomeTutorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    marginTop: 16,
+    backgroundColor: '#F8F8F8',
+  },
+  becomeTutorContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  becomeTutorTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    marginBottom: 4,
+  },
+  becomeTutorSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+  },
+  becomeTutorArrow: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  becomeTutorArrowText: {
+    fontSize: 26,
+    color: '#181818',
+    marginTop: -2,
   },
 });

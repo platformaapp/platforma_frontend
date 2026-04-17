@@ -348,9 +348,16 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
 
   const raw = Array.isArray(payload) ? payload : (payload as { data?: unknown })?.data;
   const list = Array.isArray(raw) ? raw : [];
-  return (list as PublicTutor[]).filter((u) =>
-    Array.isArray(u.roles) && u.roles.includes('tutor')
-  );
+  return (list as Record<string, any>[])
+    .filter((u) => Array.isArray(u.roles) && u.roles.includes('tutor'))
+    .map((u) => ({
+      ...u,
+      fullName: u.fullName ?? u.full_name ?? '',
+      avatarUrl: u.avatarUrl ?? u.avatar_url ?? undefined,
+      shortBio: u.shortBio ?? u.short_bio ?? undefined,
+      hourlyRate: u.hourlyRate ?? u.hourly_rate ?? u.pricePerHour ?? undefined,
+      telegram: u.telegram ?? u.telegramUsername ?? u.telegram_username ?? undefined,
+    } as PublicTutor));
 }
 
 /** Слот тьютора, видимый студенту: GET /api/student/tutors/:tutorId/slots */

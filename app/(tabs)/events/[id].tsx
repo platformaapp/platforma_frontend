@@ -259,7 +259,6 @@ export default function EventDetailScreen() {
         getPaymentMethods(),
       ]);
       if (!token) throw new Error('Для оплаты нужно войти в аккаунт');
-      if (role && role !== 'student') throw new Error('Оплата доступна только для студентов');
 
       if (!cards?.length) {
         setCardModalVisible(false);
