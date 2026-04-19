@@ -13,8 +13,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { endpoints } from '@/constants/env';
+import { API_BASE, endpoints } from '@/constants/env';
 import { isRegisteredOnEventItem } from '@/lib/event-feed';
+
+function resolveUrl(url: unknown): string | null {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
 
 type EventFeedItem = {
   id: string;
@@ -77,7 +83,7 @@ export default function EventsScreen() {
         description: (r.description as string) ?? undefined,
         datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
         price: typeof r.price === 'number' ? r.price : undefined,
-        coverUrl: (r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? null) as string | null,
+        coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url),
         mentor: r.mentor ? {
           id: String((r.mentor as any).id ?? ''),
           name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? ''),

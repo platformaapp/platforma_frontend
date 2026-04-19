@@ -170,9 +170,14 @@ export default function LoginScreen() {
 
           
         </ThemedView>
-        <Pressable style={{ marginTop: 24, position: 'absolute', bottom: 32, left: 0, right: 0 }} onPress={() => router.push('/forgot-password')}>
-          <ThemedText style={{ textAlign: 'center' }}>Забыли пароль?</ThemedText>
-        </Pressable>
+        <View style={{ position: 'absolute', bottom: 32, left: 0, right: 0, alignItems: 'center', gap: 16 }}>
+          <Pressable onPress={() => router.push('/forgot-password')}>
+            <ThemedText style={{ textAlign: 'center', fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' }}>Забыли пароль?</ThemedText>
+          </Pressable>
+          <Pressable onPress={() => router.push('/(auth)')}>
+            <ThemedText style={{ textAlign: 'center', fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' }}>Нет аккаунта? Зарегистрироваться</ThemedText>
+          </Pressable>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

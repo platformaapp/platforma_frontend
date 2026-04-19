@@ -17,8 +17,14 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { endpoints } from '@/constants/env';
+import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
+
+function resolveUrl(url: unknown): string | null {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
 import { getPaymentMethods } from '@/lib/api/student-payments';
 import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
 
@@ -83,13 +89,12 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const mentor = mentorRaw ? {
     id: String(mentorRaw.id ?? mentorRaw.userId ?? mentorRaw.user_id ?? ''),
     name: String(mentorRaw.name ?? mentorRaw.fullName ?? mentorRaw.full_name ?? mentorRaw.displayName ?? ''),
-    avatarUrl: (mentorRaw.avatarUrl ?? mentorRaw.avatar_url ?? null) as string | null,
+    avatarUrl: resolveUrl(mentorRaw.avatarUrl ?? mentorRaw.avatar_url),
     bio: (mentorRaw.bio ?? mentorRaw.description ?? '') as string,
   } : undefined;
 
   // Cover image
-  const coverUrl =
-    (r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? null) as string | null;
+  const coverUrl = resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover);
 
   // Payment status + participation (extract before isRegistered so we can use it)
   const cupRaw = (r.currentUserParticipation ?? r.current_user_participation) as Record<string, unknown> | undefined;

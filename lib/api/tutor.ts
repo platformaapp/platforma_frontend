@@ -326,12 +326,25 @@ export interface PublicTutor {
 }
 
 /**
- * GET /api/users — публичный список пользователей.
+ * Нормализует URL картинки: если путь относительный — добавляет API_BASE.
+ */
+function resolveUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${endpoints.studentProfile.replace('/api/student/profile', '')}${url}`;
+}
+
+/**
+ * GET /api/users — список пользователей.
+ * Если доступен токен — отправляем его (эндпоинт может требовать auth).
  * Фильтруем на клиенте по roles.includes('tutor').
- * Никогда не отправляем Authorization — эндпоинт публичный.
  */
 export async function getPublicTutorList(): Promise<PublicTutor[]> {
-  const res = await fetch(endpoints.users);
+  const token = await getAuthToken().catch(() => null);
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(endpoints.users, { headers });
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const payload = isJson ? await res.json() : await res.text();
@@ -349,11 +362,15 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
   const raw = Array.isArray(payload) ? payload : (payload as { data?: unknown })?.data;
   const list = Array.isArray(raw) ? raw : [];
   return (list as Record<string, any>[])
-    .filter((u) => Array.isArray(u.roles) && u.roles.includes('tutor'))
+    .filter((u) =>
+      Array.isArray(u.roles)
+        ? u.roles.some((r: unknown) => r === 'tutor' || (r as any)?.name === 'tutor')
+        : u.role === 'tutor'
+    )
     .map((u) => ({
       ...u,
       fullName: u.fullName ?? u.full_name ?? '',
-      avatarUrl: u.avatarUrl ?? u.avatar_url ?? undefined,
+      avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url),
       shortBio: u.shortBio ?? u.short_bio ?? undefined,
       hourlyRate: u.hourlyRate ?? u.hourly_rate ?? u.pricePerHour ?? undefined,
       telegram: u.telegram ?? u.telegramUsername ?? u.telegram_username ?? undefined,
