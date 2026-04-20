@@ -35,14 +35,20 @@ export default function MentorsScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [data, profile] = await Promise.all([
+      const [tutorsResult, profileResult] = await Promise.allSettled([
         getPublicTutorList(),
         getUserProfile(),
       ]);
-      const myId = profile?.id ?? null;
+
+      const data = tutorsResult.status === 'fulfilled' ? tutorsResult.value : [];
+      const myId = profileResult.status === 'fulfilled' ? (profileResult.value?.id ?? null) : null;
+
       setCurrentUserId(myId);
-      // Tutors with role=tutor, excluding own profile
       setTutors(myId ? data.filter((t) => t.id !== myId) : data);
+
+      if (tutorsResult.status === 'rejected') {
+        setError('Не удалось загрузить наставников');
+      }
     } catch {
       setError('Не удалось загрузить наставников');
     } finally {

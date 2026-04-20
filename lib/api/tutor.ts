@@ -350,6 +350,8 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
+    // Unauthenticated or forbidden — return empty list rather than throwing
+    if (res.status === 401 || res.status === 403) return [];
     const msg =
       typeof payload === 'string'
         ? payload
