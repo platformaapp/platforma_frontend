@@ -123,7 +123,13 @@ export default function MyEventsScreen() {
     try {
       setError('');
       const [token, userRole] = await Promise.all([getAuthToken(), getAuthRole()]);
-      if (!token) { router.replace('/login'); return; }
+      if (!token) {
+        setEvents([]);
+        setBookings([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
       setRole(userRole);
 
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
@@ -462,7 +468,7 @@ export default function MyEventsScreen() {
       {/* ─── Event menu popup (•••) ──────────────────────────────────────── */}
       <Modal
         transparent
-        animationType="slide"
+        animationType="fade"
         visible={menuEvent !== null}
         onRequestClose={() => setMenuEvent(null)}
       >
@@ -513,7 +519,7 @@ export default function MyEventsScreen() {
       {/* ─── Booking menu popup (•••) ───────────────────────────────────── */}
       <Modal
         transparent
-        animationType="slide"
+        animationType="fade"
         visible={menuBooking !== null}
         onRequestClose={() => setMenuBooking(null)}
       >
@@ -542,7 +548,7 @@ export default function MyEventsScreen() {
       {/* ─── Cancel confirmation modal ──────────────────────────────────── */}
       <Modal
         transparent
-        animationType="slide"
+        animationType="fade"
         visible={cancelConfirmVisible}
         onRequestClose={() => { setCancelConfirmVisible(false); setCancelTarget(null); }}
       >
@@ -584,7 +590,7 @@ export default function MyEventsScreen() {
       {/* ─── Cancel success modal ───────────────────────────────────────── */}
       <Modal
         transparent
-        animationType="slide"
+        animationType="fade"
         visible={cancelSuccessVisible}
         onRequestClose={() => { setCancelSuccessVisible(false); setCancelTarget(null); }}
       >

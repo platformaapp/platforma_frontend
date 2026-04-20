@@ -11,7 +11,7 @@
  * - При бронировании студентом → status = booked
  */
 
-import { endpoints } from '@/constants/env';
+import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { handle401 } from '@/lib/api/auth-error';
 
@@ -331,7 +331,7 @@ export interface PublicTutor {
 function resolveUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return `${endpoints.studentProfile.replace('/api/student/profile', '')}${url}`;
+  return `${API_BASE}${url}`;
 }
 
 /**

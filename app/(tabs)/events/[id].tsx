@@ -527,7 +527,7 @@ export default function EventDetailScreen() {
       {/* ── Modals ─────────────────────────────────────────────────────────── */}
 
       {/* Registration modal */}
-      <Modal transparent animationType="slide" visible={isCardModalVisible} onRequestClose={() => setCardModalVisible(false)}>
+      <Modal transparent animationType="fade" visible={isCardModalVisible} onRequestClose={() => setCardModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>РЕГИСТРАЦИЯ</Text>
@@ -555,7 +555,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Share event modal */}
-      <Modal transparent animationType="slide" visible={isShareEventVisible} onRequestClose={() => setShareEventVisible(false)}>
+      <Modal transparent animationType="fade" visible={isShareEventVisible} onRequestClose={() => setShareEventVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShareEventVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Поделиться событием</Text>
@@ -574,7 +574,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Payment done modal */}
-      <Modal transparent animationType="slide" visible={isCardModalDoneVisible} onRequestClose={() => setCardModalDoneVisible(false)}>
+      <Modal transparent animationType="fade" visible={isCardModalDoneVisible} onRequestClose={() => setCardModalDoneVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Оплата прошла</Text>
@@ -591,7 +591,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Write to tutor modal */}
-      <Modal transparent animationType="slide" visible={isLinkTutorVisible} onRequestClose={() => setLinkTutorVisible(false)}>
+      <Modal transparent animationType="fade" visible={isLinkTutorVisible} onRequestClose={() => setLinkTutorVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setLinkTutorVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>Пожалуйста, проводите встречи на платформе</Text>
@@ -610,7 +610,7 @@ export default function EventDetailScreen() {
       </Modal>
 
       {/* Payment failed modal */}
-      <Modal transparent animationType="slide" visible={isPaymentFailedModalVisible} onRequestClose={() => setPaymentFailedModalVisible(false)}>
+      <Modal transparent animationType="fade" visible={isPaymentFailedModalVisible} onRequestClose={() => setPaymentFailedModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setPaymentFailedModalVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.paymentFailedTitle}>ОПЛАТА НЕ ПРОШЛА</Text>

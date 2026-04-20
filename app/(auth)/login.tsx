@@ -1,6 +1,7 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,7 +11,9 @@ import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserF
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { role: roleParam } = useLocalSearchParams<{ role?: string }>();
+  const insets = useSafeAreaInsets();
+  const { role: roleParam, showLogin: showLoginParam } = useLocalSearchParams<{ role?: string; showLogin?: string }>();
+  const [showLogin, setShowLogin] = useState(showLoginParam === '1');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -22,33 +25,21 @@ export default function LoginScreen() {
     let isMounted = true;
     const initRole = async () => {
       const resolvedRole =
-        typeof roleParam === 'string'
-          ? roleParam
-          : Array.isArray(roleParam)
-            ? roleParam[0]
-            : undefined;
+        typeof roleParam === 'string' ? roleParam : Array.isArray(roleParam) ? roleParam[0] : undefined;
       const storedRole = await getAuthRole();
       const role = resolvedRole || storedRole;
-      if (isMounted && role === 'tutor') {
-        setIsMentor(true);
-      }
+      if (isMounted && role === 'tutor') setIsMentor(true);
     };
     initRole();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [roleParam]);
 
   async function onSubmit() {
-    if (!email || !password) {
-      Alert.alert('Введите почту и пароль');
-      return;
-    }
+    if (!email || !password) { Alert.alert('Введите почту и пароль'); return; }
     setLoginError('');
     setIsSubmitting(true);
     try {
       const role = isMentor ? 'tutor' : 'student';
-
       const res = await fetch(endpoints.login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,9 +49,7 @@ export default function LoginScreen() {
       const isJson = contentType.includes('application/json');
       const data = isJson ? await res.json() : await res.text();
       if (!res.ok) {
-        if (res.status >= 500) {
-          throw new Error('Ошибка сервера. Попробуйте позже.');
-        }
+        if (res.status >= 500) throw new Error('Ошибка сервера. Попробуйте позже.');
         const message = typeof data === 'string' ? data : data?.message || 'Не удалось войти';
         throw new Error(message);
       }
@@ -80,40 +69,61 @@ export default function LoginScreen() {
       const message = e?.message ?? 'Неизвестная ошибка';
       const normalized = message.toLowerCase();
       const roleMismatch =
-        normalized.includes('forbidden') ||
-        normalized.includes('роль') ||
-        normalized.includes('role') ||
-        normalized.includes('доступ') ||
-        normalized.includes('student') ||
-        normalized.includes('tutor');
-      const warningText = roleMismatch
-        ? 'Аккаунт зарегистрирован с другой ролью'
-        : message;
-      setLoginError(warningText);
+        normalized.includes('forbidden') || normalized.includes('роль') ||
+        normalized.includes('role') || normalized.includes('доступ') ||
+        normalized.includes('student') || normalized.includes('tutor');
+      setLoginError(roleMismatch ? 'Аккаунт зарегистрирован с другой ролью' : message);
       Alert.alert('Ошибка', message);
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const closeButton = (
+    <Pressable
+      style={[styles.close, { top: insets.top + 12 }]}
+      onPress={() => {
+        if (router.canGoBack()) router.back();
+        else router.replace('/(tabs)/events');
+      }}
+    >
+      <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
+      </Svg>
+    </Pressable>
+  );
+
+  // ── Экран выбора регистрации (по умолчанию) ──────────────────────────────
+  if (!showLogin) {
+    return (
+      <ThemedView style={styles.container}>
+        {closeButton}
+        <ThemedText type="title" style={styles.title}>РЕГИСТРАЦИЯ</ThemedText>
+        <View>
+          <Link href="/register-student" asChild>
+            <Pressable style={[styles.btn, styles.btnPrimary, { marginBottom: 16 }]}>
+              <ThemedText style={[styles.btnPrimaryText, styles.btnCustomText]}>Хочу учиться</ThemedText>
+            </Pressable>
+          </Link>
+          <Link href="/register-tutor" asChild>
+            <Pressable style={[styles.btn, styles.btnOutline]}>
+              <ThemedText style={[styles.btnOutlineText, styles.btnCustomText]}>Хочу учить</ThemedText>
+            </Pressable>
+          </Link>
+        </View>
+        <Pressable style={{ marginTop: 'auto', paddingVertical: 24 }} onPress={() => setShowLogin(true)}>
+          <ThemedText style={styles.linkText}>У меня уже есть профиль</ThemedText>
+        </Pressable>
+      </ThemedView>
+    );
+  }
+
+  // ── Форма авторизации ─────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Pressable
-            style={styles.close}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)/events');
-              }
-            }}
-          >
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
-            </Svg>
-          </Pressable>
+          {closeButton}
 
           <View style={{ marginBottom: 54 }}>
             <ThemedText type="title" style={styles.title}>АВТОРИЗАЦИЯ</ThemedText>
@@ -127,7 +137,6 @@ export default function LoginScreen() {
               value={email}
               onChangeText={setEmail}
             />
-
             <View style={{ position: 'relative' }}>
               <TextInput
                 placeholder="Пароль"
@@ -145,37 +154,27 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            <Pressable
-              style={styles.checkboxRow}
-              onPress={() => {
-                setIsMentor((prev) => !prev);
-                setLoginError('');
-              }}
-            >
+            <Pressable style={styles.checkboxRow} onPress={() => { setIsMentor((p) => !p); setLoginError(''); }}>
               <View style={styles.checkbox}>
-                {isMentor && (
-                  <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>
-                )}
+                {isMentor && <ThemedText style={styles.checkboxCheckmark}>✓</ThemedText>}
               </View>
               <ThemedText style={styles.checkboxLabel}>Войти как наставник</ThemedText>
             </Pressable>
-            {loginError ? (
-              <ThemedText style={styles.loginErrorText}>{loginError}</ThemedText>
-            ) : null}
+
+            {loginError ? <ThemedText style={styles.loginErrorText}>{loginError}</ThemedText> : null}
 
             <Pressable style={[styles.btn, styles.btnPrimary, isSubmitting && { opacity: 0.6 }]} onPress={onSubmit} disabled={isSubmitting}>
-              <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>Войти</ThemedText>
+              <ThemedText style={[styles.btnPrimaryText, styles.btnCustomText]}>Войти</ThemedText>
             </Pressable>
           </View>
-
-          
         </ThemedView>
+
         <View style={{ position: 'absolute', bottom: 32, left: 0, right: 0, alignItems: 'center', gap: 16 }}>
           <Pressable onPress={() => router.push('/forgot-password')}>
-            <ThemedText style={{ textAlign: 'center', fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' }}>Забыли пароль?</ThemedText>
+            <ThemedText style={styles.linkText}>Забыли пароль?</ThemedText>
           </Pressable>
-          <Pressable onPress={() => router.push('/(auth)')}>
-            <ThemedText style={{ textAlign: 'center', fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' }}>Нет аккаунта? Зарегистрироваться</ThemedText>
+          <Pressable onPress={() => setShowLogin(false)}>
+            <ThemedText style={styles.linkText}>Нет аккаунта? Зарегистрироваться</ThemedText>
           </Pressable>
         </View>
       </ScrollView>
@@ -184,106 +183,29 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
+  container: { flexGrow: 1, padding: 16, backgroundColor: '#fff' },
   title: {
-    marginTop: 48,
-    marginBottom: 24,
-    fontFamily: "Inter-Regular",
-    fontSize: 28,
-    fontWeight: "400",
-    fontStyle: "normal",
-    lineHeight: 36,
-    letterSpacing: -2,
-    color: "#181818"
+    marginTop: 48, marginBottom: 24,
+    fontFamily: 'Inter-Regular', fontSize: 28, fontWeight: '400',
+    lineHeight: 36, letterSpacing: -2, color: '#181818',
   },
   input: {
-    borderWidth: 1,
-    borderColor: "rgba(24, 24, 24, 1.0)",
-    borderRadius: 0,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    fontFamily: "Inter-Regular",
-    fontSize: 14,
+    borderWidth: 1, borderColor: 'rgba(24,24,24,1)', borderRadius: 0,
+    paddingVertical: 14, paddingHorizontal: 12, marginBottom: 12,
+    fontFamily: 'Inter-Regular', fontSize: 14,
   },
-  eye: {
-    position: 'absolute',
-    right: 12,
-    top: 6,
-    padding: 6,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderWidth: 1,
-    borderColor: '#181818',
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxCheckmark: {
-    fontSize: 16,
-    color: '#181818',
-    fontWeight: 'bold',
-    lineHeight: 20,
-  },
-  checkboxLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
-  loginErrorText: {
-    marginTop: 4,
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
-  btn: {
-    borderRadius: 6,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#111',
-    marginTop: 4,
-  },
-  btnPrimary: {
-    backgroundColor: '#111',
-    borderRadius: 0,
-    height: 52,
-    borderWidth: 1,
-    borderColor: "rgba(24, 24, 24, 1.0)",
-  },
-  btnPrimaryText: {
-    color: '#FFF',
-  },
-  btnPrimaryTextCustom: {
-    fontFamily: "Inter-Regular",
-    fontSize: 14,
-    fontWeight: "400",
-    fontStyle: "normal",
-    lineHeight: 20,
-    color: "#FAFAFA",
-  },
-  close: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    zIndex: 1,
-    padding: 8,
-  },
+  eye: { position: 'absolute', right: 12, top: 6, padding: 6 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
+  checkbox: { width: 24, height: 24, borderWidth: 1, borderColor: '#181818', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  checkboxCheckmark: { fontSize: 16, color: '#181818', fontWeight: 'bold', lineHeight: 20 },
+  checkboxLabel: { fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
+  loginErrorText: { marginTop: 4, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
+  btn: { borderRadius: 0, paddingVertical: 16, alignItems: 'center', borderWidth: 1, borderColor: '#111', marginTop: 4 },
+  btnPrimary: { backgroundColor: '#111', height: 52, borderColor: 'rgba(24,24,24,1)' },
+  btnPrimaryText: { color: '#FFF' },
+  btnOutline: { backgroundColor: 'transparent', height: 52, borderColor: 'rgba(24,24,24,1)' },
+  btnOutlineText: { color: '#111' },
+  btnCustomText: { fontFamily: 'Inter-Regular', fontSize: 14, fontWeight: '400', lineHeight: 20 },
+  linkText: { textAlign: 'center', fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
+  close: { position: 'absolute', right: 16, zIndex: 1, padding: 8 },
 });
-
-

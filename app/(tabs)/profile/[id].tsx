@@ -27,6 +27,7 @@ export default function ProfileByIdScreen() {
   const [isInviteVisible, setInviteVisible] = useState(false);
   const [isInviteCopied, setInviteCopied] = useState(false);
   const [isBecomeTutorVisible, setBecomeTutorVisible] = useState(false);
+  const [hasTutorProfile, setHasTutorProfile] = useState<boolean | null>(null);
 
   const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
   const platformUrl = 'https://platformaapp.ru';
@@ -64,19 +65,20 @@ export default function ProfileByIdScreen() {
         if (storedRole === 'student' || storedRole === 'tutor') setRole(storedRole);
         if (profile) setUserProfile(profile);
       }
-      // Fetch extra tutor data (photo, hourly rate) from the tutor profile endpoint
-      if (storedRole === 'tutor' && isMounted) {
-        try {
-          const tp = await getTutorProfile();
-          if (isMounted) {
+      // Fetch tutor profile to check if it exists (used for "Стать наставником" visibility)
+      try {
+        const tp = await getTutorProfile();
+        if (isMounted) {
+          setHasTutorProfile(true);
+          if (storedRole === 'tutor') {
             const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
             if (avatar) setTutorAvatarUrl(avatar);
             const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
             if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
           }
-        } catch {
-          // ignore — show placeholder
         }
+      } catch {
+        if (isMounted) setHasTutorProfile(false);
       }
     };
     load();
@@ -215,24 +217,26 @@ export default function ProfileByIdScreen() {
         </Pressable>
       </Modal>
 
-      {/* Стать наставником */}
-      <Pressable style={styles.becomeTutorCard} onPress={() => setBecomeTutorVisible(true)}>
-        <View style={styles.becomeTutorContent}>
-          <Text style={styles.becomeTutorTitle}>Стать наставником</Text>
-          <Text style={styles.becomeTutorSubtitle}>Проводите мастер-классы и личные встречи на платформе</Text>
-        </View>
-        <View style={styles.becomeTutorArrow}>
-          <Text style={styles.becomeTutorArrowText}>›</Text>
-        </View>
-      </Pressable>
+      {/* Стать наставником — только если профиля наставника ещё нет */}
+      {hasTutorProfile === false && (
+        <Pressable style={styles.becomeTutorCard} onPress={() => setBecomeTutorVisible(true)}>
+          <View style={styles.becomeTutorContent}>
+            <Text style={styles.becomeTutorTitle}>Стать наставником</Text>
+            <Text style={styles.becomeTutorSubtitle}>Проводите мастер-классы и личные встречи на платформе</Text>
+          </View>
+          <View style={styles.becomeTutorArrow}>
+            <Text style={styles.becomeTutorArrowText}>›</Text>
+          </View>
+        </Pressable>
+      )}
 
-      <Modal transparent animationType="slide" visible={isBecomeTutorVisible} onRequestClose={() => setBecomeTutorVisible(false)}>
+      <Modal transparent animationType="fade" visible={isBecomeTutorVisible} onRequestClose={() => setBecomeTutorVisible(false)}>
         <Pressable style={styles.shareModalOverlay} onPress={() => setBecomeTutorVisible(false)}>
           <Pressable style={styles.shareModalSheet} onPress={() => {}}>
             <Text style={styles.shareModalTitle}>Стать наставником</Text>
             <View style={styles.shareModalCard}>
               <Text style={styles.shareModalUrl}>
-                После подтверждения ваш профиль переключится в режим наставника. Вы сможете заполнить информацию о себе, добавить слоты и создавать события.
+                Вы зарегистрированы как ученик. Подтверждение переключит ваш профиль в режим наставника в рамках текущего аккаунта — без выхода из системы.{'\n\n'}После этого вы сможете заполнить информацию о себе, добавить слоты и создавать события.
               </Text>
             </View>
             <Pressable
