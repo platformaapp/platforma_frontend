@@ -398,11 +398,6 @@ export default function MyEventsScreen() {
   // ─── Empty state ─────────────────────────────────────────────────────────
 
   const isEmpty = activeTab === 'events' ? events.length === 0 : bookings.length === 0;
-  const emptyText = activeTab === 'events'
-    ? 'Вы ещё не записались ни на одно событие'
-    : role === 'tutor'
-      ? 'У вас пока нет встреч с учениками'
-      : 'У вас пока нет личных встреч с наставниками';
   return (
     <View style={styles.container}>
       <Text style={[styles.screenTitle, { paddingTop: insets.top + 16 }]}>МОИ ЗАПИСИ</Text>
@@ -436,26 +431,7 @@ export default function MyEventsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
-          {isEmpty ? (
-            <View style={styles.emptyBlock}>
-              <Text style={styles.emptyText}>{emptyText}</Text>
-              {activeTab === 'events' ? (
-                <Pressable
-                  style={styles.browseButton}
-                  onPress={() => router.push('/(tabs)/events')}
-                >
-                  <Text style={styles.browseButtonText}>Смотреть события</Text>
-                </Pressable>
-              ) : role !== 'tutor' ? (
-                <Pressable
-                  style={styles.browseButton}
-                  onPress={() => router.push('/(tabs)/explore')}
-                >
-                  <Text style={styles.browseButtonText}>Найти наставника</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : (
+          {!isEmpty && (
             <>
               {activeTab === 'events'
                 ? events.map(renderEventCard)
@@ -463,6 +439,22 @@ export default function MyEventsScreen() {
             </>
           )}
         </ScrollView>
+      )}
+
+      {/* ─── Empty state bottom sheet ────────────────────────────────────── */}
+      {!loading && isEmpty && (
+        <View style={[styles.emptySheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
+          <Text style={styles.emptySheetTitle}>У вас еще нет ни одной записи</Text>
+          <Text style={styles.emptySheetDescription}>
+            Зарегистрируйтесь на событие или подберите себе наставника и здесь появится кнопка для подключения
+          </Text>
+          <Pressable
+            style={styles.emptySheetButton}
+            onPress={() => router.push('/(tabs)/events')}
+          >
+            <Text style={styles.emptySheetButtonText}>Посмотреть события</Text>
+          </Pressable>
+        </View>
       )}
 
       {/* ─── Event menu popup (•••) ──────────────────────────────────────── */}
@@ -751,32 +743,42 @@ const styles = StyleSheet.create({
     color: '#E02D2D',
     textAlign: 'center',
   },
-  emptyBlock: {
-    paddingTop: 60,
-    alignItems: 'center',
+  emptySheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#181818',
+    paddingHorizontal: 16,
+    paddingTop: 24,
   },
-  emptyText: {
+  emptySheetTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '400',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  emptySheetDescription: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
-    color: '#9B9B9B',
-    textAlign: 'center',
+    color: 'rgba(255,255,255,0.7)',
     marginBottom: 24,
   },
-  browseButton: {
+  emptySheetButton: {
     borderWidth: 1,
-    borderColor: '#1E1E1E',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    borderColor: 'rgba(255,255,255,0.4)',
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  browseButtonText: {
+  emptySheetButtonText: {
     fontSize: 14,
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
-    color: '#181818',
+    color: '#FFFFFF',
   },
 
   // ─── Event menu modal (•••) ─────────────────────────────────────────────
