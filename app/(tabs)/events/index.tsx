@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
-import { isRegisteredOnEventItem } from '@/lib/event-feed';
+import { isRegisteredOnEventItem, parseFeedItems } from '@/lib/event-feed';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -71,23 +71,24 @@ export default function EventsScreen() {
         return;
       }
       const data = await res.json();
-      const rawList: Record<string, unknown>[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.items)
-          ? data.items
-          : [];
+      const rawList = parseFeedItems(data) as Record<string, unknown>[];
       // Нормализуем snake_case → camelCase для картинок и дат
       const normalized: EventFeedItem[] = rawList.map((r) => ({
         id: String(r.id ?? ''),
         title: String(r.title ?? ''),
         description: (r.description as string) ?? undefined,
         datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
-        price: typeof r.price === 'number' ? r.price : undefined,
-        coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url),
+        price: typeof r.price === 'number' ? r.price
+          : typeof r.price === 'string' ? parseFloat(r.price as string) || undefined
+          : undefined,
+        coverUrl: resolveUrl(
+          r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ??
+          r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url ?? r.previewUrl ?? r.preview_url
+        ),
         mentor: r.mentor ? {
           id: String((r.mentor as any).id ?? ''),
-          name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? ''),
-          avatarUrl: ((r.mentor as any).avatarUrl ?? (r.mentor as any).avatar_url ?? null) as string | null,
+          name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? (r.mentor as any).full_name ?? ''),
+          avatarUrl: resolveUrl((r.mentor as any).avatarUrl ?? (r.mentor as any).avatar_url) as string | null,
         } : undefined,
         status: (r.status as string) ?? undefined,
       }));

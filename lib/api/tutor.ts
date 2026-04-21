@@ -334,6 +334,40 @@ function resolveUrl(url: string | undefined | null): string | undefined {
   return `${API_BASE}${url}`;
 }
 
+/** Публичный наставник (только имя, аватар, bio) — из /api/users/tutors */
+export interface PublicTutorBasic {
+  id: string;
+  fullName: string;
+  avatarUrl?: string;
+  bio?: string;
+}
+
+/**
+ * GET /api/users/tutors — публичный список наставников (без контактных данных).
+ * Не требует авторизации.
+ */
+export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
+  try {
+    const res = await fetch(endpoints.tutors);
+    if (!res.ok) return [];
+    const payload = await res.json().catch(() => null);
+    if (!payload) return [];
+    const raw = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data) ? payload.data
+      : Array.isArray(payload?.items) ? payload.items
+      : [];
+    return (raw as Record<string, any>[]).map((u) => ({
+      id: String(u.id ?? ''),
+      fullName: String(u.fullName ?? u.full_name ?? u.name ?? ''),
+      avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url) ?? undefined,
+      bio: (u.bio ?? u.shortBio ?? u.short_bio ?? undefined) as string | undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * GET /api/users — список пользователей.
  * Если доступен токен — отправляем его (эндпоинт может требовать auth).
