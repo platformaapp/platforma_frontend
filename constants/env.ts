@@ -7,6 +7,7 @@ export const endpoints = {
   resetPassword: `${API_BASE}/api/auth/reset`,
   users: `${API_BASE}/api/users`,
   tutors: `${API_BASE}/api/users/tutors`,
+  uploadImage: `${API_BASE}/api/uploads/image`,
   studentPayments: `${API_BASE}/api/student/payments`,
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
   studentPaymentMethods: `${API_BASE}/api/student/payment-methods`,

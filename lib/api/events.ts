@@ -8,6 +8,8 @@
  * DELETE /api/events/{id} — удаление
  */
 
+import { Platform } from 'react-native';
+
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { AuthError, handle401 } from '@/lib/api/auth-error';
@@ -23,6 +25,7 @@ export interface EventCreateBody {
   price: number;
   max_participants?: number; // ≥1, по умолчанию 30
   type?: 'standalone';
+  coverUrl?: string;
 }
 
 export interface EventResponse {
@@ -56,6 +59,7 @@ export interface EventPatchBody {
   datetime_start?: string;
   price?: number;
   max_participants?: number;
+  coverUrl?: string;
 }
 
 // --- Хелперы ---
@@ -87,6 +91,41 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 // --- API ---
+
+/**
+ * POST /api/uploads/image — загрузить обложку события.
+ * Возвращает абсолютный URL загруженного файла.
+ */
+export async function uploadEventImage(uri: string): Promise<string> {
+  const token = await getAuthToken();
+  if (!token) throw new Error('Требуется авторизация');
+
+  const formData = new FormData();
+  const filename = `cover_${Date.now()}.jpg`;
+
+  if (Platform.OS === 'web') {
+    const resp = await fetch(uri);
+    const blob = await resp.blob();
+    formData.append('file', blob, filename);
+  } else {
+    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+  }
+
+  const res = await fetch(endpoints.uploadImage, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.message ?? `Ошибка загрузки обложки (${res.status})`);
+  }
+
+  const data = await res.json();
+  if (!data?.url) throw new Error('Сервер не вернул URL изображения');
+  return data.url as string;
+}
 
 /** POST /api/events — создать событие */
 export async function createEvent(body: EventCreateBody): Promise<EventResponse> {

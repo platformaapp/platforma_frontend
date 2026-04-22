@@ -1,9 +1,11 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -16,7 +18,7 @@ import {
 import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
-import { updateEvent, type EventPatchBody } from '@/lib/api/events';
+import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
 import { getAuthToken } from '@/lib/auth';
 
 function formatDate(d: Date): string {
@@ -58,6 +60,8 @@ export default function EditEventScreen() {
   const [price, setPrice] = useState('');
   const [isEditingPrice, setIsEditingPrice] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
+  const [coverUri, setCoverUri] = useState<string | null>(null);   // local picked file
+  const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null); // from API
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -92,6 +96,8 @@ export default function EditEventScreen() {
         if (event.max_participants != null) {
           setMaxParticipants(String(event.max_participants));
         }
+        const cover = event.coverUrl ?? event.cover_url ?? null;
+        if (cover) setExistingCoverUrl(cover);
         const dtStart = event.datetime_start ?? event.datetimeStart;
         if (dtStart) {
           const d = new Date(dtStart);
@@ -108,6 +114,18 @@ export default function EditEventScreen() {
     load();
     return () => { active = false; };
   }, [id, router]);
+
+  async function pickCover() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) setCoverUri(result.assets[0].uri);
+  }
 
   async function handleSave() {
     if (!id) return;
@@ -127,7 +145,22 @@ export default function EditEventScreen() {
     }
 
     setIsSubmitting(true);
+
+    // Upload new cover if picked
+    if (coverUri) {
+      try {
+        setStatusMessage('Загрузка обложки...');
+        patch.coverUrl = await uploadEventImage(coverUri);
+      } catch (uploadErr: any) {
+        setStatusMessage(uploadErr?.message ?? 'Не удалось загрузить обложку');
+        Alert.alert('Ошибка', uploadErr?.message ?? 'Не удалось загрузить обложку');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
     try {
+      setStatusMessage('Сохранение...');
       await updateEvent(id, patch);
       setStatusMessage('Изменения сохранены!');
       setTimeout(() => router.back(), 800);
@@ -340,6 +373,23 @@ export default function EditEventScreen() {
           keyboardType="numeric"
         />
 
+        {/* ── Cover image ─────────────────────────────────────────────── */}
+        <Pressable
+          style={[styles.uploadButton, (coverUri || existingCoverUrl) && styles.uploadWithPhotoContainer]}
+          onPress={pickCover}
+        >
+          {coverUri || existingCoverUrl ? (
+            <View style={styles.uploadWithPhoto}>
+              <Image source={{ uri: coverUri ?? existingCoverUrl! }} style={styles.coverImage} />
+              <View style={styles.replacePhotoContainer}>
+                <Text style={styles.replacePhotoText}>Заменить обложку</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={styles.uploadButtonText}>Загрузить обложку</Text>
+          )}
+        </Pressable>
+
         {statusMessage ? <Text style={styles.statusMessage}>{statusMessage}</Text> : null}
 
         <Pressable
@@ -386,6 +436,14 @@ const styles = StyleSheet.create({
   commissionInfo: { alignItems: 'flex-end', marginLeft: 12 },
   commissionText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#9B9B9B', marginBottom: 4 },
   finalAmountText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+
+  uploadButton: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 16, alignItems: 'center', height: 52, marginBottom: 24 },
+  uploadWithPhotoContainer: { paddingVertical: 0, paddingHorizontal: 0, overflow: 'hidden' },
+  uploadWithPhoto: { flexDirection: 'row', width: '100%', alignItems: 'center' },
+  coverImage: { width: 96, height: 54, backgroundColor: '#E5E5E5' },
+  replacePhotoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingLeft: 16, height: 52 },
+  replacePhotoText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  uploadButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
 
   statusMessage: { marginTop: 12, marginBottom: 8, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
   saveButton: { marginTop: 12, marginBottom: 24, backgroundColor: '#111', paddingVertical: 16, alignItems: 'center', height: 52 },

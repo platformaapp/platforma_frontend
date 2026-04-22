@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-import { AuthError, createEvent } from '@/lib/api/events';
+import { AuthError, createEvent, uploadEventImage } from '@/lib/api/events';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
 
 function formatDate(d: Date): string {
@@ -125,6 +125,21 @@ export default function NewEventScreen() {
     const timer = setTimeout(() => controller.abort(), 20000);
 
     try {
+      // Upload cover image first if selected
+      let coverUrl: string | undefined;
+      if (coverUri) {
+        try {
+          setStatusMessage('Загрузка обложки...');
+          coverUrl = await uploadEventImage(coverUri);
+        } catch (uploadErr: any) {
+          setStatusMessage(uploadErr?.message ?? 'Не удалось загрузить обложку');
+          Alert.alert('Ошибка', uploadErr?.message ?? 'Не удалось загрузить обложку');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      setStatusMessage('Создание события...');
       await createEvent({
         title: title.trim(),
         description: description.trim(),
@@ -132,6 +147,7 @@ export default function NewEventScreen() {
         datetime_end: range.end,
         price: priceValue,
         max_participants: max,
+        ...(coverUrl ? { coverUrl } : {}),
       });
       clearTimeout(timer);
       setStatusMessage('Событие создано!');
