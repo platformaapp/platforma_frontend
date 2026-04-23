@@ -10,7 +10,7 @@
 
 import { Platform } from 'react-native';
 
-import { endpoints } from '@/constants/env';
+import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { AuthError, handle401 } from '@/lib/api/auth-error';
 export { AuthError };
@@ -124,7 +124,8 @@ export async function uploadEventImage(uri: string): Promise<string> {
 
   const data = await res.json();
   if (!data?.url) throw new Error('Сервер не вернул URL изображения');
-  return data.url as string;
+  const url = data.url as string;
+  return url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 /** POST /api/events — создать событие */
