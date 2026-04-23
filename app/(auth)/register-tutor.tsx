@@ -53,7 +53,9 @@ export default function RegisterTutorScreen() {
     if (password.length < 7) {
       newErrors.password = 'Пароль слишком короткий!';
     }
-    if (password !== password2) {
+    if (!password2.trim()) {
+      newErrors.password2 = 'Поле не заполнено!';
+    } else if (password !== password2) {
       newErrors.password2 = 'Пароли не совпадают!';
     }
     
@@ -75,9 +77,6 @@ export default function RegisterTutorScreen() {
         avatarUrl: '',
         bio: '',
       };
-      
-      console.log('Отправка запроса на:', REGISTER_URL);
-      console.log('Тело запроса:', { ...requestBody, password: '***' });
       
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
@@ -115,37 +114,18 @@ export default function RegisterTutorScreen() {
         return;
       }
       
-      console.log('Статус ответа:', res.status);
-      console.log('Данные ответа:', JSON.stringify(data, null, 2));
-      
-      // Пытаемся извлечь токен из ответа
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
-      console.log('Извлеченный токен:', token ? `есть (${token.substring(0, 20)}...)` : 'нет');
       
-      // Сохраняем токен, если он есть
       if (token) {
         try {
           await saveAuthToken(token, 'tutor', refreshToken);
-          console.log('Токен сохранен успешно');
         } catch (saveError) {
           console.error('Ошибка сохранения токена:', saveError);
-          // Продолжаем выполнение даже если не удалось сохранить токен
         }
-      } else {
-        console.warn('Токен не найден в ответе сервера. Проверьте формат ответа.');
       }
 
-      // Успешная регистрация: переходим на второй шаг
-      console.log('Переход на второй шаг регистрации...');
-      try {
-        router.push('/register-tutor-step2');
-        console.log('Навигация выполнена');
-      } catch (navError) {
-        console.error('Ошибка навигации:', navError);
-        // Пробуем альтернативный способ
-        router.replace('/register-tutor-step2');
-      }
+      router.push('/register-tutor-step2');
     } catch (e: any) {
       // Обработка сетевых ошибок и других исключений
       const msg = e?.message ?? '';
@@ -426,6 +406,7 @@ const styles = StyleSheet.create({
 
 function formatPhoneRU(input: string) {
   const digits = input.replace(/\D/g, '');
+  if (!digits) return '';
   let value = digits;
   if (value.startsWith('8')) value = '7' + value.slice(1);
   if (!value.startsWith('7')) value = '7' + value;

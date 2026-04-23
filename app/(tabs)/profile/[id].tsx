@@ -135,6 +135,9 @@ export default function ProfileByIdScreen() {
       const newRefreshToken = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
       await saveAuthToken(newToken, nextRole, newRefreshToken);
       setRole(nextRole);
+      if (nextRole === 'tutor') {
+        router.push('/(tabs)/profile/edit-profile');
+      }
     } catch (e: any) {
       const msg = e?.message ?? '';
       if (msg.includes('Unauthorized') || msg.includes('401') || msg.includes('403')) {

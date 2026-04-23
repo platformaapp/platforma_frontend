@@ -8,6 +8,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
+import { uploadEventImage } from '@/lib/api/events';
+import { updateStudentProfile } from '@/lib/api/student';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
@@ -37,14 +39,12 @@ export default function RegisterStudentScreen() {
   const phone = useMemo(() => formatPhoneRU(phoneRaw), [phoneRaw]);
 
   async function pickImage() {
-    // Запрашиваем разрешение на доступ к медиатеке
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
       return;
     }
 
-    // Открываем выбор изображения
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -54,9 +54,7 @@ export default function RegisterStudentScreen() {
 
     if (!result.canceled && result.assets[0]) {
       setAvatarUri(result.assets[0].uri);
-      // Здесь можно загрузить изображение на сервер и получить URL
-      // Пока сохраняем локальный URI
-      setAvatarUrl(result.assets[0].uri);
+      // avatarUrl stays empty here — will upload after registration when we have a token
     }
   }
 
@@ -80,7 +78,9 @@ export default function RegisterStudentScreen() {
     if (password.length < 7) {
       newErrors.password = 'Пароль слишком короткий!';
     }
-    if (password !== password2) {
+    if (!password2.trim()) {
+      newErrors.password2 = 'Поле не заполнено!';
+    } else if (password !== password2) {
       newErrors.password2 = 'Пароли не совпадают!';
     }
     
@@ -99,12 +99,9 @@ export default function RegisterStudentScreen() {
         fullName: fullName.trim(),
         role: 'student',
         phone: normalizePhoneRU(phoneRaw),
-        avatarUrl: avatarUrl || '',
+        avatarUrl: '',
         bio: '',
       };
-      
-      console.log('Отправка запроса на:', REGISTER_URL);
-      console.log('Тело запроса:', { ...requestBody, password: '***' });
       
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
@@ -142,40 +139,30 @@ export default function RegisterStudentScreen() {
         return;
       }
       
-      console.log('Статус ответа:', res.status);
-      console.log('Данные ответа:', JSON.stringify(data, null, 2));
-      
-      // Пытаемся извлечь токен из ответа
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
       const user = extractUserFromResponse(data);
-      console.log('Извлеченный токен:', token ? `есть (${token.substring(0, 20)}...)` : 'нет');
       
       // Сохраняем токен, если он есть
       if (token) {
         try {
           const userProfile = user ? { ...user, role: 'student' } : undefined;
           await saveAuthToken(token, 'student', refreshToken, userProfile);
-          console.log('Токен сохранен успешно');
         } catch (saveError) {
           console.error('Ошибка сохранения токена:', saveError);
-          // Продолжаем выполнение даже если не удалось сохранить токен
         }
-      } else {
-        console.warn('Токен не найден в ответе сервера. Проверьте формат ответа.');
+        // Upload avatar now that we have a token
+        if (avatarUri) {
+          try {
+            const uploadedUrl = await uploadEventImage(avatarUri);
+            await updateStudentProfile({ avatarUrl: uploadedUrl });
+          } catch {
+            // Ignore — registration itself succeeded
+          }
+        }
       }
 
-      // Успешная регистрация: переходим на экран завершения регистрации
-      // Переход происходит независимо от наличия токена
-      console.log('Переход на экран завершения регистрации...');
-      try {
-        router.push('/registration-complete');
-        console.log('Навигация выполнена');
-      } catch (navError) {
-        console.error('Ошибка навигации:', navError);
-        // Пробуем альтернативный способ
-        router.replace('/registration-complete');
-      }
+      router.push('/registration-complete');
     } catch (e: any) {
       // Обработка сетевых ошибок и других исключений
       const msg = e?.message ?? '';
@@ -498,6 +485,7 @@ const styles = StyleSheet.create({
 
 function formatPhoneRU(input: string) {
   const digits = input.replace(/\D/g, '');
+  if (!digits) return '';
   let value = digits;
   if (value.startsWith('8')) value = '7' + value.slice(1);
   if (!value.startsWith('7')) value = '7' + value;
