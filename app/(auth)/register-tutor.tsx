@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import React, { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -9,6 +10,8 @@ import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
+const OFERTA_URL = 'https://platformaapp.ru/oferta.pdf';
+const CONF_URL = 'https://platformaapp.ru/conf.pdf';
 
 export default function RegisterTutorScreen() {
   const router = useRouter();
@@ -277,7 +280,23 @@ export default function RegisterTutorScreen() {
       </Pressable>
 
       <ThemedText style={[styles.terms && {fontSize: 12, lineHeight: 16, marginTop: 16}]}>
-        Нажимая кнопку «Далее», вы принимаете <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>пользовательское</ThemedText>, <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>лицензионное</ThemedText> и <ThemedText type="link" style={{ fontSize: 12, lineHeight: 16 }}>другие</ThemedText> важные нам для работы соглашения
+        Нажимая кнопку «Далее», вы принимаете{' '}
+        <ThemedText
+          type="link"
+          style={{ fontSize: 12, lineHeight: 16 }}
+          onPress={() => openBrowserAsync(OFERTA_URL)}
+        >
+          пользовательское
+        </ThemedText>
+        ,{' '}
+        <ThemedText
+          type="link"
+          style={{ fontSize: 12, lineHeight: 16 }}
+          onPress={() => openBrowserAsync(CONF_URL)}
+        >
+          лицензионное
+        </ThemedText>
+        {' '}и другие важные нам для работы соглашения
       </ThemedText>
         </ThemedView>
       </ScrollView>
