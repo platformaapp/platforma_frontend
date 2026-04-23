@@ -13,8 +13,8 @@ import { updateStudentProfile } from '@/lib/api/student';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
-const OFERTA_URL = 'https://platformaapp.ru/assets/oferta.pdf';
-const CONF_URL = 'https://platformaapp.ru/assets/conf.pdf';
+const OFERTA_URL = 'https://platformaapp.ru/oferta.pdf';
+const CONF_URL = 'https://platformaapp.ru/conf.pdf';
 
 export default function RegisterStudentScreen() {
   const router = useRouter();
