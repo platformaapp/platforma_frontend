@@ -369,7 +369,8 @@ export default function ProfileByIdScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      {role !== 'tutor' && (
+      {/* Role switch: only show when user already has a tutor profile */}
+      {hasTutorProfile === true && role !== 'tutor' && (
         <View style={styles.roleSwitch}>
           <Pressable
             style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
