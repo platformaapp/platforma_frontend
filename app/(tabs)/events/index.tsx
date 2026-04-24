@@ -14,7 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
-import { isRegisteredOnEventItem, parseFeedItems } from '@/lib/event-feed';
+import { parseFeedItems } from '@/lib/event-feed';
+import { getAuthToken } from '@/lib/auth';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -92,7 +93,26 @@ export default function EventsScreen() {
         } : undefined,
         status: (r.status as string) ?? undefined,
       }));
-      setEvents(normalized.filter((item) => !isRegisteredOnEventItem(item)));
+      // Fetch user's own registrations (requires auth) to exclude them from the feed
+      const registeredIds = new Set<string>();
+      try {
+        const token = await getAuthToken();
+        if (token) {
+          const myRes = await fetch(endpoints.eventsMy, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (myRes.ok) {
+            const myData = await myRes.json();
+            const myList = parseFeedItems(myData) as Record<string, unknown>[];
+            myList.forEach((e) => {
+              const eid = String(e.id ?? '');
+              if (eid) registeredIds.add(eid);
+            });
+          }
+        }
+      } catch { /* ignore — show all events if fetch fails */ }
+
+      setEvents(normalized.filter((item) => !registeredIds.has(item.id)));
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить события');
     } finally {

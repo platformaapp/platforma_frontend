@@ -2,7 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -18,7 +18,7 @@ export default function ProfileByIdScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [isSwitching, setIsSwitching] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string; bio?: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string; bio?: string; avatar_url?: string } | null>(null);
   const [tutorAvatarUrl, setTutorAvatarUrl] = useState<string | null>(null);
   const [tutorHourlyRate, setTutorHourlyRate] = useState<number | null>(null);
   const [slots, setSlots] = useState<{ date: string; time: string }[]>([]);
@@ -28,6 +28,13 @@ export default function ProfileByIdScreen() {
   const [isInviteCopied, setInviteCopied] = useState(false);
   const [isBecomeTutorVisible, setBecomeTutorVisible] = useState(false);
   const [hasTutorProfile, setHasTutorProfile] = useState<boolean | null>(null);
+
+  // Inline tutor registration form state
+  const [tutorRegPhoneRaw, setTutorRegPhoneRaw] = useState('');
+  const [tutorRegPassword, setTutorRegPassword] = useState('');
+  const [tutorRegPassword2, setTutorRegPassword2] = useState('');
+  const [tutorRegErrors, setTutorRegErrors] = useState<{ phone?: string; password?: string; password2?: string; general?: string }>({});
+  const [isTutorRegSubmitting, setIsTutorRegSubmitting] = useState(false);
 
   const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
   const platformUrl = 'https://platformaapp.ru';
@@ -65,7 +72,6 @@ export default function ProfileByIdScreen() {
         if (storedRole === 'student' || storedRole === 'tutor') setRole(storedRole);
         if (profile) setUserProfile(profile);
       }
-      // Fetch tutor profile to check if it exists (used for "Стать наставником" visibility)
       try {
         const tp = await getTutorProfile();
         if (isMounted) {
@@ -85,42 +91,35 @@ export default function ProfileByIdScreen() {
     return () => { isMounted = false; };
   }, [router]);
 
+  // Switch role only for users who already have both roles
   const handleSwitchRole = async (nextRole: 'student' | 'tutor') => {
     if (isSwitching || nextRole === role) return;
     const token = await getAuthToken();
-    if (!token) {
-      router.replace('/login');
-      return;
-    }
+    if (!token) { router.replace('/login'); return; }
     setIsSwitching(true);
     try {
       const refreshToken = await getRefreshToken();
-      // Build body — send refresh token under both naming conventions if available
       const body: Record<string, unknown> = { role: nextRole };
-      if (refreshToken) {
-        body.refreshToken = refreshToken;
-        body.refresh_token = refreshToken;
-      }
+      if (refreshToken) { body.refreshToken = refreshToken; body.refresh_token = refreshToken; }
 
       const response = await fetch(endpoints.switchRole, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
 
       const contentType = response.headers.get('content-type') || '';
-      const isJson = contentType.includes('application/json');
-      const payload = isJson ? await response.json() : await response.text();
+      const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
       if (response.status === 401 || response.status === 403) {
-        const msg = typeof payload === 'object' && payload?.message
-          ? String(payload.message)
-          : 'Сессия истекла. Войдите снова для смены роли.';
-        Alert.alert('Ошибка', msg, [
-          { text: 'Отмена', style: 'cancel' },
+        const msg = typeof payload === 'object' ? String(payload?.message ?? '') : '';
+        // "You don't have tutor role" — user needs to register as tutor
+        if (nextRole === 'tutor' && (msg.toLowerCase().includes('tutor') || msg.toLowerCase().includes('role'))) {
+          setHasTutorProfile(false);
+          setBecomeTutorVisible(true);
+          return;
+        }
+        Alert.alert('Сессия истекла', 'Войдите снова.', [
           { text: 'Войти', onPress: () => router.replace('/login') },
         ]);
         return;
@@ -135,29 +134,98 @@ export default function ProfileByIdScreen() {
       const newRefreshToken = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
       await saveAuthToken(newToken, nextRole, newRefreshToken);
       setRole(nextRole);
-      if (nextRole === 'tutor') {
-        router.push('/(tabs)/profile/edit-profile');
-      }
     } catch (e: any) {
-      const msg = e?.message ?? '';
-      if (msg.includes('Unauthorized') || msg.includes('401') || msg.includes('403')) {
-        router.replace('/login');
-        return;
-      }
-      Alert.alert('Ошибка', msg || 'Не удалось сменить роль');
+      Alert.alert('Ошибка', e?.message || 'Не удалось сменить роль');
     } finally {
       setIsSwitching(false);
     }
   };
 
-  const displayName = userProfile?.full_name ?? (role === 'student' ? 'Варвара Михайлова' : 'Андрей Осетров');
-  const displayRole = role === 'tutor' ? (userProfile?.bio ?? 'Куратор, исследователь визуальной культуры') : undefined;
+  // Inline tutor registration — POST /api/auth/register with role: tutor
+  const handleBecomeTutor = async () => {
+    const newErrors: typeof tutorRegErrors = {};
+    if (!tutorRegPhoneRaw) {
+      newErrors.phone = 'Поле не заполнено!';
+    } else if (!isValidPhoneRU(tutorRegPhoneRaw)) {
+      newErrors.phone = 'Неверный формат телефона';
+    }
+    if (tutorRegPassword.length < 7) {
+      newErrors.password = 'Пароль слишком короткий!';
+    }
+    if (!tutorRegPassword2.trim()) {
+      newErrors.password2 = 'Поле не заполнено!';
+    } else if (tutorRegPassword !== tutorRegPassword2) {
+      newErrors.password2 = 'Пароли не совпадают!';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setTutorRegErrors(newErrors);
+      return;
+    }
+
+    setIsTutorRegSubmitting(true);
+    try {
+      const requestBody = {
+        email: userProfile?.email ?? '',
+        password: tutorRegPassword,
+        fullName: userProfile?.full_name ?? '',
+        role: 'tutor',
+        phone: normalizePhoneRU(tutorRegPhoneRaw),
+        avatarUrl: userProfile?.avatar_url ?? '',
+        bio: '',
+      };
+
+      const res = await fetch(endpoints.register, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = data?.message ?? data?.error ?? `Ошибка (${res.status})`;
+        setTutorRegErrors({ general: Array.isArray(msg) ? msg.join(', ') : String(msg) });
+        return;
+      }
+
+      const token = extractTokenFromResponse(data);
+      const refreshToken = extractRefreshTokenFromResponse(data);
+      if (token) await saveAuthToken(token, 'tutor', refreshToken);
+
+      setHasTutorProfile(true);
+      setRole('tutor');
+      setBecomeTutorVisible(false);
+      setTutorRegPhoneRaw('');
+      setTutorRegPassword('');
+      setTutorRegPassword2('');
+      setTutorRegErrors({});
+    } catch (e: any) {
+      setTutorRegErrors({ general: e?.message ?? 'Ошибка соединения' });
+    } finally {
+      setIsTutorRegSubmitting(false);
+    }
+  };
+
+  const openBecomeTutor = () => {
+    setTutorRegPhoneRaw('');
+    setTutorRegPassword('');
+    setTutorRegPassword2('');
+    setTutorRegErrors({});
+    setBecomeTutorVisible(true);
+  };
+
+  const displayName = userProfile?.full_name ?? '';
+  const displayRole = role === 'tutor' ? (userProfile?.bio ?? '') : undefined;
+  const studentAvatarUrl = userProfile?.avatar_url ?? null;
 
   const renderStudentContent = () => (
     <>
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
-          <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
+          <Image
+            source={studentAvatarUrl ? { uri: studentAvatarUrl } : require('@/assets/images/avatar.png')}
+            style={styles.profileImage}
+          />
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{displayName}</Text>
@@ -177,16 +245,14 @@ export default function ProfileByIdScreen() {
         </Pressable>
       </View>
 
-       {/* Share Button */}
-       <Pressable style={styles.studentInviteCard} onPress={() => { setInviteCopied(false); setInviteVisible(true); }}>
-      
+      <Pressable style={styles.studentInviteCard} onPress={() => { setInviteCopied(false); setInviteVisible(true); }}>
         <View style={styles.studentInviteContent}>
           <Text style={styles.studentInviteText}>
             Отправьте товарищу ссылку на платформу и ходите на мастер-классы вместе
           </Text>
         </View>
         <View style={styles.inviteIconBox}>
-        <Svg width="25" height="25" viewBox="0 0 25 25" fill="none">
+          <Svg width="25" height="25" viewBox="0 0 25 25" fill="none">
             <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
           </Svg>
         </View>
@@ -199,19 +265,9 @@ export default function ProfileByIdScreen() {
             <View style={styles.shareModalCard}>
               <Text style={styles.shareModalUrl} numberOfLines={2}>{platformUrl}</Text>
             </View>
-            {isInviteCopied ? (
-              <Text style={styles.shareCopiedText}>Ссылка скопирована</Text>
-            ) : null}
-            <Pressable
-              style={styles.shareModalButton}
-              onPress={async () => {
-                await Clipboard.setStringAsync(platformUrl);
-                setInviteCopied(true);
-              }}
-            >
-              <Text style={styles.shareModalButtonText}>
-                {isInviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
-              </Text>
+            {isInviteCopied ? <Text style={styles.shareCopiedText}>Ссылка скопирована</Text> : null}
+            <Pressable style={styles.shareModalButton} onPress={async () => { await Clipboard.setStringAsync(platformUrl); setInviteCopied(true); }}>
+              <Text style={styles.shareModalButtonText}>{isInviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
             </Pressable>
             <Pressable style={styles.shareModalClose} onPress={() => setInviteVisible(false)}>
               <Text style={styles.shareModalCloseText}>Закрыть</Text>
@@ -220,9 +276,9 @@ export default function ProfileByIdScreen() {
         </Pressable>
       </Modal>
 
-      {/* Стать наставником — только если профиля наставника ещё нет */}
+      {/* Стать наставником — только если нет профиля наставника */}
       {hasTutorProfile === false && (
-        <Pressable style={styles.becomeTutorCard} onPress={() => setBecomeTutorVisible(true)}>
+        <Pressable style={styles.becomeTutorCard} onPress={openBecomeTutor}>
           <View style={styles.becomeTutorContent}>
             <Text style={styles.becomeTutorTitle}>Стать наставником</Text>
             <Text style={styles.becomeTutorSubtitle}>Проводите мастер-классы и личные встречи на платформе</Text>
@@ -233,41 +289,81 @@ export default function ProfileByIdScreen() {
         </Pressable>
       )}
 
-      <Modal transparent animationType="fade" visible={isBecomeTutorVisible} onRequestClose={() => setBecomeTutorVisible(false)}>
-        <Pressable style={styles.shareModalOverlay} onPress={() => setBecomeTutorVisible(false)}>
-          <Pressable style={styles.shareModalSheet} onPress={() => {}}>
-            <Text style={styles.shareModalTitle}>Стать наставником</Text>
-            <View style={styles.shareModalCard}>
-              <Text style={styles.shareModalUrl}>
-                Вы зарегистрированы как ученик. Подтверждение переключит ваш профиль в режим наставника в рамках текущего аккаунта — без выхода из системы.{'\n\n'}После этого вы сможете заполнить информацию о себе, добавить слоты и создавать события.
-              </Text>
-            </View>
-            <Pressable
-              style={[styles.shareModalButton, isSwitching && { opacity: 0.6 }]}
-              disabled={isSwitching}
-              onPress={async () => {
-                setBecomeTutorVisible(false);
-                await handleSwitchRole('tutor');
-              }}
-            >
-              <Text style={styles.shareModalButtonText}>
-                {isSwitching ? 'Переключение...' : 'Подтвердить'}
-              </Text>
-            </Pressable>
-            <Pressable style={styles.shareModalClose} onPress={() => setBecomeTutorVisible(false)}>
-              <Text style={styles.shareModalCloseText}>Отмена</Text>
+      {/* Inline tutor registration modal */}
+      <Modal transparent animationType="fade" visible={isBecomeTutorVisible} onRequestClose={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
+          <Pressable style={styles.shareModalOverlay} onPress={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}>
+            <Pressable style={styles.shareModalSheet} onPress={() => {}}>
+              <Text style={styles.shareModalTitle}>Стать наставником</Text>
+
+              <View style={styles.tutorRegInfo}>
+                {userProfile?.full_name ? <Text style={styles.tutorRegInfoText}>{userProfile.full_name}</Text> : null}
+                {userProfile?.email ? <Text style={styles.tutorRegInfoText}>{userProfile.email}</Text> : null}
+              </View>
+
+              <TextInput
+                placeholder="Телефон"
+                value={formatPhoneRU(tutorRegPhoneRaw)}
+                onChangeText={(text) => {
+                  setTutorRegPhoneRaw(text.replace(/\D/g, ''));
+                  if (tutorRegErrors.phone) setTutorRegErrors((e) => ({ ...e, phone: undefined }));
+                }}
+                keyboardType="phone-pad"
+                style={[styles.tutorRegInput, tutorRegErrors.phone && styles.tutorRegInputError]}
+                placeholderTextColor={tutorRegErrors.phone ? '#E02D2D' : '#888'}
+              />
+              {tutorRegErrors.phone ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.phone}</Text> : null}
+
+              <TextInput
+                placeholder="Пароль"
+                value={tutorRegPassword}
+                onChangeText={(text) => {
+                  setTutorRegPassword(text);
+                  if (tutorRegErrors.password) setTutorRegErrors((e) => ({ ...e, password: undefined }));
+                }}
+                secureTextEntry
+                style={[styles.tutorRegInput, tutorRegErrors.password && styles.tutorRegInputError]}
+                placeholderTextColor={tutorRegErrors.password ? '#E02D2D' : '#888'}
+              />
+              {tutorRegErrors.password ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.password}</Text> : null}
+
+              <TextInput
+                placeholder="Повторите пароль"
+                value={tutorRegPassword2}
+                onChangeText={(text) => {
+                  setTutorRegPassword2(text);
+                  if (tutorRegErrors.password2) setTutorRegErrors((e) => ({ ...e, password2: undefined }));
+                }}
+                secureTextEntry
+                style={[styles.tutorRegInput, tutorRegErrors.password2 && styles.tutorRegInputError]}
+                placeholderTextColor={tutorRegErrors.password2 ? '#E02D2D' : '#888'}
+              />
+              {tutorRegErrors.password2 ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.password2}</Text> : null}
+
+              {tutorRegErrors.general ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.general}</Text> : null}
+
+              <Pressable
+                style={[styles.shareModalButton, isTutorRegSubmitting && { opacity: 0.6 }]}
+                disabled={isTutorRegSubmitting}
+                onPress={handleBecomeTutor}
+              >
+                <Text style={styles.shareModalButtonText}>
+                  {isTutorRegSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.shareModalClose}
+                onPress={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}
+              >
+                <Text style={styles.shareModalCloseText}>Отмена</Text>
+              </Pressable>
             </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
-      <Pressable
-        style={styles.logoutButton}
-        onPress={async () => {
-          await clearAuth();
-          router.replace('/login');
-        }}
-      >
+      <Pressable style={styles.logoutButton} onPress={async () => { await clearAuth(); router.replace('/login'); }}>
         <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
       </Pressable>
     </>
@@ -345,9 +441,7 @@ export default function ProfileByIdScreen() {
               <Text style={styles.shareModalUrl} numberOfLines={2}>{profileUrl}</Text>
             </View>
             <Pressable style={styles.shareModalButton} onPress={handleCopyProfileLink}>
-              <Text style={styles.shareModalButtonText}>
-                {isShareCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
-              </Text>
+              <Text style={styles.shareModalButtonText}>{isShareCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
             </Pressable>
             <Pressable style={styles.shareModalClose} onPress={() => setShareVisible(false)}>
               <Text style={styles.shareModalCloseText}>Закрыть</Text>
@@ -356,13 +450,7 @@ export default function ProfileByIdScreen() {
         </Pressable>
       </Modal>
 
-      <Pressable
-        style={styles.logoutButton}
-        onPress={async () => {
-          await clearAuth();
-          router.replace('/login');
-        }}
-      >
+      <Pressable style={styles.logoutButton} onPress={async () => { await clearAuth(); router.replace('/login'); }}>
         <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
       </Pressable>
     </>
@@ -370,25 +458,22 @@ export default function ProfileByIdScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
-      {role !== 'tutor' && (
+      {/* Role switch tabs — only when user has both roles */}
+      {hasTutorProfile === true && role !== 'tutor' && (
         <View style={styles.roleSwitch}>
           <Pressable
             style={[styles.roleButton, role === 'student' && styles.roleButtonActive]}
             onPress={() => handleSwitchRole('student')}
             disabled={isSwitching}
           >
-            <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>
-              Ученик
-            </Text>
+            <Text style={[styles.roleButtonText, role === 'student' && styles.roleButtonTextActive]}>Ученик</Text>
           </Pressable>
           <Pressable
             style={[styles.roleButton, role === 'tutor' && styles.roleButtonActive]}
             onPress={() => handleSwitchRole('tutor')}
             disabled={isSwitching}
           >
-            <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>
-              Наставник
-            </Text>
+            <Text style={[styles.roleButtonText, role === 'tutor' && styles.roleButtonTextActive]}>Наставник</Text>
           </Pressable>
         </View>
       )}
@@ -400,340 +485,93 @@ export default function ProfileByIdScreen() {
   );
 }
 
+function formatPhoneRU(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  if (!digits) return '';
+  let value = digits;
+  if (value.startsWith('8')) value = '7' + value.slice(1);
+  if (!value.startsWith('7')) value = '7' + value;
+  value = value.slice(0, 11);
+  const parts = [value.slice(0, 1), value.slice(1, 4), value.slice(4, 7), value.slice(7, 9), value.slice(9, 11)];
+  let out = '+' + parts[0];
+  if (parts[1]) out += ' (' + parts[1] + ')';
+  if (parts[2]) out += ' ' + parts[2];
+  if (parts[3]) out += '-' + parts[3];
+  if (parts[4]) out += '-' + parts[4];
+  return out;
+}
+
+function normalizePhoneRU(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  let value = digits;
+  if (value.startsWith('8')) value = '7' + value.slice(1);
+  if (!value.startsWith('7')) value = '7' + value;
+  return '+' + value.slice(0, 11);
+}
+
+function isValidPhoneRU(input: string): boolean {
+  const digits = input.replace(/\D/g, '');
+  const norm = digits.startsWith('8') ? '7' + digits.slice(1) : digits.startsWith('7') ? digits : '7' + digits;
+  return norm.length === 11;
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  roleSwitch: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    marginBottom: 16,
-  },
-  roleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  roleButtonActive: {
-    backgroundColor: '#111',
-  },
-  roleButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  roleButtonTextActive: {
-    color: '#FAFAFA',
-  },
-  studentInviteCard: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  studentInviteContent: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  studentInviteText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  profileCard: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  profileImageWrapper: {
-    width: 96,
-    height: 96,
-    borderRightWidth: 1,
-    borderColor: '#1E1E1E',
-  },
-  profileImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#E5E5E5',
-  },
-  profileInfo: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  profileName: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    marginBottom: 4,
-  },
-  profileRole: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  profileRate: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: 'Inter-Regular',
-    color: '#9B9B9B',
-    marginTop: 4,
-  },
-  actionsCard: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    marginBottom: 24,
-  },
-  actionButton: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderColor: '#1E1E1E',
-  },
-  actionButtonFirst: {
-    borderTopWidth: 0,
-  },
-  actionText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  actionPrimary: {
-    backgroundColor: '#111',
-  },
-  actionPrimaryText: {
-    color: '#FAFAFA',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    marginBottom: 12,
-  },
-  slotsRow: {
-    gap: 12,
-    paddingBottom: 16,
-  },
-  slotCard: {
-    width: 76,
-    height: 64,
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  slotText: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  primaryButton: {
-    backgroundColor: '#111',
-    borderWidth: 1,
-    borderColor: '#111',
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  primaryButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#FAFAFA',
-  },
-  inviteCard: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    flexDirection: 'row',
-  },
-  inviteContent: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  inviteTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    marginBottom: 4,
-  },
-  inviteSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  inviteIconBox: {
-    width: 64,
-    borderLeftWidth: 1,
-    borderColor: '#1E1E1E',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shareModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  shareModalSheet: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 24,
-  },
-  shareModalTitle: {
-    marginTop: 0,
-    marginBottom: 8,
-    fontFamily: 'Inter-Regular',
-    fontWeight: '700',
-    fontSize: 28,
-    textTransform: 'uppercase',
-    lineHeight: 36,
-    letterSpacing: -1,
-    color: '#181818',
-    textAlign: 'left',
-  },
-  shareModalCard: {
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    backgroundColor: '#FFFFFF',
-  },
-  shareModalUrl: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: 'Inter-Regular',
-    color: '#1E1E1E',
-  },
-  shareModalButton: {
-    marginTop: 16,
-    backgroundColor: '#1E1E1E',
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  shareModalButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-  },
-  shareCopiedText: {
-    marginTop: 4,
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#181818',
-  },
-  shareModalClose: {
-    marginTop: 12,
-    height: 52,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-  },
-  shareModalCloseText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  shareButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CFCFCF',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginHorizontal: 16,
-    marginBottom: 32,
-  },
-  shareButtonText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-  },
-  logoutButton: {
-    marginTop: 24,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#E02D2D',
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  logoutButtonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#E02D2D',
-  },
-  becomeTutorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1E1E1E',
-    marginTop: 16,
-    backgroundColor: '#F8F8F8',
-  },
-  becomeTutorContent: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  becomeTutorTitle: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#181818',
-    marginBottom: 4,
-  },
-  becomeTutorSubtitle: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#9B9B9B',
-  },
-  becomeTutorArrow: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  becomeTutorArrowText: {
-    fontSize: 26,
-    color: '#181818',
-    marginTop: -2,
-  },
+  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 16 },
+  roleSwitch: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 16 },
+  roleButton: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  roleButtonActive: { backgroundColor: '#111' },
+  roleButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  roleButtonTextActive: { color: '#FAFAFA' },
+  studentInviteCard: { borderWidth: 1, borderColor: '#1E1E1E', flexDirection: 'row', marginBottom: 24 },
+  studentInviteContent: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
+  studentInviteText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  profileCard: { borderWidth: 1, borderColor: '#1E1E1E', flexDirection: 'row', marginBottom: 16 },
+  profileImageWrapper: { width: 96, height: 96, borderRightWidth: 1, borderColor: '#1E1E1E' },
+  profileImage: { width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
+  profileInfo: { flex: 1, paddingHorizontal: 12, paddingVertical: 10 },
+  profileName: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  profileRole: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  profileRate: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 4 },
+  actionsCard: { borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 24 },
+  actionButton: { paddingVertical: 14, alignItems: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
+  actionButtonFirst: { borderTopWidth: 0 },
+  actionText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  actionPrimary: { backgroundColor: '#111' },
+  actionPrimaryText: { color: '#FAFAFA' },
+  sectionTitle: { fontSize: 20, lineHeight: 28, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 12 },
+  slotsRow: { gap: 12, paddingBottom: 16 },
+  slotCard: { width: 76, height: 64, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  slotText: { fontSize: 14, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
+  secondaryButton: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
+  secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  primaryButton: { backgroundColor: '#111', borderWidth: 1, borderColor: '#111', paddingVertical: 14, alignItems: 'center', marginBottom: 24 },
+  primaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FAFAFA' },
+  inviteCard: { borderWidth: 1, borderColor: '#1E1E1E', flexDirection: 'row' },
+  inviteContent: { flex: 1, paddingHorizontal: 12, paddingVertical: 12 },
+  inviteTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  inviteSubtitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  inviteIconBox: { width: 64, borderLeftWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
+  shareModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  shareModalSheet: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24 },
+  shareModalTitle: { marginTop: 0, marginBottom: 8, fontFamily: 'Inter-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818' },
+  shareModalCard: { borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#fff' },
+  shareModalUrl: { paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#1E1E1E' },
+  shareModalButton: { marginTop: 16, backgroundColor: '#1E1E1E', paddingVertical: 14, alignItems: 'center' },
+  shareModalButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#fff' },
+  shareCopiedText: { marginTop: 4, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
+  shareModalClose: { marginTop: 12, height: 52, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E' },
+  shareModalCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  logoutButton: { marginTop: 24, marginBottom: 32, borderWidth: 1, borderColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
+  logoutButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#E02D2D' },
+  becomeTutorCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E', marginTop: 16, backgroundColor: '#F8F8F8' },
+  becomeTutorContent: { flex: 1, paddingHorizontal: 16, paddingVertical: 14 },
+  becomeTutorTitle: { fontSize: 15, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  becomeTutorSubtitle: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  becomeTutorArrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  becomeTutorArrowText: { fontSize: 26, color: '#181818', marginTop: -2 },
+  tutorRegInfo: { borderWidth: 1, borderColor: '#E5E5E5', padding: 12, marginBottom: 12, backgroundColor: '#F8F8F8' },
+  tutorRegInfoText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  tutorRegInput: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 4, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  tutorRegInputError: { borderColor: '#E02D2D', color: '#E02D2D' },
+  tutorRegErrorText: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#E02D2D', marginBottom: 6 },
 });

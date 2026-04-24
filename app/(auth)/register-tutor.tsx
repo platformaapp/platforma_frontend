@@ -10,8 +10,8 @@ import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
-const OFERTA_URL = 'https://platformaapp.ru/oferta.pdf';
-const CONF_URL = 'https://platformaapp.ru/conf.pdf';
+const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
+const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
 
 export default function RegisterTutorScreen() {
   const router = useRouter();
