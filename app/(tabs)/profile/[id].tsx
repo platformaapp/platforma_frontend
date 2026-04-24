@@ -9,6 +9,7 @@ import Svg, { Path } from 'react-native-svg';
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { getTutorProfile, getTutorSlots } from '@/lib/api/tutor';
+import { getStudentProfile } from '@/lib/api/student';
 import { clearAuth, extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
@@ -68,23 +69,52 @@ export default function ProfileByIdScreen() {
         return;
       }
       const [storedRole, profile] = await Promise.all([getAuthRole(), getUserProfile()]);
+      const effectiveRole = storedRole === 'tutor' ? 'tutor' : 'student';
       if (isMounted) {
-        if (storedRole === 'student' || storedRole === 'tutor') setRole(storedRole);
+        setRole(effectiveRole);
         if (profile) setUserProfile(profile);
       }
-      try {
-        const tp = await getTutorProfile();
-        if (isMounted) {
-          setHasTutorProfile(true);
-          if (storedRole === 'tutor') {
+
+      if (effectiveRole === 'student') {
+        // Students never have a tutor profile — don't call getTutorProfile() for students!
+        // Calling it as a student causes 401 → clearAuth() → wipes token and stored profile.
+        if (isMounted) setHasTutorProfile(false);
+
+        // Fetch fresh profile from server to get avatar_url (stored profile may lack it)
+        try {
+          const sp = await getStudentProfile();
+          if (isMounted && sp) {
+            const avatarFromServer = (sp as any).avatar_url ?? (sp as any).avatarUrl ?? null;
+            setUserProfile((prev) => ({
+              ...prev,
+              id: String((sp as any).id ?? prev?.id ?? ''),
+              email: sp.email ?? prev?.email,
+              full_name: sp.full_name ?? (sp as any).fullName ?? prev?.full_name,
+              avatar_url: avatarFromServer ?? prev?.avatar_url,
+            }));
+            // Persist avatar in SecureStore so it survives page reloads
+            if (avatarFromServer && token) {
+              const currentProfile = await getUserProfile();
+              if (currentProfile?.id) {
+                await saveAuthToken(token, 'student', undefined, { ...currentProfile, avatar_url: avatarFromServer });
+              }
+            }
+          }
+        } catch { /* ignore — fall back to stored profile */ }
+      } else {
+        // Tutor role: safe to call getTutorProfile() — 401 here means token expired, which is correct
+        try {
+          const tp = await getTutorProfile();
+          if (isMounted) {
+            setHasTutorProfile(true);
             const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
             if (avatar) setTutorAvatarUrl(avatar);
             const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
             if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
           }
+        } catch {
+          if (isMounted) setHasTutorProfile(false);
         }
-      } catch {
-        if (isMounted) setHasTutorProfile(false);
       }
     };
     load();

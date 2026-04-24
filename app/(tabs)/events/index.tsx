@@ -195,13 +195,13 @@ const styles = StyleSheet.create({
   cardTitleText: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 6 },
   description: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
   footer: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
-    borderTopWidth: 1, borderColor: '#1E1E1E', minHeight: 44,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'stretch',
+    borderTopWidth: 1, borderColor: '#1E1E1E',
   },
   footerTime: {
     fontSize: 14, fontFamily: 'Inter-Regular', color: '#FFFFFF',
     backgroundColor: '#1E1E1E', paddingHorizontal: 16, paddingVertical: 10,
   },
-  priceContainer: { borderLeftWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 14, paddingVertical: 8 },
+  priceContainer: { borderLeftWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
   footerPrice: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#1E1E1E' },
 });
