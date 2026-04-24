@@ -18,7 +18,7 @@ export default function ProfileByIdScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [isSwitching, setIsSwitching] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string; bio?: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string; bio?: string; avatar_url?: string } | null>(null);
   const [tutorAvatarUrl, setTutorAvatarUrl] = useState<string | null>(null);
   const [tutorHourlyRate, setTutorHourlyRate] = useState<number | null>(null);
   const [slots, setSlots] = useState<{ date: string; time: string }[]>([]);
@@ -135,9 +135,6 @@ export default function ProfileByIdScreen() {
       const newRefreshToken = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
       await saveAuthToken(newToken, nextRole, newRefreshToken);
       setRole(nextRole);
-      if (nextRole === 'tutor') {
-        router.push('/(tabs)/profile/edit-profile');
-      }
     } catch (e: any) {
       const msg = e?.message ?? '';
       if (msg.includes('Unauthorized') || msg.includes('401') || msg.includes('403')) {
@@ -153,11 +150,16 @@ export default function ProfileByIdScreen() {
   const displayName = userProfile?.full_name ?? (role === 'student' ? 'Варвара Михайлова' : 'Андрей Осетров');
   const displayRole = role === 'tutor' ? (userProfile?.bio ?? 'Куратор, исследователь визуальной культуры') : undefined;
 
+  const studentAvatarUrl = userProfile?.avatar_url ?? null;
+
   const renderStudentContent = () => (
     <>
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
-          <Image source={require('@/assets/images/avatar.png')} style={styles.profileImage} />
+          <Image
+            source={studentAvatarUrl ? { uri: studentAvatarUrl } : require('@/assets/images/avatar.png')}
+            style={styles.profileImage}
+          />
         </View>
         <View style={styles.profileInfo}>
           <Text style={styles.profileName}>{displayName}</Text>
@@ -239,20 +241,17 @@ export default function ProfileByIdScreen() {
             <Text style={styles.shareModalTitle}>Стать наставником</Text>
             <View style={styles.shareModalCard}>
               <Text style={styles.shareModalUrl}>
-                Вы зарегистрированы как ученик. Подтверждение переключит ваш профиль в режим наставника в рамках текущего аккаунта — без выхода из системы.{'\n\n'}После этого вы сможете заполнить информацию о себе, добавить слоты и создавать события.
+                Чтобы стать наставником, нужно пройти регистрацию наставника. Вы сможете заполнить профиль, добавить слоты и создавать события.
               </Text>
             </View>
             <Pressable
-              style={[styles.shareModalButton, isSwitching && { opacity: 0.6 }]}
-              disabled={isSwitching}
-              onPress={async () => {
+              style={styles.shareModalButton}
+              onPress={() => {
                 setBecomeTutorVisible(false);
-                await handleSwitchRole('tutor');
+                router.push('/(auth)/register-tutor');
               }}
             >
-              <Text style={styles.shareModalButtonText}>
-                {isSwitching ? 'Переключение...' : 'Подтвердить'}
-              </Text>
+              <Text style={styles.shareModalButtonText}>Зарегистрироваться</Text>
             </Pressable>
             <Pressable style={styles.shareModalClose} onPress={() => setBecomeTutorVisible(false)}>
               <Text style={styles.shareModalCloseText}>Отмена</Text>

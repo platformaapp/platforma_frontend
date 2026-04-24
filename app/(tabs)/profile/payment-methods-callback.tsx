@@ -101,25 +101,6 @@ export default function PaymentMethodsCallbackScreen() {
     router.replace(paymentsRoute as never);
   };
 
-  // On app foreground (user closed browser): re-trigger confirmation + restart polling
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active' && !cardFoundRef.current) {
-        triggerConfirmation();
-        // If we're in waiting_retry, start a new cycle automatically
-        if (status === 'waiting_retry') {
-          startPollingCycle();
-        }
-      }
-    });
-    return () => sub.remove();
-  }, [status, triggerConfirmation, startPollingCycle]);
-
-  const handleRetry = () => {
-    triggerConfirmation();
-    startPollingCycle();
-  };
-
   return (
     <View style={styles.container}>
       {status === 'loading' && (
