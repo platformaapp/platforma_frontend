@@ -31,10 +31,8 @@ export default function ProfileByIdScreen() {
   const [hasTutorProfile, setHasTutorProfile] = useState<boolean | null>(null);
 
   // Inline tutor registration form state
-  const [tutorRegPhoneRaw, setTutorRegPhoneRaw] = useState('');
   const [tutorRegPassword, setTutorRegPassword] = useState('');
-  const [tutorRegPassword2, setTutorRegPassword2] = useState('');
-  const [tutorRegErrors, setTutorRegErrors] = useState<{ phone?: string; password?: string; password2?: string; general?: string }>({});
+  const [tutorRegErrors, setTutorRegErrors] = useState<{ password?: string; general?: string }>({});
   const [isTutorRegSubmitting, setIsTutorRegSubmitting] = useState(false);
 
   const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
@@ -174,18 +172,8 @@ export default function ProfileByIdScreen() {
   // Inline tutor registration — POST /api/auth/register with role: tutor
   const handleBecomeTutor = async () => {
     const newErrors: typeof tutorRegErrors = {};
-    if (!tutorRegPhoneRaw) {
-      newErrors.phone = 'Поле не заполнено!';
-    } else if (!isValidPhoneRU(tutorRegPhoneRaw)) {
-      newErrors.phone = 'Неверный формат телефона';
-    }
     if (tutorRegPassword.length < 7) {
       newErrors.password = 'Пароль слишком короткий!';
-    }
-    if (!tutorRegPassword2.trim()) {
-      newErrors.password2 = 'Поле не заполнено!';
-    } else if (tutorRegPassword !== tutorRegPassword2) {
-      newErrors.password2 = 'Пароли не совпадают!';
     }
     if (Object.keys(newErrors).length > 0) {
       setTutorRegErrors(newErrors);
@@ -194,15 +182,16 @@ export default function ProfileByIdScreen() {
 
     setIsTutorRegSubmitting(true);
     try {
-      const requestBody = {
+      const storedPhone = (userProfile as any)?.phone ?? '';
+      const requestBody: Record<string, string> = {
         email: userProfile?.email ?? '',
         password: tutorRegPassword,
         fullName: userProfile?.full_name ?? '',
         role: 'tutor',
-        phone: normalizePhoneRU(tutorRegPhoneRaw),
-        avatarUrl: userProfile?.avatar_url ?? '',
         bio: '',
       };
+      if (storedPhone) requestBody.phone = normalizePhoneRU(storedPhone);
+      if (userProfile?.avatar_url) requestBody.avatarUrl = userProfile.avatar_url;
 
       const res = await fetch(endpoints.register, {
         method: 'POST',
@@ -225,9 +214,7 @@ export default function ProfileByIdScreen() {
       setHasTutorProfile(true);
       setRole('tutor');
       setBecomeTutorVisible(false);
-      setTutorRegPhoneRaw('');
       setTutorRegPassword('');
-      setTutorRegPassword2('');
       setTutorRegErrors({});
     } catch (e: any) {
       setTutorRegErrors({ general: e?.message ?? 'Ошибка соединения' });
@@ -237,9 +224,7 @@ export default function ProfileByIdScreen() {
   };
 
   const openBecomeTutor = () => {
-    setTutorRegPhoneRaw('');
     setTutorRegPassword('');
-    setTutorRegPassword2('');
     setTutorRegErrors({});
     setBecomeTutorVisible(true);
   };
@@ -329,23 +314,11 @@ export default function ProfileByIdScreen() {
               <View style={styles.tutorRegInfo}>
                 {userProfile?.full_name ? <Text style={styles.tutorRegInfoText}>{userProfile.full_name}</Text> : null}
                 {userProfile?.email ? <Text style={styles.tutorRegInfoText}>{userProfile.email}</Text> : null}
+                {(userProfile as any)?.phone ? <Text style={styles.tutorRegInfoText}>{formatPhoneRU((userProfile as any).phone.replace(/\D/g, ''))}</Text> : null}
               </View>
 
               <TextInput
-                placeholder="Телефон"
-                value={formatPhoneRU(tutorRegPhoneRaw)}
-                onChangeText={(text) => {
-                  setTutorRegPhoneRaw(text.replace(/\D/g, ''));
-                  if (tutorRegErrors.phone) setTutorRegErrors((e) => ({ ...e, phone: undefined }));
-                }}
-                keyboardType="phone-pad"
-                style={[styles.tutorRegInput, tutorRegErrors.phone && styles.tutorRegInputError]}
-                placeholderTextColor={tutorRegErrors.phone ? '#E02D2D' : '#888'}
-              />
-              {tutorRegErrors.phone ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.phone}</Text> : null}
-
-              <TextInput
-                placeholder="Пароль"
+                placeholder="Текущий пароль"
                 value={tutorRegPassword}
                 onChangeText={(text) => {
                   setTutorRegPassword(text);
@@ -356,19 +329,6 @@ export default function ProfileByIdScreen() {
                 placeholderTextColor={tutorRegErrors.password ? '#E02D2D' : '#888'}
               />
               {tutorRegErrors.password ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.password}</Text> : null}
-
-              <TextInput
-                placeholder="Повторите пароль"
-                value={tutorRegPassword2}
-                onChangeText={(text) => {
-                  setTutorRegPassword2(text);
-                  if (tutorRegErrors.password2) setTutorRegErrors((e) => ({ ...e, password2: undefined }));
-                }}
-                secureTextEntry
-                style={[styles.tutorRegInput, tutorRegErrors.password2 && styles.tutorRegInputError]}
-                placeholderTextColor={tutorRegErrors.password2 ? '#E02D2D' : '#888'}
-              />
-              {tutorRegErrors.password2 ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.password2}</Text> : null}
 
               {tutorRegErrors.general ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.general}</Text> : null}
 

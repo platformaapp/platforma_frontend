@@ -52,7 +52,13 @@ export async function getStudentProfile(): Promise<StudentProfile> {
   const res = await fetch(endpoints.studentProfile, {
     headers: await authHeaders(),
   });
-  return handleResponse<StudentProfile>(res);
+  const raw = await handleResponse<any>(res);
+  // Unwrap { data: {...} } or { user: {...} } envelope if present
+  const profile =
+    (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) ? raw.data
+    : (raw?.user && typeof raw.user === 'object') ? raw.user
+    : raw;
+  return profile as StudentProfile;
 }
 
 /**
