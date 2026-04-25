@@ -9,8 +9,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
 import { uploadEventImage } from '@/lib/api/events';
-import { updateStudentProfile } from '@/lib/api/student';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken } from '@/lib/auth';
+import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken, UserProfile } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
@@ -93,13 +93,12 @@ export default function RegisterStudentScreen() {
     
     setIsSubmitting(true);
     try {
-      const requestBody = {
+      const requestBody: Record<string, string> = {
         email: email.trim(),
         password,
         fullName: fullName.trim(),
         role: 'student',
         phone: normalizePhoneRU(phoneRaw),
-        avatarUrl: '',
         bio: '',
       };
       
@@ -143,23 +142,33 @@ export default function RegisterStudentScreen() {
       const refreshToken = extractRefreshTokenFromResponse(data);
       const user = extractUserFromResponse(data);
       
-      // Сохраняем токен, если он есть
       if (token) {
-        try {
-          const userProfile = user ? { ...user, role: 'student' } : undefined;
-          await saveAuthToken(token, 'student', refreshToken, userProfile);
-        } catch (saveError) {
-          console.error('Ошибка сохранения токена:', saveError);
-        }
+        // Save initial profile from registration response
+        const userProfile = user ? { ...user, role: 'student' } : undefined;
+        await saveAuthToken(token, 'student', refreshToken, userProfile);
+
         // Upload avatar now that we have a token
         if (avatarUri) {
           try {
             const uploadedUrl = await uploadEventImage(avatarUri);
             await updateStudentProfile({ avatarUrl: uploadedUrl });
-          } catch {
-            // Ignore — registration itself succeeded
-          }
+          } catch { /* ignore — registration succeeded */ }
         }
+
+        // Fetch fresh profile from server — overwrites login-response data with authoritative
+        // name/email/avatar. Fixes "John Doe" or other stale data persisting after registration.
+        try {
+          const sp = await getStudentProfile();
+          const fresh: UserProfile = {
+            id: String((sp as any).id ?? user?.id ?? ''),
+            email: sp.email ?? user?.email ?? email.trim(),
+            full_name: sp.full_name ?? (sp as any).fullName ?? user?.full_name ?? fullName.trim(),
+            phone: sp.phone ?? user?.phone ?? normalizePhoneRU(phoneRaw),
+            avatar_url: (sp as any).avatar_url ?? (sp as any).avatarUrl ?? user?.avatar_url,
+            role: 'student',
+          };
+          if (fresh.id) await saveAuthToken(token, 'student', refreshToken, fresh);
+        } catch { /* ignore */ }
       }
 
       router.push('/registration-complete');

@@ -15,12 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
+import { getStudentProfile } from '@/lib/api/student';
 import {
   extractRefreshTokenFromResponse,
   extractTokenFromResponse,
   extractUserFromResponse,
   getAuthRole,
   saveAuthToken,
+  UserProfile,
 } from '@/lib/auth';
 
 export default function LoginScreen() {
@@ -74,7 +76,25 @@ export default function LoginScreen() {
       const refreshToken = extractRefreshTokenFromResponse(data);
       const user = extractUserFromResponse(data);
       if (token) {
+        // Save initial profile from login response so navigation works immediately
         await saveAuthToken(token, role, refreshToken, user ? { ...user, role } : undefined);
+
+        // Fetch fresh profile from server — overwrites login-response data with authoritative data
+        // This fixes stale name/avatar persisting across re-logins
+        if (role === 'student') {
+          try {
+            const sp = await getStudentProfile();
+            const fresh: UserProfile = {
+              id: String((sp as any).id ?? user?.id ?? ''),
+              email: sp.email ?? user?.email,
+              full_name: sp.full_name ?? (sp as any).fullName ?? (sp as any).name ?? user?.full_name,
+              phone: sp.phone ?? user?.phone,
+              avatar_url: (sp as any).avatar_url ?? (sp as any).avatarUrl ?? user?.avatar_url,
+              role,
+            };
+            if (fresh.id) await saveAuthToken(token, role, refreshToken, fresh);
+          } catch { /* ignore — initial save above is enough to proceed */ }
+        }
       }
       router.replace(user?.id ? `/(tabs)/profile/${user.id}` : '/(tabs)/events');
     } catch (e: any) {
