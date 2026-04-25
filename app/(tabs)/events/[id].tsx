@@ -377,6 +377,18 @@ export default function EventDetailScreen() {
     !event.isPaid &&
     event.currentUserParticipation?.paymentStatus === 'pending';
 
+  // Allow joining when server says canJoin, OR when user is registered and event is
+  // happening right now (server may return canJoin=false for pending-payment users)
+  const MEETING_DURATION_MS = 90 * 60 * 1000;
+  const JOIN_EARLY_MS = 15 * 60 * 1000;
+  const eventStartMs = event.datetimeStart ? new Date(event.datetimeStart).getTime() : null;
+  const nowMs = Date.now();
+  const isEventHappening =
+    eventStartMs != null &&
+    nowMs >= eventStartMs - JOIN_EARLY_MS &&
+    nowMs <= eventStartMs + MEETING_DURATION_MS;
+  const canJoinEffective = event.canJoin || (event.isRegistered && isEventHappening);
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -419,7 +431,7 @@ export default function EventDetailScreen() {
         >
           <Text style={styles.joinButtonText}>Смотреть запись</Text>
         </Pressable>
-      ) : event.canJoin ? (
+      ) : canJoinEffective ? (
         // Event is live (or starts in <15 min) — show join button
         <Pressable
           style={[styles.joinButton, isJoining && styles.joinButtonDisabled]}

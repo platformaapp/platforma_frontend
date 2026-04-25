@@ -167,7 +167,15 @@ export default function EditProfileScreen() {
         if (bio) payload.bio = bio;
         if (shortBio.trim()) payload.shortBio = shortBio.trim();
         if (telegram.trim()) payload.phone = telegram.trim();
-        if (avatarUrl) payload.avatarUrl = avatarUrl;
+        // Upload new local image; skip server URLs (would fail validation)
+        if (avatarUri && avatarUri.startsWith('file://')) {
+          try {
+            const uploaded = await uploadEventImage(avatarUri);
+            payload.avatarUrl = uploaded;
+          } catch { /* ignore upload error — save other fields */ }
+        } else if (avatarUrl && !avatarUrl.startsWith('file://')) {
+          payload.avatarUrl = avatarUrl;
+        }
         const rate = hourlyRate ? parseInt(hourlyRate, 10) : 0;
         if (rate > 0) {
           payload.hourlyRate = rate;

@@ -2,13 +2,16 @@ import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { getMyEventsForStudent } from '@/lib/api/student-events';
 import { getAuthToken } from '@/lib/auth';
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const MEETING_DURATION_MS = 90 * 60 * 1000;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const MONTHS_SHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 
 function pluralizeRu(n: number, one: string, few: string, many: string): string {
   const abs = Math.abs(n) % 100;
@@ -19,9 +22,18 @@ function pluralizeRu(n: number, one: string, few: string, many: string): string 
   return many;
 }
 
-function formatCountdown(targetIso: string): string | null {
+function formatCountdown(targetIso: string): string {
   const diff = new Date(targetIso).getTime() - Date.now();
-  if (diff <= 0 || diff > WEEK_MS) return null;
+  if (diff <= 0) return '';
+  if (diff > WEEK_MS) {
+    // Show date for far events
+    const d = new Date(targetIso);
+    const day = d.getDate();
+    const month = MONTHS_SHORT[d.getMonth()];
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${month} в ${hh}:${mm}`;
+  }
   const totalSec = Math.floor(diff / 1000);
   const days = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
@@ -52,14 +64,14 @@ function computeBanner(events: EventEntry[]): BannerState {
       return { kind: 'ongoing', eventId: e.id };
     }
   }
-  // Find soonest upcoming within a week
+  // Find soonest upcoming event (no 7-day limit — show always)
   const upcoming = events
     .filter((e) => {
       if (!e.datetimeStart) return false;
-      const diff = new Date(e.datetimeStart).getTime() - now;
-      return diff > 0 && diff <= WEEK_MS;
+      return new Date(e.datetimeStart).getTime() > now;
     })
     .sort((a, b) => new Date(a.datetimeStart!).getTime() - new Date(b.datetimeStart!).getTime());
+
   if (upcoming.length > 0) {
     const text = formatCountdown(upcoming[0].datetimeStart!);
     if (text) return { kind: 'countdown', text, eventId: upcoming[0].id };
@@ -76,6 +88,25 @@ async function joinEvent(eventId: string): Promise<string | null> {
   if (!res.ok) return null;
   const data = await res.json();
   return data?.join_url ?? data?.joinUrl ?? null;
+}
+
+function ClockIcon() {
+  return (
+    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+        stroke="#FFFFFF"
+        strokeWidth="1.5"
+      />
+      <Path
+        d="M12 6V12L16 14"
+        stroke="#FFFFFF"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
 }
 
 export function EventBanner() {
@@ -119,7 +150,6 @@ export function EventBanner() {
       if (url) {
         await Linking.openURL(url);
       } else {
-        // Can't join yet or no room — open event detail
         router.push(`/(tabs)/events/${eventId}` as any);
       }
     } catch {
@@ -153,7 +183,9 @@ export function EventBanner() {
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        <Text style={styles.icon}>{'□|'}</Text>
+        <View style={styles.iconWrapper}>
+          <ClockIcon />
+        </View>
         <Text style={styles.countdownText} numberOfLines={1}>
           {'До ближайшего события: ' + banner.text}
         </Text>
@@ -185,11 +217,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  icon: {
-    fontSize: 14,
-    color: '#FFFFFF',
+  iconWrapper: {
     marginRight: 8,
-    fontFamily: 'Inter-Regular',
+    width: 16,
+    height: 16,
   },
   countdownText: {
     flex: 1,

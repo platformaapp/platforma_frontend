@@ -73,7 +73,17 @@ export default function ProfileByIdScreen() {
       }
 
       if (effectiveRole === 'student') {
-        if (isMounted) setHasTutorProfile(false);
+        // Try to detect if user already has a tutor profile (may work if backend allows cross-role GET)
+        getTutorProfile()
+          .then((tp) => {
+            if (!isMounted) return;
+            setHasTutorProfile(true);
+            const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
+            if (avatar) setTutorAvatarUrl(avatar);
+          })
+          .catch(() => {
+            if (isMounted) setHasTutorProfile(false);
+          });
 
         // Fetch fresh data from server to get avatar and up-to-date name/email
         try {
@@ -141,10 +151,25 @@ export default function ProfileByIdScreen() {
 
       if (response.status === 401 || response.status === 403) {
         const msg = typeof payload === 'object' ? String(payload?.message ?? '') : '';
-        // "You don't have tutor role" — user needs to register as tutor
-        if (nextRole === 'tutor' && (msg.toLowerCase().includes('tutor') || msg.toLowerCase().includes('role'))) {
-          setHasTutorProfile(false);
-          setBecomeTutorVisible(true);
+        const msgLower = msg.toLowerCase();
+        if (nextRole === 'tutor') {
+          if (msgLower.includes('already registered') || msgLower.includes('уже зарегистрирован')) {
+            // User has a tutor profile but token can't switch — update UI state
+            setHasTutorProfile(true);
+            Alert.alert(
+              'Аккаунт наставника уже существует',
+              'Выйдите из аккаунта и войдите снова, чтобы переключить роль.',
+              [{ text: 'ОК' }]
+            );
+          } else if (msgLower.includes('tutor') || msgLower.includes('role')) {
+            // User doesn't have tutor profile yet
+            setHasTutorProfile(false);
+            setBecomeTutorVisible(true);
+          } else {
+            Alert.alert('Сессия истекла', 'Войдите снова.', [
+              { text: 'Войти', onPress: () => router.replace('/login') },
+            ]);
+          }
           return;
         }
         Alert.alert('Сессия истекла', 'Войдите снова.', [
