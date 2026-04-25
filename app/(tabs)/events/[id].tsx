@@ -183,6 +183,8 @@ export default function EventDetailScreen() {
   const [isCardModalVisible, setCardModalVisible] = useState(false);
   const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
   const [isDonePaymentPending, setDonePaymentPending] = useState(false);
+  const [isPollingPayment, setIsPollingPayment] = useState(false);
+  const [isJoinBlockedVisible, setJoinBlockedVisible] = useState(false);
   const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
   const [isShareEventVisible, setShareEventVisible] = useState(false);
   const [isShareCopied, setIsShareCopied] = useState(false);
@@ -240,6 +242,39 @@ export default function EventDetailScreen() {
     return () => { active.value = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  /** Poll event until payment_status becomes 'paid' or attempts exhausted */
+  const pollUntilPaid = async (eventId: string) => {
+    setIsPollingPayment(true);
+    const INTERVAL = 4000;
+    const MAX = 15; // 15 × 4s = 60 seconds max
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+      for (let i = 0; i < MAX; i++) {
+        await new Promise((r) => setTimeout(r, INTERVAL));
+        try {
+          const res = await fetch(`${endpoints.events}/${eventId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) break;
+          const raw = await res.json();
+          const ev = normalizeEvent(raw as Record<string, unknown>);
+          if (ev.isPaid) {
+            setEvent(ev);
+            setIsPollingPayment(false);
+            return;
+          }
+          // Update state even if still pending (keep canJoin in sync)
+          setEvent(ev);
+        } catch { break; }
+      }
+    } finally {
+      setIsPollingPayment(false);
+    }
+  };
 
   // ─── Handlers ────────────────────────────────────────────────────────────
 
@@ -320,6 +355,9 @@ export default function EventDetailScreen() {
       setCardModalVisible(false);
       setDonePaymentPending(isPendingPayment);
       setCardModalDoneVisible(true);
+
+      // Payment is async on the server — poll until confirmed
+      if (isPendingPayment) pollUntilPaid(event.id);
     } catch (e: any) {
       const rawMessage = e?.message ?? 'Не удалось зарегистрироваться';
       const message = rawMessage.toLowerCase().includes('token expired') ? 'Авторизуйтесь заново' : rawMessage;
@@ -343,6 +381,10 @@ export default function EventDetailScreen() {
         const data = await res.json().catch(() => ({}));
         const url = data?.join_url ?? data?.joinUrl ?? data?.url;
         if (url) { await Linking.openURL(url); return; }
+      }
+      if (res.status === 403) {
+        setJoinBlockedVisible(true);
+        return;
       }
       // Fallback: use video_room.url if available
       const fallbackUrl = event.videoRoom?.url;
@@ -392,8 +434,9 @@ export default function EventDetailScreen() {
     !event.isPaid &&
     event.currentUserParticipation?.paymentStatus === 'pending';
 
-  // Allow joining when server says canJoin, OR when user is registered and event is
-  // happening right now (server may return canJoin=false for pending-payment users)
+  // Allow joining when server says canJoin, OR when user is registered (payment confirmed)
+  // and event is happening right now (fallback for server timing issues).
+  // Never show join button while payment is still pending — server will 403.
   const MEETING_DURATION_MS = 90 * 60 * 1000;
   const JOIN_EARLY_MS = 15 * 60 * 1000;
   const eventStartMs = event.datetimeStart ? new Date(event.datetimeStart).getTime() : null;
@@ -402,7 +445,9 @@ export default function EventDetailScreen() {
     eventStartMs != null &&
     nowMs >= eventStartMs - JOIN_EARLY_MS &&
     nowMs <= eventStartMs + MEETING_DURATION_MS;
-  const canJoinEffective = event.canJoin || (event.isRegistered && isEventHappening);
+  const canJoinEffective =
+    event.canJoin ||
+    (event.isRegistered && event.isPaid && isEventHappening);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -478,7 +523,17 @@ export default function EventDetailScreen() {
       {/* Payment pending notice */}
       {paymentPending ? (
         <View style={styles.paymentPendingBadge}>
-          <Text style={styles.paymentPendingText}>Оплата в обработке</Text>
+          <Text style={styles.paymentPendingText}>
+            {isPollingPayment ? 'Ожидаем подтверждения оплаты...' : 'Оплата в обработке'}
+          </Text>
+          {!isPollingPayment && (
+            <Pressable
+              style={styles.paymentPendingRetry}
+              onPress={() => { const a = { value: true }; loadEvent(a); }}
+            >
+              <Text style={styles.paymentPendingRetryText}>Обновить статус</Text>
+            </Pressable>
+          )}
         </View>
       ) : null}
 
@@ -640,6 +695,36 @@ export default function EventDetailScreen() {
         </Pressable>
       </Modal>
 
+      {/* Join blocked (payment pending) modal */}
+      <Modal transparent animationType="fade" visible={isJoinBlockedVisible} onRequestClose={() => setJoinBlockedVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setJoinBlockedVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Оплата не подтверждена</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>
+                Платёж ещё обрабатывается. Обычно это занимает несколько минут.{'\n\n'}Попробуйте войти в конференцию снова через пару минут или нажмите «Обновить статус» на странице события.
+              </Text>
+            </View>
+            <Pressable
+              style={styles.modalPayButton}
+              onPress={() => {
+                setJoinBlockedVisible(false);
+                const a = { value: true };
+                loadEvent(a);
+              }}
+            >
+              <Text style={styles.modalPayButtonText}>Обновить статус</Text>
+            </Pressable>
+            <Pressable
+              style={styles.modalSecondaryButton}
+              onPress={() => setJoinBlockedVisible(false)}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Payment failed modal */}
       <Modal transparent animationType="fade" visible={isPaymentFailedModalVisible} onRequestClose={() => setPaymentFailedModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setPaymentFailedModalVisible(false)}>
@@ -702,8 +787,10 @@ const styles = StyleSheet.create({
   registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
 
   // Payment pending badge
-  paymentPendingBadge: { backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#F0C040', paddingVertical: 8, paddingHorizontal: 12, marginBottom: 16, alignItems: 'center' },
-  paymentPendingText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#856404' },
+  paymentPendingBadge: { backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#F0C040', paddingVertical: 10, paddingHorizontal: 12, marginBottom: 16, alignItems: 'center' },
+  paymentPendingText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#856404', textAlign: 'center' },
+  paymentPendingRetry: { marginTop: 8, borderWidth: 1, borderColor: '#856404', paddingVertical: 6, paddingHorizontal: 16 },
+  paymentPendingRetryText: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#856404' },
 
   curatorSection: { alignItems: 'center', marginBottom: 24, width: '100%', marginTop: 16 },
   curatorSectionWrapper: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', width: '100%', borderBottomWidth: 0 },
