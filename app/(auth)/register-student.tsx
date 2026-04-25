@@ -326,6 +326,13 @@ export default function RegisterStudentScreen() {
         </ThemedText>
         {' '}и другие важные нам для работы соглашения
       </ThemedText>
+      <ThemedText
+        type="link"
+        style={{ fontSize: 12, lineHeight: 16, marginTop: 8 }}
+        onPress={() => router.push('/about' as any)}
+      >
+        О сервисе
+      </ThemedText>
         </ThemedView>
       </ScrollView>
     </KeyboardAvoidingView>

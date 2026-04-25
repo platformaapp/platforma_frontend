@@ -10,7 +10,7 @@ import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { getTutorProfile, getTutorSlots } from '@/lib/api/tutor';
 import { getStudentProfile } from '@/lib/api/student';
-import { clearAuth, extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
+import { clearAuth, extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken, UserProfile } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
 export default function ProfileByIdScreen() {
@@ -64,45 +64,45 @@ export default function ProfileByIdScreen() {
     let isMounted = true;
     const load = async () => {
       const token = await getAuthToken();
-      if (!token) {
-        router.replace('/login');
-        return;
-      }
-      const [storedRole, profile] = await Promise.all([getAuthRole(), getUserProfile()]);
+      if (!token) { router.replace('/login'); return; }
+
+      const [storedRole, storedProfile] = await Promise.all([getAuthRole(), getUserProfile()]);
       const effectiveRole = storedRole === 'tutor' ? 'tutor' : 'student';
+
       if (isMounted) {
         setRole(effectiveRole);
-        if (profile) setUserProfile(profile);
+        if (storedProfile) setUserProfile(storedProfile);
       }
 
       if (effectiveRole === 'student') {
-        // Students never have a tutor profile — don't call getTutorProfile() for students!
-        // Calling it as a student causes 401 → clearAuth() → wipes token and stored profile.
         if (isMounted) setHasTutorProfile(false);
 
-        // Fetch fresh profile from server to get avatar_url (stored profile may lack it)
+        // Fetch fresh data from server to get avatar and up-to-date name/email
         try {
           const sp = await getStudentProfile();
-          if (isMounted && sp) {
-            const avatarFromServer = (sp as any).avatar_url ?? (sp as any).avatarUrl ?? null;
-            setUserProfile((prev) => ({
-              ...prev,
-              id: String((sp as any).id ?? prev?.id ?? ''),
-              email: sp.email ?? prev?.email,
-              full_name: sp.full_name ?? (sp as any).fullName ?? prev?.full_name,
-              avatar_url: avatarFromServer ?? prev?.avatar_url,
-            }));
-            // Persist avatar in SecureStore so it survives page reloads
-            if (avatarFromServer && token) {
-              const currentProfile = await getUserProfile();
-              if (currentProfile?.id) {
-                await saveAuthToken(token, 'student', undefined, { ...currentProfile, avatar_url: avatarFromServer });
-              }
-            }
+          if (!isMounted) return;
+
+          const merged: UserProfile = {
+            id: String((sp as any).id ?? storedProfile?.id ?? ''),
+            email: sp.email ?? storedProfile?.email,
+            full_name: sp.full_name ?? (sp as any).fullName ?? (sp as any).name ?? storedProfile?.full_name,
+            phone: sp.phone ?? storedProfile?.phone,
+            avatar_url: (sp as any).avatar_url ?? (sp as any).avatarUrl ?? storedProfile?.avatar_url,
+            bio: storedProfile?.bio,
+            role: 'student',
+          };
+
+          setUserProfile(merged);
+
+          // Persist to SecureStore so next load is instant
+          if (merged.id && token) {
+            await saveAuthToken(token, 'student', undefined, merged);
           }
-        } catch { /* ignore — fall back to stored profile */ }
+        } catch {
+          // Server fetch failed — storedProfile was already set above (or null, nothing to show)
+        }
       } else {
-        // Tutor role: safe to call getTutorProfile() — 401 here means token expired, which is correct
+        // Tutor: safe to call getTutorProfile() — 401 here means token expired (correct)
         try {
           const tp = await getTutorProfile();
           if (isMounted) {
