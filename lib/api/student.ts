@@ -52,7 +52,13 @@ export async function getStudentProfile(): Promise<StudentProfile> {
   const res = await fetch(endpoints.studentProfile, {
     headers: await authHeaders(),
   });
-  return handleResponse<StudentProfile>(res);
+  const raw = await handleResponse<any>(res);
+  // Unwrap { data: {...} } or { user: {...} } envelope if present
+  const profile =
+    (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data)) ? raw.data
+    : (raw?.user && typeof raw.user === 'object') ? raw.user
+    : raw;
+  return profile as StudentProfile;
 }
 
 /**
@@ -64,17 +70,24 @@ export async function getStudentProfile(): Promise<StudentProfile> {
  * Когда бэкенд добавит эндпоинт — данные будут отправляться туда.
  */
 export async function updateStudentProfile(data: StudentProfileUpdate): Promise<StudentProfile> {
-  // Try the real backend endpoint first — works automatically when implemented
+  // Strip local file URIs and empty strings from avatarUrl before sending to server
+  const serverData: StudentProfileUpdate = { ...data };
+  const rawAvatar = serverData.avatarUrl ?? serverData.avatar_url ?? '';
+  if (!rawAvatar || rawAvatar.startsWith('file://')) {
+    delete serverData.avatarUrl;
+    delete serverData.avatar_url;
+  }
+
   try {
     const res = await fetch(endpoints.studentProfile, {
       method: 'PUT',
       headers: await authHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(serverData),
     });
-    if (res.status !== 404) {
+    // Fall through to local save on 404 (not implemented) or 400 (validation error from bad field)
+    if (res.status !== 404 && res.status !== 400) {
       return handleResponse<StudentProfile>(res);
     }
-    // 404 → endpoint not implemented, fall through to local save
   } catch {
     // network error → fall through to local save
   }

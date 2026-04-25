@@ -17,6 +17,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
+import { uploadEventImage } from '@/lib/api/events';
 import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
 import { getAuthRole, getUserProfile, getAuthToken } from '@/lib/auth';
@@ -181,8 +182,17 @@ export default function EditProfileScreen() {
         if (fullName.trim()) payload.full_name = fullName.trim();
         if (email.trim()) payload.email = email.trim();
         if (phone.trim()) payload.phone = phone.trim();
-        if (avatarUrl) payload.avatarUrl = avatarUrl;
-        if (avatarUrl) payload.avatar_url = avatarUrl;
+        // If user picked a new local image, upload it first to get a server URL
+        let finalAvatarUrl = avatarUrl;
+        if (avatarUri && avatarUri.startsWith('file://')) {
+          try {
+            finalAvatarUrl = await uploadEventImage(avatarUri);
+          } catch { /* ignore upload error — save other fields */ }
+        }
+        if (finalAvatarUrl && !finalAvatarUrl.startsWith('file://')) {
+          payload.avatarUrl = finalAvatarUrl;
+          payload.avatar_url = finalAvatarUrl;
+        }
         await updateStudentProfile(payload);
       }
       if (profileId) {
