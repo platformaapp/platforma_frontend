@@ -65,13 +65,13 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Контакты и реквизиты</Text>
           {[
-            ['Исполнитель', 'Иванова Анна Сергеевна'],
+            ['Исполнитель', 'Якунин Владислав Александрович'],
             ['Статус', 'Самозанятый (НПД)'],
-            ['ИНН', '123456789012'],
-            ['Email', 'support@yourdomain.com'],
-            ['Телефон', '+7 XXX XXX XX XX'],
-            ['Банк', 'ПАО «Тинькофф Банк»'],
-            ['Расчётный счёт', 'XXXX XXXX XXXX XXXX'],
+            ['ИНН', '344214640369'],
+            ['Email', 'v.yakunin2011@yandex.ru'],
+            ['Телефон', '+7 905 390 12 93'],
+            ['Банк', 'Альфа Банк'],
+            ['Расчётный счёт', '40817810404981038195'],
           ].map(([label, value], i) => (
             <View key={i} style={styles.contactRow}>
               <Text style={styles.contactLabel}>{label}:</Text>
