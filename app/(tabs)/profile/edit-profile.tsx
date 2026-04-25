@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { AuthError } from '@/lib/api/auth-error';
@@ -36,6 +37,7 @@ function pick<T>(obj: T | null | undefined, ...keys: (keyof T)[]): string {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [role, setRole] = useState<'student' | 'tutor' | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
@@ -226,7 +228,7 @@ export default function EditProfileScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <Pressable
             style={styles.backButton}
             onPress={() => {
@@ -398,7 +400,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingTop: 16,
     paddingHorizontal: 16,
   },
   backButton: {

@@ -162,6 +162,17 @@ export default function ProfileByIdScreen() {
       const newRefreshToken = extractRefreshTokenFromResponse(payload) || refreshToken || undefined;
       await saveAuthToken(newToken, nextRole, newRefreshToken);
       setRole(nextRole);
+
+      if (nextRole === 'tutor') {
+        try {
+          const tp = await getTutorProfile();
+          const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
+          if (avatar) setTutorAvatarUrl(avatar);
+          const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
+          if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
+          setHasTutorProfile(true);
+        } catch {}
+      }
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message || 'Не удалось сменить роль');
     } finally {
@@ -211,11 +222,23 @@ export default function ProfileByIdScreen() {
       const refreshToken = extractRefreshTokenFromResponse(data);
       if (token) await saveAuthToken(token, 'tutor', refreshToken);
 
+      // Transfer student avatar to tutor profile view
+      if (userProfile?.avatar_url) setTutorAvatarUrl(userProfile.avatar_url);
+
       setHasTutorProfile(true);
       setRole('tutor');
       setBecomeTutorVisible(false);
       setTutorRegPassword('');
       setTutorRegErrors({});
+
+      // Fetch actual tutor profile to get server-confirmed avatar
+      try {
+        const tp = await getTutorProfile();
+        const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
+        if (avatar) setTutorAvatarUrl(avatar);
+        const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
+        if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
+      } catch {}
     } catch (e: any) {
       setTutorRegErrors({ general: e?.message ?? 'Ошибка соединения' });
     } finally {

@@ -99,7 +99,7 @@ function isAuthError(e: unknown): boolean {
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
-type Tab = 'events' | 'meetings';
+type Tab = 'events' | 'meetings' | 'created';
 
 export default function MyEventsScreen() {
   const router = useRouter();
@@ -108,6 +108,7 @@ export default function MyEventsScreen() {
 
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [createdEvents, setCreatedEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -135,45 +136,51 @@ export default function MyEventsScreen() {
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
       const bookingsUrl = userRole === 'tutor' ? endpoints.tutorBookings : endpoints.studentBookings;
 
-      // Tutor: load their created events from /api/tutor/events
-      // Student: load events they are registered for from /api/events/my
-      const eventsPromise = userRole === 'tutor'
-        ? fetch(endpoints.tutorEvents, { headers })
-            .then(async (res) => {
-              if (!res.ok) throw new Error(`Ошибка загрузки событий (${res.status})`);
-              const data = await res.json();
-              const rawList = data.data ?? data.items ?? data.events ?? data ?? [];
-              const list = Array.isArray(rawList) ? rawList : [];
-              return list.map((row: Record<string, unknown>) => {
-                const start = (row.start_at ?? row.startAt ?? row.datetimeStart ?? row.datetime_start) as string | undefined;
-                const teacherRaw = (row.teacher ?? row.tutor ?? row.mentor) as Record<string, unknown> | undefined;
-                return {
-                  id: String(row.id ?? ''),
-                  title: (row.title as string) ?? '',
-                  type: row.type as string | undefined,
-                  teacher: row.teacher,
-                  student: row.student,
-                  start_at: start,
-                  startAt: start,
-                  price: typeof row.price === 'number' ? row.price : undefined,
-                  status: row.status as string | undefined,
-                  coverUrl: (row.coverUrl ?? row.cover_url) as string | null | undefined,
-                  datetimeStart: start,
-                  mentor: { id: String(teacherRaw?.id ?? ''), name: teacherName(teacherRaw) },
-                } as EventItem;
-              });
-            })
-        : getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 })
-            .then(({ items }) =>
-              items.map((it) => {
-                const start = it.start_at ?? it.startAt;
-                return {
-                  ...it,
-                  datetimeStart: start,
-                  mentor: { id: '', name: teacherName(it.teacher) },
-                } as EventItem;
-              })
-            );
+      // All users: load events they are registered for from /api/events/my
+      const eventsPromise = getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 })
+        .then(({ items }) =>
+          items.map((it) => {
+            const start = it.start_at ?? it.startAt;
+            return {
+              ...it,
+              datetimeStart: start,
+              mentor: { id: '', name: teacherName(it.teacher) },
+            } as EventItem;
+          })
+        )
+        .catch(() => [] as EventItem[]);
+
+      // Tutor: also load events they created from /api/tutor/events (for МОИ СОБЫТИЯ tab)
+      if (userRole === 'tutor') {
+        fetch(endpoints.tutorEvents, { headers })
+          .then(async (res) => {
+            if (!res.ok) return;
+            const data = await res.json();
+            const rawList = data.data ?? data.items ?? data.events ?? data ?? [];
+            const list = Array.isArray(rawList) ? rawList : [];
+            setCreatedEvents(list.map((row: Record<string, unknown>) => {
+              const start = (row.start_at ?? row.startAt ?? row.datetimeStart ?? row.datetime_start) as string | undefined;
+              const teacherRaw = (row.teacher ?? row.tutor ?? row.mentor) as Record<string, unknown> | undefined;
+              return {
+                id: String(row.id ?? ''),
+                title: (row.title as string) ?? '',
+                type: row.type as string | undefined,
+                teacher: row.teacher,
+                student: row.student,
+                start_at: start,
+                startAt: start,
+                price: typeof row.price === 'number' ? row.price : undefined,
+                status: row.status as string | undefined,
+                coverUrl: (row.coverUrl ?? row.cover_url) as string | null | undefined,
+                datetimeStart: start,
+                mentor: { id: String(teacherRaw?.id ?? ''), name: teacherName(teacherRaw) },
+              } as EventItem;
+            }));
+          })
+          .catch(() => {});
+      } else {
+        setCreatedEvents([]);
+      }
 
       const [myEventsRes, bookRes] = await Promise.allSettled([
         eventsPromise,
@@ -397,7 +404,11 @@ export default function MyEventsScreen() {
 
   // ─── Empty state ─────────────────────────────────────────────────────────
 
-  const isEmpty = activeTab === 'events' ? events.length === 0 : bookings.length === 0;
+  const isEmpty = activeTab === 'events'
+    ? events.length === 0
+    : activeTab === 'meetings'
+    ? bookings.length === 0
+    : createdEvents.length === 0;
   return (
     <View style={styles.container}>
       <Text style={[styles.screenTitle, { paddingTop: insets.top + 16 }]}>МОИ ЗАПИСИ</Text>
@@ -419,6 +430,16 @@ export default function MyEventsScreen() {
             ЛИЧНЫЕ ВСТРЕЧИ
           </Text>
         </Pressable>
+        {role === 'tutor' && (
+          <Pressable
+            style={[styles.tabButton, activeTab === 'created' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('created')}
+          >
+            <Text style={[styles.tabText, activeTab === 'created' && styles.tabTextActive]}>
+              МОИ СОБЫТИЯ
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {loading ? (
@@ -435,7 +456,9 @@ export default function MyEventsScreen() {
             <>
               {activeTab === 'events'
                 ? events.map(renderEventCard)
-                : bookings.map(renderBookingCard)}
+                : activeTab === 'meetings'
+                ? bookings.map(renderBookingCard)
+                : createdEvents.map(renderEventCard)}
             </>
           )}
         </ScrollView>

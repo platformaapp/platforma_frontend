@@ -76,7 +76,6 @@ export default function TutorCardScreen() {
 
     const load = async () => {
       try {
-        // Check viewer role — tutors cannot book other tutors
         const [viewerRole, profile, list] = await Promise.all([
           getAuthRole(),
           getUserProfile(),
@@ -200,15 +199,11 @@ export default function TutorCardScreen() {
         </View>
       ) : null}
 
-      {/* Booking button — hidden for tutors */}
-      {!isTutor ? (
+      {/* Booking button — hidden only for own profile */}
+      {!isOwnProfile && (
         <Pressable style={styles.primaryButton} onPress={handleOpenSlots}>
           <Text style={styles.primaryButtonText}>Записаться на встречу</Text>
         </Pressable>
-      ) : (
-        <View style={styles.tutorBlockedRow}>
-          <Text style={styles.tutorBlockedText}>Наставники не могут записываться к другим наставникам</Text>
-        </View>
       )}
 
       {!isOwnProfile && telegramHandle ? (
