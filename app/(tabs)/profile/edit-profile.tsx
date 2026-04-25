@@ -182,16 +182,15 @@ export default function EditProfileScreen() {
         if (fullName.trim()) payload.full_name = fullName.trim();
         if (email.trim()) payload.email = email.trim();
         if (phone.trim()) payload.phone = phone.trim();
-        // If user picked a new local image, upload it first to get a server URL
-        let finalAvatarUrl = avatarUrl;
+        // Only upload + include avatarUrl when user explicitly picked a new local image.
+        // Never send the pre-loaded server URL back — it may be a relative path that the
+        // server rejects with "avatarUrl must be a URL address".
         if (avatarUri && avatarUri.startsWith('file://')) {
           try {
-            finalAvatarUrl = await uploadEventImage(avatarUri);
+            const uploaded = await uploadEventImage(avatarUri);
+            payload.avatarUrl = uploaded;
+            payload.avatar_url = uploaded;
           } catch { /* ignore upload error — save other fields */ }
-        }
-        if (finalAvatarUrl && !finalAvatarUrl.startsWith('file://')) {
-          payload.avatarUrl = finalAvatarUrl;
-          payload.avatar_url = finalAvatarUrl;
         }
         await updateStudentProfile(payload);
       }

@@ -70,10 +70,10 @@ export async function getStudentProfile(): Promise<StudentProfile> {
  * Когда бэкенд добавит эндпоинт — данные будут отправляться туда.
  */
 export async function updateStudentProfile(data: StudentProfileUpdate): Promise<StudentProfile> {
-  // Strip local file URIs and empty strings from avatarUrl before sending to server
+  // Only send avatarUrl if it's a valid HTTP(S) URL — strips empty, relative, file:// values
   const serverData: StudentProfileUpdate = { ...data };
   const rawAvatar = serverData.avatarUrl ?? serverData.avatar_url ?? '';
-  if (!rawAvatar || rawAvatar.startsWith('file://')) {
+  if (!rawAvatar || (!rawAvatar.startsWith('https://') && !rawAvatar.startsWith('http://'))) {
     delete serverData.avatarUrl;
     delete serverData.avatar_url;
   }
