@@ -182,6 +182,7 @@ export default function EventDetailScreen() {
 
   const [isCardModalVisible, setCardModalVisible] = useState(false);
   const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
+  const [isDonePaymentPending, setDonePaymentPending] = useState(false);
   const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
   const [isShareEventVisible, setShareEventVisible] = useState(false);
   const [isShareCopied, setIsShareCopied] = useState(false);
@@ -271,10 +272,13 @@ export default function EventDetailScreen() {
         return;
       }
 
+      // Use the default card; fall back to first card
+      const defaultCard = cards.find((c) => c.isDefault) ?? cards[0];
+
       const res = await fetch(`${endpoints.events}/${event.id}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ payment_method_id: cards[0].id }),
+        body: JSON.stringify({ payment_method_id: defaultCard.id }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -284,6 +288,7 @@ export default function EventDetailScreen() {
           // Already registered — treat as success
           setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
           setCardModalVisible(false);
+          setDonePaymentPending(false);
           setCardModalDoneVisible(true);
           return;
         }
@@ -295,15 +300,25 @@ export default function EventDetailScreen() {
       if (redirectUrl) {
         setCardModalVisible(false);
         await WebBrowser.openBrowserAsync(redirectUrl);
-        // Re-fetch event to get actual payment/registration status
         const active = { value: true };
         await loadEvent(active);
         return;
       }
 
-      // Direct charge succeeded
-      setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
+      // Check actual payment status from server response
+      const payStatus = (data?.userEvent?.payment_status ?? data?.payment_status ?? '').toLowerCase();
+      const isPendingPayment = payStatus === 'pending';
+
+      setEvent((prev) => prev ? {
+        ...prev,
+        isRegistered: true,
+        isPaid: !isPendingPayment,
+        currentUserParticipation: isPendingPayment
+          ? { status: 'pending', paymentStatus: 'pending' }
+          : prev?.currentUserParticipation,
+      } : prev);
       setCardModalVisible(false);
+      setDonePaymentPending(isPendingPayment);
       setCardModalDoneVisible(true);
     } catch (e: any) {
       const rawMessage = e?.message ?? 'Не удалось зарегистрироваться';
@@ -585,14 +600,18 @@ export default function EventDetailScreen() {
         </Pressable>
       </Modal>
 
-      {/* Payment done modal */}
+      {/* Payment done / pending modal */}
       <Modal transparent animationType="fade" visible={isCardModalDoneVisible} onRequestClose={() => setCardModalDoneVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Оплата прошла</Text>
+            <Text style={styles.modalTitle}>
+              {isDonePaymentPending ? 'Оплата в обработке' : 'Оплата прошла'}
+            </Text>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>
-                Чек отправлен вам на почту.{'\n\n'}Возврат возможен не позднее, чем за 24 часа до начала
+                {isDonePaymentPending
+                  ? 'Вы успешно зарегистрированы.\n\nОплата обрабатывается — это может занять несколько минут. Вы получите уведомление, когда платёж будет подтверждён.'
+                  : 'Чек отправлен вам на почту.\n\nВозврат возможен не позднее, чем за 24 часа до начала'}
               </Text>
             </View>
             <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>
