@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Mask, Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { getMyEventsForStudent } from '@/lib/api/student-events';
