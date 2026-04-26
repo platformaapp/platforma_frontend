@@ -92,20 +92,26 @@ async function joinEvent(eventId: string): Promise<string | null> {
 
 function ClockIcon() {
   return (
-    <Svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
-        stroke="#FFFFFF"
-        strokeWidth="1.5"
-      />
-      <Path
-        d="M12 6V12L16 14"
-        stroke="#FFFFFF"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <Svg width="24" height="16" viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <Mask id="path-1-inside-1_4400_4890" fill="white">
+        <Path d="M18 5.59961L24 2V14L18 10.3994V16H0V0H18V5.59961Z" />
+      </Mask>
+      <Path d="M18 5.59961H17V7.3657L18.5145 6.45713L18 5.59961ZM24 2H25V0.233908L23.4855 1.14248L24 2ZM24 14L23.4854 14.8575L25 15.7663V14H24ZM18 10.3994L18.5146 9.54196L17 8.63308V10.3994H18ZM18 16V17H19V16H18ZM0 16H-1V17H0V16ZM0 0V-1H-1V0H0ZM18 0H19V-1H18V0ZM18 5.59961L18.5145 6.45713L24.5145 2.85752L24 2L23.4855 1.14248L17.4855 4.74209L18 5.59961ZM24 2H23V14H24H25V2H24ZM24 14L24.5146 13.1425L18.5146 9.54196L18 10.3994L17.4854 11.2569L23.4854 14.8575L24 14ZM18 10.3994H17V16H18H19V10.3994H18ZM18 16V15H0V16V17H18V16ZM0 16H1V0H0H-1V16H0ZM0 0V1H18V0V-1H0V0ZM18 0H17V5.59961H18H19V0H18Z" fill="#FAFAFA" mask="url(#path-1-inside-1_4400_4890)" />
     </Svg>
+    // <Svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+    //   <Path
+    //     d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+    //     stroke="#FFFFFF"
+    //     strokeWidth="1.5"
+    //   />
+    //   <Path
+    //     d="M12 6V12L16 14"
+    //     stroke="#FFFFFF"
+    //     strokeWidth="1.5"
+    //     strokeLinecap="round"
+    //     strokeLinejoin="round"
+    //   />
+    // </Svg>
   );
 }
 
