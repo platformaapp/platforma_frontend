@@ -10,12 +10,15 @@ import { TabIcon } from '@/components/tab-icons';
 export default function TabLayout() {
   return (
     <Tabs
-      tabBar={(props) => (
-        <View>
-          <EventBanner />
-          <BottomTabBar {...props} />
-        </View>
-      )}
+      tabBar={(props) => {
+        const currentRoute = props.state.routes[props.state.index]?.name;
+        return (
+          <View>
+            {currentRoute !== 'myevents' && <EventBanner />}
+            <BottomTabBar {...props} />
+          </View>
+        );
+      }}
       screenOptions={{
         headerShown: false,
         animation: 'fade',
