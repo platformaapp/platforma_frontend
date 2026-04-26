@@ -9,9 +9,6 @@ import { getMyEventsForStudent } from '@/lib/api/student-events';
 import { getAuthToken } from '@/lib/auth';
 
 const MEETING_DURATION_MS = 90 * 60 * 1000;
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-const MONTHS_SHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
 
 function pluralizeRu(n: number, one: string, few: string, many: string): string {
   const abs = Math.abs(n) % 100;
@@ -25,15 +22,6 @@ function pluralizeRu(n: number, one: string, few: string, many: string): string 
 function formatCountdown(targetIso: string): string {
   const diff = new Date(targetIso).getTime() - Date.now();
   if (diff <= 0) return '';
-  if (diff > WEEK_MS) {
-    // Show date for far events
-    const d = new Date(targetIso);
-    const day = d.getDate();
-    const month = MONTHS_SHORT[d.getMonth()];
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${day} ${month} в ${hh}:${mm}`;
-  }
   const totalSec = Math.floor(diff / 1000);
   const days = Math.floor(totalSec / 86400);
   const hours = Math.floor((totalSec % 86400) / 3600);
@@ -41,7 +29,7 @@ function formatCountdown(targetIso: string): string {
   const parts: string[] = [];
   if (days > 0) parts.push(`${days} ${pluralizeRu(days, 'день', 'дня', 'дней')}`);
   if (hours > 0) parts.push(`${hours} ${pluralizeRu(hours, 'час', 'часа', 'часов')}`);
-  if (minutes > 0 || parts.length === 0) parts.push(`${minutes} ${pluralizeRu(minutes, 'минуту', 'минуты', 'минут')}`);
+  parts.push(`${minutes} ${pluralizeRu(minutes, 'минуту', 'минуты', 'минут')}`);
   if (parts.length === 1) return parts[0];
   const last = parts.pop()!;
   return `${parts.join(', ')} и ${last}`;
@@ -104,13 +92,15 @@ function ClockIcon() {
 export function EventBanner() {
   const router = useRouter();
   const [banner, setBanner] = useState<BannerState>({ kind: 'none' });
+  const [isAuthed, setIsAuthed] = useState(false);
   const [joining, setJoining] = useState(false);
   const eventsRef = useRef<EventEntry[]>([]);
 
   const fetchEvents = async () => {
     try {
       const token = await getAuthToken();
-      if (!token) return;
+      if (!token) { setIsAuthed(false); return; }
+      setIsAuthed(true);
       const { items } = await getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 });
       eventsRef.current = items.map((it) => ({
         id: it.id,
@@ -151,7 +141,7 @@ export function EventBanner() {
     }
   };
 
-  if (banner.kind === 'none') return null;
+  if (!isAuthed || banner.kind === 'none') return null;
 
   if (banner.kind === 'ongoing') {
     return (

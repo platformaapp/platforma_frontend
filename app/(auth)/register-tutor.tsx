@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import React, { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,6 +16,7 @@ const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp
 
 export default function RegisterTutorScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneRaw, setPhoneRaw] = useState('');
@@ -145,7 +147,7 @@ export default function RegisterTutorScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + 60 }]} keyboardShouldPersistTaps="handled">
         <ThemedView>
       <Pressable style={styles.close} onPress={() => router.back()}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -327,7 +329,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   title: {
-    marginTop: 48,
+    marginTop: 0,
     marginBottom: 24,
     fontFamily: "Inter-Regular",
     fontSize: 28,
@@ -371,7 +373,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    marginTop: 48,
+    marginTop: 0,
   },
   btn: {
     borderRadius: 6,
@@ -403,11 +405,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   close: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    zIndex: 1,
+    alignSelf: 'flex-end',
     padding: 8,
+    marginBottom: 8,
   },
 });
 
