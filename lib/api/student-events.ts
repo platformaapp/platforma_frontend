@@ -5,6 +5,14 @@
 
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
+import { API_BASE } from '@/constants/env';
+
+function resolveUrl(url: unknown): string | null {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('blob:')) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
 
 export type MyEventsFilter = 'all' | 'events' | 'personal';
 export type MyEventsTime = 'all' | 'upcoming' | 'past';
@@ -68,7 +76,10 @@ export function normalizeMyEventItem(raw: Record<string, unknown>): MyEventItem 
     price: typeof raw.price === 'number' ? raw.price : undefined,
     time_left: (raw.time_left ?? raw.timeLeft) as string | undefined,
     status: raw.status as string | undefined,
-    coverUrl: (raw.coverUrl ?? raw.cover_url) as string | null | undefined,
+    coverUrl: resolveUrl(
+      raw.coverUrl ?? raw.cover_url ?? raw.imageUrl ?? raw.image_url ??
+      raw.cover ?? raw.thumbnail ?? raw.photo ?? raw.photoUrl ?? raw.photo_url
+    ),
   };
 }
 

@@ -295,17 +295,16 @@ export default function EventDetailScreen() {
     }
   };
 
-  /** Poll payment status every 4s (up to 60s) using the dedicated status endpoint */
+  /** Poll payment status every 5s (up to 2 min). On timeout shows manual-refresh badge. */
   const pollUntilPaid = async (eventId: string) => {
     setIsPollingPayment(true);
-    const INTERVAL = 4000;
-    const MAX = 15;
+    const INTERVAL = 5000;
+    const MAX = 24; // 24 × 5s = 120s
     try {
       for (let i = 0; i < MAX; i++) {
         await new Promise((r) => setTimeout(r, INTERVAL));
         const status = await fetchPaymentStatus(eventId);
         if (status === 'paid') {
-          // Reload event to get updated canJoin / isPaid from server
           const active = { value: true };
           await loadEvent(active);
           return;
@@ -321,6 +320,8 @@ export default function EventDetailScreen() {
           return;
         }
       }
+      // Polling timed out — payment still pending on backend side.
+      // Keep isPaid=false so the badge stays visible with a manual refresh button.
     } finally {
       setIsPollingPayment(false);
     }
