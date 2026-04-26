@@ -44,4 +44,7 @@ export const endpoints = {
 
   // Student → публичные слоты конкретного тьютора
   studentTutorSlotsBase: `${API_BASE}/api/student/tutors`,
+
+  // Payment status sync with YooKassa (per event)
+  studentPaymentEventStatusBase: `${API_BASE}/api/student/payments/event`,
 };

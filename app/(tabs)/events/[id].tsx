@@ -171,7 +171,7 @@ function formatPrice(price?: number): string {
 
 export default function EventDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, payment } = useLocalSearchParams<{ id: string; payment?: string }>();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
@@ -243,33 +243,83 @@ export default function EventDetailScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // After 3DS redirect back to app with ?payment=callback — sync status immediately
+  useEffect(() => {
+    if (!id || payment !== 'callback') return;
+    const run = async () => {
+      setIsPollingPayment(true);
+      // First immediate check
+      const status = await fetchPaymentStatus(id);
+      if (status === 'paid') {
+        const active = { value: true };
+        await loadEvent(active);
+        setIsPollingPayment(false);
+        return;
+      }
+      if (status === 'failed') {
+        setIsPollingPayment(false);
+        setPaymentFailedModalVisible(true);
+        return;
+      }
+      // Still pending — continue polling
+      pollUntilPaid(id);
+    };
+    run();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, payment]);
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /** Poll event until payment_status becomes 'paid' or attempts exhausted */
+  /**
+   * Call GET /api/student/payments/event/:id/status — бэкенд синхронизирует статус
+   * с YooKassa и возвращает { success, paymentStatus, synced }.
+   * Returns 'paid' | 'pending' | 'failed' | null on error.
+   */
+  const fetchPaymentStatus = async (eventId: string): Promise<'paid' | 'pending' | 'failed' | null> => {
+    const token = await getAuthToken();
+    if (!token) return null;
+    try {
+      const res = await fetch(
+        `${endpoints.studentPaymentEventStatusBase}/${eventId}/status`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data?.success) return null;
+      const s = (data.paymentStatus as string)?.toLowerCase();
+      if (s === 'paid') return 'paid';
+      if (s === 'failed') return 'failed';
+      return 'pending';
+    } catch {
+      return null;
+    }
+  };
+
+  /** Poll payment status every 4s (up to 60s) using the dedicated status endpoint */
   const pollUntilPaid = async (eventId: string) => {
     setIsPollingPayment(true);
     const INTERVAL = 4000;
-    const MAX = 15; // 15 × 4s = 60 seconds max
+    const MAX = 15;
     try {
-      const token = await getAuthToken();
-      if (!token) return;
       for (let i = 0; i < MAX; i++) {
         await new Promise((r) => setTimeout(r, INTERVAL));
-        try {
-          const res = await fetch(`${endpoints.events}/${eventId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!res.ok) break;
-          const raw = await res.json();
-          const ev = normalizeEvent(raw as Record<string, unknown>);
-          if (ev.isPaid) {
-            setEvent(ev);
-            setIsPollingPayment(false);
-            return;
-          }
-          // Update state even if still pending (keep canJoin in sync)
-          setEvent(ev);
-        } catch { break; }
+        const status = await fetchPaymentStatus(eventId);
+        if (status === 'paid') {
+          // Reload event to get updated canJoin / isPaid from server
+          const active = { value: true };
+          await loadEvent(active);
+          return;
+        }
+        if (status === 'failed') {
+          setEvent((prev) => prev ? {
+            ...prev,
+            isPaid: false,
+            currentUserParticipation: { status: 'failed', paymentStatus: 'failed' },
+          } : prev);
+          setIsPollingPayment(false);
+          setPaymentFailedModalVisible(true);
+          return;
+        }
       }
     } finally {
       setIsPollingPayment(false);
