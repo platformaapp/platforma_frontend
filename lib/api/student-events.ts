@@ -10,7 +10,7 @@ export type MyEventsFilter = 'all' | 'events' | 'personal';
 export type MyEventsTime = 'all' | 'upcoming' | 'past';
 
 export interface MyEventsQuery {
-  role?: 'student';
+  role?: 'student' | 'tutor';
   filter?: MyEventsFilter;
   time?: MyEventsTime;
   page?: number;
