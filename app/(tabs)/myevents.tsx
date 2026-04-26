@@ -286,28 +286,33 @@ export default function MyEventsScreen() {
 
   // ─── Render event card ────────────────────────────────────────────────────
 
-  const renderEventCard = (item: EventItem) => (
-    <View key={item.id} style={styles.card}>
-      <Pressable style={styles.cardTop} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-        {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={styles.cardImage} />
-        ) : (
-          <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
-        )}
-        <View style={styles.cardTitleBox}>
-          <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
-          {item.status ? <Text style={styles.eventStatus}>{translateEventStatus(item.status)}</Text> : null}
-        </View>
-      </Pressable>
-      <View style={styles.cardBottom}>
-        <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
-        <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
-        <Pressable style={styles.cardMenu} onPress={() => setMenuEvent(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.cardMenuText}>•••</Text>
+  const renderEventCard = (item: EventItem) => {
+    const isPast = !!item.datetimeStart && new Date(item.datetimeStart).getTime() < Date.now();
+    return (
+      <View key={item.id} style={styles.card}>
+        <Pressable style={styles.cardTop} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+          {item.coverUrl ? (
+            <Image source={{ uri: item.coverUrl }} style={styles.cardImage} />
+          ) : (
+            <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
+          )}
+          <View style={styles.cardTitleBox}>
+            <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+            {item.status ? <Text style={styles.eventStatus}>{translateEventStatus(item.status)}</Text> : null}
+          </View>
         </Pressable>
+        <View style={styles.cardBottom}>
+          <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+          <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
+          {!isPast && (
+            <Pressable style={styles.cardMenu} onPress={() => setMenuEvent(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.cardMenuText}>•••</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   // ─── Render booking card ──────────────────────────────────────────────────
 
@@ -320,6 +325,9 @@ export default function MyEventsScreen() {
       ? (item.student?.id)
       : (item.tutor?.id ?? item.tutorId);
     const dateStr = formatBookingDate(item.date, item.time);
+    const isPast = item.date
+      ? new Date(`${item.date}T${item.time ?? '23:59'}:00`).getTime() < Date.now()
+      : false;
     return (
       <View key={item.id} style={styles.card}>
         <Pressable
@@ -339,9 +347,11 @@ export default function MyEventsScreen() {
         <View style={styles.cardBottom}>
           <Text style={styles.cardAuthor} numberOfLines={1}>{personName}</Text>
           <Text style={styles.cardDate}>{dateStr}</Text>
-          <Pressable style={styles.cardMenu} onPress={() => setMenuBooking(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.cardMenuText}>•••</Text>
-          </Pressable>
+          {!isPast && (
+            <Pressable style={styles.cardMenu} onPress={() => setMenuBooking(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.cardMenuText}>•••</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     );
