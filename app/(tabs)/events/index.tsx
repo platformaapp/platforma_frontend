@@ -112,7 +112,14 @@ export default function EventsScreen() {
         }
       } catch { /* ignore — show all events if fetch fails */ }
 
-      setEvents(normalized.filter((item) => !registeredIds.has(item.id)));
+      const now = Date.now();
+      setEvents(
+        normalized.filter((item) => {
+          if (registeredIds.has(item.id)) return false;
+          if (!item.datetimeStart) return true;
+          return new Date(item.datetimeStart).getTime() > now;
+        })
+      );
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить события');
     } finally {

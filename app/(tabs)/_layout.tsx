@@ -1,5 +1,5 @@
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -8,6 +8,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { TabIcon } from '@/components/tab-icons';
 
 export default function TabLayout() {
+  const router = useRouter();
   return (
     <Tabs
       tabBar={(props) => {
@@ -38,52 +39,71 @@ export default function TabLayout() {
         },
       }}>
         <Tabs.Screen
-        name="events"
-        options={{
-          title: '',
-          tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
-        }}
-      />
-      
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: '',
-          tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="triangle" />,
-        }}
-      />
-
-<Tabs.Screen
-        name="myevents"
-        options={{
-          title: '',
-          tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          href: null, // hidden from tab bar, kept for backward compat
-        }}
-      />
-      
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: '',
-          tabBarButton: HapticTab,
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
-          listeners: ({ navigation }) => ({
+          name="events"
+          options={{
+            title: '',
+            tabBarButton: HapticTab,
+            tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="square" />,
+          }}
+          listeners={{
             tabPress: (e) => {
               e.preventDefault();
-              navigation.navigate('profile', { screen: 'index' });
+              router.replace('/events' as any);
             },
-          }),
-        }}
-      />
+          }}
+        />
+
+        <Tabs.Screen
+          name="explore"
+          options={{
+            title: '',
+            tabBarButton: HapticTab,
+            tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="triangle" />,
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.replace('/explore' as any);
+            },
+          }}
+        />
+
+        <Tabs.Screen
+          name="myevents"
+          options={{
+            title: '',
+            tabBarButton: HapticTab,
+            tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="circle" />,
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.replace('/myevents' as any);
+            },
+          }}
+        />
+
+        <Tabs.Screen
+          name="index"
+          options={{
+            href: null,
+          }}
+        />
+
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: '',
+            tabBarButton: HapticTab,
+            tabBarIcon: ({ focused }) => <TabIcon focused={focused} type="home" />,
+          }}
+          listeners={{
+            tabPress: (e) => {
+              e.preventDefault();
+              router.replace('/profile' as any);
+            },
+          }}
+        />
     </Tabs>
   );
 }
