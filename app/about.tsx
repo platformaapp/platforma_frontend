@@ -16,18 +16,18 @@ export default function AboutScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.mainTitle}>Платформа для записи на лекции, выставки и творческие занятия</Text>
+        <Text style={styles.mainTitle}>Платформа для онлайн-лекций, творческих занятий и встреч с наставниками.</Text>
 
         {/* 1. First screen */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Лекции, выставки и творческие события в одном месте</Text>
+          <Text style={styles.sectionTitle}>Лекции, вебинары и мастер-классы в одном месте.</Text>
           <Text style={styles.subtitle}>Бронируйте и оплачивайте мероприятия онлайн</Text>
         </View>
 
         {/* 2. How it works */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Как это работает</Text>
-          {['Вы выбираете событие', 'Бронируете участие', 'Оплачиваете онлайн', 'Посещаете мероприятие'].map((step, i) => (
+          {['Вы выбираете событие', 'Бронируете участие', 'Оплачиваете онлайн', 'Подключаетесь к мероприятию'].map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <View style={styles.stepNum}><Text style={styles.stepNumText}>{i + 1}</Text></View>
               <Text style={styles.stepText}>{step}</Text>
@@ -38,7 +38,7 @@ export default function AboutScreen() {
         {/* 3. Formats */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Форматы мероприятий</Text>
-          {['Лекции художников', 'Выставки', 'Творческие мастер-классы', 'Арт-встречи', 'Онлайн-события'].map((f, i) => (
+          {['Лекции', 'Паблик-толки', 'Творческие мастер-классы', 'Книжные клубы', 'Подкасты'].map((f, i) => (
             <Text key={i} style={styles.bulletItem}>— {f}</Text>
           ))}
         </View>
@@ -46,7 +46,7 @@ export default function AboutScreen() {
         {/* 4. Event cards */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Карточки событий</Text>
-          <Text style={styles.body}>Каждое событие содержит: название, описание, дату и время, формат (онлайн / офлайн) и цену.</Text>
+          <Text style={styles.body}>Каждое событие содержит: название, описание, дату и время, формат (лекция, мастер-класс) и цену.</Text>
           <View style={styles.exampleCard}>
             <Text style={styles.exampleTitle}>Лекция: Современное искусство</Text>
             <Text style={styles.exampleMeta}>12 мая, онлайн</Text>
