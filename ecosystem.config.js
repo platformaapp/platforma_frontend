@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'expo-dev',
       script: 'node_modules/.bin/expo',
-      args: 'start --host ЗАМЕНИ_НА_IP --port 8081 --non-interactive',
+      args: 'start --host 194.67.88.237 --port 8081 --non-interactive',
       cwd: '/home/user/platforma_frontend',
       interpreter: 'none',
       env: {
