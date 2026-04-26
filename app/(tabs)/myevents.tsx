@@ -147,38 +147,14 @@ export default function MyEventsScreen() {
       setRole(userRole);
       const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
-      // Events: tutors see their created events; students see registered events
-      const eventsPromise = userRole === 'tutor'
-        ? fetch(endpoints.tutorEvents, { headers }).then(async (res) => {
-            if (!res.ok) return [] as EventItem[];
-            const data = await res.json();
-            const rawList = data.data ?? data.items ?? data.events ?? data ?? [];
-            return (Array.isArray(rawList) ? rawList : []).map((row: Record<string, unknown>) => {
-              const start = (row.start_at ?? row.startAt ?? row.datetimeStart ?? row.datetime_start) as string | undefined;
-              const teacherRaw = (row.teacher ?? row.tutor ?? row.mentor) as Record<string, unknown> | undefined;
-              return {
-                id: String(row.id ?? ''),
-                title: (row.title as string) ?? '',
-                type: row.type as string | undefined,
-                teacher: row.teacher,
-                student: row.student,
-                start_at: start,
-                startAt: start,
-                price: typeof row.price === 'number' ? row.price : undefined,
-                status: row.status as string | undefined,
-                coverUrl: (row.coverUrl ?? row.cover_url) as string | null | undefined,
-                datetimeStart: start,
-                mentor: { id: String(teacherRaw?.id ?? ''), name: teacherName(teacherRaw) },
-              } as EventItem;
-            });
-          }).catch(() => [] as EventItem[])
-        : getMyEventsForStudent({ role: 'student', filter: 'all', time: 'all', page: 1, per_page: 50 })
-            .then(({ items }) => items.map((it) => ({
-              ...it,
-              datetimeStart: it.start_at ?? it.startAt,
-              mentor: { id: '', name: teacherName(it.teacher) },
-            } as EventItem)))
-            .catch(() => [] as EventItem[]);
+      // Events: use /api/events/my with matching role for both tutor and student
+      const eventsPromise = getMyEventsForStudent({ role: userRole as 'student' | 'tutor', filter: 'all', time: 'all', page: 1, per_page: 50 })
+        .then(({ items }) => items.map((it) => ({
+          ...it,
+          datetimeStart: it.start_at ?? it.startAt,
+          mentor: { id: '', name: teacherName(it.teacher) },
+        } as EventItem)))
+        .catch(() => [] as EventItem[]);
 
       const bookingsUrl = userRole === 'tutor' ? endpoints.tutorBookings : endpoints.studentBookings;
 
@@ -237,21 +213,20 @@ export default function MyEventsScreen() {
       const headers = { Authorization: `Bearer ${token}` };
 
       let res: Response;
-      if (role === 'tutor') {
-        res = await fetch(`${endpoints.tutorEvents}/${eventId}`, { method: 'DELETE', headers });
-      } else {
-        const attempts = [
+      const attempts = role === 'tutor' ? [
+        () => fetch(`${endpoints.events}/${eventId}`, { method: 'DELETE', headers }),
+        () => fetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST', headers }),
+      ] : [
           () => fetch(`${endpoints.events}/${eventId}/registration`, { method: 'DELETE', headers }),
           () => fetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST', headers }),
           () => fetch(`${endpoints.studentBookings}/${eventId}`, { method: 'DELETE', headers }),
           () => fetch(`${endpoints.events}/${eventId}/unregister`, { method: 'POST', headers }),
         ];
-        res = await attempts[0]();
-        if (res.status === 404 || res.status === 405) {
-          for (const attempt of attempts.slice(1)) {
-            res = await attempt();
-            if (res.status !== 404 && res.status !== 405) break;
-          }
+      res = await attempts[0]();
+      if (res.status === 404 || res.status === 405) {
+        for (const attempt of attempts.slice(1)) {
+          res = await attempt();
+          if (res.status !== 404 && res.status !== 405) break;
         }
       }
 
