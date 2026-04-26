@@ -116,7 +116,7 @@ export default function TutorCardScreen() {
     return () => { active = false; };
   }, [id]);
 
-  const imageSource = avatarUrl ? { uri: avatarUrl } : PLACEHOLDER_AVATAR;
+  const imageSource = avatarUrl && !avatarUrl.startsWith('blob:') ? { uri: avatarUrl } : PLACEHOLDER_AVATAR;
 
   const handleOpenSlots = async () => {
     const token = await getAuthToken();

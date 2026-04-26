@@ -86,7 +86,7 @@ export default function EditProfileScreen() {
             setShortBio(sb);
             const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
             setAvatarUrl(url);
-            if (url && !url.startsWith('file://')) setAvatarUri(url);
+            if (url && !url.startsWith('file://') && !url.startsWith('blob:')) setAvatarUri(url);
             const rate = (p as Record<string, unknown>).hourlyRate ?? (p as Record<string, unknown>).hourly_rate ?? (p as Record<string, unknown>).pricePerHour;
             if (typeof rate === 'number' && rate > 0) setHourlyRate(String(rate));
             const gm = pick(p, 'groupMeetings', 'group_meetings');
@@ -110,7 +110,7 @@ export default function EditProfileScreen() {
           const url = loginProfile.avatar_url ?? '';
           if (url) {
             setAvatarUrl(url);
-            if (!url.startsWith('file://')) setAvatarUri(url);
+            if (!url.startsWith('file://') && !url.startsWith('blob:')) setAvatarUri(url);
           }
         }
         try {
@@ -122,7 +122,7 @@ export default function EditProfileScreen() {
             const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
             if (url) {
               setAvatarUrl(url);
-              if (!url.startsWith('file://')) setAvatarUri(url);
+              if (!url.startsWith('file://') && !url.startsWith('blob:')) setAvatarUri(url);
             }
           }
         } catch {
@@ -366,7 +366,7 @@ export default function EditProfileScreen() {
           >
             {avatarUri ? (
               <View style={styles.uploadWithPhoto}>
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                <Image source={avatarUri && !avatarUri.startsWith('blob:') ? { uri: avatarUri } : require('@/assets/images/avatar.png')} style={styles.avatar} />
                 <View style={styles.replacePhotoContainer}>
                   <Text style={styles.replacePhotoText}>Заменить фото</Text>
                 </View>

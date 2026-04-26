@@ -90,7 +90,7 @@ export default function MentorsScreen() {
           >
             <View style={styles.cardHeader}>
               <Image
-                source={tutor.avatarUrl ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
+                source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
                 style={styles.avatar}
               />
               <View style={styles.headerText}>
