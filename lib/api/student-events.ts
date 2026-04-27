@@ -64,21 +64,27 @@ export function teacherName(teacher: unknown): string {
 }
 
 export function normalizeMyEventItem(raw: Record<string, unknown>): MyEventItem {
-  const start = (raw.start_at ?? raw.startAt) as string | undefined;
+  // Items from /api/events/my may have event data either flat or nested inside `event`
+  const nested = (raw.event ?? raw.eventData) as Record<string, unknown> | undefined;
+  // Merge: nested fields are the base, top-level fields override
+  const r: Record<string, unknown> = nested ? { ...nested, ...raw } : raw;
+
+  const start = (r.start_at ?? r.startAt ?? r.datetimeStart ?? r.datetime_start) as string | undefined;
   return {
-    id: String(raw.id ?? ''),
-    title: (raw.title as string) ?? '',
-    type: raw.type as string | undefined,
-    teacher: raw.teacher,
-    student: raw.student,
+    id: String(r.id ?? raw.event_id ?? nested?.id ?? ''),
+    title: (r.title as string) ?? (nested?.title as string) ?? '',
+    type: r.type as string | undefined,
+    teacher: r.teacher ?? r.mentor ?? r.tutor ?? nested?.teacher ?? nested?.mentor,
+    student: r.student,
     start_at: start,
     startAt: start,
-    price: typeof raw.price === 'number' ? raw.price : undefined,
-    time_left: (raw.time_left ?? raw.timeLeft) as string | undefined,
-    status: raw.status as string | undefined,
+    price: typeof r.price === 'number' ? r.price : undefined,
+    time_left: (r.time_left ?? r.timeLeft) as string | undefined,
+    status: r.status as string | undefined,
     coverUrl: resolveUrl(
-      raw.coverUrl ?? raw.cover_url ?? raw.imageUrl ?? raw.image_url ??
-      raw.cover ?? raw.thumbnail ?? raw.photo ?? raw.photoUrl ?? raw.photo_url
+      r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ??
+      r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url ??
+      nested?.coverUrl ?? nested?.cover_url ?? nested?.imageUrl ?? nested?.image_url
     ),
   };
 }
@@ -117,7 +123,12 @@ export async function getMyEventsForStudent(
   }
 
   const root = payload as Record<string, unknown>;
-  const rawItems = root.data ?? root.items ?? [];
+  // Handle: array | { items } | { data: [] } | { data: { items: [] } }
+  let rawItems: unknown = root.data ?? root.items ?? [];
+  if (!Array.isArray(rawItems) && rawItems && typeof rawItems === 'object') {
+    const inner = rawItems as Record<string, unknown>;
+    rawItems = inner.items ?? inner.data ?? [];
+  }
   const list = Array.isArray(rawItems) ? rawItems : [];
   const items = list.map((row) =>
     normalizeMyEventItem(typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {})
