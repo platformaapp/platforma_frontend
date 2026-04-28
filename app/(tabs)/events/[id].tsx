@@ -249,7 +249,7 @@ export default function EventDetailScreen() {
     const run = async () => {
       setIsPollingPayment(true);
       // First immediate check
-      const status = await fetchPaymentStatus(id);
+      const { status } = await fetchPaymentStatus(id);
       if (status === 'paid') {
         const active = { value: true };
         await loadEvent(active);
@@ -271,31 +271,32 @@ export default function EventDetailScreen() {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   /**
-   * Call GET /api/student/payments/event/:id/status — бэкенд синхронизирует статус
-   * с YooKassa и возвращает { success, paymentStatus, synced }.
-   * Returns 'paid' | 'pending' | 'failed' | null on error.
+   * Call GET /api/student/payments/event/:id/status
+   * Returns { status, confirmationUrl } where status is 'paid' | 'pending' | 'failed' | null
    */
-  const fetchPaymentStatus = async (eventId: string): Promise<'paid' | 'pending' | 'failed' | null> => {
+  const fetchPaymentStatus = async (eventId: string): Promise<{ status: 'paid' | 'pending' | 'failed' | null; confirmationUrl?: string }> => {
     const token = await getAuthToken();
-    if (!token) return null;
+    if (!token) return { status: null };
     try {
       const res = await fetch(
         `${endpoints.studentPaymentEventStatusBase}/${eventId}/status`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      if (!res.ok) return null;
+      if (!res.ok) return { status: null };
       const data = await res.json();
-      if (!data?.success) return null;
+      if (!data?.success) return { status: null };
       const s = (data.paymentStatus as string)?.toLowerCase();
-      if (s === 'paid') return 'paid';
-      if (s === 'failed') return 'failed';
-      return 'pending';
+      const confirmationUrl: string | undefined =
+        data.confirmationUrl ?? data.confirmation_url ?? data.redirect_url ?? undefined;
+      if (s === 'paid') return { status: 'paid' };
+      if (s === 'failed') return { status: 'failed' };
+      return { status: 'pending', confirmationUrl };
     } catch {
-      return null;
+      return { status: null };
     }
   };
 
-  /** Poll payment status every 5s (up to 2 min). On timeout shows manual-refresh badge. */
+  /** Poll payment status every 5s (up to 2 min). Opens 3DS browser if confirmationUrl appears. */
   const pollUntilPaid = async (eventId: string) => {
     setIsPollingPayment(true);
     const INTERVAL = 5000;
@@ -303,7 +304,7 @@ export default function EventDetailScreen() {
     try {
       for (let i = 0; i < MAX; i++) {
         await new Promise((r) => setTimeout(r, INTERVAL));
-        const status = await fetchPaymentStatus(eventId);
+        const { status, confirmationUrl } = await fetchPaymentStatus(eventId);
         if (status === 'paid') {
           const active = { value: true };
           await loadEvent(active);
@@ -319,9 +320,31 @@ export default function EventDetailScreen() {
           setPaymentFailedModalVisible(true);
           return;
         }
+        // 3DS required: open confirmation page, then re-check status immediately
+        if (confirmationUrl) {
+          setIsPollingPayment(false);
+          await WebBrowser.openBrowserAsync(confirmationUrl);
+          setIsPollingPayment(true);
+          const { status: afterStatus } = await fetchPaymentStatus(eventId);
+          if (afterStatus === 'paid') {
+            const active = { value: true };
+            await loadEvent(active);
+            return;
+          }
+          if (afterStatus === 'failed') {
+            setEvent((prev) => prev ? {
+              ...prev,
+              isPaid: false,
+              currentUserParticipation: { status: 'failed', paymentStatus: 'failed' },
+            } : prev);
+            setIsPollingPayment(false);
+            setPaymentFailedModalVisible(true);
+            return;
+          }
+          // Still pending after 3DS — continue polling
+        }
       }
       // Polling timed out — payment still pending on backend side.
-      // Keep isPaid=false so the badge stays visible with a manual refresh button.
     } finally {
       setIsPollingPayment(false);
     }
