@@ -195,6 +195,8 @@ export default function EventDetailScreen() {
   const [payError, setPayError] = useState('');
   const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [joinErrorMessage, setJoinErrorMessage] = useState('');
+  const [isJoinErrorVisible, setJoinErrorVisible] = useState(false);
 
   // Kept in sync with module-level _pendingYookassaPaymentId
   const yookassaPaymentIdRef = React.useRef<string | null>(_pendingYookassaPaymentId);
@@ -497,6 +499,12 @@ export default function EventDetailScreen() {
       }
       if (res.status === 403) {
         setJoinBlockedVisible(true);
+        return;
+      }
+      if (res.status === 404) {
+        const errData = await res.json().catch(() => ({}));
+        setJoinErrorMessage(errData?.message ?? 'Видеокомната не найдена. Попробуйте позже или обратитесь к организатору.');
+        setJoinErrorVisible(true);
         return;
       }
       // Fallback: use video_room.url if available
@@ -833,6 +841,21 @@ export default function EventDetailScreen() {
               onPress={() => setJoinBlockedVisible(false)}
             >
               <Text style={styles.modalSecondaryButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Join error (e.g. video room not found) modal */}
+      <Modal transparent animationType="fade" visible={isJoinErrorVisible} onRequestClose={() => setJoinErrorVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setJoinErrorVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Ошибка</Text>
+            <View style={styles.modalEventCard}>
+              <Text style={styles.modalEventTitle}>{joinErrorMessage}</Text>
+            </View>
+            <Pressable style={styles.modalPayButton} onPress={() => setJoinErrorVisible(false)}>
+              <Text style={styles.modalPayButtonText}>Закрыть</Text>
             </Pressable>
           </Pressable>
         </Pressable>
