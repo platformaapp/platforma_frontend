@@ -559,8 +559,8 @@ export default function EventDetailScreen() {
     nowMs >= eventStartMs - JOIN_EARLY_MS &&
     nowMs <= eventStartMs + MEETING_DURATION_MS;
   const canJoinEffective =
-    event.canJoin ||
-    (event.isRegistered && event.isPaid && isEventHappening);
+    event.isRegistered &&
+    (event.canJoin || (event.isPaid && isEventHappening));
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
