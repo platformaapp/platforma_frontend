@@ -93,14 +93,18 @@ export default function EventsScreen() {
         } : undefined,
         status: (r.status as string) ?? undefined,
       }));
-      // Fetch user's own registrations (requires auth) to exclude them from the feed
+      // Fetch user data: registered events + profile ID (to filter own created events)
       const registeredIds = new Set<string>();
+      let currentUserId: string | null = null;
       try {
         const token = await getAuthToken();
         if (token) {
-          const myRes = await fetch(endpoints.eventsMy, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const [myRes, { getUserProfile }] = await Promise.all([
+            fetch(`${endpoints.eventsMy}?role=student&filter=all&time=all&page=1&per_page=50`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            import('@/lib/auth'),
+          ]);
           if (myRes.ok) {
             const myData = await myRes.json();
             const myList = parseFeedItems(myData) as Record<string, unknown>[];
@@ -109,6 +113,8 @@ export default function EventsScreen() {
               if (eid) registeredIds.add(eid);
             });
           }
+          const profile = await getUserProfile().catch(() => null);
+          currentUserId = profile?.id ?? null;
         }
       } catch { /* ignore — show all events if fetch fails */ }
 
@@ -116,6 +122,7 @@ export default function EventsScreen() {
       setEvents(
         normalized.filter((item) => {
           if (registeredIds.has(item.id)) return false;
+          if (currentUserId && item.mentor?.id && item.mentor.id === currentUserId) return false;
           if (!item.datetimeStart) return true;
           return new Date(item.datetimeStart).getTime() > now;
         })
