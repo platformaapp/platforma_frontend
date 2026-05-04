@@ -27,16 +27,16 @@ export default function CheckEmailScreen() {
             <ThemedText type="title" style={styles.title}>А ПРОВЕРЬТЕ ПОЧТУ!</ThemedText>
 
             <ThemedText style={styles.description}>
-              Ссылка на восстановление пароля отправлена на вашу почту
+              Ссылку на восстановление пароля отправили на почту
             </ThemedText>
-          </View>
 
-          <Pressable
-            style={styles.bottomLink}
-            onPress={() => router.push('/forgot-password')}
-          >
-            <ThemedText style={styles.bottomLinkText}>Ссылка почему-то не пришла</ThemedText>
-          </Pressable>
+            <Pressable
+              style={styles.bottomLink}
+              onPress={() => router.push('/forgot-password')}
+            >
+              <ThemedText style={styles.bottomLinkText}>Ссылка почему-то не пришла</ThemedText>
+            </Pressable>
+          </View>
         </ThemedView>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -76,9 +76,8 @@ const styles = StyleSheet.create({
     color: '#181818',
   },
   bottomLink: {
-    marginTop: 'auto',
-    paddingVertical: 24,
-    alignItems: 'center',
+    marginTop: 24,
+    alignItems: 'flex-start',
   },
   bottomLinkText: {
     fontFamily: 'Inter-Regular',

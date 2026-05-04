@@ -31,17 +31,12 @@ export function CookieBanner() {
 
 const styles = StyleSheet.create({
   bar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#181818',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    zIndex: 9999,
   },
   text: {
     flex: 1,

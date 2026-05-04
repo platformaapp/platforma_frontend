@@ -3,6 +3,7 @@ export const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://platformaap
 export const endpoints = {
   register: `${API_BASE}/api/auth/register`,
   login: `${API_BASE}/api/auth/login`,
+  refreshToken: `${API_BASE}/api/auth/refresh`,
   forgotPassword: `${API_BASE}/api/auth/forgot`,
   resetPassword: `${API_BASE}/api/auth/reset`,
   users: `${API_BASE}/api/users`,

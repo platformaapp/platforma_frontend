@@ -6,7 +6,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { CookieBanner } from '@/components/cookie-banner';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Предотвращаем автоматическое скрытие splash screen
@@ -55,10 +54,9 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="(admin)" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="admin" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Modal' }} />
       </Stack>
-      <CookieBanner />
       <StatusBar style="auto" />
     </ThemeProvider>
   )

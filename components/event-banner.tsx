@@ -6,6 +6,7 @@ import Svg, { Mask, Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { getMyEventsForStudent } from '@/lib/api/student-events';
+import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken } from '@/lib/auth';
 
 const MEETING_DURATION_MS = 90 * 60 * 1000;
@@ -68,11 +69,7 @@ function computeBanner(events: EventEntry[]): BannerState {
 }
 
 async function joinEvent(eventId: string): Promise<string | null> {
-  const token = await getAuthToken();
-  if (!token) return null;
-  const res = await fetch(`${endpoints.events}/${eventId}/join`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await authedFetch(`${endpoints.events}/${eventId}/join`);
   if (!res.ok) return null;
   const data = await res.json();
   return data?.join_url ?? data?.joinUrl ?? null;
@@ -212,8 +209,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   iconWrapper: {
-    marginRight: 8,
-    width: 16,
+    marginRight: 12,
+    width: 24,
     height: 16,
   },
   countdownText: {
