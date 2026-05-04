@@ -22,17 +22,17 @@ function pluralizeRu(n: number, one: string, few: string, many: string): string 
 function formatCountdown(targetIso: string): string {
   const diff = new Date(targetIso).getTime() - Date.now();
   if (diff <= 0) return '';
-  const totalSec = Math.floor(diff / 1000);
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const minutes = Math.floor((totalSec % 3600) / 60);
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days} ${pluralizeRu(days, 'день', 'дня', 'дней')}`);
-  if (hours > 0) parts.push(`${hours} ${pluralizeRu(hours, 'час', 'часа', 'часов')}`);
-  parts.push(`${minutes} ${pluralizeRu(minutes, 'минуту', 'минуты', 'минут')}`);
-  if (parts.length === 1) return parts[0];
-  const last = parts.pop()!;
-  return `${parts.join(', ')} и ${last}`;
+  const totalMin = Math.floor(diff / 60000);
+  const totalHours = Math.floor(totalMin / 60);
+  const totalDays = Math.floor(totalHours / 24);
+
+  if (totalDays >= 2) return `через ${totalDays} ${pluralizeRu(totalDays, 'день', 'дня', 'дней')}`;
+  if (totalDays === 1) return 'через день';
+  if (totalHours >= 2) return `через ${totalHours} ${pluralizeRu(totalHours, 'час', 'часа', 'часов')}`;
+  if (totalHours === 1) return 'через час';
+  if (totalMin >= 30) return 'через полчаса';
+  if (totalMin >= 1) return `через ${totalMin} ${pluralizeRu(totalMin, 'минуту', 'минуты', 'минут')}`;
+  return 'меньше минуты';
 }
 
 type EventEntry = { id: string; datetimeStart?: string; canJoin?: boolean };
