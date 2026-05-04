@@ -54,7 +54,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="(admin)" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="admin" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

@@ -121,7 +121,7 @@ export default function AdminDashboard() {
 
   const fetchApplications = useCallback(async (pageNum = 1, append = false) => {
     const token = await getAdminToken();
-    if (!token) { router.replace('/(admin)/login'); return; }
+    if (!token) { router.replace('/admin/login'); return; }
 
     try {
       setError('');
@@ -134,7 +134,7 @@ export default function AdminDashboard() {
 
       if (res.status === 401) {
         await clearAdminToken();
-        router.replace('/(admin)/login');
+        router.replace('/admin/login');
         return;
       }
 
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
 
   async function handleLogout() {
     await clearAdminToken();
-    router.replace('/(admin)/login');
+    router.replace('/admin/login');
   }
 
   const TABS: { key: FilterTab; label: string }[] = [

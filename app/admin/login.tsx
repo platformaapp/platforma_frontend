@@ -47,7 +47,7 @@ export default function AdminLoginScreen() {
         return;
       }
       await saveAdminToken(token);
-      router.replace('/(admin)/dashboard');
+      router.replace('/admin/dashboard');
     } catch {
       setError('Не удалось подключиться к серверу');
     } finally {

@@ -16,5 +16,5 @@ export default function AdminIndex() {
   }, []);
 
   if (!checked) return <View style={{ flex: 1, backgroundColor: '#fff' }} />;
-  return <Redirect href={hasToken ? '/(admin)/dashboard' : '/(admin)/login'} />;
+  return <Redirect href={hasToken ? '/admin/dashboard' : '/admin/login'} />;
 }
