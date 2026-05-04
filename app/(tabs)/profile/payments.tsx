@@ -9,12 +9,16 @@ import {
   AppState,
   AppStateStatus,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
+const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
 
 import { AuthError } from '@/lib/api/auth-error';
 import {
@@ -307,14 +311,23 @@ export default function PaymentsScreen() {
           ))
         ) : null}
         {cards.length < MAX_CARDS ? (
-          <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinking}>
-            <View style={styles.plusBox}>
-              <Text style={styles.plusText}>+</Text>
-            </View>
-            <View style={styles.linkTextBox}>
-              <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
-            </View>
-          </Pressable>
+          <>
+            <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinking}>
+              <View style={styles.plusBox}>
+                <Text style={styles.plusText}>+</Text>
+              </View>
+              <View style={styles.linkTextBox}>
+                <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
+              </View>
+            </Pressable>
+            <Text style={styles.legalText}>
+              {'Нажимая «Привязать карту», вы принимаете '}
+              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(OFERTA_URL)}>оферту</Text>
+              {', '}
+              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(CONF_URL)}>политику конфиденциальности</Text>
+              {' и условия сервиса'}
+            </Text>
+          </>
         ) : (
           <View style={styles.linkRowDisabled}>
             <Text style={styles.linkTextDisabled}>Уже привязана карта — удалите её, чтобы добавить новую</Text>
@@ -641,4 +654,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
   },
+  legalText: { marginTop: 8, marginHorizontal: 16, fontSize: 11, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
+  legalLink: { color: '#181818', textDecorationLine: 'underline' },
 });

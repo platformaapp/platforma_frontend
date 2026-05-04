@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,9 @@ function resolveUrl(url: unknown): string | null {
   return `${API_BASE}${url}`;
 }
 import { getPaymentMethods } from '@/lib/api/student-payments';
+
+const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
+const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
 import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -753,6 +757,13 @@ export default function EventDetailScreen() {
             >
               <Text style={styles.modalPayButtonText}>{isPaying ? 'Оплата...' : 'Оплатить'}</Text>
             </Pressable>
+            <Text style={styles.legalText}>
+              {'Нажимая «Оплатить», вы принимаете '}
+              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(OFERTA_URL)}>оферту</Text>
+              {', '}
+              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(CONF_URL)}>политику конфиденциальности</Text>
+              {' и условия сервиса'}
+            </Text>
           </Pressable>
         </Pressable>
       </Modal>
@@ -973,4 +984,6 @@ const styles = StyleSheet.create({
   paymentFailedTitle: { marginBottom: 12, fontFamily: 'Inter-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#E2372A' },
   paymentFailedMessage: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#E2372A', marginBottom: 4 },
   shareCopiedText: { marginTop: 4, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
+  legalText: { marginTop: 10, fontSize: 11, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
+  legalLink: { color: '#181818', textDecorationLine: 'underline' },
 });

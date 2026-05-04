@@ -47,4 +47,8 @@ export const endpoints = {
 
   // Payment status sync with YooKassa (per event)
   studentPaymentEventStatusBase: `${API_BASE}/api/student/payments/event`,
+
+  // Admin
+  adminLogin: `${API_BASE}/api/admin/auth/login`,
+  adminApplications: `${API_BASE}/api/admin/tutor-applications`,
 };
