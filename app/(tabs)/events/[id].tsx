@@ -15,6 +15,14 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+
+function openUrl(url: string) {
+  if (Platform.OS === 'web') {
+    (globalThis as any).window?.open(url, '_blank', 'noopener,noreferrer');
+  } else {
+    Linking.openURL(url);
+  }
+}
 import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,6 +35,7 @@ function resolveUrl(url: unknown): string | null {
   return `${API_BASE}${url}`;
 }
 import { getPaymentMethods } from '@/lib/api/student-payments';
+import { authedFetch } from '@/lib/authed-fetch';
 
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
@@ -491,15 +500,11 @@ export default function EventDetailScreen() {
     if (isJoining || !event) return;
     setIsJoining(true);
     try {
-      const token = await getAuthToken();
-      if (!token) { router.push('/login'); return; }
-      const res = await fetch(`${endpoints.events}/${event.id}/join`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authedFetch(`${endpoints.events}/${event.id}/join`);
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
         const url = data?.join_url ?? data?.joinUrl ?? data?.url;
-        if (url) { await Linking.openURL(url); return; }
+        if (url) { openUrl(url); return; }
       }
       if (res.status === 403) {
         setJoinBlockedVisible(true);
@@ -513,7 +518,7 @@ export default function EventDetailScreen() {
       }
       // Fallback: use video_room.url if available
       const fallbackUrl = event.videoRoom?.url;
-      if (fallbackUrl) await Linking.openURL(fallbackUrl);
+      if (fallbackUrl) openUrl(fallbackUrl);
     } catch { /* ignore */ } finally {
       setIsJoining(false);
     }

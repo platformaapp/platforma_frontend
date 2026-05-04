@@ -16,9 +16,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
-import { getAuthToken, getAuthRole } from '@/lib/auth';
 import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
+import { authedFetch } from '@/lib/authed-fetch';
+import { getAuthToken, getAuthRole } from '@/lib/auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -145,8 +146,6 @@ export default function MyEventsScreen() {
       const [token, userRole] = await Promise.all([getAuthToken(), getAuthRole()]);
       if (!token) { setLoading(false); setRefreshing(false); return; }
       setRole(userRole);
-      const headers: HeadersInit = { Authorization: `Bearer ${token}` };
-
       // Events: use /api/events/my with matching role for both tutor and student
       const eventsPromise = getMyEventsForStudent({ role: userRole as 'student' | 'tutor', filter: 'all', time: 'all', page: 1, per_page: 50 })
         .then(({ items }) => items.map((it) => ({
@@ -160,24 +159,18 @@ export default function MyEventsScreen() {
 
       const [eventsRes, bookRes] = await Promise.allSettled([
         eventsPromise,
-        fetch(bookingsUrl, { headers }),
+        authedFetch(bookingsUrl),
       ]);
 
       if (eventsRes.status === 'fulfilled') {
         setEvents(eventsRes.value);
       } else {
         setEvents([]);
-        if (isAuthError(eventsRes.reason)) { router.replace('/login'); return; }
       }
 
-      if (bookRes.status === 'fulfilled') {
-        if (bookRes.value.status === 401) { router.replace('/login'); return; }
-        if (bookRes.value.ok) {
-          const data = await bookRes.value.json();
-          setBookings(Array.isArray(data) ? data : []);
-        } else {
-          setBookings([]);
-        }
+      if (bookRes.status === 'fulfilled' && bookRes.value.ok) {
+        const data = await bookRes.value.json();
+        setBookings(Array.isArray(data) ? data : []);
       } else {
         setBookings([]);
       }
@@ -208,19 +201,15 @@ export default function MyEventsScreen() {
     setCancelEventConfirmVisible(false);
     setIsCancellingEvent(true);
     try {
-      const token = await getAuthToken();
-      if (!token) { router.replace('/login'); return; }
-      const headers = { Authorization: `Bearer ${token}` };
-
       let res: Response;
       const attempts = role === 'tutor' ? [
-        () => fetch(`${endpoints.events}/${eventId}`, { method: 'DELETE', headers }),
-        () => fetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST', headers }),
+        () => authedFetch(`${endpoints.events}/${eventId}`, { method: 'DELETE' }),
+        () => authedFetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST' }),
       ] : [
-          () => fetch(`${endpoints.events}/${eventId}/registration`, { method: 'DELETE', headers }),
-          () => fetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST', headers }),
-          () => fetch(`${endpoints.studentBookings}/${eventId}`, { method: 'DELETE', headers }),
-          () => fetch(`${endpoints.events}/${eventId}/unregister`, { method: 'POST', headers }),
+          () => authedFetch(`${endpoints.events}/${eventId}/registration`, { method: 'DELETE' }),
+          () => authedFetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST' }),
+          () => authedFetch(`${endpoints.studentBookings}/${eventId}`, { method: 'DELETE' }),
+          () => authedFetch(`${endpoints.events}/${eventId}/unregister`, { method: 'POST' }),
         ];
       res = await attempts[0]();
       if (res.status === 404 || res.status === 405) {
@@ -261,13 +250,10 @@ export default function MyEventsScreen() {
     setCancelBookingConfirmVisible(false);
     setIsCancellingBooking(true);
     try {
-      const token = await getAuthToken();
-      if (!token) { router.replace('/login'); return; }
-      const headers = { Authorization: `Bearer ${token}` };
       const url = role === 'tutor'
         ? `${endpoints.tutorBookings}/${bookingId}`
         : `${endpoints.studentBookings}/${bookingId}`;
-      const res = await fetch(url, { method: 'DELETE', headers });
+      const res = await authedFetch(url, { method: 'DELETE' });
       if (res.ok || res.status === 404) {
         setBookings((prev) => prev.filter((b) => b.id !== bookingId));
         setCancelBookingSuccessVisible(true);
