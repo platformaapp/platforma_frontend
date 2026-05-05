@@ -149,8 +149,30 @@ export default function EditProfileScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
-      setAvatarUrl(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      // On web, ImagePicker returns a blob: URL that React Native Image
+      // may not render reliably. Convert to a data URI so the preview
+      // always shows the picked image, and the upload still works via fetch().
+      if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+        try {
+          const resp = await fetch(uri);
+          const blob = await resp.blob();
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          setAvatarUri(dataUri);
+          setAvatarUrl(dataUri);
+        } catch {
+          setAvatarUri(uri);
+          setAvatarUrl(uri);
+        }
+      } else {
+        setAvatarUri(uri);
+        setAvatarUrl(uri);
+      }
     }
   }
 
@@ -168,12 +190,14 @@ export default function EditProfileScreen() {
         if (shortBio.trim()) payload.shortBio = shortBio.trim();
         if (telegram.trim()) payload.phone = telegram.trim();
         // Upload new local image; skip server URLs (would fail validation)
-        if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:'))) {
+        if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:') || avatarUri.startsWith('data:'))) {
           try {
             const uploaded = await uploadEventImage(avatarUri);
             payload.avatarUrl = uploaded;
-          } catch { /* ignore upload error — save other fields */ }
-        } else if (avatarUrl && !avatarUrl.startsWith('file://') && !avatarUrl.startsWith('blob:')) {
+          } catch (uploadErr: unknown) {
+            Alert.alert('Ошибка загрузки фото', (uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
+          }
+        } else if (avatarUrl && !avatarUrl.startsWith('file://') && !avatarUrl.startsWith('blob:') && !avatarUrl.startsWith('data:')) {
           payload.avatarUrl = avatarUrl;
         }
         const rate = hourlyRate ? parseInt(hourlyRate, 10) : 0;
@@ -195,12 +219,14 @@ export default function EditProfileScreen() {
         // Only upload + include avatarUrl when user explicitly picked a new local image.
         // Never send the pre-loaded server URL back — it may be a relative path that the
         // server rejects with "avatarUrl must be a URL address".
-        if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:'))) {
+        if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:') || avatarUri.startsWith('data:'))) {
           try {
             const uploaded = await uploadEventImage(avatarUri);
             payload.avatarUrl = uploaded;
             payload.avatar_url = uploaded;
-          } catch { /* ignore upload error — save other fields */ }
+          } catch (uploadErr: unknown) {
+            Alert.alert('Ошибка загрузки фото', (uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
+          }
         }
         await updateStudentProfile(payload);
       }
