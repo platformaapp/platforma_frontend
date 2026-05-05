@@ -50,6 +50,7 @@ export default function EditProfileScreen() {
   const [groupMeetings, setGroupMeetings] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarError, setAvatarError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -149,6 +150,7 @@ export default function EditProfileScreen() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
+      setAvatarError('');
       const uri = result.assets[0].uri;
       // On web, ImagePicker returns a blob: URL that React Native Image
       // may not render reliably. Convert to a data URI so the preview
@@ -195,7 +197,7 @@ export default function EditProfileScreen() {
             const uploaded = await uploadEventImage(avatarUri);
             payload.avatarUrl = uploaded;
           } catch (uploadErr: unknown) {
-            Alert.alert('Ошибка загрузки фото', (uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
+            setAvatarError((uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
           }
         } else if (avatarUrl && !avatarUrl.startsWith('file://') && !avatarUrl.startsWith('blob:') && !avatarUrl.startsWith('data:')) {
           payload.avatarUrl = avatarUrl;
@@ -225,7 +227,7 @@ export default function EditProfileScreen() {
             payload.avatarUrl = uploaded;
             payload.avatar_url = uploaded;
           } catch (uploadErr: unknown) {
-            Alert.alert('Ошибка загрузки фото', (uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
+            setAvatarError((uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
           }
         }
         await updateStudentProfile(payload);
@@ -401,6 +403,11 @@ export default function EditProfileScreen() {
               <Text style={styles.uploadPlaceholder}>Загрузить фото</Text>
             )}
           </Pressable>
+          {avatarError ? (
+            <Text style={styles.avatarErrorText}>{avatarError}</Text>
+          ) : (
+            <Text style={styles.avatarHint}>JPG или PNG, не более 5 МБ</Text>
+          )}
 
           <Pressable
             style={styles.secondaryButton}
@@ -538,6 +545,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     fontSize: 14,
     color: '#181818',
+  },
+  avatarHint: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: '#9B9B9B',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  avatarErrorText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: '#E02D2D',
+    marginTop: 4,
+    marginBottom: 12,
   },
   secondaryButton: {
     borderWidth: 1,

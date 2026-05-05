@@ -118,6 +118,7 @@ export async function uploadEventImage(uri: string): Promise<string> {
   });
 
   if (!res.ok) {
+    if (res.status === 413) throw new Error('Файл слишком большой. Выберите фото меньшего размера.');
     const data = await res.json().catch(() => ({}));
     throw new Error(data?.message ?? `Ошибка загрузки обложки (${res.status})`);
   }
