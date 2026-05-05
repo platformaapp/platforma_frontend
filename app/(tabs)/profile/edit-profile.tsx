@@ -168,12 +168,12 @@ export default function EditProfileScreen() {
         if (shortBio.trim()) payload.shortBio = shortBio.trim();
         if (telegram.trim()) payload.phone = telegram.trim();
         // Upload new local image; skip server URLs (would fail validation)
-        if (avatarUri && avatarUri.startsWith('file://')) {
+        if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:'))) {
           try {
             const uploaded = await uploadEventImage(avatarUri);
             payload.avatarUrl = uploaded;
           } catch { /* ignore upload error — save other fields */ }
-        } else if (avatarUrl && !avatarUrl.startsWith('file://')) {
+        } else if (avatarUrl && !avatarUrl.startsWith('file://') && !avatarUrl.startsWith('blob:')) {
           payload.avatarUrl = avatarUrl;
         }
         const rate = hourlyRate ? parseInt(hourlyRate, 10) : 0;
@@ -195,7 +195,7 @@ export default function EditProfileScreen() {
         // Only upload + include avatarUrl when user explicitly picked a new local image.
         // Never send the pre-loaded server URL back — it may be a relative path that the
         // server rejects with "avatarUrl must be a URL address".
-        if (avatarUri && avatarUri.startsWith('file://')) {
+        if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:'))) {
           try {
             const uploaded = await uploadEventImage(avatarUri);
             payload.avatarUrl = uploaded;
@@ -366,7 +366,7 @@ export default function EditProfileScreen() {
           >
             {avatarUri ? (
               <View style={styles.uploadWithPhoto}>
-                <Image source={avatarUri && !avatarUri.startsWith('blob:') ? { uri: avatarUri } : require('@/assets/images/avatar.png')} style={styles.avatar} />
+                <Image source={avatarUri ? { uri: avatarUri } : require('@/assets/images/avatar.png')} style={styles.avatar} />
                 <View style={styles.replacePhotoContainer}>
                   <Text style={styles.replacePhotoText}>Заменить фото</Text>
                 </View>
