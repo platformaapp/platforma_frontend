@@ -64,6 +64,8 @@ export default function EditEventScreen() {
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null); // from API
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [hasPaidRegistrations, setHasPaidRegistrations] = useState(false);
+  const [originalPrice, setOriginalPrice] = useState('');
 
   const webDateRef = useRef<any>(null);
   const webTimeRef = useRef<any>(null);
@@ -91,8 +93,14 @@ export default function EditEventScreen() {
         setTitle(event.title ?? '');
         setDescription(event.description ?? '');
         if (event.price != null) {
-          setPrice(String(event.price));
+          const p = String(event.price);
+          setPrice(p);
+          setOriginalPrice(p);
         }
+        const paidRaw =
+          event.hasPaidRegistrations ?? event.has_paid_registrations ??
+          event.paid_registrations_count ?? event.paidRegistrationsCount ?? 0;
+        setHasPaidRegistrations(typeof paidRaw === 'boolean' ? paidRaw : Number(paidRaw) > 0);
         if (event.max_participants != null) {
           setMaxParticipants(String(event.max_participants));
         }
@@ -124,29 +132,50 @@ export default function EditEventScreen() {
       aspect: [16, 9],
       quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]) setCoverUri(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+        try {
+          const resp = await fetch(uri);
+          const blob = await resp.blob();
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          setCoverUri(dataUri);
+        } catch {
+          setCoverUri(uri);
+        }
+      } else {
+        setCoverUri(uri);
+      }
+    }
   }
 
   async function handleSave() {
     if (!id) return;
     setStatusMessage(null);
-    if (!title.trim()) { Alert.alert('Ошибка', 'Введите название'); return; }
+    if (!hasPaidRegistrations && !title.trim()) { Alert.alert('Ошибка', 'Введите название'); return; }
 
     const patch: EventPatchBody = {};
-    if (title.trim()) patch.title = title.trim();
-    if (description.trim()) patch.description = description.trim();
-    if (priceValue > 0) patch.price = priceValue;
-    if (maxParticipants) patch.max_participants = Math.max(1, parseInt(maxParticipants) || 30);
 
-    if (date && timeStr) {
-      const range = toDatetimeRange(date, timeStr);
-      if (!range) { Alert.alert('Ошибка', 'Неверный формат времени'); return; }
-      patch.datetime_start = range.start;
+    if (!hasPaidRegistrations) {
+      if (title.trim()) patch.title = title.trim();
+      if (description.trim()) patch.description = description.trim();
+      // Only send price if it actually changed — backend rejects price change when paid registrations exist
+      if (price !== originalPrice && priceValue > 0) patch.price = priceValue;
+      if (maxParticipants) patch.max_participants = Math.max(1, parseInt(maxParticipants) || 30);
+      if (date && timeStr) {
+        const range = toDatetimeRange(date, timeStr);
+        if (!range) { Alert.alert('Ошибка', 'Неверный формат времени'); return; }
+        patch.datetime_start = range.start;
+      }
     }
 
     setIsSubmitting(true);
 
-    // Upload new cover if picked
     if (coverUri) {
       try {
         setStatusMessage('Загрузка обложки...');
@@ -157,6 +186,12 @@ export default function EditEventScreen() {
         setIsSubmitting(false);
         return;
       }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      setStatusMessage('Нет изменений для сохранения');
+      setIsSubmitting(false);
+      return;
     }
 
     try {
@@ -211,28 +246,38 @@ export default function EditEventScreen() {
 
         <Text style={styles.title}>РЕДАКТИРОВАТЬ СОБЫТИЕ</Text>
 
+        {hasPaidRegistrations && (
+          <View style={styles.lockedBanner}>
+            <Text style={styles.lockedBannerText}>
+              Есть оплаченные регистрации — изменить можно только обложку
+            </Text>
+          </View>
+        )}
+
         <TextInput
           value={title}
           onChangeText={setTitle}
-          style={styles.input}
+          style={[styles.input, hasPaidRegistrations && styles.inputDisabled]}
           placeholder="Название"
           placeholderTextColor="#9B9B9B"
+          editable={!hasPaidRegistrations}
         />
         <TextInput
           value={description}
           onChangeText={setDescription}
-          style={[styles.input, styles.textArea]}
+          style={[styles.input, styles.textArea, hasPaidRegistrations && styles.inputDisabled]}
           placeholder="Описание"
           placeholderTextColor="#9B9B9B"
           multiline
           textAlignVertical="top"
+          editable={!hasPaidRegistrations}
         />
 
         {/* ── Date picker ─────────────────────────────────────────────── */}
         {Platform.OS === 'web' ? (
           <Pressable
-            style={styles.input}
-            onPress={() => { try { webDateRef.current?.showPicker?.(); } catch { webDateRef.current?.click?.(); } }}
+            style={[styles.input, hasPaidRegistrations && styles.inputDisabled]}
+            onPress={hasPaidRegistrations ? undefined : () => { try { webDateRef.current?.showPicker?.(); } catch { webDateRef.current?.click?.(); } }}
           >
             <Text style={date ? styles.dateText : styles.placeholderText}>
               {date ? formatDate(date) : 'Дата'}
@@ -251,7 +296,7 @@ export default function EditEventScreen() {
             />
           </Pressable>
         ) : (
-          <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+          <Pressable style={[styles.input, hasPaidRegistrations && styles.inputDisabled]} onPress={hasPaidRegistrations ? undefined : () => setShowDatePicker(true)}>
             <Text style={date ? styles.dateText : styles.placeholderText}>
               {date ? formatDate(date) : 'Дата'}
             </Text>
@@ -285,8 +330,8 @@ export default function EditEventScreen() {
         {/* ── Time picker ─────────────────────────────────────────────── */}
         {Platform.OS === 'web' ? (
           <Pressable
-            style={styles.input}
-            onPress={() => { try { webTimeRef.current?.showPicker?.(); } catch { webTimeRef.current?.click?.(); } }}
+            style={[styles.input, hasPaidRegistrations && styles.inputDisabled]}
+            onPress={hasPaidRegistrations ? undefined : () => { try { webTimeRef.current?.showPicker?.(); } catch { webTimeRef.current?.click?.(); } }}
           >
             <Text style={timeStr ? styles.dateText : styles.placeholderText}>
               {timeStr || 'Время'}
@@ -299,7 +344,7 @@ export default function EditEventScreen() {
             />
           </Pressable>
         ) : (
-          <Pressable style={styles.input} onPress={() => setShowTimePicker(true)}>
+          <Pressable style={[styles.input, hasPaidRegistrations && styles.inputDisabled]} onPress={hasPaidRegistrations ? undefined : () => setShowTimePicker(true)}>
             <Text style={timeStr ? styles.dateText : styles.placeholderText}>
               {timeStr || 'Время'}
             </Text>
@@ -338,8 +383,12 @@ export default function EditEventScreen() {
         )}
 
         {/* ── Price ───────────────────────────────────────────────────── */}
-        <View style={styles.priceRow}>
-          {price && !isEditingPrice ? (
+        <View style={[styles.priceRow, hasPaidRegistrations && styles.inputDisabled]}>
+          {hasPaidRegistrations ? (
+            <Text style={[styles.priceDisplay, { color: '#9B9B9B' }]}>
+              Стоимость участия — {priceValue} ₽
+            </Text>
+          ) : price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
               <Text style={styles.priceDisplay}>Стоимость участия — {priceValue} ₽</Text>
             </Pressable>
@@ -367,10 +416,11 @@ export default function EditEventScreen() {
         <TextInput
           value={maxParticipants}
           onChangeText={(t) => setMaxParticipants(t.replace(/\D/g, ''))}
-          style={styles.input}
+          style={[styles.input, hasPaidRegistrations && styles.inputDisabled]}
           placeholder="Максимальное количество участников"
           placeholderTextColor="#9B9B9B"
           keyboardType="numeric"
+          editable={!hasPaidRegistrations}
         />
 
         {/* ── Cover image ─────────────────────────────────────────────── */}
@@ -449,4 +499,22 @@ const styles = StyleSheet.create({
   saveButton: { marginTop: 12, marginBottom: 24, backgroundColor: '#111', paddingVertical: 16, alignItems: 'center', height: 52 },
   saveButtonDisabled: { opacity: 0.6 },
   saveButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FAFAFA' },
+  lockedBanner: {
+    backgroundColor: '#FFF3CD',
+    borderWidth: 1,
+    borderColor: '#856404',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  lockedBannerText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#856404',
+  },
+  inputDisabled: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#CCCCCC',
+  },
 });

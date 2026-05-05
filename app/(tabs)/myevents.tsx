@@ -148,11 +148,16 @@ export default function MyEventsScreen() {
       setRole(userRole);
       // Events: use /api/events/my with matching role for both tutor and student
       const eventsPromise = getMyEventsForStudent({ role: userRole as 'student' | 'tutor', filter: 'all', time: 'all', page: 1, per_page: 50 })
-        .then(({ items }) => items.map((it) => ({
-          ...it,
-          datetimeStart: it.start_at ?? it.startAt,
-          mentor: { id: '', name: teacherName(it.teacher) },
-        } as EventItem)))
+        .then(({ items }) => items.map((it) => {
+          const ta = it.teacher as Record<string, unknown> | null | undefined;
+          const rawAv = ta?.avatarUrl ?? ta?.avatar_url;
+          const mentorAvatar = typeof rawAv === 'string' && rawAv.startsWith('http') ? rawAv : null;
+          return {
+            ...it,
+            datetimeStart: it.start_at ?? it.startAt,
+            mentor: { id: String(ta?.id ?? ''), name: teacherName(it.teacher), avatarUrl: mentorAvatar },
+          } as EventItem;
+        }))
         .catch(() => [] as EventItem[]);
 
       const bookingsUrl = userRole === 'tutor' ? endpoints.tutorBookings : endpoints.studentBookings;
@@ -279,6 +284,8 @@ export default function MyEventsScreen() {
         <Pressable style={styles.cardTop} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
           {item.coverUrl ? (
             <Image source={{ uri: item.coverUrl }} style={styles.cardImage} />
+          ) : item.mentor?.avatarUrl ? (
+            <Image source={{ uri: item.mentor.avatarUrl }} style={styles.cardImage} />
           ) : (
             <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
           )}
@@ -343,7 +350,30 @@ export default function MyEventsScreen() {
     );
   };
 
-  const isEmpty = activeTab === 'events' ? events.length === 0 : bookings.length === 0;
+  const now = Date.now();
+
+  const getEventMs = (e: EventItem) =>
+    e.datetimeStart ? new Date(e.datetimeStart).getTime() : Infinity;
+  const getBookingMs = (b: BookingItem) =>
+    b.date ? new Date(`${b.date}T${b.time ?? '00:00'}:00`).getTime() : Infinity;
+
+  const upcomingEvents = [...events]
+    .filter((e) => getEventMs(e) >= now)
+    .sort((a, b) => getEventMs(a) - getEventMs(b));
+  const pastEvents = [...events]
+    .filter((e) => getEventMs(e) < now)
+    .sort((a, b) => getEventMs(b) - getEventMs(a));
+
+  const upcomingBookings = [...bookings]
+    .filter((b) => getBookingMs(b) >= now)
+    .sort((a, b) => getBookingMs(a) - getBookingMs(b));
+  const pastBookings = [...bookings]
+    .filter((b) => getBookingMs(b) < now)
+    .sort((a, b) => getBookingMs(b) - getBookingMs(a));
+
+  const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
+  const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
+  const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
 
   return (
     <View style={styles.container}>
@@ -372,10 +402,28 @@ export default function MyEventsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
-          {!isEmpty && (
-            activeTab === 'events'
-              ? events.map(renderEventCard)
-              : bookings.map(renderBookingCard)
+          {activeTab === 'events'
+            ? currentUpcoming.map(renderEventCard)
+            : currentUpcoming.map(renderBookingCard)}
+          {currentPast.length > 0 && (
+            <>
+              <View style={styles.pastSeparator}>
+                <View style={styles.pastSeparatorLine} />
+                <Text style={styles.pastSeparatorLabel}>ПРОШЕДШИЕ</Text>
+                <View style={styles.pastSeparatorLine} />
+              </View>
+              {activeTab === 'events'
+                ? currentPast.map((item) => (
+                    <View key={`past-${(item as EventItem).id}`} style={styles.pastCardWrap}>
+                      {renderEventCard(item as EventItem)}
+                    </View>
+                  ))
+                : currentPast.map((item) => (
+                    <View key={`past-${(item as BookingItem).id}`} style={styles.pastCardWrap}>
+                      {renderBookingCard(item as BookingItem)}
+                    </View>
+                  ))}
+            </>
           )}
         </ScrollView>
       )}
@@ -621,4 +669,8 @@ const styles = StyleSheet.create({
   cancelModalConfirmText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   cancelSuccessCloseButton: { height: 52, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   cancelSuccessCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  pastSeparator: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16 },
+  pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
+  pastSeparatorLabel: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },
+  pastCardWrap: { opacity: 0.55 },
 });
