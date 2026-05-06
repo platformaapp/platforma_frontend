@@ -5,6 +5,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -43,6 +45,8 @@ function toDatetimeRange(date: Date, timeStr: string): { start: string; end: str
   const end = new Date(start.getTime() + 60 * 60 * 1000);
   return { start: start.toISOString(), end: end.toISOString() };
 }
+
+const TITLE_LIMIT = 70;
 
 export default function NewEventScreen() {
   const router = useRouter();
@@ -190,10 +194,16 @@ export default function NewEventScreen() {
   const webTimeRef = useRef<any>(null);
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.select({ ios: 'padding', android: undefined })}
+      keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
+    >
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="always"
+        keyboardShouldPersistTaps="handled"
+        onScrollBeginDrag={() => Keyboard.dismiss()}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -206,13 +216,23 @@ export default function NewEventScreen() {
 
         <Text style={styles.title}>НОВОЕ СОБЫТИЕ</Text>
 
-        <TextInput
-          value={title}
-          onChangeText={setTitle}
-          style={styles.input}
-          placeholder="Название"
-          placeholderTextColor="#9B9B9B"
-        />
+        <View style={styles.titleInputWrap}>
+          <TextInput
+            value={title}
+            onChangeText={(t) => t.length <= TITLE_LIMIT && setTitle(t)}
+            style={[styles.input, styles.titleInput]}
+            placeholder="Название"
+            placeholderTextColor="#9B9B9B"
+            maxLength={TITLE_LIMIT}
+            returnKeyType="done"
+            onSubmitEditing={() => Keyboard.dismiss()}
+          />
+          <View style={styles.titleCounter}>
+            <Text style={[styles.titleCounterText, title.length >= TITLE_LIMIT && styles.titleCounterError]}>
+              {TITLE_LIMIT - title.length}
+            </Text>
+          </View>
+        </View>
         <TextInput
           value={description}
           onChangeText={setDescription}
@@ -413,6 +433,7 @@ export default function NewEventScreen() {
         </Pressable>
       </ScrollView>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -430,6 +451,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
+  titleInputWrap: { position: 'relative', marginBottom: 12 },
+  titleInput: { marginBottom: 0, paddingRight: 50 },
+  titleCounter: { position: 'absolute', top: 8, right: 8, backgroundColor: '#181818', paddingHorizontal: 7, paddingVertical: 3, minWidth: 32, alignItems: 'center' },
+  titleCounterText: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#fff' },
+  titleCounterError: { color: '#E02D2D' },
   dateText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
   placeholderText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
   textArea: { minHeight: 96, paddingTop: 12 },

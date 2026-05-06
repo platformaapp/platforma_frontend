@@ -374,6 +374,16 @@ export default function EditProfileScreen() {
                 keyboardType="numeric"
               />
 
+              <View style={styles.commissionPanel}>
+                <Text style={styles.commissionPanelTitle}>Комиссия платформы</Text>
+                <Text style={styles.commissionPanelText}>
+                  Платформа удерживает 10% с каждого события и индивидуальной встречи.
+                  {hourlyRate && parseInt(hourlyRate) > 0
+                    ? ` При стоимости часа ${parseInt(hourlyRate).toLocaleString('ru-RU')} ₽ вы получите ${Math.round(parseInt(hourlyRate) * 0.9).toLocaleString('ru-RU')} ₽.`
+                    : ''}
+                </Text>
+              </View>
+
               <Text style={styles.label}>Собираетесь ли вы проводить групповые встречи</Text>
               <TextInput
                 value={groupMeetings}
@@ -545,6 +555,27 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     fontSize: 14,
     color: '#181818',
+  },
+  commissionPanel: {
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  commissionPanelTitle: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#181818',
+    marginBottom: 4,
+  },
+  commissionPanelText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18,
   },
   avatarHint: {
     fontFamily: 'Inter-Regular',
