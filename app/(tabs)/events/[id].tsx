@@ -36,6 +36,7 @@ function resolveUrl(url: unknown): string | null {
 }
 import { getPaymentMethods } from '@/lib/api/student-payments';
 import { authedFetch } from '@/lib/authed-fetch';
+import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
@@ -559,7 +560,7 @@ export default function EventDetailScreen() {
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
         const url = data?.join_url ?? data?.joinUrl ?? data?.url;
-        if (url) { openUrl(url); return; }
+        if (url) { await openJitsi(url); return; }
       }
       if (res.status === 403) {
         setJoinBlockedVisible(true);
@@ -571,9 +572,11 @@ export default function EventDetailScreen() {
         setJoinErrorVisible(true);
         return;
       }
-      // Fallback: use video_room.url if available
-      const fallbackUrl = event.videoRoom?.url;
-      if (fallbackUrl) openUrl(fallbackUrl);
+      // Fallback 1: video_room.url from event detail
+      const backendUrl = event.videoRoom?.url;
+      if (backendUrl) { await openJitsi(backendUrl); return; }
+      // Fallback 2: deterministic Jitsi room derived from event ID
+      await openJitsi(buildJitsiUrl('event', event.id));
     } catch { /* ignore */ } finally {
       setIsJoining(false);
     }

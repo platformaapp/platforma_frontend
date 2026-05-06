@@ -1,5 +1,4 @@
 import { useFocusEffect } from '@react-navigation/native';
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
@@ -21,6 +20,7 @@ import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken, getAuthRole, getUserProfile } from '@/lib/auth';
+import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -361,10 +361,10 @@ export default function MyEventsScreen() {
             </Pressable>
           )}
         </View>
-        {isNearlyStarting && item.videoUrl && (
+        {isNearlyStarting && (
           <Pressable
             style={styles.videoButton}
-            onPress={() => Linking.openURL(item.videoUrl!)}
+            onPress={() => openJitsi(item.videoUrl ?? buildJitsiUrl('booking', item.id))}
           >
             <Text style={styles.videoButtonText}>Открыть видео</Text>
           </Pressable>
