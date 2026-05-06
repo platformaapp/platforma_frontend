@@ -6,6 +6,9 @@ export default function AdminLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="login" />
       <Stack.Screen name="dashboard" />
+      <Stack.Screen name="users" />
+      <Stack.Screen name="events" />
+      <Stack.Screen name="commission" />
     </Stack>
   );
 }

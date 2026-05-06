@@ -36,6 +36,9 @@ export interface TutorProfile {
   role?: 'tutor';
   created_at?: string;
   updated_at?: string;
+  /** Status of the tutor application: pending | approved | rejected */
+  applicationStatus?: 'pending' | 'approved' | 'rejected';
+  application_status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface TutorProfileUpdate {

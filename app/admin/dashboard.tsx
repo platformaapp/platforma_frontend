@@ -317,6 +317,19 @@ export default function AdminDashboard() {
         </Pressable>
       </View>
 
+      {/* Navigation to other admin sections */}
+      <View style={styles.navRow}>
+        <Pressable style={styles.navBtn} onPress={() => router.push('/admin/users' as any)}>
+          <Text style={styles.navBtnText}>Пользователи</Text>
+        </Pressable>
+        <Pressable style={styles.navBtn} onPress={() => router.push('/admin/events' as any)}>
+          <Text style={styles.navBtnText}>События</Text>
+        </Pressable>
+        <Pressable style={styles.navBtn} onPress={() => router.push('/admin/commission' as any)}>
+          <Text style={styles.navBtnText}>Комиссии</Text>
+        </Pressable>
+      </View>
+
       {/* Filter tabs */}
       <ScrollView
         horizontal
@@ -533,6 +546,9 @@ const styles = StyleSheet.create({
   logoutBtn: { paddingVertical: 6, paddingHorizontal: 12, borderWidth: 1, borderColor: '#1E1E1E' },
   logoutText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
 
+  navRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#1E1E1E' },
+  navBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRightWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#F8F8F8' },
+  navBtnText: { fontSize: 11, fontFamily: 'Inter-Regular', color: '#181818', letterSpacing: 0.2 },
   tabsScroll: { maxHeight: 48, borderBottomWidth: 1, borderColor: '#1E1E1E' },
   tabsContent: { flexDirection: 'row', alignItems: 'stretch' },
   tab: {

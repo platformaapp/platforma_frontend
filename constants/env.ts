@@ -52,4 +52,7 @@ export const endpoints = {
   // Admin
   adminLogin: `${API_BASE}/api/admin/auth/login`,
   adminApplications: `${API_BASE}/api/admin/tutor-applications`,
+  adminUsers: `${API_BASE}/api/admin/users`,
+  adminEventsAdmin: `${API_BASE}/api/admin/events`,
+  adminSettings: `${API_BASE}/api/admin/settings`,
 };

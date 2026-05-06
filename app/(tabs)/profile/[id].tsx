@@ -29,11 +29,13 @@ export default function ProfileByIdScreen() {
   const [isInviteCopied, setInviteCopied] = useState(false);
   const [isBecomeTutorVisible, setBecomeTutorVisible] = useState(false);
   const [hasTutorProfile, setHasTutorProfile] = useState<boolean | null>(null);
+  const [tutorApplicationStatus, setTutorApplicationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
 
   // Inline tutor registration form state
   const [tutorRegPassword, setTutorRegPassword] = useState('');
   const [tutorRegErrors, setTutorRegErrors] = useState<{ password?: string; general?: string }>({});
   const [isTutorRegSubmitting, setIsTutorRegSubmitting] = useState(false);
+  const [tutorRegSuccess, setTutorRegSuccess] = useState(false);
 
   const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
   const platformUrl = 'https://platformaapp.ru';
@@ -119,6 +121,8 @@ export default function ProfileByIdScreen() {
             if (avatar) setTutorAvatarUrl(avatar);
             const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
             if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
+            const appStatus = tp.applicationStatus ?? tp.application_status ?? null;
+            if (appStatus) setTutorApplicationStatus(appStatus);
           }
         } catch {
           if (isMounted) setHasTutorProfile(false);
@@ -247,23 +251,12 @@ export default function ProfileByIdScreen() {
       const refreshToken = extractRefreshTokenFromResponse(data);
       if (token) await saveAuthToken(token, 'tutor', refreshToken);
 
-      // Transfer student avatar to tutor profile view
       if (userProfile?.avatar_url) setTutorAvatarUrl(userProfile.avatar_url);
-
       setHasTutorProfile(true);
-      setRole('tutor');
-      setBecomeTutorVisible(false);
-      setTutorRegPassword('');
+      setTutorApplicationStatus('pending');
+      // Show success message inside the modal — user closes it manually
+      setTutorRegSuccess(true);
       setTutorRegErrors({});
-
-      // Fetch actual tutor profile to get server-confirmed avatar
-      try {
-        const tp = await getTutorProfile();
-        const avatar = tp.avatarUrl ?? tp.avatar_url ?? null;
-        if (avatar) setTutorAvatarUrl(avatar);
-        const rate = (tp as any).hourlyRate ?? (tp as any).hourly_rate ?? (tp as any).pricePerHour ?? null;
-        if (typeof rate === 'number' && rate > 0) setTutorHourlyRate(rate);
-      } catch {}
     } catch (e: any) {
       setTutorRegErrors({ general: e?.message ?? 'Ошибка соединения' });
     } finally {
@@ -353,49 +346,67 @@ export default function ProfileByIdScreen() {
       )}
 
       {/* Inline tutor registration modal */}
-      <Modal transparent animationType="fade" visible={isBecomeTutorVisible} onRequestClose={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}>
+      <Modal transparent animationType="fade" visible={isBecomeTutorVisible} onRequestClose={() => { if (!isTutorRegSubmitting) { setBecomeTutorVisible(false); setTutorRegSuccess(false); } }}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
-          <Pressable style={styles.shareModalOverlay} onPress={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}>
+          <Pressable style={styles.shareModalOverlay} onPress={() => { if (!isTutorRegSubmitting) { setBecomeTutorVisible(false); setTutorRegSuccess(false); } }}>
             <Pressable style={styles.shareModalSheet} onPress={() => {}}>
-              <Text style={styles.shareModalTitle}>Стать наставником</Text>
+              {tutorRegSuccess ? (
+                <>
+                  <Text style={styles.shareModalTitle}>Заявка отправлена</Text>
+                  <View style={styles.appStatusBanner}>
+                    <Text style={styles.appStatusBannerText}>
+                      Ваша заявка отправлена, ожидайте подтверждения администратора
+                    </Text>
+                  </View>
+                  <Pressable
+                    style={styles.shareModalButton}
+                    onPress={() => { setBecomeTutorVisible(false); setTutorRegSuccess(false); }}
+                  >
+                    <Text style={styles.shareModalButtonText}>Закрыть</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.shareModalTitle}>Стать наставником</Text>
 
-              <View style={styles.tutorRegInfo}>
-                {userProfile?.full_name ? <Text style={styles.tutorRegInfoText}>{userProfile.full_name}</Text> : null}
-                {userProfile?.email ? <Text style={styles.tutorRegInfoText}>{userProfile.email}</Text> : null}
-                {(userProfile as any)?.phone ? <Text style={styles.tutorRegInfoText}>{formatPhoneRU((userProfile as any).phone.replace(/\D/g, ''))}</Text> : null}
-              </View>
+                  <View style={styles.tutorRegInfo}>
+                    {userProfile?.full_name ? <Text style={styles.tutorRegInfoText}>{userProfile.full_name}</Text> : null}
+                    {userProfile?.email ? <Text style={styles.tutorRegInfoText}>{userProfile.email}</Text> : null}
+                    {(userProfile as any)?.phone ? <Text style={styles.tutorRegInfoText}>{formatPhoneRU((userProfile as any).phone.replace(/\D/g, ''))}</Text> : null}
+                  </View>
 
-              <TextInput
-                placeholder="Текущий пароль"
-                value={tutorRegPassword}
-                onChangeText={(text) => {
-                  setTutorRegPassword(text);
-                  if (tutorRegErrors.password) setTutorRegErrors((e) => ({ ...e, password: undefined }));
-                }}
-                secureTextEntry
-                style={[styles.tutorRegInput, tutorRegErrors.password && styles.tutorRegInputError]}
-                placeholderTextColor={tutorRegErrors.password ? '#E02D2D' : '#888'}
-              />
-              {tutorRegErrors.password ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.password}</Text> : null}
+                  <TextInput
+                    placeholder="Текущий пароль"
+                    value={tutorRegPassword}
+                    onChangeText={(text) => {
+                      setTutorRegPassword(text);
+                      if (tutorRegErrors.password) setTutorRegErrors((e) => ({ ...e, password: undefined }));
+                    }}
+                    secureTextEntry
+                    style={[styles.tutorRegInput, tutorRegErrors.password && styles.tutorRegInputError]}
+                    placeholderTextColor={tutorRegErrors.password ? '#E02D2D' : '#888'}
+                  />
+                  {tutorRegErrors.password ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.password}</Text> : null}
+                  {tutorRegErrors.general ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.general}</Text> : null}
 
-              {tutorRegErrors.general ? <Text style={styles.tutorRegErrorText}>{tutorRegErrors.general}</Text> : null}
+                  <Pressable
+                    style={[styles.shareModalButton, isTutorRegSubmitting && { opacity: 0.6 }]}
+                    disabled={isTutorRegSubmitting}
+                    onPress={handleBecomeTutor}
+                  >
+                    <Text style={styles.shareModalButtonText}>
+                      {isTutorRegSubmitting ? 'Отправка...' : 'Отправить заявку'}
+                    </Text>
+                  </Pressable>
 
-              <Pressable
-                style={[styles.shareModalButton, isTutorRegSubmitting && { opacity: 0.6 }]}
-                disabled={isTutorRegSubmitting}
-                onPress={handleBecomeTutor}
-              >
-                <Text style={styles.shareModalButtonText}>
-                  {isTutorRegSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
-                </Text>
-              </Pressable>
-
-              <Pressable
-                style={styles.shareModalClose}
-                onPress={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}
-              >
-                <Text style={styles.shareModalCloseText}>Отмена</Text>
-              </Pressable>
+                  <Pressable
+                    style={styles.shareModalClose}
+                    onPress={() => { if (!isTutorRegSubmitting) setBecomeTutorVisible(false); }}
+                  >
+                    <Text style={styles.shareModalCloseText}>Отмена</Text>
+                  </Pressable>
+                </>
+              )}
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -407,8 +418,26 @@ export default function ProfileByIdScreen() {
     </>
   );
 
+  const APP_STATUS_LABEL: Record<string, string> = {
+    pending: 'Заявка на рассмотрении — ожидайте подтверждения администратора',
+    rejected: 'Заявка отклонена — свяжитесь с поддержкой для уточнения причины',
+  };
+  const APP_STATUS_COLOR: Record<string, string> = {
+    pending: '#856404', rejected: '#721c24',
+  };
+  const APP_STATUS_BG: Record<string, string> = {
+    pending: '#FFF3CD', rejected: '#F8D7DA',
+  };
+
   const renderTutorContent = () => (
     <>
+      {tutorApplicationStatus && tutorApplicationStatus !== 'approved' && (
+        <View style={[styles.appStatusBanner, { backgroundColor: APP_STATUS_BG[tutorApplicationStatus] ?? '#FFF3CD' }]}>
+          <Text style={[styles.appStatusBannerText, { color: APP_STATUS_COLOR[tutorApplicationStatus] ?? '#856404' }]}>
+            {APP_STATUS_LABEL[tutorApplicationStatus] ?? tutorApplicationStatus}
+          </Text>
+        </View>
+      )}
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
           <Image
@@ -612,4 +641,6 @@ const styles = StyleSheet.create({
   tutorRegInput: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 4, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
   tutorRegInputError: { borderColor: '#E02D2D', color: '#E02D2D' },
   tutorRegErrorText: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#E02D2D', marginBottom: 6 },
+  appStatusBanner: { backgroundColor: '#FFF3CD', paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16 },
+  appStatusBannerText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#856404' },
 });
