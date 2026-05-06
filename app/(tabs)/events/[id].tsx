@@ -185,6 +185,34 @@ function formatPrice(price?: number): string {
 // Module-level store — survives component remount (e.g. deep-link navigation after 3DS)
 let _pendingYookassaPaymentId: string | null = null;
 
+/** Web: redirect to confirmation URL in the same tab (required for YooKassa payment flow). */
+function redirectToPaymentUrl(url: string): void {
+  if (Platform.OS === 'web') {
+    (globalThis as any).window.location.href = url;
+  }
+}
+
+/** Store/restore yookassaPaymentId across web page navigation via sessionStorage. */
+function savePaymentIdToSession(paymentId: string, eventId: string): void {
+  if (Platform.OS === 'web' && typeof (globalThis as any).sessionStorage !== 'undefined') {
+    (globalThis as any).sessionStorage.setItem('yk_payment_id', paymentId);
+    (globalThis as any).sessionStorage.setItem('yk_event_id', eventId);
+  }
+}
+function loadPaymentIdFromSession(eventId: string): string | null {
+  if (Platform.OS !== 'web' || typeof (globalThis as any).sessionStorage === 'undefined') return null;
+  const ss = (globalThis as any).sessionStorage;
+  if (ss.getItem('yk_event_id') !== eventId) return null;
+  return ss.getItem('yk_payment_id') ?? null;
+}
+function clearPaymentIdFromSession(): void {
+  if (Platform.OS === 'web' && typeof (globalThis as any).sessionStorage !== 'undefined') {
+    const ss = (globalThis as any).sessionStorage;
+    ss.removeItem('yk_payment_id');
+    ss.removeItem('yk_event_id');
+  }
+}
+
 export default function EventDetailScreen() {
   const router = useRouter();
   const { id, payment } = useLocalSearchParams<{ id: string; payment?: string }>();
@@ -213,6 +241,17 @@ export default function EventDetailScreen() {
 
   // Kept in sync with module-level _pendingYookassaPaymentId
   const yookassaPaymentIdRef = React.useRef<string | null>(_pendingYookassaPaymentId);
+
+  // On web: restore payment ID from sessionStorage (survives page redirect during 3DS)
+  useEffect(() => {
+    if (!id) return;
+    const stored = loadPaymentIdFromSession(id);
+    if (stored && !yookassaPaymentIdRef.current) {
+      _pendingYookassaPaymentId = stored;
+      yookassaPaymentIdRef.current = stored;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const loadEvent = async (active: { value: boolean }) => {
     try {
@@ -275,6 +314,7 @@ export default function EventDetailScreen() {
       if (status === 'paid') {
         _pendingYookassaPaymentId = null;
         yookassaPaymentIdRef.current = null;
+        clearPaymentIdFromSession();
         const active = { value: true };
         await loadEvent(active);
         setIsPollingPayment(false);
@@ -283,6 +323,7 @@ export default function EventDetailScreen() {
       if (status === 'failed') {
         _pendingYookassaPaymentId = null;
         yookassaPaymentIdRef.current = null;
+        clearPaymentIdFromSession();
         setIsPollingPayment(false);
         setPaymentFailedModalVisible(true);
         return;
@@ -341,6 +382,7 @@ export default function EventDetailScreen() {
         if (status === 'paid') {
           _pendingYookassaPaymentId = null;
           yookassaPaymentIdRef.current = null;
+          clearPaymentIdFromSession();
           const active = { value: true };
           await loadEvent(active);
           return;
@@ -348,6 +390,7 @@ export default function EventDetailScreen() {
         if (status === 'failed') {
           _pendingYookassaPaymentId = null;
           yookassaPaymentIdRef.current = null;
+          clearPaymentIdFromSession();
           setEvent((prev) => prev ? {
             ...prev,
             isPaid: false,
@@ -360,12 +403,17 @@ export default function EventDetailScreen() {
         // 3DS required: open confirmation page, then re-check status immediately
         if (confirmationUrl) {
           setIsPollingPayment(false);
+          if (Platform.OS === 'web') {
+            redirectToPaymentUrl(confirmationUrl);
+            return;
+          }
           await WebBrowser.openBrowserAsync(confirmationUrl);
           setIsPollingPayment(true);
           const { status: afterStatus } = await fetchPaymentStatus(eventId);
           if (afterStatus === 'paid') {
             _pendingYookassaPaymentId = null;
             yookassaPaymentIdRef.current = null;
+            clearPaymentIdFromSession();
             const active = { value: true };
             await loadEvent(active);
             return;
@@ -373,6 +421,7 @@ export default function EventDetailScreen() {
           if (afterStatus === 'failed') {
             _pendingYookassaPaymentId = null;
             yookassaPaymentIdRef.current = null;
+            clearPaymentIdFromSession();
             setEvent((prev) => prev ? {
               ...prev,
               isPaid: false,
@@ -452,15 +501,21 @@ export default function EventDetailScreen() {
       if (yid) {
         yookassaPaymentIdRef.current = yid;
         _pendingYookassaPaymentId = yid;
+        savePaymentIdToSession(yid, event.id);
       }
 
-      // 3DS confirmation: open browser, then sync status and reload
+      // 3DS confirmation: redirect/open browser, then sync status and reload
       const confirmUrl =
         data?.confirmation_url ?? data?.confirmationUrl ??
         data?.redirect_url ?? data?.userEvent?.confirmation_url ??
         data?.userEvent?.redirect_url ?? null;
       if (confirmUrl) {
         setCardModalVisible(false);
+        if (Platform.OS === 'web') {
+          // Web: redirect current tab to YooKassa; app returns via ?payment=callback
+          redirectToPaymentUrl(confirmUrl);
+          return;
+        }
         await WebBrowser.openBrowserAsync(confirmUrl);
         // Sync with YooKassa after user completes 3DS
         await fetchPaymentStatus(event.id, yid);

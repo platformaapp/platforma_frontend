@@ -58,6 +58,7 @@ export default function TutorCardScreen() {
   const [isTutor, setIsTutor] = useState(false);
   const [telegramHandle, setTelegramHandle] = useState('');
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [isMentorVerified, setIsMentorVerified] = useState(true);
 
   const [showSlots, setShowSlots] = useState(false);
   const [slots, setSlots] = useState<SlotItem[]>([]);
@@ -104,6 +105,8 @@ export default function TutorCardScreen() {
           // Telegram handle
           const tg = tutor.telegram ?? tutor.telegramUsername ?? tutor.telegram_username ?? '';
           setTelegramHandle(tg.replace(/^@/, ''));
+          // Verification: if field present and explicitly false — mentor not verified
+          if (active) setIsMentorVerified(tutor.isVerified !== false);
         }
       } catch {
         // ignore — show placeholder
@@ -126,12 +129,20 @@ export default function TutorCardScreen() {
     setSlotsError('');
     try {
       const apiSlots = await getStudentTutorSlots(id ?? '');
-      setSlots(apiSlots.map((s) => ({
+      const nowTs = Date.now();
+      const filtered = apiSlots.filter((s) => {
+        // Hide booked slots — not available for new bookings
+        if (s.status !== 'free' && s.status !== 'available') return false;
+        // Hide past slots
+        const slotTs = new Date(`${s.date}T${s.time}:00`).getTime();
+        return slotTs > nowTs;
+      });
+      setSlots(filtered.map((s) => ({
         id: s.id,
         date: formatSlotDate(s.date),
         time: s.time,
         price: s.price,
-        status: s.status === 'free' || s.status === 'available' ? 'available' : 'booked',
+        status: 'available',
       })));
     } catch (e: any) {
       setSlotsError(e?.message ?? 'Не удалось загрузить слоты');
@@ -199,8 +210,8 @@ export default function TutorCardScreen() {
         </View>
       ) : null}
 
-      {/* Booking button — hidden only for own profile */}
-      {!isOwnProfile && (
+      {/* Booking button — hidden for own profile and unverified mentors */}
+      {!isOwnProfile && isMentorVerified && (
         <Pressable style={styles.primaryButton} onPress={handleOpenSlots}>
           <Text style={styles.primaryButtonText}>Записаться на встречу</Text>
         </Pressable>

@@ -1,4 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
@@ -19,7 +20,7 @@ import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
-import { getAuthToken, getAuthRole } from '@/lib/auth';
+import { getAuthToken, getAuthRole, getUserProfile } from '@/lib/auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ type BookingItem = {
   time?: string;
   status?: string;
   createdAt?: string;
+  videoUrl?: string;
 };
 
 type Tab = 'events' | 'meetings';
@@ -109,7 +111,7 @@ function translateEventStatus(s: string): string {
 
 function translateStatus(s: string): string {
   const map: Record<string, string> = {
-    pending: 'Ожидает подтверждения', confirmed: 'Подтверждено',
+    pending: 'Забронировано', confirmed: 'Подтверждено',
     cancelled: 'Отменено', completed: 'Завершено', booked: 'Забронировано',
   };
   return map[s.toLowerCase()] ?? s;
@@ -126,6 +128,7 @@ export default function MyEventsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [role, setRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Event menu
   const [menuEvent, setMenuEvent] = useState<EventItem | null>(null);
@@ -143,9 +146,10 @@ export default function MyEventsScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [token, userRole] = await Promise.all([getAuthToken(), getAuthRole()]);
+      const [token, userRole, profile] = await Promise.all([getAuthToken(), getAuthRole(), getUserProfile().catch(() => null)]);
       if (!token) { setLoading(false); setRefreshing(false); return; }
       setRole(userRole);
+      if (profile?.id) setCurrentUserId(profile.id);
       // Events: use /api/events/my with matching role for both tutor and student
       const eventsPromise = getMyEventsForStudent({ role: userRole as 'student' | 'tutor', filter: 'all', time: 'all', page: 1, per_page: 50 })
         .then(({ items }) => items.map((it) => {
@@ -175,7 +179,11 @@ export default function MyEventsScreen() {
 
       if (bookRes.status === 'fulfilled' && bookRes.value.ok) {
         const data = await bookRes.value.json();
-        setBookings(Array.isArray(data) ? data : []);
+        const rawList: any[] = Array.isArray(data) ? data : [];
+        setBookings(rawList.map((b) => ({
+          ...b,
+          videoUrl: b.videoUrl ?? b.video_url ?? b.meetingUrl ?? b.meeting_url ?? undefined,
+        } as BookingItem)));
       } else {
         setBookings([]);
       }
@@ -318,9 +326,16 @@ export default function MyEventsScreen() {
       ? (item.student?.id)
       : (item.tutor?.id ?? item.tutorId);
     const dateStr = formatBookingDate(item.date, item.time);
-    const isPast = item.date
-      ? new Date(`${item.date}T${item.time ?? '23:59'}:00`).getTime() < Date.now()
-      : false;
+    const nowTs = Date.now();
+    const meetingTs = item.date
+      ? new Date(`${item.date}T${item.time ?? '23:59'}:00`).getTime()
+      : null;
+    const isPast = meetingTs != null ? meetingTs < nowTs : false;
+    const FIFTEEN_MIN = 15 * 60 * 1000;
+    const NINETY_MIN = 90 * 60 * 1000;
+    const isNearlyStarting = meetingTs != null &&
+      nowTs >= meetingTs - FIFTEEN_MIN &&
+      nowTs <= meetingTs + NINETY_MIN;
     return (
       <View key={item.id} style={styles.card}>
         <Pressable
@@ -346,6 +361,14 @@ export default function MyEventsScreen() {
             </Pressable>
           )}
         </View>
+        {isNearlyStarting && item.videoUrl && (
+          <Pressable
+            style={styles.videoButton}
+            onPress={() => Linking.openURL(item.videoUrl!)}
+          >
+            <Text style={styles.videoButtonText}>Открыть видео</Text>
+          </Pressable>
+        )}
       </View>
     );
   };
@@ -503,39 +526,48 @@ export default function MyEventsScreen() {
                 <Text style={styles.modalEventDate}>{formatBookingDate(menuBooking.date, menuBooking.time)}</Text>
               )}
             </View>
-            {role === 'tutor' ? (
-              <>
-                <Pressable
-                  style={styles.modalActionButton}
-                  onPress={() => {
-                    const studentId = menuBooking?.student?.id;
-                    setMenuBooking(null);
-                    if (studentId) router.push(`/(tabs)/explore/${studentId}` as any);
-                  }}
-                >
-                  <Text style={styles.modalActionButtonText}>Написать ученику</Text>
-                </Pressable>
-                <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
-                  <Text style={styles.modalCancelButtonText}>Отменить встречу</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Pressable
-                  style={styles.modalActionButton}
-                  onPress={() => {
-                    const tutorId = menuBooking?.tutor?.id ?? menuBooking?.tutorId;
-                    setMenuBooking(null);
-                    if (tutorId) router.push(`/(tabs)/explore/${tutorId}` as any);
-                  }}
-                >
-                  <Text style={styles.modalActionButtonText}>Написать наставнику</Text>
-                </Pressable>
-                <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
-                  <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
-                </Pressable>
-              </>
-            )}
+            {(() => {
+              // Determine if current user is the listener (student) in this booking.
+              // A tutor can book as a student with another tutor — in that case show "Написать наставнику".
+              const isListener = role !== 'tutor' ||
+                (menuBooking?.student?.id != null && menuBooking.student.id === currentUserId);
+              if (isListener) {
+                return (
+                  <>
+                    <Pressable
+                      style={styles.modalActionButton}
+                      onPress={() => {
+                        const tutorId = menuBooking?.tutor?.id ?? menuBooking?.tutorId;
+                        setMenuBooking(null);
+                        if (tutorId) router.push(`/(tabs)/explore/${tutorId}` as any);
+                      }}
+                    >
+                      <Text style={styles.modalActionButtonText}>Написать наставнику</Text>
+                    </Pressable>
+                    <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
+                      <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
+                    </Pressable>
+                  </>
+                );
+              }
+              return (
+                <>
+                  <Pressable
+                    style={styles.modalActionButton}
+                    onPress={() => {
+                      const studentId = menuBooking?.student?.id;
+                      setMenuBooking(null);
+                      if (studentId) router.push(`/(tabs)/explore/${studentId}` as any);
+                    }}
+                  >
+                    <Text style={styles.modalActionButtonText}>Написать ученику</Text>
+                  </Pressable>
+                  <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
+                    <Text style={styles.modalCancelButtonText}>Отменить встречу</Text>
+                  </Pressable>
+                </>
+              );
+            })()}
           </Pressable>
         </Pressable>
       </Modal>
@@ -673,4 +705,6 @@ const styles = StyleSheet.create({
   pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
   pastSeparatorLabel: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },
   pastCardWrap: { opacity: 0.55 },
+  videoButton: { backgroundColor: '#E02D2D', height: 44, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
+  videoButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
 });

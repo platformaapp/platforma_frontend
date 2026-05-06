@@ -323,6 +323,8 @@ export interface PublicTutor {
   telegram?: string;
   telegramUsername?: string;
   telegram_username?: string;
+  /** Whether the mentor has been verified by admins */
+  isVerified?: boolean;
 }
 
 /**
@@ -410,6 +412,7 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
       shortBio: u.shortBio ?? u.short_bio ?? undefined,
       hourlyRate: u.hourlyRate ?? u.hourly_rate ?? u.pricePerHour ?? undefined,
       telegram: u.telegram ?? u.telegramUsername ?? u.telegram_username ?? undefined,
+      isVerified: u.isVerified ?? u.is_verified ?? u.verified ?? undefined,
     } as PublicTutor));
 }
 
