@@ -16,18 +16,25 @@ export default function AboutScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.mainTitle}>Платформа для онлайн-лекций, творческих занятий и встреч с наставниками.</Text>
+        <Text style={styles.mainTitle}>
+          p34 — это онлайн-платформа для лекций, творческих занятий и встреч с наставниками.
+        </Text>
+        <Text style={styles.intro}>
+          На платформе размещаются лекции, вебинары и мастер-классы, проводимые независимыми авторами и организациями.
+        </Text>
+        <Text style={styles.intro}>
+          Платформа p34 предоставляет техническую возможность для размещения мероприятий, их бронирования, оплаты и участия в онлайн-формате. p34 не является исполнителем услуг — услуги оказываются непосредственно наставниками и организаторами.
+        </Text>
 
-        {/* 1. First screen */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Лекции, вебинары и мастер-классы в одном месте.</Text>
-          <Text style={styles.subtitle}>Бронируйте и оплачивайте мероприятия онлайн</Text>
-        </View>
-
-        {/* 2. How it works */}
+        {/* Как это работает */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Как это работает</Text>
-          {['Вы выбираете событие', 'Бронируете участие', 'Оплачиваете онлайн', 'Подключаетесь к мероприятию'].map((step, i) => (
+          {[
+            'Вы выбираете мероприятие',
+            'Бронируете участие',
+            'Оплачиваете онлайн',
+            'Получаете доступ и подключаетесь к мероприятию',
+          ].map((step, i) => (
             <View key={i} style={styles.stepRow}>
               <View style={styles.stepNum}><Text style={styles.stepNumText}>{i + 1}</Text></View>
               <Text style={styles.stepText}>{step}</Text>
@@ -35,42 +42,77 @@ export default function AboutScreen() {
           ))}
         </View>
 
-        {/* 3. Formats */}
+        {/* Форматы */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Форматы мероприятий</Text>
-          {['Лекции', 'Паблик-толки', 'Творческие мастер-классы', 'Книжные клубы', 'Подкасты'].map((f, i) => (
+          <Text style={styles.body}>Все мероприятия проводятся в онлайн-формате.</Text>
+          {['Лекции', 'Паблик-толки', 'Творческие мастер-классы', 'Книжные клубы'].map((f, i) => (
             <Text key={i} style={styles.bulletItem}>— {f}</Text>
           ))}
         </View>
 
-        {/* 4. Event cards */}
+        {/* Кто проводит */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeading}>Карточки событий</Text>
-          <Text style={styles.body}>Каждое событие содержит: название, описание, дату и время, формат (лекция, мастер-класс) и цену.</Text>
-          <View style={styles.exampleCard}>
-            <Text style={styles.exampleTitle}>Лекция: Современное искусство</Text>
-            <Text style={styles.exampleMeta}>12 мая, онлайн</Text>
-            <Text style={styles.examplePrice}>1500 ₽</Text>
-          </View>
+          <Text style={styles.sectionHeading}>Кто проводит мероприятия</Text>
+          <Text style={styles.body}>
+            Мероприятия на платформе проводят независимые наставники и организаторы. Они самостоятельно формируют программу, содержание и стоимость своих мероприятий.
+          </Text>
+          <Text style={styles.bodyLabel}>Платформа p34 обеспечивает:</Text>
+          {['Размещение мероприятий', 'Бронирование участия', 'Приём оплаты', 'Доступ к онлайн-формату'].map((item, i) => (
+            <Text key={i} style={styles.bulletItem}>— {item}</Text>
+          ))}
         </View>
 
-        {/* 5. Payment */}
+        {/* Карточка мероприятия */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>Карточка мероприятия</Text>
+          <Text style={styles.body}>Каждое мероприятие содержит:</Text>
+          {['Название', 'Описание', 'Дату и время', 'Формат', 'Стоимость участия'].map((item, i) => (
+            <Text key={i} style={styles.bulletItem}>— {item}</Text>
+          ))}
+        </View>
+
+        {/* Оплата */}
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Оплата</Text>
-          <Text style={styles.body}>Оплата мероприятий осуществляется онлайн через платформу.</Text>
-          <Text style={styles.body}>Доступ к событию предоставляется после подтверждения оплаты.</Text>
+          <Text style={styles.body}>
+            Оплата мероприятий осуществляется онлайн через платёжные сервисы, включая ЮKassa.
+          </Text>
+          <Text style={styles.body}>
+            После успешной оплаты пользователю предоставляется доступ к мероприятию.
+          </Text>
+          <Text style={styles.body}>
+            Платформа действует как агент по приёму платежей и удерживает комиссию. Оставшиеся средства перечисляются наставнику или организатору.
+          </Text>
         </View>
 
-        {/* 6. Contacts */}
+        {/* Получение услуги */}
         <View style={styles.section}>
+          <Text style={styles.sectionHeading}>Получение услуги</Text>
+          <Text style={styles.body}>Доступ к мероприятию предоставляется:</Text>
+          {['В личном кабинете пользователя', 'По ссылке, направляемой перед началом мероприятия'].map((item, i) => (
+            <Text key={i} style={styles.bulletItem}>— {item}</Text>
+          ))}
+        </View>
+
+        {/* Правовая информация */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>Правовая информация</Text>
+          <Text style={styles.body}>
+            Настоящий сайт является публичной офертой. Регистрируясь на платформе или оплачивая мероприятие, пользователь принимает условия пользовательского соглашения и политики конфиденциальности.
+          </Text>
+        </View>
+
+        {/* Контакты и реквизиты */}
+        <View style={[styles.section, styles.lastSection]}>
           <Text style={styles.sectionHeading}>Контакты и реквизиты</Text>
           {[
-            ['Исполнитель', 'Якунин Владислав Александрович'],
-            ['Статус', 'Самозанятый (НПД)'],
+            ['Оператор платформы', 'Якунин Владислав Александрович'],
+            ['Статус', 'Плательщик налога на профессиональный доход (самозанятый)'],
             ['ИНН', '344214640369'],
             ['Email', 'v.yakunin2011@yandex.ru'],
             ['Телефон', '+7 905 390 12 93'],
-            ['Банк', 'Альфа Банк'],
+            ['Банк', 'Альфа-Банк'],
             ['Расчётный счёт', '40817810404981038195'],
           ].map(([label, value], i) => (
             <View key={i} style={styles.contactRow}>
@@ -78,14 +120,6 @@ export default function AboutScreen() {
               <Text style={styles.contactValue}>{value}</Text>
             </View>
           ))}
-        </View>
-
-        {/* 7. Offer */}
-        <View style={[styles.section, styles.lastSection]}>
-          <Text style={styles.sectionHeading}>Оферта</Text>
-          <Text style={styles.body}>
-            Настоящий сайт является публичной офертой. Регистрируясь на платформе и оплачивая мероприятие, вы принимаете условия пользовательского соглашения и политики конфиденциальности, размещённых на сайте.
-          </Text>
         </View>
       </ScrollView>
     </View>
@@ -100,12 +134,14 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: 40 },
   mainTitle: {
     fontSize: 20, lineHeight: 28, fontFamily: 'Inter-Regular', color: '#181818',
-    marginBottom: 24, marginTop: 8,
+    marginBottom: 12, marginTop: 8,
   },
-  section: { marginBottom: 28 },
+  intro: {
+    fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#555',
+    marginBottom: 10,
+  },
+  section: { marginTop: 20, marginBottom: 8 },
   lastSection: { marginBottom: 0 },
-  sectionTitle: { fontSize: 18, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 8 },
-  subtitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#555' },
   sectionHeading: {
     fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818',
     borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 6, marginBottom: 12,
@@ -117,15 +153,11 @@ const styles = StyleSheet.create({
   },
   stepNumText: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#fff' },
   stepText: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', flex: 1 },
-  bulletItem: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
   body: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 8 },
-  exampleCard: {
-    borderWidth: 1, borderColor: '#1E1E1E', padding: 14, marginTop: 8,
-  },
-  exampleTitle: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
-  exampleMeta: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#555', marginBottom: 4 },
-  examplePrice: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818' },
+  bodyLabel: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 6, marginTop: 4 },
+  bulletItem: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4, paddingLeft: 4 },
   contactRow: { flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' },
   contactLabel: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#555', marginRight: 6, minWidth: 120 },
   contactValue: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818', flex: 1 },
 });
+
