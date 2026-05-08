@@ -158,26 +158,31 @@ export default function AdminEventsScreen() {
 
   const renderItem = ({ item }: { item: AdminEvent }) => (
     <View style={styles.card}>
-      {item.coverUrl ? (
-        <Image source={{ uri: item.coverUrl }} style={styles.cover} />
-      ) : (
-        <View style={[styles.cover, styles.coverPlaceholder]} />
-      )}
-      <View style={styles.cardBody}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{item.title || '—'}</Text>
-        {item.mentor?.name ? <Text style={styles.cardMeta}>{item.mentor.name}</Text> : null}
-        <Text style={styles.cardDate}>{formatDate(item.datetimeStart)}</Text>
-        <View style={styles.cardFooter}>
-          <View style={[styles.statusBadge, { backgroundColor: item.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
-            <Text style={[styles.statusText, { color: item.isBlocked ? '#721c24' : '#155724' }]}>
-              {item.isBlocked ? 'Заблокировано' : 'Активно'}
-            </Text>
+      <Pressable
+        style={styles.cardClickable}
+        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+      >
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={styles.cover} />
+        ) : (
+          <View style={[styles.cover, styles.coverPlaceholder]} />
+        )}
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle} numberOfLines={2}>{item.title || '—'}</Text>
+          {item.mentor?.name ? <Text style={styles.cardMeta}>{item.mentor.name}</Text> : null}
+          <Text style={styles.cardDate}>{formatDate(item.datetimeStart)}</Text>
+          <View style={styles.cardFooter}>
+            <View style={[styles.statusBadge, { backgroundColor: item.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
+              <Text style={[styles.statusText, { color: item.isBlocked ? '#721c24' : '#155724' }]}>
+                {item.isBlocked ? 'Заблокировано' : 'Активно'}
+              </Text>
+            </View>
+            {item.price != null && (
+              <Text style={styles.priceBadge}>{item.price.toLocaleString('ru-RU')} ₽</Text>
+            )}
           </View>
-          {item.price != null && (
-            <Text style={styles.priceBadge}>{item.price.toLocaleString('ru-RU')} ₽</Text>
-          )}
         </View>
-      </View>
+      </Pressable>
       <Pressable
         style={[styles.blockBtn, item.isBlocked ? styles.unblockBtnStyle : styles.blockBtnStyle]}
         onPress={() => openBlockConfirm(item)}
@@ -266,6 +271,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#181818' },
   list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
   card: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
+  cardClickable: { flexDirection: 'row', flex: 1 },
   cover: { width: 72, height: 72 },
   coverPlaceholder: { backgroundColor: '#E5E5E5' },
   cardBody: { flex: 1, paddingVertical: 8, paddingHorizontal: 10 },

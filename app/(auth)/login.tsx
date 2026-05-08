@@ -157,15 +157,24 @@ export default function LoginScreen() {
         {closeBtn}
         <View style={styles.centerArea}>
           <Text style={styles.title}>АВТОРИЗАЦИЯ</Text>
-          <TextInput
-            placeholder="Почта"
-            placeholderTextColor="#888"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-          />
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              placeholder="Почта"
+              placeholderTextColor="#888"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+            />
+            {email.length > 0 && (
+              <Pressable onPress={() => setEmail('')} style={styles.eye} hitSlop={8}>
+                <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <Path d="M2 2L22 22M22 2L2 22" stroke="#9B9B9B" strokeWidth="1.8" strokeLinecap="round" />
+                </Svg>
+              </Pressable>
+            )}
+          </View>
           <View style={{ position: 'relative' }}>
             <TextInput
               placeholder="Пароль"

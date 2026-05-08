@@ -218,30 +218,35 @@ export default function AdminUsersScreen() {
 
   const renderItem = ({ item }: { item: AdminUser }) => (
     <View style={styles.card}>
-      <View style={styles.cardLeft}>
-        {item.avatarUrl ? (
-          <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarInitial}>{(item.fullName || '?')[0].toUpperCase()}</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.cardName}>{item.fullName || '—'}</Text>
-        <Text style={styles.cardEmail}>{item.email}</Text>
-        <Text style={styles.cardMeta}>{item.roles.join(', ') || 'без роли'}</Text>
-        <View style={styles.cardFooter}>
-          <View style={[styles.statusBadge, { backgroundColor: item.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
-            <Text style={[styles.statusText, { color: item.isBlocked ? '#721c24' : '#155724' }]}>
-              {item.isBlocked ? 'Заблокирован' : 'Активен'}
-            </Text>
-          </View>
-          {item.commissionRate != null && (
-            <Text style={styles.commissionBadge}>{item.commissionRate}%</Text>
+      <Pressable
+        style={styles.cardClickable}
+        onPress={() => router.push(`/(tabs)/profile/${item.id}` as any)}
+      >
+        <View style={styles.cardLeft}>
+          {item.avatarUrl ? (
+            <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{(item.fullName || '?')[0].toUpperCase()}</Text>
+            </View>
           )}
         </View>
-      </View>
+        <View style={styles.cardBody}>
+          <Text style={styles.cardName}>{item.fullName || '—'}</Text>
+          <Text style={styles.cardEmail}>{item.email}</Text>
+          <Text style={styles.cardMeta}>{item.roles.join(', ') || 'без роли'}</Text>
+          <View style={styles.cardFooter}>
+            <View style={[styles.statusBadge, { backgroundColor: item.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
+              <Text style={[styles.statusText, { color: item.isBlocked ? '#721c24' : '#155724' }]}>
+                {item.isBlocked ? 'Заблокирован' : 'Активен'}
+              </Text>
+            </View>
+            {item.commissionRate != null && (
+              <Text style={styles.commissionBadge}>{item.commissionRate}%</Text>
+            )}
+          </View>
+        </View>
+      </Pressable>
       <View style={styles.cardActions}>
         <Pressable
           style={[styles.actionBtn, item.isBlocked ? styles.unblockBtn : styles.blockBtn]}
@@ -388,6 +393,7 @@ const styles = StyleSheet.create({
   searchInput: { borderWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
   card: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
+  cardClickable: { flex: 1, flexDirection: 'row' },
   cardLeft: { padding: 10 },
   avatar: { width: 52, height: 52 },
   avatarPlaceholder: { backgroundColor: '#E5E5E5', alignItems: 'center', justifyContent: 'center' },
