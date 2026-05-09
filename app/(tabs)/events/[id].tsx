@@ -796,9 +796,9 @@ export default function EventDetailScreen() {
         </View>
       ) : Platform.OS === 'ios' ? (
         // iOS: redirect to website to avoid Apple's 30% commission
-        <View>
+        <View style={styles.iosPaymentBlock}>
           <Pressable
-            style={styles.registerButton}
+            style={[styles.registerButton, { alignSelf: 'stretch' }]}
             onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
           >
             <Text style={styles.registerButtonText}>Оплатить на сайте ↗</Text>
@@ -1098,6 +1098,7 @@ const styles = StyleSheet.create({
   registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 0 },
   registerButtonDisabled: { backgroundColor: '#9B9B9B' },
   registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
+  iosPaymentBlock: { paddingHorizontal: 16, alignItems: 'center' },
   iosPaymentNote: { fontSize: 11, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center', marginTop: 6, marginBottom: 8 },
 
   // Payment pending badge

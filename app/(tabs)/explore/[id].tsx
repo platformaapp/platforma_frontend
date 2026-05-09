@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
-import { bookTutorSlot, getPublicTutorList, getStudentTutorSlots } from '@/lib/api/tutor';
+import { bookTutorSlot, getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 type MentorEvent = {
@@ -103,36 +103,32 @@ export default function TutorCardScreen() {
 
     const load = async () => {
       try {
-        const [viewerRole, profile, list] = await Promise.all([
+        const [viewerRole, profile, authList, publicList] = await Promise.all([
           getAuthRole(),
           getUserProfile(),
           getPublicTutorList(),
+          getPublicTutors(),
         ]);
         if (active) {
           setIsTutor(viewerRole === 'tutor');
           setIsOwnProfile(profile?.id === id);
         }
 
-        // Fetch tutor info from user list
-        const tutor = list.find((t) => t.id === id);
+        // Find tutor in authenticated list first; fall back to public list (no auth needed)
+        const tutor = authList.find((t) => t.id === id) ?? publicList.find((t) => t.id === id);
         if (active && tutor) {
           setDisplayName(tutor.fullName ?? '');
-          // shortBio = role label (e.g. "Куратор, исследователь")
-          const roleLabel = tutor.shortBio ?? tutor.short_bio ?? '';
+          const roleLabel = (tutor as any).shortBio ?? (tutor as any).short_bio ?? '';
           setDisplayRole(roleLabel);
-          // bio = long description text
-          setDisplayBio(tutor.bio ?? '');
+          setDisplayBio((tutor as any).bio ?? '');
           setAvatarUrl(tutor.avatarUrl ?? '');
-          // hourlyRate for price row
-          const rate = tutor.hourlyRate ?? tutor.hourly_rate ?? tutor.pricePerHour;
+          const rate = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
           if (typeof rate === 'number' && rate > 0) {
             setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
           }
-          // Telegram handle
-          const tg = tutor.telegram ?? tutor.telegramUsername ?? tutor.telegram_username ?? '';
+          const tg = (tutor as any).telegram ?? (tutor as any).telegramUsername ?? (tutor as any).telegram_username ?? '';
           setTelegramHandle(tg.replace(/^@/, ''));
-          // Verification: if field present and explicitly false — mentor not verified
-          if (active) setIsMentorVerified(tutor.isVerified !== false);
+          if (active) setIsMentorVerified((tutor as any).isVerified !== false);
         }
 
         // Fetch mentor's events from eventsFeed (includes mentor data) and filter client-side
