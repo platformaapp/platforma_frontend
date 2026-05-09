@@ -788,10 +788,8 @@ export default function EventDetailScreen() {
             )}
             <View style={[styles.curatorNameWrapper, { width: width - 96 - 32 - 16 }]}>
               <Text style={styles.curatorName}>{event.mentor.name}</Text>
-              {(event.mentor.shortBio || event.mentor.bio) ? (
-                <Text style={styles.curatorRole}>
-                  {event.mentor.shortBio || event.mentor.bio}
-                </Text>
+              {event.mentor.shortBio ? (
+                <Text style={styles.curatorRole}>{event.mentor.shortBio}</Text>
               ) : null}
             </View>
           </Pressable>
@@ -1055,7 +1053,7 @@ const styles = StyleSheet.create({
 
   curatorSection: { alignItems: 'center', marginBottom: 24, width: '100%', marginTop: 16 },
   curatorSectionWrapper: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', width: '100%', borderBottomWidth: 0 },
-  curatorAvatar: { width: 96, height: 96, borderRightWidth: 1, borderColor: '#1E1E1E' },
+  curatorAvatar: { width: 96, alignSelf: 'stretch', borderRightWidth: 1, borderColor: '#1E1E1E' },
   curatorAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
   curatorNameWrapper: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 },
   curatorName: { fontSize: 18, fontWeight: 'bold', fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
