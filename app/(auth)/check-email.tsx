@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
     color: '#181818',
   },
   bottomLink: {
-    marginTop: 24,
-    alignItems: 'flex-start',
+    marginTop: 198,
+    alignItems: 'center',
   },
   bottomLinkText: {
     fontFamily: 'Inter-Regular',

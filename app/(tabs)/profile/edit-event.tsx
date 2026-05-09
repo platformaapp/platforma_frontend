@@ -47,7 +47,7 @@ function toDatetimeRange(date: Date, timeStr: string): { start: string; end: str
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-const TITLE_LIMIT = 70;
+const TITLE_LIMIT = 100;
 
 export default function EditEventScreen() {
   const router = useRouter();
