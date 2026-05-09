@@ -152,7 +152,12 @@ export default function EventsScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.titleText, { paddingTop: insets.top + 16 }]}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
+      <View style={[styles.titleRow, { paddingTop: insets.top + 16 }]}>
+        <Text style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
+        <Pressable onPress={() => router.push('/about' as any)}>
+          <Text style={styles.aboutLink}>О сервисе</Text>
+        </Pressable>
+      </View>
       {error ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
@@ -197,9 +202,16 @@ export default function EventsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  titleText: {
+  titleRow: {
+    flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
+  },
+  titleText: {
     fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818',
+  },
+  aboutLink: {
+    fontSize: 13, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818',
+    textDecorationLine: 'underline',
   },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },
   card: { borderWidth: 1, borderColor: '#1E1E1E', marginHorizontal: 16, marginBottom: 16, backgroundColor: '#fff' },
