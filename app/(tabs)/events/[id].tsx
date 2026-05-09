@@ -1113,8 +1113,8 @@ const styles = StyleSheet.create({
   curatorNameWrapper: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 },
   curatorName: { fontSize: 18, fontWeight: 'bold', fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
   curatorRole: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
-  writeToCuratorButton: { borderWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 14, paddingVertical: 8, height: 52, width: '100%', justifyContent: 'center', alignItems: 'center' },
-  writeToCuratorText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  writeToCuratorButton: { backgroundColor: '#181818', paddingVertical: 16, width: '100%', justifyContent: 'center', alignItems: 'center' },
+  writeToCuratorText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
 
   shareButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 32 },
   shareButtonIcon: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center', borderLeftWidth: 1, borderColor: '#1E1E1E' },
