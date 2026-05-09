@@ -35,6 +35,7 @@ function resolveUrl(url: unknown): string | null {
   return `${API_BASE}${url}`;
 }
 import { getPaymentMethods } from '@/lib/api/student-payments';
+import { getPublicTutorList } from '@/lib/api/tutor';
 import { authedFetch } from '@/lib/authed-fetch';
 import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
@@ -279,6 +280,23 @@ export default function EventDetailScreen() {
       if (detailRes.status === 'fulfilled' && detailRes.value.ok) {
         const raw = await detailRes.value.json();
         const normalized = normalizeEvent(raw as Record<string, unknown>);
+
+        // Enrich mentor avatar + shortBio from the public tutor list
+        if (normalized.mentor?.id) {
+          try {
+            const tutorList = await getPublicTutorList();
+            const tutor = tutorList.find((t) => t.id === normalized.mentor!.id);
+            if (tutor) {
+              normalized.mentor = {
+                ...normalized.mentor,
+                avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
+                shortBio: normalized.mentor.shortBio || tutor.shortBio || tutor.short_bio || '',
+                bio: normalized.mentor.bio || tutor.bio || '',
+              };
+            }
+          } catch { /* ignore — use whatever the event API returned */ }
+        }
+
         if (active.value) setEvent(normalized);
       }
 
@@ -302,6 +320,23 @@ export default function EventDetailScreen() {
         if (authRes?.ok && active.value) {
           const raw = await authRes.json();
           const normalized = normalizeEvent(raw as Record<string, unknown>);
+
+          // Re-apply tutor enrichment if needed
+          if (normalized.mentor?.id && (!normalized.mentor.avatarUrl || !normalized.mentor.shortBio)) {
+            try {
+              const tutorList = await getPublicTutorList();
+              const tutor = tutorList.find((t) => t.id === normalized.mentor!.id);
+              if (tutor) {
+                normalized.mentor = {
+                  ...normalized.mentor,
+                  avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
+                  shortBio: normalized.mentor.shortBio || tutor.shortBio || tutor.short_bio || '',
+                  bio: normalized.mentor.bio || tutor.bio || '',
+                };
+              }
+            } catch { /* ignore */ }
+          }
+
           if (active.value) setEvent(normalized);
         }
       }
