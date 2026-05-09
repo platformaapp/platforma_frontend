@@ -100,12 +100,25 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
 
   // Mentor / teacher
   const mentorRaw = (r.mentor ?? r.teacher ?? r.tutor) as Record<string, unknown> | undefined;
-  const mentor = mentorRaw ? {
-    id: String(mentorRaw.id ?? mentorRaw.userId ?? mentorRaw.user_id ?? ''),
-    name: String(mentorRaw.name ?? mentorRaw.fullName ?? mentorRaw.full_name ?? mentorRaw.displayName ?? ''),
-    avatarUrl: resolveUrl(mentorRaw.avatarUrl ?? mentorRaw.avatar_url),
-    bio: (mentorRaw.bio ?? mentorRaw.description ?? '') as string,
-  } : undefined;
+  const mentor = mentorRaw ? (() => {
+    const userRaw = (mentorRaw.user ?? mentorRaw.profile) as Record<string, unknown> | undefined;
+    const avatarUrl = resolveUrl(
+      mentorRaw.avatarUrl ?? mentorRaw.avatar_url ??
+      mentorRaw.photo ?? mentorRaw.image ?? mentorRaw.picture ??
+      mentorRaw.profilePhoto ?? mentorRaw.profile_photo ??
+      mentorRaw.profileImage ?? mentorRaw.profile_image ??
+      // also check top-level fields that some backends return flattened
+      r.mentorAvatarUrl ?? r.mentor_avatar_url ?? r.tutorAvatarUrl ?? r.tutor_avatar_url ??
+      // nested user object inside mentor
+      userRaw?.avatarUrl ?? userRaw?.avatar_url ?? userRaw?.photo ?? userRaw?.image,
+    );
+    return {
+      id: String(mentorRaw.id ?? mentorRaw.userId ?? mentorRaw.user_id ?? ''),
+      name: String(mentorRaw.name ?? mentorRaw.fullName ?? mentorRaw.full_name ?? mentorRaw.displayName ?? ''),
+      avatarUrl,
+      bio: (mentorRaw.bio ?? mentorRaw.description ?? mentorRaw.about ?? '') as string,
+    };
+  })() : undefined;
 
   // Cover image
   const coverUrl = resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover);
