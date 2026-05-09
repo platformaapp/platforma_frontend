@@ -754,7 +754,7 @@ export default function EventDetailScreen() {
             <View style={[styles.curatorNameWrapper, { width: width - 96 - 32 - 16 }]}>
               <Text style={styles.curatorName}>{event.mentor.name}</Text>
               {(event.mentor.shortBio || event.mentor.bio) ? (
-                <Text style={styles.curatorRole} numberOfLines={2}>
+                <Text style={styles.curatorRole}>
                   {event.mentor.shortBio || event.mentor.bio}
                 </Text>
               ) : null}
