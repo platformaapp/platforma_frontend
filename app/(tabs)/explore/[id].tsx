@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   eventsSection: { marginTop: 20, marginHorizontal: 16, marginBottom: 4 },
   eventsSectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },
   eventCard: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
-  eventCover: { width: 80, height: 80 },
+  eventCover: { width: 80, alignSelf: 'stretch' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
   eventBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
   eventTitle: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818', marginBottom: 4 },
