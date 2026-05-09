@@ -321,19 +321,18 @@ export default function RegisterStudentScreen() {
         <ThemedText
           type="link"
           style={{ fontSize: 12, lineHeight: 16 }}
-          onPress={() => openBrowserAsync(OFERTA_URL)}
+          onPress={() => router.push('/offer' as any)}
         >
-          пользовательское
+          публичную оферту
         </ThemedText>
-        ,{' '}
+        {' '}и{' '}
         <ThemedText
           type="link"
           style={{ fontSize: 12, lineHeight: 16 }}
-          onPress={() => openBrowserAsync(CONF_URL)}
+          onPress={() => router.push('/privacy' as any)}
         >
-          лицензионное
+          политику конфиденциальности
         </ThemedText>
-        {' '}и другие важные нам для работы соглашения
       </ThemedText>
       <ThemedText
         type="link"

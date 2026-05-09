@@ -99,8 +99,16 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>Правовая информация</Text>
           <Text style={styles.body}>
-            Настоящий сайт является публичной офертой. Регистрируясь на платформе или оплачивая мероприятие, пользователь принимает условия пользовательского соглашения и политики конфиденциальности.
+            Настоящий сайт является публичной офертой. Регистрируясь на платформе или оплачивая мероприятие, пользователь принимает условия публичной оферты и политики конфиденциальности.
           </Text>
+          <View style={styles.legalLinks}>
+            <Pressable onPress={() => router.push('/offer' as any)}>
+              <Text style={styles.legalLink}>Публичная оферта →</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/privacy' as any)}>
+              <Text style={styles.legalLink}>Политика конфиденциальности →</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Контакты и реквизиты */}
@@ -155,6 +163,8 @@ const styles = StyleSheet.create({
   stepText: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', flex: 1 },
   body: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 8 },
   bodyLabel: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 6, marginTop: 4 },
+  legalLinks: { gap: 8, marginTop: 4 },
+  legalLink: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', textDecorationLine: 'underline' },
   bulletItem: { fontSize: 14, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4, paddingLeft: 4 },
   contactRow: { flexDirection: 'row', marginBottom: 8, flexWrap: 'wrap' },
   contactLabel: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#555', marginRight: 6, minWidth: 120 },

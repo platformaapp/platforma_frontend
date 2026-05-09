@@ -16,8 +16,32 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { API_BASE, endpoints } from '@/constants/env';
 import { bookTutorSlot, getPublicTutorList, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+
+type MentorEvent = {
+  id: string;
+  title: string;
+  datetimeStart?: string;
+  price?: number;
+  coverUrl?: string | null;
+};
+
+function resolveCover(url: unknown): string | null {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
+
+function formatEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' }) +
+      ', ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } catch { return iso; }
+}
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -69,6 +93,8 @@ export default function TutorCardScreen() {
   const [isShareVisible, setShareVisible] = useState(false);
   const [isShareCopied, setShareCopied] = useState(false);
 
+  const [mentorEvents, setMentorEvents] = useState<MentorEvent[]>([]);
+
   const profileUrl = `https://platformaapp.ru/explore/${id ?? ''}`;
 
   useEffect(() => {
@@ -107,6 +133,31 @@ export default function TutorCardScreen() {
           setTelegramHandle(tg.replace(/^@/, ''));
           // Verification: if field present and explicitly false — mentor not verified
           if (active) setIsMentorVerified(tutor.isVerified !== false);
+        }
+
+        // Fetch mentor's events
+        try {
+          const params = new URLSearchParams({ tutorId: id, mentorId: id, per_page: '20' });
+          const res = await fetch(`${endpoints.events}?${params}`);
+          if (res.ok) {
+            const data = await res.json();
+            let rawItems: unknown = data.items ?? data.data ?? data;
+            if (!Array.isArray(rawItems) && rawItems && typeof rawItems === 'object') {
+              const inner = rawItems as Record<string, unknown>;
+              rawItems = inner.items ?? inner.data ?? [];
+            }
+            const list = Array.isArray(rawItems) ? rawItems : [];
+            const events: MentorEvent[] = list.map((r: any) => ({
+              id: String(r.id ?? ''),
+              title: String(r.title ?? ''),
+              datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? undefined,
+              price: typeof r.price === 'number' ? r.price : typeof r.price === 'string' ? parseFloat(r.price) : undefined,
+              coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl),
+            })).filter((e) => e.id);
+            if (active) setMentorEvents(events);
+          }
+        } catch {
+          // ignore — events section simply stays empty
         }
       } catch {
         // ignore — show placeholder
@@ -217,18 +268,51 @@ export default function TutorCardScreen() {
         </Pressable>
       )}
 
-      {!isOwnProfile && telegramHandle ? (
+      {!isOwnProfile && (
         <Pressable
           style={styles.secondaryButton}
           onPress={async () => {
             const token = await getAuthToken();
             if (!token) { router.push('/login'); return; }
-            Linking.openURL(`https://t.me/${telegramHandle}`);
+            if (telegramHandle) {
+              Linking.openURL(`https://t.me/${telegramHandle}`);
+            } else {
+              Alert.alert('Контакт', 'Наставник пока не указал способ связи');
+            }
           }}
         >
           <Text style={styles.secondaryButtonText}>Написать наставнику</Text>
         </Pressable>
-      ) : null}
+      )}
+
+      {/* Mentor events */}
+      {mentorEvents.length > 0 && (
+        <View style={styles.eventsSection}>
+          <Text style={styles.eventsSectionTitle}>СОБЫТИЯ НАСТАВНИКА</Text>
+          {mentorEvents.map((ev) => (
+            <Pressable
+              key={ev.id}
+              style={styles.eventCard}
+              onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}
+            >
+              {ev.coverUrl ? (
+                <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" />
+              ) : (
+                <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />
+              )}
+              <View style={styles.eventBody}>
+                <Text style={styles.eventTitle} numberOfLines={2}>{ev.title}</Text>
+                {ev.datetimeStart ? (
+                  <Text style={styles.eventDate}>{formatEventDate(ev.datetimeStart)}</Text>
+                ) : null}
+                {ev.price != null ? (
+                  <Text style={styles.eventPrice}>{ev.price.toLocaleString('ru-RU')} ₽</Text>
+                ) : null}
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       {/* Share row */}
       <Pressable style={styles.shareRow} onPress={() => { setShareCopied(false); setShareVisible(true); }}>
@@ -382,6 +466,16 @@ const styles = StyleSheet.create({
 
   secondaryButton: { marginHorizontal: 16, marginTop: 12, height: 52, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
   secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+
+  eventsSection: { marginTop: 20, marginHorizontal: 16, marginBottom: 4 },
+  eventsSectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },
+  eventCard: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
+  eventCover: { width: 80, height: 80 },
+  eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
+  eventBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
+  eventTitle: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818', marginBottom: 4 },
+  eventDate: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#555', marginBottom: 2 },
+  eventPrice: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
 
   shareRow: { marginTop: 16, marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E', height: 52 },
   shareText: { flex: 1, paddingLeft: 16, fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
