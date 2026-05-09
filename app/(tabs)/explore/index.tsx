@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getPublicTutors, type PublicTutorBasic } from '@/lib/api/tutor';
+import { getPublicTutorList, type PublicTutor } from '@/lib/api/tutor';
 import { getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
@@ -21,7 +21,7 @@ const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 export default function MentorsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [tutors, setTutors] = useState<PublicTutorBasic[]>([]);
+  const [tutors, setTutors] = useState<PublicTutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,7 @@ export default function MentorsScreen() {
     try {
       setError(null);
       const [data, profileResult] = await Promise.allSettled([
-        getPublicTutors(),
+        getPublicTutorList(),
         getUserProfile(),
       ]);
 
@@ -95,8 +95,8 @@ export default function MentorsScreen() {
               />
               <View style={styles.headerText}>
                 <Text style={styles.name}>{tutor.fullName}</Text>
-                {tutor.bio ? (
-                  <Text style={styles.bio} numberOfLines={2}>{tutor.bio}</Text>
+                {(tutor.shortBio || tutor.short_bio) ? (
+                  <Text style={styles.bio} numberOfLines={2}>{tutor.shortBio || tutor.short_bio}</Text>
                 ) : null}
               </View>
             </View>
