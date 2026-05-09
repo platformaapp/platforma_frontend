@@ -281,36 +281,41 @@ export default function EventDetailScreen() {
         const raw = await detailRes.value.json();
         const normalized = normalizeEvent(raw as Record<string, unknown>);
 
-        // Enrich mentor avatar + shortBio from public sources
+        // Enrich mentor shortBio + avatarUrl from public tutor sources
         if (normalized.mentor?.id) {
           try {
             const mid = normalized.mentor.id;
-            // Try individual user endpoint first (most complete data)
-            const userRes = await fetch(`${API_BASE}/api/users/${mid}`).catch(() => null);
-            if (userRes?.ok) {
-              const u = await userRes.json().catch(() => null) as Record<string, any> | null;
-              if (u) {
-                const rawShortBio = u.shortBio ?? u.short_bio ?? u.tagline ?? u.role ??
-                  u.position ?? u.headline ?? u.shortDescription ?? u.short_description ??
-                  u.excerpt ?? u.about_short ?? '';
+            let enriched = false;
+
+            // Source 1: /api/users/tutors — dedicated public tutors list
+            const tutorsRes = await fetch(endpoints.tutors).catch(() => null);
+            if (tutorsRes?.ok) {
+              const raw = await tutorsRes.json().catch(() => null);
+              const arr: any[] = Array.isArray(raw) ? raw
+                : Array.isArray(raw?.data) ? raw.data
+                : Array.isArray(raw?.items) ? raw.items : [];
+              const t = arr.find((u: any) => String(u.id ?? '') === mid);
+              if (t) {
+                const sb = t.shortBio ?? t.short_bio ?? t.tagline ?? t.role ?? t.position ?? t.headline ?? '';
                 normalized.mentor = {
                   ...normalized.mentor,
-                  avatarUrl: normalized.mentor.avatarUrl ?? resolveUrl(u.avatarUrl ?? u.avatar_url ?? u.photo ?? u.image),
-                  shortBio: normalized.mentor.shortBio || rawShortBio,
-                  bio: normalized.mentor.bio || u.bio || u.description || u.about || '',
+                  avatarUrl: normalized.mentor.avatarUrl ?? resolveUrl(t.avatarUrl ?? t.avatar_url ?? t.photo),
+                  shortBio: normalized.mentor.shortBio || sb,
+                  bio: normalized.mentor.bio || t.bio || '',
                 };
+                enriched = true;
               }
-            } else {
-              // Fallback: public tutor list
+            }
+
+            // Source 2: /api/users — full users list (same as mentor profile page uses)
+            if (!enriched || !normalized.mentor.shortBio) {
               const tutorList = await getPublicTutorList();
               const tutor = tutorList.find((t) => t.id === mid) as any;
               if (tutor) {
-                const rawShortBio = tutor.shortBio ?? tutor.short_bio ?? tutor.tagline ??
-                  tutor.role ?? tutor.position ?? tutor.headline ?? '';
                 normalized.mentor = {
                   ...normalized.mentor,
                   avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
-                  shortBio: normalized.mentor.shortBio || rawShortBio,
+                  shortBio: normalized.mentor.shortBio || tutor.shortBio || tutor.short_bio || '',
                   bio: normalized.mentor.bio || tutor.bio || '',
                 };
               }
@@ -342,34 +347,35 @@ export default function EventDetailScreen() {
           const raw = await authRes.json();
           const normalized = normalizeEvent(raw as Record<string, unknown>);
 
-          // Re-apply tutor enrichment if avatar or shortBio still missing
+          // Re-apply enrichment: shortBio + avatar must survive auth re-fetch
           if (normalized.mentor?.id && (!normalized.mentor.avatarUrl || !normalized.mentor.shortBio)) {
             try {
               const mid = normalized.mentor.id;
-              const userRes = await fetch(`${API_BASE}/api/users/${mid}`).catch(() => null);
-              if (userRes?.ok) {
-                const u = await userRes.json().catch(() => null) as Record<string, any> | null;
-                if (u) {
-                  const rawShortBio = u.shortBio ?? u.short_bio ?? u.tagline ?? u.role ??
-                    u.position ?? u.headline ?? u.shortDescription ?? u.short_description ??
-                    u.excerpt ?? u.about_short ?? '';
+              const tutorsRes = await fetch(endpoints.tutors).catch(() => null);
+              if (tutorsRes?.ok) {
+                const raw = await tutorsRes.json().catch(() => null);
+                const arr: any[] = Array.isArray(raw) ? raw
+                  : Array.isArray(raw?.data) ? raw.data
+                  : Array.isArray(raw?.items) ? raw.items : [];
+                const t = arr.find((u: any) => String(u.id ?? '') === mid);
+                if (t) {
+                  const sb = t.shortBio ?? t.short_bio ?? t.tagline ?? t.role ?? t.position ?? t.headline ?? '';
                   normalized.mentor = {
                     ...normalized.mentor,
-                    avatarUrl: normalized.mentor.avatarUrl ?? resolveUrl(u.avatarUrl ?? u.avatar_url ?? u.photo ?? u.image),
-                    shortBio: normalized.mentor.shortBio || rawShortBio,
-                    bio: normalized.mentor.bio || u.bio || u.description || u.about || '',
+                    avatarUrl: normalized.mentor.avatarUrl ?? resolveUrl(t.avatarUrl ?? t.avatar_url ?? t.photo),
+                    shortBio: normalized.mentor.shortBio || sb,
+                    bio: normalized.mentor.bio || t.bio || '',
                   };
                 }
-              } else {
+              }
+              if (!normalized.mentor.shortBio) {
                 const tutorList = await getPublicTutorList();
                 const tutor = tutorList.find((t) => t.id === mid) as any;
                 if (tutor) {
-                  const rawShortBio = tutor.shortBio ?? tutor.short_bio ?? tutor.tagline ??
-                    tutor.role ?? tutor.position ?? tutor.headline ?? '';
                   normalized.mentor = {
                     ...normalized.mentor,
                     avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
-                    shortBio: normalized.mentor.shortBio || rawShortBio,
+                    shortBio: normalized.mentor.shortBio || tutor.shortBio || tutor.short_bio || '',
                   };
                 }
               }
