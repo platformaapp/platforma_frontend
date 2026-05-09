@@ -51,7 +51,7 @@ type EventDetail = {
   datetimeStart?: string;
   price?: number;
   coverUrl?: string | null;
-  mentor?: { id: string; name: string; avatarUrl?: string | null; bio?: string };
+  mentor?: { id: string; name: string; avatarUrl?: string | null; bio?: string; shortBio?: string };
   status?: string;
   isRegistered?: boolean;
   isPaid?: boolean;
@@ -117,6 +117,7 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
       name: String(mentorRaw.name ?? mentorRaw.fullName ?? mentorRaw.full_name ?? mentorRaw.displayName ?? ''),
       avatarUrl,
       bio: (mentorRaw.bio ?? mentorRaw.description ?? mentorRaw.about ?? '') as string,
+      shortBio: (mentorRaw.shortBio ?? mentorRaw.short_bio ?? '') as string,
     };
   })() : undefined;
 
@@ -752,8 +753,10 @@ export default function EventDetailScreen() {
             )}
             <View style={[styles.curatorNameWrapper, { width: width - 96 - 32 - 16 }]}>
               <Text style={styles.curatorName}>{event.mentor.name}</Text>
-              {event.mentor.bio ? (
-                <Text style={styles.curatorRole}>{event.mentor.bio}</Text>
+              {(event.mentor.shortBio || event.mentor.bio) ? (
+                <Text style={styles.curatorRole} numberOfLines={2}>
+                  {event.mentor.shortBio || event.mentor.bio}
+                </Text>
               ) : null}
             </View>
           </Pressable>
