@@ -281,20 +281,41 @@ export default function EventDetailScreen() {
         const raw = await detailRes.value.json();
         const normalized = normalizeEvent(raw as Record<string, unknown>);
 
-        // Enrich mentor avatar + shortBio from the public tutor list
+        // Enrich mentor avatar + shortBio from public sources
         if (normalized.mentor?.id) {
           try {
-            const tutorList = await getPublicTutorList();
-            const tutor = tutorList.find((t) => t.id === normalized.mentor!.id);
-            if (tutor) {
-              normalized.mentor = {
-                ...normalized.mentor,
-                avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
-                shortBio: normalized.mentor.shortBio || tutor.shortBio || tutor.short_bio || '',
-                bio: normalized.mentor.bio || tutor.bio || '',
-              };
+            const mid = normalized.mentor.id;
+            // Try individual user endpoint first (most complete data)
+            const userRes = await fetch(`${API_BASE}/api/users/${mid}`).catch(() => null);
+            if (userRes?.ok) {
+              const u = await userRes.json().catch(() => null) as Record<string, any> | null;
+              if (u) {
+                const rawShortBio = u.shortBio ?? u.short_bio ?? u.tagline ?? u.role ??
+                  u.position ?? u.headline ?? u.shortDescription ?? u.short_description ??
+                  u.excerpt ?? u.about_short ?? '';
+                normalized.mentor = {
+                  ...normalized.mentor,
+                  avatarUrl: normalized.mentor.avatarUrl ?? resolveUrl(u.avatarUrl ?? u.avatar_url ?? u.photo ?? u.image),
+                  shortBio: normalized.mentor.shortBio || rawShortBio,
+                  bio: normalized.mentor.bio || u.bio || u.description || u.about || '',
+                };
+              }
+            } else {
+              // Fallback: public tutor list
+              const tutorList = await getPublicTutorList();
+              const tutor = tutorList.find((t) => t.id === mid) as any;
+              if (tutor) {
+                const rawShortBio = tutor.shortBio ?? tutor.short_bio ?? tutor.tagline ??
+                  tutor.role ?? tutor.position ?? tutor.headline ?? '';
+                normalized.mentor = {
+                  ...normalized.mentor,
+                  avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
+                  shortBio: normalized.mentor.shortBio || rawShortBio,
+                  bio: normalized.mentor.bio || tutor.bio || '',
+                };
+              }
             }
-          } catch { /* ignore — use whatever the event API returned */ }
+          } catch { /* ignore */ }
         }
 
         if (active.value) setEvent(normalized);
@@ -321,18 +342,36 @@ export default function EventDetailScreen() {
           const raw = await authRes.json();
           const normalized = normalizeEvent(raw as Record<string, unknown>);
 
-          // Re-apply tutor enrichment if needed
+          // Re-apply tutor enrichment if avatar or shortBio still missing
           if (normalized.mentor?.id && (!normalized.mentor.avatarUrl || !normalized.mentor.shortBio)) {
             try {
-              const tutorList = await getPublicTutorList();
-              const tutor = tutorList.find((t) => t.id === normalized.mentor!.id);
-              if (tutor) {
-                normalized.mentor = {
-                  ...normalized.mentor,
-                  avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
-                  shortBio: normalized.mentor.shortBio || tutor.shortBio || tutor.short_bio || '',
-                  bio: normalized.mentor.bio || tutor.bio || '',
-                };
+              const mid = normalized.mentor.id;
+              const userRes = await fetch(`${API_BASE}/api/users/${mid}`).catch(() => null);
+              if (userRes?.ok) {
+                const u = await userRes.json().catch(() => null) as Record<string, any> | null;
+                if (u) {
+                  const rawShortBio = u.shortBio ?? u.short_bio ?? u.tagline ?? u.role ??
+                    u.position ?? u.headline ?? u.shortDescription ?? u.short_description ??
+                    u.excerpt ?? u.about_short ?? '';
+                  normalized.mentor = {
+                    ...normalized.mentor,
+                    avatarUrl: normalized.mentor.avatarUrl ?? resolveUrl(u.avatarUrl ?? u.avatar_url ?? u.photo ?? u.image),
+                    shortBio: normalized.mentor.shortBio || rawShortBio,
+                    bio: normalized.mentor.bio || u.bio || u.description || u.about || '',
+                  };
+                }
+              } else {
+                const tutorList = await getPublicTutorList();
+                const tutor = tutorList.find((t) => t.id === mid) as any;
+                if (tutor) {
+                  const rawShortBio = tutor.shortBio ?? tutor.short_bio ?? tutor.tagline ??
+                    tutor.role ?? tutor.position ?? tutor.headline ?? '';
+                  normalized.mentor = {
+                    ...normalized.mentor,
+                    avatarUrl: normalized.mentor.avatarUrl ?? tutor.avatarUrl ?? null,
+                    shortBio: normalized.mentor.shortBio || rawShortBio,
+                  };
+                }
               }
             } catch { /* ignore */ }
           }
