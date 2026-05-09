@@ -135,81 +135,37 @@ export default function TutorCardScreen() {
           if (active) setIsMentorVerified(tutor.isVerified !== false);
         }
 
-        // Fetch mentor's events — try server params first, fall back to feed + filter
+        // Fetch mentor's events from eventsFeed (includes mentor data) and filter client-side
         try {
-          let events: MentorEvent[] = [];
-
-          // Try common query params for tutor-filtered events
-          const tryEndpoints = [
-            `${endpoints.events}?tutorId=${id}&per_page=50`,
-            `${endpoints.events}?mentor_id=${id}&per_page=50`,
-            `${endpoints.events}?authorId=${id}&per_page=50`,
-            `${endpoints.eventsFeed}?tutorId=${id}&per_page=50`,
-          ];
-
-          for (const url of tryEndpoints) {
-            const res = await fetch(url);
-            if (!res.ok) continue;
-            const data = await res.json();
+          const feedRes = await fetch(endpoints.eventsFeed);
+          if (feedRes.ok) {
+            const data = await feedRes.json();
             let rawItems: unknown = data.items ?? data.data ?? data;
             if (!Array.isArray(rawItems) && rawItems && typeof rawItems === 'object') {
               const inner = rawItems as Record<string, unknown>;
               rawItems = inner.items ?? inner.data ?? [];
             }
             const list = Array.isArray(rawItems) ? rawItems : [];
-            const parsed: MentorEvent[] = list
+            const mentorId = String(id);
+            const events: MentorEvent[] = list
               .filter((r: any) => {
                 const mentorRaw = r.mentor ?? r.teacher ?? r.tutor;
-                const mId = String(mentorRaw?.id ?? mentorRaw?.userId ?? '');
-                return mId === id || list.length > 0;
+                const mId = String(
+                  mentorRaw?.id ?? mentorRaw?.userId ?? mentorRaw?.user_id ??
+                  r.tutorId ?? r.tutor_id ?? r.mentorId ?? r.mentor_id ?? ''
+                );
+                return mId === mentorId;
               })
               .map((r: any) => ({
                 id: String(r.id ?? ''),
                 title: String(r.title ?? ''),
-                datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? undefined,
-                price: typeof r.price === 'number' ? r.price : typeof r.price === 'string' ? parseFloat(r.price) : undefined,
-                coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl),
+                datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at ?? undefined,
+                price: typeof r.price === 'number' ? r.price : typeof r.price === 'string' ? parseFloat(r.price) || undefined : undefined,
+                coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? r.thumbnail),
               }))
               .filter((e: MentorEvent) => e.id);
-
-            // If we got results that actually belong to this mentor, stop
-            const owned = parsed.filter((e: MentorEvent) => {
-              const raw = list.find((r: any) => String(r.id ?? '') === e.id) as any;
-              if (!raw) return false;
-              const mentorRaw = raw.mentor ?? raw.teacher ?? raw.tutor;
-              return String(mentorRaw?.id ?? mentorRaw?.userId ?? '') === id;
-            });
-            if (owned.length > 0) { events = owned; break; }
+            if (active) setMentorEvents(events);
           }
-
-          // Last resort: fetch all feed and filter client-side
-          if (events.length === 0) {
-            const res = await fetch(`${endpoints.events}?per_page=100`);
-            if (res.ok) {
-              const data = await res.json();
-              let rawItems: unknown = data.items ?? data.data ?? data;
-              if (!Array.isArray(rawItems) && rawItems && typeof rawItems === 'object') {
-                const inner = rawItems as Record<string, unknown>;
-                rawItems = inner.items ?? inner.data ?? [];
-              }
-              const list = Array.isArray(rawItems) ? rawItems : [];
-              events = list
-                .filter((r: any) => {
-                  const mentorRaw = r.mentor ?? r.teacher ?? r.tutor;
-                  return String(mentorRaw?.id ?? mentorRaw?.userId ?? '') === id;
-                })
-                .map((r: any) => ({
-                  id: String(r.id ?? ''),
-                  title: String(r.title ?? ''),
-                  datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? undefined,
-                  price: typeof r.price === 'number' ? r.price : typeof r.price === 'string' ? parseFloat(r.price) : undefined,
-                  coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl),
-                }))
-                .filter((e: MentorEvent) => e.id);
-            }
-          }
-
-          if (active) setMentorEvents(events);
         } catch {
           // ignore — events section stays empty
         }
