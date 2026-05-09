@@ -790,15 +790,24 @@ export default function EventDetailScreen() {
         <View style={[styles.registerButton, styles.registerButtonDisabled]}>
           <Text style={styles.registerButtonText}>Вы не можете зарегистрироваться на своё мероприятие</Text>
         </View>
+      ) : event.isRegistered ? (
+        <View style={[styles.registerButton, styles.registerButtonDisabled]}>
+          <Text style={styles.registerButtonText}>Вы уже зарегистрированы</Text>
+        </View>
+      ) : Platform.OS === 'ios' ? (
+        // iOS: redirect to website to avoid Apple's 30% commission
+        <View>
+          <Pressable
+            style={styles.registerButton}
+            onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
+          >
+            <Text style={styles.registerButtonText}>Оплатить на сайте ↗</Text>
+          </Pressable>
+          <Text style={styles.iosPaymentNote}>Оплата производится на сайте platformaapp.ru</Text>
+        </View>
       ) : (
-        <Pressable
-          style={[styles.registerButton, event.isRegistered && styles.registerButtonDisabled]}
-          onPress={event.isRegistered ? undefined : handleLinkNow}
-          disabled={event.isRegistered}
-        >
-          <Text style={styles.registerButtonText}>
-            {event.isRegistered ? 'Вы уже зарегистрированы' : 'Зарегистрироваться'}
-          </Text>
+        <Pressable style={styles.registerButton} onPress={handleLinkNow}>
+          <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
         </Pressable>
       )}
 
@@ -1086,9 +1095,10 @@ const styles = StyleSheet.create({
   joinButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
 
   // Register button
-  registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 8 },
+  registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 0 },
   registerButtonDisabled: { backgroundColor: '#9B9B9B' },
   registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
+  iosPaymentNote: { fontSize: 11, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center', marginTop: 6, marginBottom: 8 },
 
   // Payment pending badge
   paymentPendingBadge: { backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#F0C040', paddingVertical: 10, paddingHorizontal: 12, marginBottom: 16, alignItems: 'center' },
