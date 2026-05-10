@@ -16,13 +16,12 @@ const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
     backgroundColor: '#fff',
-    ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
   },
   contentFrame: {
     flex: 1,
     width: '100%',
     backgroundColor: '#fff',
-    ...(Platform.OS === 'web' ? { maxWidth: 620 } : {}),
+    ...(Platform.OS === 'web' ? { maxWidth: 620, alignSelf: 'center' as const } : {}),
   },
 });
 

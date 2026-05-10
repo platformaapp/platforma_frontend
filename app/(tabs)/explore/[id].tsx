@@ -5,14 +5,15 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -44,13 +45,9 @@ function formatEventDate(iso?: string): string {
 }
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 const SLOT_COLS = 5;
 const SLOT_GAP = 6;
 const SLOT_PADDING = 16;
-const SLOT_WIDTH =
-  (SCREEN_WIDTH - SLOT_PADDING * 2 - SLOT_GAP * (SLOT_COLS - 1)) / SLOT_COLS;
 
 type SlotItem = {
   id: string;
@@ -71,6 +68,10 @@ export default function TutorCardScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  // On web, content is constrained to 620px; on native use actual screen width
+  const contentWidth = Platform.OS === 'web' ? Math.min(screenWidth, 620) : screenWidth;
+  const slotWidth = (contentWidth - SLOT_PADDING * 2 - SLOT_GAP * (SLOT_COLS - 1)) / SLOT_COLS;
 
   const [displayName, setDisplayName] = useState('');
   const [displayBio, setDisplayBio] = useState('');   // long bio for body text
@@ -354,7 +355,7 @@ export default function TutorCardScreen() {
                     <Pressable
                       key={slot.id}
                       onPress={() => handleSelectSlot(slot)}
-                      style={[styles.slotCard, !isAvailable && styles.slotCardUnavailable]}
+                      style={[styles.slotCard, { width: slotWidth, height: slotWidth * 0.9 }, !isAvailable && styles.slotCardUnavailable]}
                     >
                       {isPending && (
                         <View style={styles.slotBadge}>
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   },
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
 
-  heroImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.1, backgroundColor: '#E5E5E5' },
+  heroImage: { width: '100%', aspectRatio: 1 / 1.1, maxHeight: 600, backgroundColor: '#E5E5E5' },
 
   nameRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E' },
   name: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
@@ -504,7 +505,7 @@ const styles = StyleSheet.create({
   slotsEmptyText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
   slotScroll: { maxHeight: 280 },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SLOT_GAP, paddingBottom: 4 },
-  slotCard: { width: SLOT_WIDTH, height: SLOT_WIDTH * 0.9, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', position: 'relative' },
+  slotCard: { borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', position: 'relative' },
   slotCardUnavailable: { backgroundColor: '#F5F5F5', borderColor: '#C8C8C8' },
   slotBadge: { position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: 8, borderWidth: 1, borderColor: '#9B9B9B', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   slotBadgeText: { fontSize: 9, lineHeight: 12, color: '#9B9B9B' },
