@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import React, { useMemo, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -18,6 +19,7 @@ const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp
 
 export default function RegisterStudentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneRaw, setPhoneRaw] = useState('');
@@ -193,7 +195,7 @@ export default function RegisterStudentScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView>
-      <Pressable style={styles.close} onPress={() => router.back()}>
+      <Pressable style={[styles.close, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
         </Svg>
@@ -491,10 +493,9 @@ const styles = StyleSheet.create({
   },
   close: {
     position: 'absolute',
-    top: 12,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 16,
   },
 });
 

@@ -248,25 +248,27 @@ export default function TutorCardScreen() {
 
       <Image source={imageSource} style={styles.heroImage} resizeMode="cover" />
 
-      <View style={styles.nameRow}>
-        <Text style={styles.name}>{displayName || 'Наставник'}</Text>
-        {displayRole ? (
-          <Text style={styles.roleText} numberOfLines={2}>{displayRole}</Text>
+      <View style={styles.infoBox}>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+          {displayRole ? (
+            <Text style={styles.roleText} numberOfLines={2}>{displayRole}</Text>
+          ) : null}
+        </View>
+
+        {displayBio ? (
+          <View style={styles.bioSection}>
+            <Text style={styles.bioText}>{displayBio}</Text>
+          </View>
+        ) : null}
+
+        {displayPrice ? (
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Стоимость консультации</Text>
+            <Text style={styles.priceValue}>{displayPrice}</Text>
+          </View>
         ) : null}
       </View>
-
-      {displayBio ? (
-        <View style={styles.bioSection}>
-          <Text style={styles.bioText}>{displayBio}</Text>
-        </View>
-      ) : null}
-
-      {displayPrice ? (
-        <View style={styles.priceRow}>
-          <Text style={styles.priceLabel}>Стоимость консультации</Text>
-          <Text style={styles.priceValue}>{displayPrice}</Text>
-        </View>
-      ) : null}
 
       {/* Booking button — hidden for own profile and unverified mentors */}
       {!isOwnProfile && isMentorVerified && (
@@ -451,16 +453,17 @@ const styles = StyleSheet.create({
 
   heroImage: { width: '100%', aspectRatio: 1 / 1.1, maxHeight: 600, backgroundColor: '#E5E5E5' },
 
-  nameRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E' },
+  infoBox: { marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderColor: '#1E1E1E' },
+  nameRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
   name: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
   roleText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
 
-  bioSection: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderColor: '#1E1E1E' },
+  bioSection: { paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: 1, borderColor: '#1E1E1E' },
   bioText: { fontSize: 13, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
 
   priceRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E',
+    paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderColor: '#1E1E1E',
   },
   priceLabel: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
   priceValue: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
@@ -471,8 +474,8 @@ const styles = StyleSheet.create({
   tutorBlockedRow: { marginHorizontal: 16, marginTop: 16, paddingVertical: 14, paddingHorizontal: 12, borderWidth: 1, borderColor: '#C8C8C8', backgroundColor: '#F5F5F5' },
   tutorBlockedText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
 
-  secondaryButton: { marginHorizontal: 16, marginTop: 12, height: 52, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
-  secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  secondaryButton: { marginHorizontal: 16, marginTop: 12, height: 52, backgroundColor: '#181818', alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FAFAFA' },
 
   eventsSection: { marginTop: 20, marginHorizontal: 16, marginBottom: 4 },
   eventsSectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },

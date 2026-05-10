@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,6 +16,7 @@ import {
 
 export default function RegistrationCompleteScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [isLinking, setIsLinking] = useState(false);
 
   const pendingCallbackRef = useRef(false);
@@ -96,7 +98,7 @@ export default function RegistrationCompleteScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={styles.inner}>
           <Pressable
-            style={styles.close}
+            style={[styles.close, { top: insets.top + 12 }]}
             onPress={() => {
               if (router.canGoBack()) router.back();
               else router.replace('/(tabs)/events');
@@ -211,9 +213,8 @@ const styles = StyleSheet.create({
   },
   close: {
     position: 'absolute',
-    top: 12,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 16,
   },
 });
