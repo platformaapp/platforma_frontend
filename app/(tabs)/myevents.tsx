@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { endpoints } from '@/constants/env';
+import { endpoints, API_BASE } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
@@ -101,12 +101,23 @@ function isAuthError(e: unknown): boolean {
   );
 }
 
-function translateEventStatus(s: string): string {
+function translateEventStatus(status?: string, paymentStatus?: string): string {
+  // Если payment_status === paid — событие оплачено, независимо от status
+  if (paymentStatus?.toLowerCase() === 'paid') return 'Оплачено';
+  if (!status) return '';
   const map: Record<string, string> = {
-    pending: 'Ожидает оплаты', confirmed: 'Подтверждено',
-    cancelled: 'Отменено', completed: 'Завершено', paid: 'Оплачено',
+    scheduled: 'Запланировано',
+    pending: 'Ожидает оплаты',
+    confirmed: 'Подтверждено',
+    active: 'Активно',
+    registered: 'Зарегистрировано',
+    cancelled: 'Отменено',
+    canceled: 'Отменено',
+    completed: 'Завершено',
+    paid: 'Оплачено',
+    attended: 'Посещено',
   };
-  return map[s.toLowerCase()] ?? s;
+  return map[status.toLowerCase()] ?? status;
 }
 
 function translateStatus(s: string): string {
@@ -155,7 +166,9 @@ export default function MyEventsScreen() {
         .then(({ items }) => items.map((it) => {
           const ta = it.teacher as Record<string, unknown> | null | undefined;
           const rawAv = ta?.avatarUrl ?? ta?.avatar_url;
-          const mentorAvatar = typeof rawAv === 'string' && rawAv.startsWith('http') ? rawAv : null;
+          const mentorAvatar = rawAv && typeof rawAv === 'string'
+            ? (rawAv.startsWith('http') ? rawAv : `${API_BASE}${rawAv}`)
+            : null;
           return {
             ...it,
             datetimeStart: it.start_at ?? it.startAt,
@@ -299,7 +312,7 @@ export default function MyEventsScreen() {
           )}
           <View style={styles.cardTitleBox}>
             <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
-            {item.status ? <Text style={styles.eventStatus}>{translateEventStatus(item.status)}</Text> : null}
+            {(item.status || item.paymentStatus) ? <Text style={styles.eventStatus}>{translateEventStatus(item.status, item.paymentStatus)}</Text> : null}
           </View>
         </Pressable>
         <View style={styles.cardBottom}>
