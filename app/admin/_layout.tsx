@@ -10,6 +10,7 @@ export default function AdminLayout() {
       <Stack.Screen name="events" />
       <Stack.Screen name="commission" />
       <Stack.Screen name="user-detail" />
+      <Stack.Screen name="event-detail" />
     </Stack>
   );
 }

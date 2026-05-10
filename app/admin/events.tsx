@@ -160,7 +160,7 @@ export default function AdminEventsScreen() {
     <View style={styles.card}>
       <Pressable
         style={styles.cardClickable}
-        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+        onPress={() => router.push(`/admin/event-detail?id=${item.id}` as any)}
       >
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={styles.cover} />
