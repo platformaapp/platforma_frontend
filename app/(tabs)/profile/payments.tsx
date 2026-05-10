@@ -242,7 +242,6 @@ export default function PaymentsScreen() {
       }
       setDeleteModalVisible(false);
       setCardToDelete(null);
-      await loadData();
     } catch (e: unknown) {
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
@@ -250,6 +249,7 @@ export default function PaymentsScreen() {
       }
       Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось удалить карту');
     } finally {
+      await loadData();
       setDeletingId(null);
     }
   };
