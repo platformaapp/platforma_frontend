@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 
 export default function TutorApplicationSentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   function handleClose() {
     router.replace('/(tabs)/events');
@@ -16,7 +18,7 @@ export default function TutorApplicationSentScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
       <ThemedView style={styles.container}>
-        <Pressable style={styles.close} onPress={handleClose}>
+        <Pressable style={[styles.close, { top: insets.top + 12 }]} onPress={handleClose}>
           <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
           </Svg>
@@ -49,10 +51,9 @@ const styles = StyleSheet.create({
   },
   close: {
     position: 'absolute',
-    top: 12,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 16,
   },
   center: {
     flex: 1,

@@ -796,15 +796,12 @@ export default function EventDetailScreen() {
         </View>
       ) : Platform.OS === 'ios' ? (
         // iOS: redirect to website to avoid Apple's 30% commission
-        <View style={styles.iosPaymentBlock}>
-          <Pressable
-            style={[styles.registerButton, { alignSelf: 'stretch' }]}
-            onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
-          >
-            <Text style={styles.registerButtonText}>Оплатить на сайте ↗</Text>
-          </Pressable>
-          <Text style={styles.iosPaymentNote}>Оплата производится на сайте platformaapp.ru</Text>
-        </View>
+        <Pressable
+          style={styles.registerButton}
+          onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
+        >
+          <Text style={styles.registerButtonText}>Оплатить на сайте</Text>
+        </Pressable>
       ) : (
         <Pressable style={styles.registerButton} onPress={handleLinkNow}>
           <Text style={styles.registerButtonText}>Зарегистрироваться</Text>

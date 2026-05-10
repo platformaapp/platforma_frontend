@@ -1,6 +1,7 @@
 import { Link, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,12 +9,13 @@ import { View as ThemedView } from 'react-native';
 
 export default function AuthChoiceScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const btnPrimaryStyle = StyleSheet.flatten([styles.btn, styles.btnPrimary, { marginBottom: 16 }]);
   const btnOutlineStyle = StyleSheet.flatten([styles.btn, styles.btnOutline]);
 
   return (
     <ThemedView style={styles.container}>
-      <Pressable style={styles.close} onPress={() => router.back()}>
+      <Pressable style={[styles.close, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
         </Svg>
@@ -113,10 +115,9 @@ const styles = StyleSheet.create({
   },
   close: {
     position: 'absolute',
-    top: 12,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 16,
   },
 });
 

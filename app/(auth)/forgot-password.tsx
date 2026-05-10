@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,6 +10,7 @@ import { endpoints } from '@/constants/env';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function ForgotPasswordScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <Pressable style={styles.close} onPress={() => router.back()}>
+          <Pressable style={[styles.close, { top: insets.top + 12 }]} onPress={() => router.back()}>
             <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
             </Svg>
@@ -206,10 +208,9 @@ const styles = StyleSheet.create({
   },
   close: {
     position: 'absolute',
-    top: 12,
     right: 16,
     zIndex: 1,
-    padding: 8,
+    padding: 16,
   },
 });
 
