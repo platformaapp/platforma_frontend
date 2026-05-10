@@ -383,8 +383,22 @@ async function historyFromFeed(headers: HeadersInit): Promise<PaymentHistoryItem
  */
 export async function getStudentPayments(): Promise<StudentPaymentsResponse> {
   const headers = await authHeaders();
-  const methods = await getPaymentMethods();
-  const cards = methods.map(toCard);
+
+  // Use /api/payments/method as the canonical card source — same endpoint as DELETE,
+  // so it always reflects the current state after removal.
+  let cards: Card[] = [];
+  try {
+    const res = await fetch(endpoints.paymentsMethod, { headers });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      const methods: PaymentMethod[] = data?.data?.paymentMethods ?? [];
+      cards = methods.map(toCard);
+    } else {
+      cards = (await getPaymentMethods()).map(toCard);
+    }
+  } catch {
+    cards = (await getPaymentMethods()).map(toCard);
+  }
 
   let history: PaymentHistoryItem[] = [];
   try {
