@@ -26,7 +26,10 @@ import {
   getPaymentMethods,
   PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
   PENDING_CARD_BINDING_PAYMENT_ID_KEY,
+  type Card,
 } from '@/lib/api/student-payments';
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
 import * as WebBrowser from 'expo-web-browser';
 
 function formatDate(iso: string): string {
@@ -71,9 +74,31 @@ export default function TutorPaymentsScreen() {
   const [isMoneySentModalVisible, setMoneySentModalVisible] = useState(false);
   const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [cards, setCards] = useState<Card[]>([]);
 
-  const cardMasked = 'Карта MIR * 2000';
-  const cardBank = 'Тинькофф Банк';
+  const activeCard = cards[0] ?? null;
+  const cardMasked = activeCard?.cardMasked ?? activeCard?.card_masked ?? '';
+  const cardBank = activeCard?.cardType ?? activeCard?.provider ?? '';
+
+  const loadCards = useCallback(async () => {
+    try {
+      const token = await getAuthToken();
+      if (!token) return;
+      const res = await fetch(endpoints.paymentsMethod, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCards(data?.data?.paymentMethods ?? []);
+      } else {
+        // fallback
+        const methods = await getPaymentMethods();
+        setCards(methods);
+      }
+    } catch {
+      setCards([]);
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -83,6 +108,7 @@ export default function TutorPaymentsScreen() {
       ]);
       setSummary(sum);
       setPayments(list);
+      await loadCards();
     } catch (e: any) {
       setSummary(null);
       setPayments([]);
@@ -90,7 +116,7 @@ export default function TutorPaymentsScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadCards]);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,6 +128,7 @@ export default function TutorPaymentsScreen() {
             setSummary(sum);
             setPayments(list);
           }
+          return loadCards();
         })
         .catch((e) => {
           if (!cancelled) {
@@ -114,7 +141,7 @@ export default function TutorPaymentsScreen() {
           if (!cancelled) setLoading(false);
         });
       return () => { cancelled = true; };
-    }, [])
+    }, [loadCards])
   );
 
   const handleWithdrawConfirm = async () => {
@@ -159,10 +186,10 @@ export default function TutorPaymentsScreen() {
     try {
       await deleteCurrentPaymentMethod();
       setDeleteModalVisible(false);
-      await loadData();
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
     } finally {
+      await loadCards();
       setIsDeleting(false);
     }
   };
@@ -244,34 +271,45 @@ export default function TutorPaymentsScreen() {
           </View>
         </View>
 
-        <View style={styles.cardBlock}>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>{cardMasked}</Text>
-            <Text style={styles.cardSubtitle}>{cardBank}</Text>
+        {activeCard ? (
+          <View style={styles.cardBlock}>
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardTitle}>{cardMasked || 'Карта привязана'}</Text>
+              {cardBank ? <Text style={styles.cardSubtitle}>{cardBank}</Text> : null}
+            </View>
+            <Pressable
+              style={[styles.cardAction, styles.cardActionPrimary]}
+              onPress={() => setWithdrawModalVisible(true)}
+            >
+              <Text style={styles.cardActionPrimaryText}>Вывести на карту</Text>
+            </Pressable>
+            <Pressable
+              style={styles.cardAction}
+              onPress={handleEditCardClick}
+              disabled={isDeleting}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Text style={styles.cardActionText}>Изменить</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.cardAction, styles.cardActionDelete]}
+              onPress={handleDeleteCardClick}
+              disabled={isDeleting}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Text style={styles.cardActionDeleteText}>{isDeleting ? '…' : 'Удалить'}</Text>
+            </Pressable>
           </View>
-          <Pressable
-            style={[styles.cardAction, styles.cardActionPrimary]}
-            onPress={() => setWithdrawModalVisible(true)}
-          >
-            <Text style={styles.cardActionPrimaryText}>Вывести на карту</Text>
+        ) : (
+          <Pressable style={styles.linkCardRow} onPress={handleEditCardClick}>
+            <View style={styles.plusBox}>
+              <Text style={styles.plusText}>+</Text>
+            </View>
+            <View style={styles.linkTextBox}>
+              <Text style={styles.linkText}>Привязать карту для вывода</Text>
+            </View>
           </Pressable>
-          <Pressable
-            style={styles.cardAction}
-            onPress={handleEditCardClick}
-            disabled={isDeleting}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text style={styles.cardActionText}>Изменить</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.cardAction, styles.cardActionDelete]}
-            onPress={handleDeleteCardClick}
-            disabled={isDeleting}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <Text style={styles.cardActionDeleteText}>{isDeleting ? '…' : 'Удалить'}</Text>
-          </Pressable>
-        </View>
+        )}
 
         <Text style={styles.sectionTitle}>История платежей</Text>
         {payments.map((p) => (
@@ -564,6 +602,37 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#E02D2D',
+  },
+  linkCardRow: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#1E1E1E',
+    height: 52,
+    marginBottom: 24,
+  },
+  plusBox: {
+    width: 52,
+    backgroundColor: '#111',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusText: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontFamily: 'Inter-Regular',
+    color: '#FFFFFF',
+  },
+  linkTextBox: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  linkText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
   },
   sectionTitle: {
     fontSize: 14,
