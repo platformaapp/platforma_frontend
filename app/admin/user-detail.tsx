@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { API_BASE, endpoints } from '@/constants/env';
-import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { API_BASE } from '@/constants/env';
+import { getAdminToken } from '@/lib/admin-auth';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -42,50 +42,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function AdminUserDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data: dataParam } = useLocalSearchParams<{ data: string }>();
 
-  const [user, setUser] = useState<Record<string, any> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
-    let active = true;
-
-    const load = async () => {
-      const token = await getAdminToken();
+    getAdminToken().then((token) => {
       if (!token) { router.replace('/admin/login'); return; }
+      setAuthChecked(true);
+    });
+  }, []);
 
-      try {
-        const res = await fetch(`${endpoints.adminUsers}/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401 || res.status === 403) {
-          await clearAdminToken();
-          router.replace('/admin/login');
-          return;
-        }
-        if (!res.ok) {
-          const d = await res.json().catch(() => ({}));
-          if (active) setError(d?.message ?? `Ошибка (${res.status})`);
-          return;
-        }
-        const data = await res.json();
-        // Unwrap { data: {...} } envelope if present
-        const raw = data?.data ?? data?.user ?? data;
-        if (active) setUser(raw);
-      } catch {
-        if (active) setError('Не удалось загрузить данные пользователя');
-      } finally {
-        if (active) setLoading(false);
-      }
-    };
-
-    load();
-    return () => { active = false; };
-  }, [id]);
-
-  if (loading) {
+  if (!authChecked) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color="#181818" />
@@ -93,18 +61,23 @@ export default function AdminUserDetailScreen() {
     );
   }
 
-  if (error) {
+  let user: Record<string, any> | null = null;
+  try {
+    user = dataParam ? JSON.parse(decodeURIComponent(dataParam)) : null;
+  } catch {
+    user = null;
+  }
+
+  if (!user) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={styles.errorText}>Не удалось загрузить данные пользователя</Text>
         <Pressable style={styles.backBtn} onPress={() => router.back()}>
           <Text style={styles.backBtnText}>← Назад</Text>
         </Pressable>
       </View>
     );
   }
-
-  if (!user) return null;
 
   const fullName = user.fullName ?? user.full_name ?? user.name ?? '—';
   const email = user.email ?? '';
@@ -123,7 +96,6 @@ export default function AdminUserDetailScreen() {
   const createdAt = user.createdAt ?? user.created_at ?? '';
   const updatedAt = user.updatedAt ?? user.updated_at ?? '';
 
-  // Collect any remaining raw fields not already shown
   const knownKeys = new Set([
     'id', 'fullName', 'full_name', 'name', 'email', 'phone',
     'avatarUrl', 'avatar_url', 'roles', 'role', 'isBlocked', 'is_blocked',
@@ -141,15 +113,12 @@ export default function AdminUserDetailScreen() {
   function fmt(v: unknown): string {
     if (v == null) return '—';
     if (typeof v === 'boolean') return v ? 'Да' : 'Нет';
-    if (typeof v === 'number') return String(v);
     return String(v);
   }
 
   function fmtDate(iso: string): string {
     if (!iso) return '';
-    try {
-      return new Date(iso).toLocaleString('ru-RU');
-    } catch { return iso; }
+    try { return new Date(iso).toLocaleString('ru-RU'); } catch { return iso; }
   }
 
   return (
@@ -162,7 +131,6 @@ export default function AdminUserDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Avatar + name */}
         <View style={styles.heroRow}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
@@ -182,7 +150,6 @@ export default function AdminUserDetailScreen() {
           </View>
         </View>
 
-        {/* Contacts */}
         <Section title="Контакты">
           <Row label="ID" value={String(user.id ?? '')} />
           <Row label="Email" value={email} />
@@ -190,8 +157,7 @@ export default function AdminUserDetailScreen() {
           <Row label="Telegram" value={telegram} />
         </Section>
 
-        {/* Profile */}
-        {(shortBio || bio) && (
+        {(shortBio || bio) ? (
           <Section title="Профиль">
             <Row label="Короткое био" value={shortBio} />
             {bio ? (
@@ -201,15 +167,16 @@ export default function AdminUserDetailScreen() {
               </View>
             ) : null}
           </Section>
-        )}
+        ) : null}
 
-        {/* Financial */}
         <Section title="Финансы">
           <Row label="Стоимость часа" value={hourlyRate != null ? `${Number(hourlyRate).toLocaleString('ru-RU')} ₽` : null} />
-          <Row label="Индивидуальная комиссия" value={commissionRate != null ? `${commissionRate}%` : 'Платформенная (по умолчанию)'} />
+          <Row
+            label="Комиссия"
+            value={commissionRate != null ? `${commissionRate}%` : 'Платформенная (по умолчанию)'}
+          />
         </Section>
 
-        {/* Status */}
         <Section title="Статус">
           <Row label="Заблокирован" value={fmt(isBlocked)} />
           {isVerified != null && <Row label="Верифицирован" value={fmt(isVerified)} />}
@@ -217,7 +184,6 @@ export default function AdminUserDetailScreen() {
           <Row label="Обновлён" value={fmtDate(updatedAt)} />
         </Section>
 
-        {/* Extra fields from API */}
         {extraFields.length > 0 && (
           <Section title="Дополнительно">
             {extraFields.map(([key, val]) => (
