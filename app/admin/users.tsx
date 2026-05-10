@@ -220,7 +220,7 @@ export default function AdminUsersScreen() {
     <View style={styles.card}>
       <Pressable
         style={styles.cardClickable}
-        onPress={() => router.push(`/(tabs)/profile/${item.id}` as any)}
+        onPress={() => router.push(`/admin/user-detail?id=${item.id}` as any)}
       >
         <View style={styles.cardLeft}>
           {item.avatarUrl ? (
