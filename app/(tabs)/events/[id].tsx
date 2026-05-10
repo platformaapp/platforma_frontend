@@ -691,21 +691,25 @@ export default function EventDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#181818" />
+      <View style={styles.webWrapper}>
+        <View style={[styles.container, styles.centered]}>
+          <ActivityIndicator size="large" color="#181818" />
+        </View>
       </View>
     );
   }
 
   if (!event) {
     return (
-      <View style={styles.container}>
-        <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <View style={styles.webWrapper}>
+        <View style={styles.container}>
+          <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
+            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
           </Svg>
         </Pressable>
-        <Text style={styles.errorText}>Событие не найдено</Text>
+          <Text style={styles.errorText}>Событие не найдено</Text>
+        </View>
       </View>
     );
   }
@@ -734,6 +738,7 @@ export default function EventDetailScreen() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <View style={styles.webWrapper}>
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.replace('/(tabs)/events')}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -1066,12 +1071,17 @@ export default function EventDetailScreen() {
         </Pressable>
       </Modal>
     </ScrollView>
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  webWrapper: Platform.select({
+    web: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: '50vw' as any, backgroundColor: '#fff' },
+    default: { flex: 1 },
+  }) as any,
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { justifyContent: 'center', alignItems: 'center' },
   contentContainer: { paddingBottom: 24, marginHorizontal: 16 },
