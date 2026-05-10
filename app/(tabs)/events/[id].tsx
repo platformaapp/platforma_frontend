@@ -691,25 +691,21 @@ export default function EventDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.webWrapper}>
-        <View style={[styles.container, styles.centered]}>
-          <ActivityIndicator size="large" color="#181818" />
-        </View>
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#181818" />
       </View>
     );
   }
 
   if (!event) {
     return (
-      <View style={styles.webWrapper}>
-        <View style={styles.container}>
-          <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <View style={styles.container}>
+        <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
+          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
           </Svg>
         </Pressable>
-          <Text style={styles.errorText}>Событие не найдено</Text>
-        </View>
+        <Text style={styles.errorText}>Событие не найдено</Text>
       </View>
     );
   }
@@ -738,7 +734,6 @@ export default function EventDetailScreen() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.webWrapper}>
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.replace('/(tabs)/events')}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -845,7 +840,7 @@ export default function EventDetailScreen() {
             ) : (
               <View style={[styles.curatorAvatar, styles.curatorAvatarPlaceholder]} />
             )}
-            <View style={[styles.curatorNameWrapper, { width: width - 96 - 32 - 16 }]}>
+            <View style={styles.curatorNameWrapper}>
               <Text style={styles.curatorName}>{event.mentor.name}</Text>
               {event.mentor.shortBio ? (
                 <Text style={styles.curatorRole}>{event.mentor.shortBio}</Text>
@@ -1071,17 +1066,12 @@ export default function EventDetailScreen() {
         </Pressable>
       </Modal>
     </ScrollView>
-    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  webWrapper: Platform.select({
-    web: { flex: 1, alignSelf: 'center', width: '100%', maxWidth: '50vw' as any, backgroundColor: '#fff' },
-    default: { flex: 1 },
-  }) as any,
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { justifyContent: 'center', alignItems: 'center' },
   contentContainer: { paddingBottom: 24, marginHorizontal: 16 },
@@ -1121,7 +1111,7 @@ const styles = StyleSheet.create({
   curatorSectionWrapper: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', width: '100%', borderBottomWidth: 0 },
   curatorAvatar: { width: 96, alignSelf: 'stretch', borderRightWidth: 1, borderColor: '#1E1E1E' },
   curatorAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
-  curatorNameWrapper: { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  curatorNameWrapper: { flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 },
   curatorName: { fontSize: 18, fontWeight: 'bold', fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
   curatorRole: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
   writeToCuratorButton: { backgroundColor: '#181818', paddingVertical: 16, width: '100%', justifyContent: 'center', alignItems: 'center' },
