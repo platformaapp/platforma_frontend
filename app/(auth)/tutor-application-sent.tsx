@@ -15,59 +15,56 @@ export default function TutorApplicationSentScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <ThemedView style={styles.inner}>
-          <Pressable style={styles.close} onPress={handleClose}>
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
-            </Svg>
+      <ThemedView style={styles.container}>
+        <Pressable style={styles.close} onPress={handleClose}>
+          <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <Path d="M2 2L22 22M22 2L2 22" stroke="#181818"/>
+          </Svg>
+        </Pressable>
+
+        <View style={styles.center}>
+          <ThemedText type="title" style={styles.title}>
+            ЗАЯВКА ОТПРАВЛЕНА!
+          </ThemedText>
+
+          <ThemedText style={styles.description}>
+            Скоро мы ее одобрим. Это случится быстрее,{"\n"}чем вы заварите себе ромашковый чай
+          </ThemedText>
+
+          <Pressable style={[styles.btn, styles.btnPrimary]} onPress={handleClose}>
+            <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
+              Закрыть
+            </ThemedText>
           </Pressable>
-
-          <View style={styles.content}>
-            <ThemedText type="title" style={styles.title}>
-              ЗАЯВКА ОТПРАВЛЕНА!
-            </ThemedText>
-
-            <ThemedText style={styles.description}>
-              Скоро мы ее одобрим. Это случится быстрее,{"\n"}чем вы заварите себе ромашковый чай
-            </ThemedText>
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <Pressable style={[styles.btn, styles.btnPrimary]} onPress={handleClose}>
-              <ThemedText style={[styles.btnPrimaryText, styles.btnPrimaryTextCustom]}>
-                Закрыть
-              </ThemedText>
-            </Pressable>
-          </View>
-        </ThemedView>
-      </ScrollView>
+        </View>
+      </ThemedView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    padding: 16,
+    flex: 1,
     backgroundColor: '#fff',
   },
-  inner: {
-    flex: 1,
-    minHeight: '100%',
-    justifyContent: 'center',
+  close: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    zIndex: 1,
+    padding: 8,
   },
-  content: {
+  center: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
   },
   title: {
-    marginTop: 48,
-    marginBottom: 24,
+    marginBottom: 16,
     fontFamily: "Inter-Regular",
     fontSize: 28,
     fontWeight: "400",
-    fontStyle: "normal",
     lineHeight: 36,
     letterSpacing: -2,
     color: "#181818",
@@ -79,10 +76,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: "#181818",
     textAlign: 'center',
-  },
-  buttonContainer: {
-    marginTop: 'auto',
-    paddingBottom: 32,
+    marginBottom: 32,
   },
   btn: {
     borderRadius: 0,
@@ -90,6 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     height: 52,
+    alignSelf: 'stretch',
   },
   btnPrimary: {
     backgroundColor: '#111',
@@ -102,16 +97,8 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-Regular",
     fontSize: 14,
     fontWeight: "400",
-    fontStyle: "normal",
     lineHeight: 20,
     color: "#FAFAFA",
-  },
-  close: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    zIndex: 1,
-    padding: 8,
   },
 });
 
