@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getPublicTutors, type PublicTutorBasic } from '@/lib/api/tutor';
+import { getPublicTutorList, getPublicTutors, type PublicTutor } from '@/lib/api/tutor';
 import { getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
@@ -21,7 +21,7 @@ const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 export default function MentorsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [tutors, setTutors] = useState<PublicTutorBasic[]>([]);
+  const [tutors, setTutors] = useState<PublicTutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,17 +29,21 @@ export default function MentorsScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [data, profileResult] = await Promise.allSettled([
+      const [authListResult, publicListResult, profileResult] = await Promise.allSettled([
+        getPublicTutorList(),
         getPublicTutors(),
         getUserProfile(),
       ]);
 
-      const tutorList = data.status === 'fulfilled' ? data.value : [];
-      const myId = profileResult.status === 'fulfilled' ? (profileResult.value?.id ?? null) : null;
+      // Prefer authenticated list (has richer data); fall back to public list when not logged in
+      const authList = authListResult.status === 'fulfilled' ? authListResult.value : [];
+      const publicList = publicListResult.status === 'fulfilled' ? publicListResult.value : [];
+      const tutorList = (authList.length > 0 ? authList : publicList) as PublicTutor[];
 
+      const myId = profileResult.status === 'fulfilled' ? (profileResult.value?.id ?? null) : null;
       setTutors(myId ? tutorList.filter((t) => t.id !== myId) : tutorList);
 
-      if (data.status === 'rejected') {
+      if (authListResult.status === 'rejected' && publicListResult.status === 'rejected') {
         setError('Не удалось загрузить наставников');
       }
     } catch {
@@ -95,8 +99,8 @@ export default function MentorsScreen() {
               />
               <View style={styles.headerText}>
                 <Text style={styles.name}>{tutor.fullName}</Text>
-                {tutor.bio ? (
-                  <Text style={styles.bio} numberOfLines={2}>{tutor.bio}</Text>
+                {(tutor.shortBio || tutor.short_bio) ? (
+                  <Text style={styles.bio} numberOfLines={2}>{tutor.shortBio || tutor.short_bio}</Text>
                 ) : null}
               </View>
             </View>

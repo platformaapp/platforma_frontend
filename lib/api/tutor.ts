@@ -345,6 +345,7 @@ export interface PublicTutorBasic {
   fullName: string;
   avatarUrl?: string;
   bio?: string;
+  shortBio?: string;
 }
 
 /**
@@ -366,7 +367,8 @@ export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
       id: String(u.id ?? ''),
       fullName: String(u.fullName ?? u.full_name ?? u.name ?? ''),
       avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url) ?? undefined,
-      bio: (u.bio ?? u.shortBio ?? u.short_bio ?? undefined) as string | undefined,
+      bio: (u.bio ?? undefined) as string | undefined,
+      shortBio: (u.shortBio ?? u.short_bio ?? undefined) as string | undefined,
     }));
   } catch {
     return [];
