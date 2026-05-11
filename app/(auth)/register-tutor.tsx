@@ -20,6 +20,7 @@ export default function RegisterTutorScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneRaw, setPhoneRaw] = useState('');
+  const [telegram, setTelegram] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [show1, setShow1] = useState(false);
@@ -78,6 +79,7 @@ export default function RegisterTutorScreen() {
         phone: normalizePhoneRU(phoneRaw),
         avatarUrl: '',
         bio: '',
+        ...(telegram.trim() ? { telegram: telegram.trim().replace(/^@/, '') } : {}),
       };
       
       const res = await fetch(REGISTER_URL, {
@@ -197,16 +199,16 @@ export default function RegisterTutorScreen() {
       </View>
 
       <View>
-        <LabeledInput 
-          placeholder="Телефон" 
-          value={phone} 
+        <LabeledInput
+          placeholder="Телефон"
+          value={phone}
           onChangeText={(text: string) => {
             const digits = text.replace(/\D/g, '');
             setPhoneRaw(digits);
             if (errors.phone) {
               setErrors({ ...errors, phone: undefined });
             }
-          }} 
+          }}
           keyboardType="phone-pad"
           error={errors.phone}
         />
@@ -215,8 +217,15 @@ export default function RegisterTutorScreen() {
         )}
       </View>
 
+      <LabeledInput
+        placeholder="Телеграм (необязательно)"
+        value={telegram}
+        onChangeText={(text: string) => setTelegram(text.replace(/^@/, ''))}
+        autoCapitalize="none"
+      />
+
       <View>
-        <PasswordInput 
+        <PasswordInput
           placeholder="Пароль" 
           value={password} 
           onChangeText={(text: string) => {

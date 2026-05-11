@@ -80,7 +80,7 @@ export default function EditProfileScreen() {
           if (!cancelled) {
             setFullName((pick(p, 'fullName', 'full_name') || loginProfile?.full_name) ?? '');
             setEmail((pick(p, 'email') || loginProfile?.email) ?? '');
-            setTelegram(pick(p, 'phone') ?? '');
+            setTelegram(pick(p, 'telegram', 'telegramUsername', 'telegram_username') ?? '');
             const bio = pick(p, 'bio') ?? '';
             setAbout(bio);
             const sb = pick(p, 'shortBio', 'short_bio') ?? bio.slice(0, SHORT_BIO_LIMIT);
@@ -120,6 +120,7 @@ export default function EditProfileScreen() {
             setFullName((pick(p, 'fullName', 'full_name') || loginProfile?.full_name) ?? '');
             setEmail((pick(p, 'email') || loginProfile?.email) ?? '');
             setPhone(pick(p, 'phone') ?? loginProfile?.phone ?? '');
+            setTelegram(pick(p, 'telegram', 'telegramUsername', 'telegram_username') ?? '');
             const url = pick(p, 'avatarUrl', 'avatar_url') ?? '';
             if (url) {
               setAvatarUrl(url);
@@ -190,7 +191,7 @@ export default function EditProfileScreen() {
         if (email.trim()) payload.email = email.trim();
         if (bio) payload.bio = bio;
         if (shortBio.trim()) payload.shortBio = shortBio.trim();
-        if (telegram.trim()) payload.phone = telegram.trim();
+        if (telegram.trim()) payload.telegram = telegram.trim().replace(/^@/, '');
         // Upload new local image; skip server URLs (would fail validation)
         if (avatarUri && (avatarUri.startsWith('file://') || avatarUri.startsWith('blob:') || avatarUri.startsWith('data:'))) {
           try {
@@ -218,6 +219,7 @@ export default function EditProfileScreen() {
         if (fullName.trim()) payload.full_name = fullName.trim();
         if (email.trim()) payload.email = email.trim();
         if (phone.trim()) payload.phone = phone.trim();
+        if (telegram.trim()) payload.telegram = telegram.trim().replace(/^@/, '');
         // Only upload + include avatarUrl when user explicitly picked a new local image.
         // Never send the pre-loaded server URL back — it may be a relative path that the
         // server rejects with "avatarUrl must be a URL address".
@@ -313,6 +315,15 @@ export default function EditProfileScreen() {
                 placeholderTextColor="#9B9B9B"
                 keyboardType="phone-pad"
               />
+              <Text style={styles.label}>Телеграм</Text>
+              <TextInput
+                value={telegram}
+                onChangeText={(t) => setTelegram(t.replace(/^@/, ''))}
+                style={styles.input}
+                placeholder="username без @"
+                placeholderTextColor="#9B9B9B"
+                autoCapitalize="none"
+              />
             </>
           )}
 
@@ -339,10 +350,11 @@ export default function EditProfileScreen() {
               <Text style={styles.label}>Телеграм</Text>
               <TextInput
                 value={telegram}
-                onChangeText={setTelegram}
+                onChangeText={(t) => setTelegram(t.replace(/^@/, ''))}
                 style={styles.input}
-                placeholder="Телеграм"
+                placeholder="username без @"
                 placeholderTextColor="#9B9B9B"
+                autoCapitalize="none"
               />
 
               <Text style={styles.label}>О себе</Text>

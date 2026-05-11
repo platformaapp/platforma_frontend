@@ -38,6 +38,7 @@ export interface MyEventItem {
   time_left?: string;
   timeLeft?: string;
   status?: string;
+  paymentStatus?: string;
   coverUrl?: string | null;
   cover_url?: string | null;
 }
@@ -81,6 +82,7 @@ export function normalizeMyEventItem(raw: Record<string, unknown>): MyEventItem 
     price: typeof r.price === 'number' ? r.price : undefined,
     time_left: (r.time_left ?? r.timeLeft) as string | undefined,
     status: r.status as string | undefined,
+    paymentStatus: (r.paymentStatus ?? r.payment_status ?? r.payStatus) as string | undefined,
     coverUrl: resolveUrl(
       r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ??
       r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url ??
