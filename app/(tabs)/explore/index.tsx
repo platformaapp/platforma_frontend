@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getPublicTutorList, getPublicTutors, type PublicTutor } from '@/lib/api/tutor';
-import { getUserProfile } from '@/lib/auth';
+import { getAuthRole, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
@@ -22,6 +22,8 @@ export default function MentorsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tutors, setTutors] = useState<PublicTutor[]>([]);
+  const [myId, setMyId] = useState<string | null>(null);
+  const [myRole, setMyRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,19 +31,24 @@ export default function MentorsScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const [authListResult, publicListResult, profileResult] = await Promise.allSettled([
+      const [authListResult, publicListResult, profileResult, roleResult] = await Promise.allSettled([
         getPublicTutorList(),
         getPublicTutors(),
         getUserProfile(),
+        getAuthRole(),
       ]);
 
-      // Prefer authenticated list (has richer data); fall back to public list when not logged in
       const authList = authListResult.status === 'fulfilled' ? authListResult.value : [];
       const publicList = publicListResult.status === 'fulfilled' ? publicListResult.value : [];
       const tutorList = (authList.length > 0 ? authList : publicList) as PublicTutor[];
 
-      const myId = profileResult.status === 'fulfilled' ? (profileResult.value?.id ?? null) : null;
-      setTutors(myId ? tutorList.filter((t) => t.id !== myId) : tutorList);
+      const currentId = profileResult.status === 'fulfilled' ? (profileResult.value?.id ?? null) : null;
+      const currentRole = roleResult.status === 'fulfilled' ? roleResult.value : null;
+      setMyId(currentId);
+      setMyRole(currentRole);
+
+      // Show all tutors including own profile
+      setTutors(tutorList);
 
       if (authListResult.status === 'rejected' && publicListResult.status === 'rejected') {
         setError('Не удалось загрузить наставников');
@@ -86,29 +93,66 @@ export default function MentorsScreen() {
           <Text style={styles.emptyText}>Наставники не найдены</Text>
         </View>
       ) : (
-        tutors.map((tutor) => (
-          <Pressable
-            key={tutor.id}
-            style={styles.card}
-            onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
-          >
-            <View style={styles.cardHeader}>
-              <Image
-                source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
-                style={styles.avatar}
-              />
-              <View style={styles.headerText}>
-                <Text style={styles.name}>{tutor.fullName}</Text>
-                {(tutor.shortBio || tutor.short_bio) ? (
-                  <Text style={styles.bio} numberOfLines={2}>{tutor.shortBio || tutor.short_bio}</Text>
-                ) : null}
+        tutors.map((tutor) => {
+          const isOwn = tutor.id === myId && myRole === 'tutor';
+          const bio = (tutor as any).bio ?? '';
+          const rate = tutor.hourlyRate ?? (tutor as any).hourly_rate ?? tutor.pricePerHour ?? null;
+          const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
+
+          return (
+            <Pressable
+              key={tutor.id}
+              style={styles.card}
+              onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
+            >
+              {/* Header: avatar + name + shortBio */}
+              <View style={styles.cardHeader}>
+                <Image
+                  source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
+                  style={styles.avatar}
+                />
+                <View style={styles.headerText}>
+                  <Text style={styles.name}>{tutor.fullName}</Text>
+                  {shortBio ? (
+                    <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text>
+                  ) : null}
+                </View>
               </View>
-            </View>
-            <View style={styles.contactButton}>
-              <Text style={styles.contactButtonText}>Написать наставнику</Text>
-            </View>
-          </Pressable>
-        ))
+
+              {/* Bio: long description, max 6 lines */}
+              {bio ? (
+                <View style={styles.bioSection}>
+                  <Text style={styles.bioText} numberOfLines={6}>{bio}</Text>
+                </View>
+              ) : null}
+
+              {/* Price row */}
+              {typeof rate === 'number' && rate > 0 ? (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Стоимость консультации</Text>
+                  <Text style={styles.priceValue}>{rate.toLocaleString('ru-RU')} ₽ в час</Text>
+                </View>
+              ) : null}
+
+              {/* CTA button */}
+              <Pressable
+                style={[styles.contactButton, isOwn && styles.contactButtonSecondary]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  if (isOwn) {
+                    router.push('/(tabs)/profile' as any);
+                  } else {
+                    router.push(`/(tabs)/explore/${tutor.id}` as any);
+                  }
+                }}
+              >
+                <Text style={[styles.contactButtonText, isOwn && styles.contactButtonSecondaryText]}>
+                  {isOwn ? 'Перейти в профиль' : 'Написать наставнику'}
+                </Text>
+              </Pressable>
+            </Pressable>
+          );
+        })
       )}
     </ScrollView>
   );
@@ -126,10 +170,30 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#1E1E1E' },
   avatar: { width: 72, height: 72 },
   headerText: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
-  name: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
-  bio: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
+  name: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 2 },
+  shortBio: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
+  bioSection: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  bioText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#1E1E1E',
+  },
+  priceLabel: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  priceValue: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
   contactButton: { backgroundColor: '#111', paddingVertical: 14, alignItems: 'center' },
+  contactButtonSecondary: { backgroundColor: '#fff' },
   contactButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
+  contactButtonSecondaryText: { color: '#181818' },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
 });
