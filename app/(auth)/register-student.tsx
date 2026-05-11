@@ -23,6 +23,7 @@ export default function RegisterStudentScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneRaw, setPhoneRaw] = useState('');
+  const [telegram, setTelegram] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [show1, setShow1] = useState(false);
@@ -103,6 +104,7 @@ export default function RegisterStudentScreen() {
         phone: normalizePhoneRU(phoneRaw),
         bio: '',
       };
+      if (telegram.trim()) requestBody.telegram = telegram.trim().replace(/^@/, '');
       
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
@@ -240,16 +242,16 @@ export default function RegisterStudentScreen() {
       </View>
 
       <View>
-        <LabeledInput 
-          placeholder="Телефон" 
-          value={phone} 
+        <LabeledInput
+          placeholder="Телефон"
+          value={phone}
           onChangeText={(text: string) => {
             const digits = text.replace(/\D/g, '');
             setPhoneRaw(digits);
             if (errors.phone) {
               setErrors({ ...errors, phone: undefined });
             }
-          }} 
+          }}
           keyboardType="phone-pad"
           error={errors.phone}
         />
@@ -257,6 +259,13 @@ export default function RegisterStudentScreen() {
           <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
         )}
       </View>
+
+      <LabeledInput
+        placeholder="Телеграм (необязательно)"
+        value={telegram}
+        onChangeText={(text: string) => setTelegram(text.replace(/^@/, ''))}
+        autoCapitalize="none"
+      />
 
       <Pressable style={[styles.upload, avatarUri && styles.uploadWithPhotoContainer]} onPress={pickImage}>
         {avatarUri ? (
