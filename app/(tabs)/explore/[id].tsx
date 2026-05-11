@@ -182,10 +182,6 @@ export default function TutorCardScreen() {
   const handleOpenSlots = async () => {
     const token = await getAuthToken();
     if (!token) { router.push('/login'); return; }
-    if (isTutor) {
-      Alert.alert('Запись недоступна', 'Запись на встречу доступна только ученикам');
-      return;
-    }
     setShowSlots(true);
     setLoadingSlots(true);
     setSlotsError('');

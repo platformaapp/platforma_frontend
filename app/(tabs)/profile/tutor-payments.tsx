@@ -201,6 +201,9 @@ export default function TutorPaymentsScreen() {
   const handleEditSubmit = async () => {
     if (isLinking) return;
     setIsLinking(true);
+    // Abort if the API call takes more than 15s
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
       let cardCountBefore = 0;
       try {
@@ -210,6 +213,7 @@ export default function TutorPaymentsScreen() {
         /* ignore */
       }
       const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
+      clearTimeout(timeoutId);
       const paymentId = yookassaPaymentId;
       try {
         const ls = (globalThis as any)?.localStorage;
@@ -232,7 +236,10 @@ export default function TutorPaymentsScreen() {
       });
       WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
-      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось изменить карту');
+      clearTimeout(timeoutId);
+      const msg = (e as Error)?.message ?? '';
+      const isAbort = msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel');
+      Alert.alert('Ошибка', isAbort ? 'Время ожидания истекло, попробуйте ещё раз' : (msg || 'Не удалось привязать карту'));
     } finally {
       setIsLinking(false);
     }
@@ -460,17 +467,11 @@ export default function TutorPaymentsScreen() {
         visible={isEditModalVisible}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setEditModalVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => !isLinking && setEditModalVisible(false)}>
           <Pressable style={styles.editModalSheet} onPress={() => {}}>
             <ThemedText type="title" style={styles.editModalTitle}>
-              ИЗМЕНИТЬ КАРТУ
+              {activeCard ? 'ИЗМЕНИТЬ КАРТУ' : 'ДОБАВИТЬ КАРТУ'}
             </ThemedText>
-
-            <View style={styles.editCardInfo}>
-              <Text style={styles.editCardLabel}>Текущая карта</Text>
-              <Text style={styles.editCardMasked}>{cardMasked}</Text>
-              <Text style={styles.editCardProvider}>{cardBank}</Text>
-            </View>
 
             <Pressable
               style={[styles.editModalBtn, styles.editModalBtnPrimary, isLinking && styles.editModalBtnDisabled]}
@@ -478,7 +479,7 @@ export default function TutorPaymentsScreen() {
               disabled={isLinking}
             >
               <Text style={styles.editModalBtnText}>
-                {isLinking ? 'Открытие...' : 'Привязать новую карту'}
+                {isLinking ? 'Открытие...' : 'Привязать карту'}
               </Text>
             </Pressable>
           </Pressable>
