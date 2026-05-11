@@ -497,8 +497,8 @@ export default function ProfileByIdScreen() {
           <Text style={styles.inviteSubtitle}>Отправьте ссылку на ваш профиль</Text>
         </View>
         <View style={styles.inviteIconBox}>
-          <Svg width="22" height="22" viewBox="0 0 20 20" fill="none">
-            <Path d="M15 6.66667L10 1.66667M15 6.66667L10 11.6667M15 6.66667H5C3.89543 6.66667 3 7.5621 3 8.66667V15.3333C3 16.4379 3.89543 17.3333 5 17.3333H12.3333C13.4379 17.3333 14.3333 16.4379 14.3333 15.3333V6.66667" stroke="#181818" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <Svg width="22" height="22" viewBox="0 0 25 25" fill="none">
+            <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
           </Svg>
         </View>
       </Pressable>

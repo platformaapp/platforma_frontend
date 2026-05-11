@@ -35,7 +35,6 @@ export default function RegisterStudentScreen() {
     fullName?: string;
     email?: string;
     phone?: string;
-    telegram?: string;
     password?: string;
     password2?: string;
   }>({});
@@ -78,9 +77,6 @@ export default function RegisterStudentScreen() {
       newErrors.phone = 'Поле не заполнено!';
     } else if (!isValidPhoneRU(phoneRaw)) {
       newErrors.phone = 'Неверный формат телефона';
-    }
-    if (!telegram.trim()) {
-      newErrors.telegram = 'Поле не заполнено!';
     }
     if (password.length < 7) {
       newErrors.password = 'Пароль слишком короткий!';
@@ -264,21 +260,12 @@ export default function RegisterStudentScreen() {
         )}
       </View>
 
-      <View>
-        <LabeledInput
-          placeholder="Телеграм"
-          value={telegram}
-          onChangeText={(text: string) => {
-            setTelegram(text.replace(/^@/, ''));
-            if (errors.telegram) setErrors({ ...errors, telegram: undefined });
-          }}
-          autoCapitalize="none"
-          error={errors.telegram}
-        />
-        {errors.telegram && (
-          <ThemedText style={styles.errorText}>{errors.telegram}</ThemedText>
-        )}
-      </View>
+      <LabeledInput
+        placeholder="Телеграм (необязательно)"
+        value={telegram}
+        onChangeText={(text: string) => setTelegram(text.replace(/^@/, ''))}
+        autoCapitalize="none"
+      />
 
       <Pressable style={[styles.upload, avatarUri && styles.uploadWithPhotoContainer]} onPress={pickImage}>
         {avatarUri ? (

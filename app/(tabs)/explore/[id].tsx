@@ -16,6 +16,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { API_BASE, endpoints } from '@/constants/env';
 import { bookTutorSlot, getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
@@ -325,7 +326,9 @@ export default function TutorCardScreen() {
       <Pressable style={styles.shareRow} onPress={() => { setShareCopied(false); setShareVisible(true); }}>
         <Text style={styles.shareText}>Поделиться профилем</Text>
         <View style={styles.shareIconBox}>
-          <Text style={styles.shareIcon}>↑</Text>
+          <Svg width="22" height="22" viewBox="0 0 25 25" fill="none">
+            <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818"/>
+          </Svg>
         </View>
       </Pressable>
 
