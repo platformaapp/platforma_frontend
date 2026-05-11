@@ -182,6 +182,10 @@ export default function TutorCardScreen() {
   const handleOpenSlots = async () => {
     const token = await getAuthToken();
     if (!token) { router.push('/login'); return; }
+    if (isTutor) {
+      Alert.alert('Запись недоступна', 'Запись на встречу доступна только ученикам');
+      return;
+    }
     setShowSlots(true);
     setLoadingSlots(true);
     setSlotsError('');
@@ -189,16 +193,14 @@ export default function TutorCardScreen() {
       const apiSlots = await getStudentTutorSlots(id ?? '');
       const nowTs = Date.now();
       const filtered = apiSlots.filter((s) => {
-        // Hide booked slots — not available for new bookings
         if (s.status !== 'free' && s.status !== 'available') return false;
-        // Hide past slots
         const slotTs = new Date(`${s.date}T${s.time}:00`).getTime();
         return slotTs > nowTs;
       });
       setSlots(filtered.map((s) => ({
         id: s.id,
         date: formatSlotDate(s.date),
-        time: s.time,
+        time: s.time.slice(0, 5),
         price: s.price,
         status: 'available',
       })));
