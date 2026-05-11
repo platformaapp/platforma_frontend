@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
 import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
@@ -52,6 +53,7 @@ const TITLE_LIMIT = 100;
 export default function EditEventScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
 
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [title, setTitle] = useState('');
@@ -246,7 +248,7 @@ export default function EditEventScreen() {
         onScrollBeginDrag={() => Keyboard.dismiss()}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -407,12 +409,12 @@ export default function EditEventScreen() {
         {/* ── Price ───────────────────────────────────────────────────── */}
         <View style={[styles.priceRow, hasPaidRegistrations && styles.inputDisabled]}>
           {hasPaidRegistrations ? (
-            <Text style={[styles.priceDisplay, { color: '#9B9B9B' }]}>
+            <Text style={[styles.priceDisplay, { color: '#9B9B9B' }]} numberOfLines={1}>
               Стоимость участия — {priceValue} ₽
             </Text>
           ) : price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
-              <Text style={styles.priceDisplay}>Стоимость участия — {priceValue} ₽</Text>
+              <Text style={styles.priceDisplay} numberOfLines={1}>Стоимость участия — {priceValue} ₽</Text>
             </Pressable>
           ) : (
             <TextInput
@@ -483,7 +485,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { justifyContent: 'center', alignItems: 'center' },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 24 },
-  header: { paddingTop: 16 },
+  header: { paddingTop: 0 },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { marginTop: 8, marginBottom: 16, fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818' },
   input: {
@@ -509,7 +511,7 @@ const styles = StyleSheet.create({
 
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 12, minHeight: 52 },
   priceInput: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', padding: 0, margin: 0, minHeight: 24, borderWidth: 0 },
-  priceDisplayWrap: { flex: 1 },
+  priceDisplayWrap: { flex: 1, flexShrink: 1 },
   priceDisplay: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', minHeight: 24, paddingVertical: 4 },
   commissionInfo: { alignItems: 'flex-end', marginLeft: 12 },
   commissionText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#9B9B9B', marginBottom: 4 },

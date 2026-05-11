@@ -122,7 +122,6 @@ export default function EventsScreen() {
       setEvents(
         normalized.filter((item) => {
           if (registeredIds.has(item.id)) return false;
-          if (currentUserId && item.mentor?.id && item.mentor.id === currentUserId) return false;
           if (!item.datetimeStart) return true;
           return new Date(item.datetimeStart).getTime() > now;
         })
