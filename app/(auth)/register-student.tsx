@@ -152,15 +152,16 @@ export default function RegisterStudentScreen() {
         await saveAuthToken(token, 'student', refreshToken, userProfile);
 
         // Upload avatar now that we have a token
+        let uploadedAvatarUrl: string | undefined;
         if (avatarUri) {
           try {
-            const uploadedUrl = await uploadEventImage(avatarUri);
-            await updateStudentProfile({ avatarUrl: uploadedUrl });
+            uploadedAvatarUrl = await uploadEventImage(avatarUri);
+            await updateStudentProfile({ avatarUrl: uploadedAvatarUrl });
           } catch { /* ignore — registration succeeded */ }
         }
 
         // Fetch fresh profile from server — overwrites login-response data with authoritative
-        // name/email/avatar. Fixes "John Doe" or other stale data persisting after registration.
+        // name/email/avatar. Fall back to just-uploaded avatar if server doesn't return one yet.
         try {
           const sp = await getStudentProfile();
           const fresh: UserProfile = {
@@ -168,7 +169,7 @@ export default function RegisterStudentScreen() {
             email: sp.email ?? user?.email ?? email.trim(),
             full_name: sp.full_name ?? (sp as any).fullName ?? user?.full_name ?? fullName.trim(),
             phone: sp.phone ?? user?.phone ?? normalizePhoneRU(phoneRaw),
-            avatar_url: (sp as any).avatar_url ?? (sp as any).avatarUrl ?? user?.avatar_url,
+            avatar_url: (sp as any).avatar_url ?? (sp as any).avatarUrl ?? user?.avatar_url ?? uploadedAvatarUrl,
             role: 'student',
           };
           if (fresh.id) await saveAuthToken(token, 'student', refreshToken, fresh);

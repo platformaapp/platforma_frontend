@@ -80,9 +80,25 @@ function formatMenuDatetime(iso?: string): string {
 }
 
 function formatBookingDate(date?: string, time?: string): string {
-  const parts: string[] = [];
-  if (date) parts.push(date);
-  if (time) parts.push(time);
+  if (!date) return time ? time.slice(0, 5) : '';
+  try {
+    // Parse ISO date (YYYY-MM-DD) + optional time (HH:MM or HH:MM:SS)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const timeClean = time ? time.slice(0, 5) : '00:00';
+      const d = new Date(`${date}T${timeClean}:00`);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = MONTHS_GEN[d.getMonth()];
+        const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return time ? `${day} ${month} ${weekday} ${hh}:${mm}` : `${day} ${month} ${weekday}`;
+      }
+    }
+  } catch { /* ignore */ }
+  // Fallback: raw strings (strip seconds from time)
+  const parts: string[] = [date];
+  if (time) parts.push(time.slice(0, 5));
   return parts.join(' ');
 }
 

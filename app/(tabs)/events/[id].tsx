@@ -800,7 +800,7 @@ export default function EventDetailScreen() {
           style={styles.registerButton}
           onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
         >
-          <Text style={styles.registerButtonText}>Оплатить на сайте</Text>
+          <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
         </Pressable>
       ) : (
         <Pressable style={styles.registerButton} onPress={handleLinkNow}>

@@ -14,6 +14,7 @@
 import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { handle401 } from '@/lib/api/auth-error';
+import { authedFetch } from '@/lib/authed-fetch';
 
 // --- Типы ---
 
@@ -182,9 +183,11 @@ export async function getTutorProfile(): Promise<TutorProfile> {
 
 /** PUT /tutor/profile — обновить личные данные (full_name, bio, avatar_url) */
 export async function updateTutorProfile(data: TutorProfileUpdate): Promise<TutorProfile> {
-  const res = await fetch(endpoints.tutorProfile, {
+  // authedFetch handles 401 by refreshing the token and retrying once,
+  // preventing accidental logout when the access token expires mid-session.
+  const res = await authedFetch(endpoints.tutorProfile, {
     method: 'PUT',
-    headers: await authHeaders(),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
   return handleResponse<TutorProfile>(res);
