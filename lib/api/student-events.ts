@@ -41,6 +41,7 @@ export interface MyEventItem {
   paymentStatus?: string;
   coverUrl?: string | null;
   cover_url?: string | null;
+  registeredCount?: number;
 }
 
 export interface MyEventsPagination {
@@ -83,6 +84,11 @@ export function normalizeMyEventItem(raw: Record<string, unknown>): MyEventItem 
     time_left: (r.time_left ?? r.timeLeft) as string | undefined,
     status: r.status as string | undefined,
     paymentStatus: (r.paymentStatus ?? r.payment_status ?? r.payStatus) as string | undefined,
+    registeredCount: typeof r.registeredCount === 'number' ? r.registeredCount
+      : typeof r.registered_count === 'number' ? r.registered_count
+      : typeof r.participantsCount === 'number' ? r.participantsCount
+      : typeof r.participants_count === 'number' ? r.participants_count
+      : undefined,
     coverUrl: resolveUrl(
       r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ??
       r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url ??

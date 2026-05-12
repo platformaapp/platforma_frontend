@@ -27,6 +27,7 @@ import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 type EventItem = MyEventItem & {
   datetimeStart?: string;
   mentor?: { id: string; name: string; avatarUrl?: string | null };
+  registeredCount?: number;
 };
 
 type BookingItem = {
@@ -79,9 +80,25 @@ function formatMenuDatetime(iso?: string): string {
 }
 
 function formatBookingDate(date?: string, time?: string): string {
-  const parts: string[] = [];
-  if (date) parts.push(date);
-  if (time) parts.push(time);
+  if (!date) return time ? time.slice(0, 5) : '';
+  try {
+    // Parse ISO date (YYYY-MM-DD) + optional time (HH:MM or HH:MM:SS)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const timeClean = time ? time.slice(0, 5) : '00:00';
+      const d = new Date(`${date}T${timeClean}:00`);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = MONTHS_GEN[d.getMonth()];
+        const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return time ? `${day} ${month} ${weekday} ${hh}:${mm}` : `${day} ${month} ${weekday}`;
+      }
+    }
+  } catch { /* ignore */ }
+  // Fallback: raw strings (strip seconds from time)
+  const parts: string[] = [date];
+  if (time) parts.push(time.slice(0, 5));
   return parts.join(' ');
 }
 
@@ -126,6 +143,27 @@ function translateStatus(s: string): string {
     cancelled: 'Отменено', completed: 'Завершено', booked: 'Забронировано',
   };
   return map[s.toLowerCase()] ?? s;
+}
+
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
+function timeRemainingLabel(ms: number): string {
+  const diff = ms - Date.now();
+  if (diff <= 0) return '';
+  const totalMins = Math.floor(diff / 60000);
+  const hours = Math.floor(totalMins / 60);
+  const days = Math.floor(hours / 24);
+  if (days >= 1) return `До встречи ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
+  if (hours >= 1) return `До встречи ${hours} ${pluralRu(hours, 'час', 'часа', 'часов')}`;
+  if (totalMins >= 1) return `До встречи ${totalMins} ${pluralRu(totalMins, 'минута', 'минуты', 'минут')}`;
+  return '';
 }
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
@@ -299,7 +337,9 @@ export default function MyEventsScreen() {
   // ─── Render event card ────────────────────────────────────────────────────
 
   const renderEventCard = (item: EventItem) => {
-    const isPast = !!item.datetimeStart && new Date(item.datetimeStart).getTime() < Date.now();
+    const eventMs = item.datetimeStart ? new Date(item.datetimeStart).getTime() : null;
+    const isPast = eventMs != null && eventMs < Date.now();
+    const remainingLabel = !isPast && eventMs ? timeRemainingLabel(eventMs) : '';
     return (
       <View key={item.id} style={styles.card}>
         <Pressable style={styles.cardTop} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
@@ -313,6 +353,9 @@ export default function MyEventsScreen() {
           <View style={styles.cardTitleBox}>
             <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
             {(item.status || item.paymentStatus) ? <Text style={styles.eventStatus}>{translateEventStatus(item.status, item.paymentStatus)}</Text> : null}
+            {role === 'tutor' && typeof item.registeredCount === 'number' ? (
+              <Text style={styles.participantCount}>Записалось: {item.registeredCount} чел.</Text>
+            ) : null}
           </View>
         </Pressable>
         <View style={styles.cardBottom}>
@@ -324,6 +367,11 @@ export default function MyEventsScreen() {
             </Pressable>
           )}
         </View>
+        {remainingLabel ? (
+          <View style={styles.timeRemainingBadge}>
+            <Text style={styles.timeRemainingText}>{remainingLabel}</Text>
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -374,6 +422,11 @@ export default function MyEventsScreen() {
             </Pressable>
           )}
         </View>
+        {!isPast && meetingTs && !isNearlyStarting ? (
+          <View style={styles.timeRemainingBadge}>
+            <Text style={styles.timeRemainingText}>{timeRemainingLabel(meetingTs)}</Text>
+          </View>
+        ) : null}
         {isNearlyStarting && (
           <Pressable
             style={styles.videoButton}
@@ -720,4 +773,7 @@ const styles = StyleSheet.create({
   pastCardWrap: { opacity: 0.55 },
   videoButton: { backgroundColor: '#E02D2D', height: 44, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   videoButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
+  timeRemainingBadge: { borderTopWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#F9F9F9' },
+  timeRemainingText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
+  participantCount: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
 });

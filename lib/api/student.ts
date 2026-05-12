@@ -6,6 +6,7 @@
 import { endpoints } from '@/constants/env';
 import { getAuthToken, getAuthRole, getRefreshToken, getUserProfile, saveAuthToken } from '@/lib/auth';
 import { handle401 } from '@/lib/api/auth-error';
+import { authedFetch } from '@/lib/authed-fetch';
 
 export interface StudentProfile {
   id?: string;
@@ -79,9 +80,10 @@ export async function updateStudentProfile(data: StudentProfileUpdate): Promise<
   }
 
   try {
-    const res = await fetch(endpoints.studentProfile, {
+    // authedFetch refreshes token and retries on 401 — prevents logout during profile save
+    const res = await authedFetch(endpoints.studentProfile, {
       method: 'PUT',
-      headers: await authHeaders(),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(serverData),
     });
     // Fall through to local save on 404 (not implemented) or 400 (validation error from bad field)
