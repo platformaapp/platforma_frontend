@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
   // Register button
   registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 0 },
   registerButtonDisabled: { backgroundColor: '#9B9B9B' },
-  registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF' },
+  registerButtonText: { fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '500', color: '#FFFFFF', paddingHorizontal: 16, textAlign: 'center' },
   iosPaymentBlock: { paddingHorizontal: 16, alignItems: 'center' },
   iosPaymentNote: { fontSize: 11, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center', marginTop: 6, marginBottom: 8 },
 
