@@ -372,7 +372,7 @@ export default function NewEventScreen() {
         <View style={styles.priceRow}>
           {price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
-              <Text style={styles.priceDisplay}>Стоимость участия — {priceValue} ₽</Text>
+              <Text style={styles.priceDisplay} numberOfLines={1}>Стоимость участия — {priceValue} ₽</Text>
             </Pressable>
           ) : (
             <TextInput
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   // Price
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 12, minHeight: 52 },
   priceInput: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', padding: 0, margin: 0, minHeight: 24, borderWidth: 0 },
-  priceDisplayWrap: { flex: 1 },
+  priceDisplayWrap: { flex: 1, flexShrink: 1 },
   priceDisplay: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', minHeight: 24, paddingVertical: 4 },
   commissionInfo: { alignItems: 'flex-end', marginLeft: 12 },
   commissionText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#9B9B9B', marginBottom: 4 },
