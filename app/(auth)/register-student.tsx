@@ -229,8 +229,8 @@ export default function RegisterStudentScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" style={{ backgroundColor: '#fff' }}>
         <ThemedView>
       <Pressable style={[styles.close, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">

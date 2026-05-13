@@ -203,9 +203,9 @@ export default function MyEventsScreen() {
       const eventsPromise = getMyEventsForStudent({ role: userRole as 'student' | 'tutor', filter: 'all', time: 'all', page: 1, per_page: 50 })
         .then(({ items }) => items.map((it) => {
           const ta = it.teacher as Record<string, unknown> | null | undefined;
-          const rawAv = ta?.avatarUrl ?? ta?.avatar_url;
-          const mentorAvatar = rawAv && typeof rawAv === 'string'
-            ? (rawAv.startsWith('http') ? rawAv : `${API_BASE}${rawAv}`)
+          const rawAv = ta?.avatarUrl ?? ta?.avatar_url ?? ta?.avatar ?? ta?.photo ?? ta?.photoUrl ?? ta?.photo_url ?? ta?.imageUrl ?? ta?.image_url;
+          const mentorAvatar = rawAv && typeof rawAv === 'string' && !rawAv.startsWith('blob:')
+            ? (rawAv.startsWith('http') ? rawAv : `${API_BASE}${rawAv.startsWith('/') ? '' : '/'}${rawAv}`)
             : null;
           return {
             ...it,
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   pastCardWrap: { opacity: 0.55 },
   videoButton: { backgroundColor: '#E02D2D', height: 44, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   videoButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
-  timeRemainingBadge: { borderTopWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#F9F9F9' },
-  timeRemainingText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
+  timeRemainingBadge: { paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#181818' },
+  timeRemainingText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   participantCount: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
 });
