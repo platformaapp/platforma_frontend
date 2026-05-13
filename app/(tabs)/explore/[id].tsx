@@ -191,6 +191,7 @@ export default function TutorCardScreen() {
       const apiSlots = await getStudentTutorSlots(id ?? '');
       const nowTs = Date.now();
       const filtered = apiSlots.filter((s) => {
+        if (s.status !== 'free' && s.status !== 'available') return false;
         const slotTs = new Date(`${s.date}T${s.time}:00`).getTime();
         return slotTs > nowTs;
       });

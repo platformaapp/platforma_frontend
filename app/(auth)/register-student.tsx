@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import React, { useMemo, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -229,8 +229,7 @@ export default function RegisterStudentScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#fff' }} behavior={Platform.select({ ios: 'padding', android: undefined })} keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" style={{ backgroundColor: '#fff' }}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <ThemedView>
       <Pressable style={[styles.close, { top: insets.top + 12 }]} onPress={() => router.back()}>
         <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -389,7 +388,6 @@ export default function RegisterStudentScreen() {
       </ThemedText>
         </ThemedView>
       </ScrollView>
-    </KeyboardAvoidingView>
   );
 }
 

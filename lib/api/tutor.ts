@@ -442,11 +442,11 @@ export async function getStudentTutorSlots(tutorId: string): Promise<StudentSlot
   const res = await fetch(url, {
     headers: await authHeaders(),
   });
-  const data = await handleResponse<StudentSlot[] | { slots?: StudentSlot[]; data?: StudentSlot[] }>(res);
+  const data = await handleResponse<StudentSlot[] | Record<string, unknown>>(res);
   if (Array.isArray(data)) return data;
-  return (data as { slots?: StudentSlot[]; data?: StudentSlot[] }).slots
-    ?? (data as { slots?: StudentSlot[]; data?: StudentSlot[] }).data
-    ?? [];
+  const obj = data as Record<string, unknown>;
+  const list = obj.slots ?? obj.data ?? obj.items ?? obj.results ?? [];
+  return Array.isArray(list) ? (list as StudentSlot[]) : [];
 }
 
 /**
