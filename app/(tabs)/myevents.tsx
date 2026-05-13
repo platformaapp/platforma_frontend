@@ -41,6 +41,7 @@ type BookingItem = {
   status?: string;
   createdAt?: string;
   videoUrl?: string;
+  _viewerRole?: 'student' | 'tutor'; // role of the current user in this booking
 };
 
 type Tab = 'events' | 'meetings';
@@ -215,12 +216,10 @@ export default function MyEventsScreen() {
         }))
         .catch(() => [] as EventItem[]);
 
-      // Personal meetings = sessions where the current user is the student (booked a mentor)
-      const bookingsUrl = endpoints.studentBookings;
-
-      const [eventsRes, bookRes] = await Promise.allSettled([
+      const [eventsRes, studentBookRes, tutorBookRes] = await Promise.allSettled([
         eventsPromise,
-        authedFetch(bookingsUrl),
+        authedFetch(endpoints.studentBookings),
+        authedFetch(endpoints.tutorBookings),
       ]);
 
       if (eventsRes.status === 'fulfilled') {
@@ -229,16 +228,29 @@ export default function MyEventsScreen() {
         setEvents([]);
       }
 
-      if (bookRes.status === 'fulfilled' && bookRes.value.ok) {
-        const data = await bookRes.value.json();
-        const rawList: any[] = Array.isArray(data) ? data : [];
-        setBookings(rawList.map((b) => ({
-          ...b,
-          videoUrl: b.videoUrl ?? b.video_url ?? b.meetingUrl ?? b.meeting_url ?? undefined,
-        } as BookingItem)));
-      } else {
-        setBookings([]);
-      }
+      const mergedBookings: BookingItem[] = [];
+      const seenIds = new Set<string>();
+
+      const addBookings = async (res: PromiseSettledResult<Response>, viewerRole: 'student' | 'tutor') => {
+        if (res.status !== 'fulfilled' || !res.value.ok) return;
+        const data = await res.value.json().catch(() => null);
+        if (!data) return;
+        const rawList: any[] = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+        for (const b of rawList) {
+          const id = String(b.id ?? '');
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          mergedBookings.push({
+            ...b,
+            _viewerRole: viewerRole,
+            videoUrl: b.videoUrl ?? b.video_url ?? b.meetingUrl ?? b.meeting_url ?? undefined,
+          } as BookingItem);
+        }
+      };
+
+      await addBookings(studentBookRes, 'student');
+      await addBookings(tutorBookRes, 'tutor');
+      setBookings(mergedBookings);
     } catch (e: any) {
       if (isAuthError(e)) { router.replace('/login'); return; }
       setEvents([]); setBookings([]);
@@ -340,7 +352,6 @@ export default function MyEventsScreen() {
   const renderEventCard = (item: EventItem) => {
     const eventMs = item.datetimeStart ? new Date(item.datetimeStart).getTime() : null;
     const isPast = eventMs != null && eventMs < Date.now();
-    const remainingLabel = !isPast && eventMs ? timeRemainingLabel(eventMs) : '';
     return (
       <View key={item.id} style={styles.card}>
         <Pressable style={styles.cardTop} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
@@ -368,11 +379,6 @@ export default function MyEventsScreen() {
             </Pressable>
           )}
         </View>
-        {remainingLabel ? (
-          <View style={styles.timeRemainingBadge}>
-            <Text style={styles.timeRemainingText}>{remainingLabel}</Text>
-          </View>
-        ) : null}
       </View>
     );
   };
@@ -380,16 +386,27 @@ export default function MyEventsScreen() {
   // ─── Render booking card ──────────────────────────────────────────────────
 
   const renderBookingCard = (item: BookingItem) => {
-    // Always show the mentor/tutor side of the booking, regardless of viewer role
-    const tutorObj = (item as any).tutor ?? (item as any).mentor ?? (item as any).teacher ?? null;
-    const tutorId = tutorObj?.id ?? tutorObj?.userId ?? tutorObj?.user_id
-      ?? (item as any).tutorId ?? (item as any).tutor_id ?? (item as any).mentorId;
-    const tutorName = tutorObj?.fullName ?? tutorObj?.full_name ?? tutorObj?.name ?? 'Наставник';
-    const tutorAvatarRaw = tutorObj?.avatarUrl ?? tutorObj?.avatar_url ?? tutorObj?.avatar
-      ?? tutorObj?.photo ?? tutorObj?.photoUrl ?? tutorObj?.photo_url ?? null;
-    const tutorAvatar = tutorAvatarRaw && typeof tutorAvatarRaw === 'string' && !tutorAvatarRaw.startsWith('blob:')
-      ? (tutorAvatarRaw.startsWith('http') ? tutorAvatarRaw : `${API_BASE}${tutorAvatarRaw.startsWith('/') ? '' : '/'}${tutorAvatarRaw}`)
+    const isViewerTutor = item._viewerRole === 'tutor';
+
+    // If viewer is student → show tutor info; if viewer is tutor → show student info
+    const otherPartyObj = isViewerTutor
+      ? ((item as any).student ?? (item as any).user ?? null)
+      : ((item as any).tutor ?? (item as any).mentor ?? (item as any).teacher ?? null);
+
+    const otherPartyId = otherPartyObj?.id ?? otherPartyObj?.userId ?? otherPartyObj?.user_id
+      ?? (isViewerTutor ? ((item as any).studentId ?? (item as any).student_id) : ((item as any).tutorId ?? (item as any).tutor_id ?? (item as any).mentorId));
+    const otherPartyName = otherPartyObj?.fullName ?? otherPartyObj?.full_name ?? otherPartyObj?.name
+      ?? (isViewerTutor ? 'Ученик' : 'Наставник');
+    const otherAvatarRaw = otherPartyObj?.avatarUrl ?? otherPartyObj?.avatar_url ?? otherPartyObj?.avatar
+      ?? otherPartyObj?.photo ?? otherPartyObj?.photoUrl ?? otherPartyObj?.photo_url ?? null;
+    const otherAvatar = otherAvatarRaw && typeof otherAvatarRaw === 'string' && !otherAvatarRaw.startsWith('blob:')
+      ? (otherAvatarRaw.startsWith('http') ? otherAvatarRaw : `${API_BASE}${otherAvatarRaw.startsWith('/') ? '' : '/'}${otherAvatarRaw}`)
       : null;
+
+    const profileRoute = isViewerTutor && otherPartyId
+      ? `/(tabs)/profile/student/${otherPartyId}` as any
+      : otherPartyId ? `/(tabs)/explore/${otherPartyId}` as any : null;
+
     const dateStr = formatBookingDate(item.date, item.time);
     const nowTs = Date.now();
     const meetingTs = item.date
@@ -405,10 +422,10 @@ export default function MyEventsScreen() {
       <View key={item.id} style={styles.card}>
         <Pressable
           style={styles.cardTop}
-          onPress={() => tutorId && router.push(`/(tabs)/explore/${tutorId}` as any)}
+          onPress={() => profileRoute && router.push(profileRoute)}
         >
-          {tutorAvatar ? (
-            <Image source={{ uri: tutorAvatar }} style={styles.cardImage} />
+          {otherAvatar ? (
+            <Image source={{ uri: otherAvatar }} style={styles.cardImage} />
           ) : (
             <Image source={require('@/assets/images/avatar.png')} style={styles.cardImage} />
           )}
@@ -418,7 +435,7 @@ export default function MyEventsScreen() {
           </View>
         </Pressable>
         <View style={styles.cardBottom}>
-          <Text style={styles.cardAuthor} numberOfLines={1}>{tutorName}</Text>
+          <Text style={styles.cardAuthor} numberOfLines={1}>{otherPartyName}</Text>
           <Text style={styles.cardDate}>{dateStr}</Text>
           {!isPast && (
             <Pressable style={styles.cardMenu} onPress={() => setMenuBooking(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -426,11 +443,6 @@ export default function MyEventsScreen() {
             </Pressable>
           )}
         </View>
-        {!isPast && meetingTs && !isNearlyStarting ? (
-          <View style={styles.timeRemainingBadge}>
-            <Text style={styles.timeRemainingText}>{timeRemainingLabel(meetingTs)}</Text>
-          </View>
-        ) : null}
         {isNearlyStarting && (
           <Pressable
             style={styles.videoButton}
@@ -468,6 +480,14 @@ export default function MyEventsScreen() {
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
   const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
 
+  // Nearest upcoming event across both tabs (for bottom countdown bar)
+  const allUpcomingMs = [
+    ...upcomingEvents.map(getEventMs),
+    ...upcomingBookings.map(getBookingMs),
+  ].filter((ms) => ms > now && ms !== Infinity);
+  const nearestMs = allUpcomingMs.length > 0 ? Math.min(...allUpcomingMs) : null;
+  const countdownLabel = nearestMs ? timeRemainingLabel(nearestMs) : '';
+
   return (
     <View style={styles.container}>
       <Text style={[styles.screenTitle, { paddingTop: insets.top + 16 }]}>МОИ ЗАПИСИ</Text>
@@ -491,7 +511,7 @@ export default function MyEventsScreen() {
         <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, countdownLabel && !isEmpty ? { paddingBottom: Math.max(insets.bottom, 12) + 56 } : undefined]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
@@ -520,6 +540,12 @@ export default function MyEventsScreen() {
           )}
         </ScrollView>
       )}
+
+      {!loading && !isEmpty && countdownLabel ? (
+        <View style={[styles.countdownBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <Text style={styles.countdownBarText}>{countdownLabel}</Text>
+        </View>
+      ) : null}
 
       {!loading && isEmpty && (
         <View style={[styles.emptySheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
@@ -586,35 +612,45 @@ export default function MyEventsScreen() {
       <Modal transparent animationType="fade" visible={menuBooking !== null} onRequestClose={() => setMenuBooking(null)}>
         <Pressable style={styles.modalOverlay} onPress={() => setMenuBooking(null)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <View style={styles.modalEventCard}>
-              <Text style={styles.modalEventTitle}>
-                {(menuBooking as any)?.tutor?.fullName
-                  ?? (menuBooking as any)?.tutor?.full_name
-                  ?? (menuBooking as any)?.tutor?.name
-                  ?? (menuBooking as any)?.mentor?.fullName
-                  ?? (menuBooking as any)?.mentor?.name
-                  ?? 'Наставник'}
-              </Text>
-              {menuBooking?.date && (
-                <Text style={styles.modalEventDate}>{formatBookingDate(menuBooking.date, menuBooking.time)}</Text>
-              )}
-            </View>
-            <Pressable
-              style={styles.modalActionButton}
-              onPress={() => {
-                const tId = (menuBooking as any)?.tutor?.id
-                  ?? (menuBooking as any)?.tutor?.userId
-                  ?? (menuBooking as any)?.mentor?.id
-                  ?? menuBooking?.tutorId;
-                setMenuBooking(null);
-                if (tId) router.push(`/(tabs)/explore/${tId}` as any);
-              }}
-            >
-              <Text style={styles.modalActionButtonText}>Написать наставнику</Text>
-            </Pressable>
-            <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
-              <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
-            </Pressable>
+            {(() => {
+              const isViewerTutor = menuBooking?._viewerRole === 'tutor';
+              const otherObj = isViewerTutor
+                ? ((menuBooking as any)?.student ?? (menuBooking as any)?.user ?? null)
+                : ((menuBooking as any)?.tutor ?? (menuBooking as any)?.mentor ?? null);
+              const otherName = otherObj?.fullName ?? otherObj?.full_name ?? otherObj?.name
+                ?? (isViewerTutor ? 'Ученик' : 'Наставник');
+              const otherId = otherObj?.id ?? otherObj?.userId
+                ?? (isViewerTutor
+                  ? ((menuBooking as any)?.studentId ?? (menuBooking as any)?.student_id)
+                  : ((menuBooking as any)?.tutorId ?? (menuBooking as any)?.tutor_id));
+              const profileRoute = isViewerTutor && otherId
+                ? `/(tabs)/profile/student/${otherId}` as any
+                : otherId ? `/(tabs)/explore/${otherId}` as any : null;
+              return (
+                <>
+                  <View style={styles.modalEventCard}>
+                    <Text style={styles.modalEventTitle}>{otherName}</Text>
+                    {menuBooking?.date && (
+                      <Text style={styles.modalEventDate}>{formatBookingDate(menuBooking.date, menuBooking.time)}</Text>
+                    )}
+                  </View>
+                  <Pressable
+                    style={styles.modalActionButton}
+                    onPress={() => {
+                      setMenuBooking(null);
+                      if (profileRoute) router.push(profileRoute);
+                    }}
+                  >
+                    <Text style={styles.modalActionButtonText}>
+                      {isViewerTutor ? 'Написать ученику' : 'Написать наставнику'}
+                    </Text>
+                  </Pressable>
+                  <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
+                    <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
+                  </Pressable>
+                </>
+              );
+            })()}
           </Pressable>
         </Pressable>
       </Modal>
@@ -754,7 +790,7 @@ const styles = StyleSheet.create({
   pastCardWrap: { opacity: 0.55 },
   videoButton: { backgroundColor: '#E02D2D', height: 44, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   videoButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
-  timeRemainingBadge: { paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#181818' },
-  timeRemainingText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
+  countdownBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#181818', paddingHorizontal: 16, paddingTop: 16 },
+  countdownBarText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   participantCount: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
 });
