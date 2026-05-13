@@ -30,6 +30,7 @@ export default function RegisterStudentScreen() {
   const [show2, setShow2] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarFileSize, setAvatarFileSize] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{
     fullName?: string;
@@ -56,7 +57,17 @@ export default function RegisterStudentScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      const MAX_SIZE = 8 * 1024 * 1024; // 8 MB
+      if (asset.fileSize && asset.fileSize > MAX_SIZE) {
+        Alert.alert(
+          'Фото слишком большое',
+          `Размер файла превышает 8 МБ. Выберите фото меньшего размера.`
+        );
+        return;
+      }
+      setAvatarUri(asset.uri);
+      setAvatarFileSize(asset.fileSize ?? null);
       // avatarUrl stays empty here — will upload after registration when we have a token
     }
   }
@@ -93,7 +104,14 @@ export default function RegisterStudentScreen() {
     if (Object.keys(newErrors).length > 0) {
       return;
     }
-    
+
+    // Проверка размера фото перед отправкой
+    const MAX_SIZE = 8 * 1024 * 1024;
+    if (avatarUri && avatarFileSize && avatarFileSize > MAX_SIZE) {
+      Alert.alert('Фото слишком большое', 'Выберите фото меньшего размера (до 8 МБ).');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const requestBody: Record<string, string> = {
@@ -115,10 +133,24 @@ export default function RegisterStudentScreen() {
       const data = await res.json().catch(() => ({}));
       
       if (!res.ok) {
-        // Обработка ошибки 409 Conflict (телефон / email уже существуют)
+        // Обработка ошибки 409 Conflict
         if (res.status === 409) {
           const errorMessage = data?.message || data?.error || '';
           const lowerMessage = errorMessage.toLowerCase();
+
+          // Пользователь уже зарегистрирован с такой ролью
+          if (lowerMessage.includes('already registered') || lowerMessage.includes('уже зарегистрирован')) {
+            Alert.alert(
+              'Аккаунт уже существует',
+              'Пользователь с таким email уже зарегистрирован. Войдите в аккаунт.',
+              [
+                { text: 'Войти', onPress: () => router.replace('/login?showLogin=1' as any) },
+                { text: 'Отмена', style: 'cancel' },
+              ]
+            );
+            setIsSubmitting(false);
+            return;
+          }
 
           // Если конфликт по телефону
           if (lowerMessage.includes('phone') || lowerMessage.includes('телефон') || lowerMessage.includes('номер')) {
@@ -134,7 +166,7 @@ export default function RegisterStudentScreen() {
             return;
           }
         }
-        
+
         // Для других ошибок показываем общее сообщение
         const errorMessage = data?.message || data?.error || `Ошибка регистрации (${res.status})`;
         Alert.alert('Ошибка', errorMessage);
@@ -157,7 +189,9 @@ export default function RegisterStudentScreen() {
           try {
             uploadedAvatarUrl = await uploadEventImage(avatarUri);
             await updateStudentProfile({ avatarUrl: uploadedAvatarUrl });
-          } catch { /* ignore — registration succeeded */ }
+          } catch (uploadErr: any) {
+            Alert.alert('Ошибка загрузки фото', uploadErr?.message ?? 'Не удалось загрузить фото. Добавьте его позже в профиле.');
+          }
         }
 
         // Fetch fresh profile from server — overwrites login-response data with authoritative

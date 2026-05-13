@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -60,6 +60,7 @@ function cardDisplay(card: Card): string {
 
 export default function PaymentsScreen() {
   const router = useRouter();
+  const { refresh } = useLocalSearchParams<{ refresh?: string }>();
   const [loading, setLoading] = useState(true);
   const [isLinking, setIsLinking] = useState(false);
   const [cards, setCards] = useState<Card[]>([]);
@@ -82,6 +83,15 @@ export default function PaymentsScreen() {
       setLoading(false);
     }
   }, []);
+
+  // Reload data when navigating back from card-binding callback
+  useEffect(() => {
+    if (refresh) {
+      setLoading(true);
+      loadData();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
 
   useFocusEffect(
     useCallback(() => {

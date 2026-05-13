@@ -37,8 +37,9 @@ export default function PaymentMethodsCallbackScreen() {
     if (ranRef.current) return;
     ranRef.current = true;
 
+    const refresh = Date.now().toString();
     const goPayments = () => {
-      setTimeout(() => router.replace(paymentsRoute as never), 1500);
+      setTimeout(() => router.replace({ pathname: paymentsRoute, params: { refresh } } as never), 1500);
     };
 
     const run = async () => {
@@ -56,7 +57,7 @@ export default function PaymentMethodsCallbackScreen() {
         } else {
           setStatus('error');
           setMessage(result.message || 'Ошибка привязки карты');
-          setTimeout(() => router.replace(paymentsRoute as never), 2000);
+          setTimeout(() => router.replace({ pathname: paymentsRoute, params: { refresh } } as never), 2000);
         }
       } catch (e) {
         if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
@@ -75,16 +76,17 @@ export default function PaymentMethodsCallbackScreen() {
   const handleCheckStatus = async () => {
     setStatus('loading');
     setMessage('Проверяем карты...');
+    const r = Date.now().toString();
     try {
       const methods = await getPaymentMethods();
       if (methods.length > baselineCount) {
         setStatus('success');
         setMessage('Карта успешно привязана!');
-        setTimeout(() => router.replace(paymentsRoute as never), 1500);
+        setTimeout(() => router.replace({ pathname: paymentsRoute, params: { refresh: r } } as never), 1500);
       } else {
         setStatus('error');
         setMessage('Активная карта не найдена. Привяжите карту снова.');
-        setTimeout(() => router.replace(paymentsRoute as never), 2000);
+        setTimeout(() => router.replace({ pathname: paymentsRoute, params: { refresh: r } } as never), 2000);
       }
     } catch (e) {
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
@@ -93,12 +95,12 @@ export default function PaymentMethodsCallbackScreen() {
       }
       setStatus('error');
       setMessage('Ошибка соединения');
-      setTimeout(() => router.replace(paymentsRoute as never), 2000);
+      setTimeout(() => router.replace({ pathname: paymentsRoute, params: { refresh: r } } as never), 2000);
     }
   };
 
   const handleGoToPayments = () => {
-    router.replace(paymentsRoute as never);
+    router.replace({ pathname: paymentsRoute, params: { refresh: Date.now().toString() } } as never);
   };
 
   return (
