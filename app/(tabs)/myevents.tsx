@@ -215,7 +215,8 @@ export default function MyEventsScreen() {
         }))
         .catch(() => [] as EventItem[]);
 
-      const bookingsUrl = userRole === 'tutor' ? endpoints.tutorBookings : endpoints.studentBookings;
+      // Personal meetings = sessions where the current user is the student (booked a mentor)
+      const bookingsUrl = endpoints.studentBookings;
 
       const [eventsRes, bookRes] = await Promise.allSettled([
         eventsPromise,
@@ -379,13 +380,16 @@ export default function MyEventsScreen() {
   // ─── Render booking card ──────────────────────────────────────────────────
 
   const renderBookingCard = (item: BookingItem) => {
-    const personName = role === 'tutor'
-      ? (item.student?.fullName ?? item.student?.name ?? 'Ученик')
-      : (item.tutor?.fullName ?? item.tutor?.name ?? 'Наставник');
-    const avatarUrl = role === 'tutor' ? item.student?.avatarUrl : item.tutor?.avatarUrl;
-    const profileId = role === 'tutor'
-      ? (item.student?.id)
-      : (item.tutor?.id ?? item.tutorId);
+    // Always show the mentor/tutor side of the booking, regardless of viewer role
+    const tutorObj = (item as any).tutor ?? (item as any).mentor ?? (item as any).teacher ?? null;
+    const tutorId = tutorObj?.id ?? tutorObj?.userId ?? tutorObj?.user_id
+      ?? (item as any).tutorId ?? (item as any).tutor_id ?? (item as any).mentorId;
+    const tutorName = tutorObj?.fullName ?? tutorObj?.full_name ?? tutorObj?.name ?? 'Наставник';
+    const tutorAvatarRaw = tutorObj?.avatarUrl ?? tutorObj?.avatar_url ?? tutorObj?.avatar
+      ?? tutorObj?.photo ?? tutorObj?.photoUrl ?? tutorObj?.photo_url ?? null;
+    const tutorAvatar = tutorAvatarRaw && typeof tutorAvatarRaw === 'string' && !tutorAvatarRaw.startsWith('blob:')
+      ? (tutorAvatarRaw.startsWith('http') ? tutorAvatarRaw : `${API_BASE}${tutorAvatarRaw.startsWith('/') ? '' : '/'}${tutorAvatarRaw}`)
+      : null;
     const dateStr = formatBookingDate(item.date, item.time);
     const nowTs = Date.now();
     const meetingTs = item.date
@@ -401,10 +405,10 @@ export default function MyEventsScreen() {
       <View key={item.id} style={styles.card}>
         <Pressable
           style={styles.cardTop}
-          onPress={() => profileId && router.push(`/(tabs)/explore/${profileId}` as any)}
+          onPress={() => tutorId && router.push(`/(tabs)/explore/${tutorId}` as any)}
         >
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.cardImage} />
+          {tutorAvatar ? (
+            <Image source={{ uri: tutorAvatar }} style={styles.cardImage} />
           ) : (
             <Image source={require('@/assets/images/avatar.png')} style={styles.cardImage} />
           )}
@@ -414,7 +418,7 @@ export default function MyEventsScreen() {
           </View>
         </Pressable>
         <View style={styles.cardBottom}>
-          <Text style={styles.cardAuthor} numberOfLines={1}>{personName}</Text>
+          <Text style={styles.cardAuthor} numberOfLines={1}>{tutorName}</Text>
           <Text style={styles.cardDate}>{dateStr}</Text>
           {!isPast && (
             <Pressable style={styles.cardMenu} onPress={() => setMenuBooking(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -584,56 +588,33 @@ export default function MyEventsScreen() {
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>
-                {role === 'tutor'
-                  ? (menuBooking?.student?.fullName ?? menuBooking?.student?.name ?? 'Ученик')
-                  : (menuBooking?.tutor?.fullName ?? menuBooking?.tutor?.name ?? 'Наставник')}
+                {(menuBooking as any)?.tutor?.fullName
+                  ?? (menuBooking as any)?.tutor?.full_name
+                  ?? (menuBooking as any)?.tutor?.name
+                  ?? (menuBooking as any)?.mentor?.fullName
+                  ?? (menuBooking as any)?.mentor?.name
+                  ?? 'Наставник'}
               </Text>
               {menuBooking?.date && (
                 <Text style={styles.modalEventDate}>{formatBookingDate(menuBooking.date, menuBooking.time)}</Text>
               )}
             </View>
-            {(() => {
-              // Determine if current user is the listener (student) in this booking.
-              // A tutor can book as a student with another tutor — in that case show "Написать наставнику".
-              const isListener = role !== 'tutor' ||
-                (menuBooking?.student?.id != null && menuBooking.student.id === currentUserId);
-              if (isListener) {
-                return (
-                  <>
-                    <Pressable
-                      style={styles.modalActionButton}
-                      onPress={() => {
-                        const tutorId = menuBooking?.tutor?.id ?? menuBooking?.tutorId;
-                        setMenuBooking(null);
-                        if (tutorId) router.push(`/(tabs)/explore/${tutorId}` as any);
-                      }}
-                    >
-                      <Text style={styles.modalActionButtonText}>Написать наставнику</Text>
-                    </Pressable>
-                    <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
-                      <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
-                    </Pressable>
-                  </>
-                );
-              }
-              return (
-                <>
-                  <Pressable
-                    style={styles.modalActionButton}
-                    onPress={() => {
-                      const studentId = menuBooking?.student?.id;
-                      setMenuBooking(null);
-                      if (studentId) router.push(`/(tabs)/explore/${studentId}` as any);
-                    }}
-                  >
-                    <Text style={styles.modalActionButtonText}>Написать ученику</Text>
-                  </Pressable>
-                  <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
-                    <Text style={styles.modalCancelButtonText}>Отменить встречу</Text>
-                  </Pressable>
-                </>
-              );
-            })()}
+            <Pressable
+              style={styles.modalActionButton}
+              onPress={() => {
+                const tId = (menuBooking as any)?.tutor?.id
+                  ?? (menuBooking as any)?.tutor?.userId
+                  ?? (menuBooking as any)?.mentor?.id
+                  ?? menuBooking?.tutorId;
+                setMenuBooking(null);
+                if (tId) router.push(`/(tabs)/explore/${tId}` as any);
+              }}
+            >
+              <Text style={styles.modalActionButtonText}>Написать наставнику</Text>
+            </Pressable>
+            <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
+              <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
