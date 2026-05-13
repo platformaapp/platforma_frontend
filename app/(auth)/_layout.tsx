@@ -11,6 +11,7 @@ export default function AuthLayout() {
           backgroundColor: 'transparent',
         },
         headerTintColor: '#181818',
+        headerBackTitle: 'Назад',
       }}
     />
   );

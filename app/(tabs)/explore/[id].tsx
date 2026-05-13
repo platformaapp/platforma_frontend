@@ -15,6 +15,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
@@ -190,7 +191,7 @@ export default function TutorCardScreen() {
       const apiSlots = await getStudentTutorSlots(id ?? '');
       const nowTs = Date.now();
       const filtered = apiSlots.filter((s) => {
-        if (s.status !== 'free' && s.status !== 'available') return false;
+        if (s.status === 'booked' || s.status === 'cancelled') return false;
         const slotTs = new Date(`${s.date}T${s.time}:00`).getTime();
         return slotTs > nowTs;
       });
@@ -239,12 +240,13 @@ export default function TutorCardScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Back */}
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
       <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
-        <Text style={styles.backArrow}>‹</Text>
+        <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
       </Pressable>
-
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <Image source={imageSource} style={styles.heroImage} resizeMode="cover" />
 
       <View style={styles.infoBox}>
@@ -436,6 +438,7 @@ export default function TutorCardScreen() {
         </Pressable>
       </Modal>
     </ScrollView>
+    </View>
   );
 }
 
@@ -445,14 +448,13 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   backButton: {
-    position: 'absolute', top: 16, left: 16, zIndex: 10,
+    position: 'absolute', left: 16, zIndex: 20,
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center', justifyContent: 'center',
   },
-  backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
 
-  heroImage: { width: '100%', aspectRatio: 1 / 1.1, maxHeight: 600, backgroundColor: '#E5E5E5' },
+  heroImage: { width: '100%', aspectRatio: 1, maxHeight: 600, backgroundColor: '#E5E5E5' },
 
   infoBox: { marginHorizontal: 16, marginTop: 12, borderWidth: 1, borderColor: '#1E1E1E' },
   nameRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },

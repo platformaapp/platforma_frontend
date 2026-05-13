@@ -204,7 +204,7 @@ export default function RegisterStudentScreen() {
         </Svg>
       </Pressable>
 
-      <ThemedText type="title" style={styles.title}>РЕГИСТРАЦИЯ{"\n"}УЧЕНИКА</ThemedText>
+      <ThemedText type="title" style={[styles.title, { marginTop: insets.top + 56 }]}>РЕГИСТРАЦИЯ{"\n"}УЧЕНИКА</ThemedText>
 
       <View>
         <LabeledInput 
@@ -395,7 +395,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   title: {
-    marginTop: 48,
     marginBottom: 24,
     fontFamily: "Inter-Regular",
     fontSize: 28,

@@ -154,7 +154,6 @@ export default function LoginScreen() {
       keyboardVerticalOffset={Platform.select({ ios: 80, android: 0 })}
     >
       <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-        {closeBtn}
         <View style={styles.centerArea}>
           <Text style={styles.title}>АВТОРИЗАЦИЯ</Text>
           <View style={{ position: 'relative' }}>

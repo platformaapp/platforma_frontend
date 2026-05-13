@@ -136,19 +136,13 @@ export default function MentorsScreen() {
 
               {/* CTA button */}
               <Pressable
-                style={[styles.contactButton, isOwn && styles.contactButtonSecondary]}
+                style={styles.contactButton}
                 onPress={(e) => {
                   e.stopPropagation();
-                  if (isOwn) {
-                    router.push('/(tabs)/profile' as any);
-                  } else {
-                    router.push(`/(tabs)/explore/${tutor.id}` as any);
-                  }
+                  router.push(`/(tabs)/explore/${tutor.id}` as any);
                 }}
               >
-                <Text style={[styles.contactButtonText, isOwn && styles.contactButtonSecondaryText]}>
-                  {isOwn ? 'Перейти в профиль' : 'Написать наставнику'}
-                </Text>
+                <Text style={styles.contactButtonText}>Перейти в профиль</Text>
               </Pressable>
             </Pressable>
           );
