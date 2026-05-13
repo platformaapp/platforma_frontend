@@ -33,11 +33,23 @@ type EventItem = MyEventItem & {
 type BookingItem = {
   id: string;
   slotId?: string;
+  slot_id?: string;
   tutorId?: string;
-  tutor?: { id?: string; name?: string; fullName?: string; avatarUrl?: string };
-  student?: { id?: string; name?: string; fullName?: string; avatarUrl?: string };
+  tutor_id?: string;
+  mentorId?: string;
+  studentId?: string;
+  student_id?: string;
+  tutor?: { id?: string; name?: string; fullName?: string; full_name?: string; avatarUrl?: string; avatar_url?: string; user?: { id?: string; name?: string; fullName?: string; avatarUrl?: string; avatar_url?: string } };
+  mentor?: { id?: string; name?: string; fullName?: string; full_name?: string; avatarUrl?: string; avatar_url?: string };
+  student?: { id?: string; name?: string; fullName?: string; full_name?: string; avatarUrl?: string; avatar_url?: string };
   date?: string;
   time?: string;
+  slot_date?: string;
+  slot_time?: string;
+  scheduled_at?: string;
+  scheduled_date?: string;
+  booking_date?: string;
+  slot?: { date?: string; time?: string; id?: string };
   status?: string;
   createdAt?: string;
   videoUrl?: string;
@@ -397,8 +409,11 @@ export default function MyEventsScreen() {
       ?? (isViewerTutor ? ((item as any).studentId ?? (item as any).student_id) : ((item as any).tutorId ?? (item as any).tutor_id ?? (item as any).mentorId));
     const otherPartyName = otherPartyObj?.fullName ?? otherPartyObj?.full_name ?? otherPartyObj?.name
       ?? (isViewerTutor ? 'Ученик' : 'Наставник');
+    // Avatar: check nested .user object too (some APIs wrap profile inside user)
+    const userObj = otherPartyObj?.user ?? null;
     const otherAvatarRaw = otherPartyObj?.avatarUrl ?? otherPartyObj?.avatar_url ?? otherPartyObj?.avatar
-      ?? otherPartyObj?.photo ?? otherPartyObj?.photoUrl ?? otherPartyObj?.photo_url ?? null;
+      ?? otherPartyObj?.photo ?? otherPartyObj?.photoUrl ?? otherPartyObj?.photo_url
+      ?? userObj?.avatarUrl ?? userObj?.avatar_url ?? userObj?.photo ?? null;
     const otherAvatar = otherAvatarRaw && typeof otherAvatarRaw === 'string' && !otherAvatarRaw.startsWith('blob:')
       ? (otherAvatarRaw.startsWith('http') ? otherAvatarRaw : `${API_BASE}${otherAvatarRaw.startsWith('/') ? '' : '/'}${otherAvatarRaw}`)
       : null;
@@ -407,10 +422,15 @@ export default function MyEventsScreen() {
       ? `/(tabs)/profile/student/${otherPartyId}` as any
       : otherPartyId ? `/(tabs)/explore/${otherPartyId}` as any : null;
 
-    const dateStr = formatBookingDate(item.date, item.time);
+    // Date: try all common field name variants the backend might use
+    const rawDate = item.date ?? item.slot_date ?? item.booking_date ?? item.scheduled_date
+      ?? item.slot?.date ?? (item.scheduled_at ? item.scheduled_at.split('T')[0] : undefined);
+    const rawTime = item.time ?? item.slot_time ?? item.slot?.time
+      ?? (item.scheduled_at ? item.scheduled_at.split('T')[1]?.slice(0, 5) : undefined);
+    const dateStr = formatBookingDate(rawDate, rawTime);
     const nowTs = Date.now();
-    const meetingTs = item.date
-      ? new Date(`${item.date}T${item.time ?? '23:59'}:00`).getTime()
+    const meetingTs = rawDate
+      ? new Date(`${rawDate}T${rawTime ?? '23:59'}:00`).getTime()
       : null;
     const isPast = meetingTs != null ? meetingTs < nowTs : false;
     const FIFTEEN_MIN = 15 * 60 * 1000;
@@ -459,8 +479,13 @@ export default function MyEventsScreen() {
 
   const getEventMs = (e: EventItem) =>
     e.datetimeStart ? new Date(e.datetimeStart).getTime() : Infinity;
-  const getBookingMs = (b: BookingItem) =>
-    b.date ? new Date(`${b.date}T${b.time ?? '00:00'}:00`).getTime() : Infinity;
+  const getBookingMs = (b: BookingItem) => {
+    const d = b.date ?? b.slot_date ?? b.booking_date ?? b.scheduled_date ?? b.slot?.date
+      ?? (b.scheduled_at ? b.scheduled_at.split('T')[0] : undefined);
+    const t = b.time ?? b.slot_time ?? b.slot?.time
+      ?? (b.scheduled_at ? b.scheduled_at.split('T')[1]?.slice(0, 5) : undefined);
+    return d ? new Date(`${d}T${t ?? '00:00'}:00`).getTime() : Infinity;
+  };
 
   const upcomingEvents = [...events]
     .filter((e) => getEventMs(e) >= now)
@@ -630,9 +655,11 @@ export default function MyEventsScreen() {
                 <>
                   <View style={styles.modalEventCard}>
                     <Text style={styles.modalEventTitle}>{otherName}</Text>
-                    {menuBooking?.date && (
-                      <Text style={styles.modalEventDate}>{formatBookingDate(menuBooking.date, menuBooking.time)}</Text>
-                    )}
+                    {(() => {
+                      const md = menuBooking?.date ?? menuBooking?.slot_date ?? menuBooking?.slot?.date;
+                      const mt = menuBooking?.time ?? menuBooking?.slot_time ?? menuBooking?.slot?.time;
+                      return md ? <Text style={styles.modalEventDate}>{formatBookingDate(md, mt)}</Text> : null;
+                    })()}
                   </View>
                   <Pressable
                     style={styles.modalActionButton}
