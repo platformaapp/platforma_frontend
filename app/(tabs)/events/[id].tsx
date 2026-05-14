@@ -657,7 +657,13 @@ export default function EventDetailScreen() {
         if (url) { await openJitsi(url); return; }
       }
       if (res.status === 403) {
-        setJoinBlockedVisible(true);
+        const errData = await res.json().catch(() => ({}));
+        const msg: string = (errData?.message ?? errData?.error ?? '').toLowerCase();
+        if (msg.includes('оплата не прошла') || msg.includes('payment failed') || msg.includes('payment_failed')) {
+          setPaymentFailedModalVisible(true);
+        } else {
+          setJoinBlockedVisible(true);
+        }
         return;
       }
       if (res.status === 404) {
