@@ -191,6 +191,7 @@ export default function MyEventsScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('events');
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [bookingsError, setBookingsError] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [role, setRole] = useState<string | null>(null);
@@ -246,12 +247,27 @@ export default function MyEventsScreen() {
 
       const mergedBookings: BookingItem[] = [];
       const seenIds = new Set<string>();
+      const bookingErrors: string[] = [];
 
       const addBookings = async (res: PromiseSettledResult<Response>, viewerRole: 'student' | 'tutor') => {
-        if (res.status !== 'fulfilled' || !res.value.ok) return;
+        if (res.status !== 'fulfilled') {
+          bookingErrors.push(`${viewerRole}: сетевая ошибка`);
+          return;
+        }
+        if (!res.value.ok) {
+          bookingErrors.push(`${viewerRole}: HTTP ${res.value.status}`);
+          return;
+        }
         const data = await res.value.json().catch(() => null);
-        if (!data) return;
-        const rawList: any[] = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []);
+        if (!data) {
+          bookingErrors.push(`${viewerRole}: не удалось разобрать ответ`);
+          return;
+        }
+        const rawList: any[] = Array.isArray(data) ? data
+          : Array.isArray(data?.items) ? data.items
+          : Array.isArray(data?.data) ? data.data
+          : Array.isArray(data?.bookings) ? data.bookings
+          : [];
         for (const b of rawList) {
           const id = String(b.id ?? '');
           if (seenIds.has(id)) continue;
@@ -267,6 +283,9 @@ export default function MyEventsScreen() {
       await addBookings(studentBookRes, 'student');
       await addBookings(tutorBookRes, 'tutor');
       setBookings(mergedBookings);
+      setBookingsError(mergedBookings.length === 0 && bookingErrors.length > 0
+        ? bookingErrors.join(' | ')
+        : '');
     } catch (e: any) {
       if (isAuthError(e)) { router.replace('/login'); return; }
       setEvents([]); setBookings([]);
@@ -544,6 +563,11 @@ export default function MyEventsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
+          {activeTab === 'meetings' && bookingsError && currentUpcoming.length === 0 && currentPast.length === 0 && (
+            <View style={styles.bookingsErrorBox}>
+              <Text style={styles.bookingsErrorText}>Не удалось загрузить встречи:{'\n'}{bookingsError}</Text>
+            </View>
+          )}
           {activeTab === 'events'
             ? currentUpcoming.map(renderEventCard)
             : currentUpcoming.map(renderBookingCard)}
@@ -828,6 +852,8 @@ const styles = StyleSheet.create({
   cancelModalConfirmText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   cancelSuccessCloseButton: { height: 52, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   cancelSuccessCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  bookingsErrorBox: { marginHorizontal: 16, marginTop: 24, padding: 16, borderWidth: 1, borderColor: '#E5E5E5' },
+  bookingsErrorText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   pastSeparator: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16 },
   pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
   pastSeparatorLabel: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },

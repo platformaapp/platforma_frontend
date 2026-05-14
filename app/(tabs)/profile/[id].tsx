@@ -49,8 +49,18 @@ export default function ProfileByIdScreen() {
   useFocusEffect(
     useCallback(() => {
       if (role !== 'tutor') return;
+      const nowTs = Date.now();
       getTutorSlots()
-        .then((s) => setSlots(s.map((x) => ({ date: toDisplayDate(x.date), time: x.time.slice(0, 5) }))))
+        .then((s) => {
+          const upcoming = s.filter((x) => {
+            try {
+              return new Date(`${x.date}T${x.time}:00`).getTime() > nowTs;
+            } catch {
+              return true;
+            }
+          });
+          setSlots(upcoming.map((x) => ({ date: toDisplayDate(x.date), time: x.time.slice(0, 5) })));
+        })
         .catch((e) => {
           if (e instanceof AuthError || e?.name === 'AuthError') {
             router.replace('/login');
