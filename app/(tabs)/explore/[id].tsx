@@ -15,13 +15,16 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { API_BASE, endpoints } from '@/constants/env';
-import { bookTutorSlot, getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
+import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
+import { getPaymentMethods } from '@/lib/api/student-payments';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { authedFetch } from '@/lib/authed-fetch';
 
 type MentorEvent = {
   id: string;
@@ -93,6 +96,9 @@ export default function TutorCardScreen() {
   const [slotsError, setSlotsError] = useState('');
   const [selectedSlot, setSelectedSlot] = useState<SlotItem | null>(null);
   const [isBooking, setIsBooking] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [isPaySuccess, setIsPaySuccess] = useState(false);
+  const [isPayFailed, setIsPayFailed] = useState(false);
   const [isShareVisible, setShareVisible] = useState(false);
   const [isShareCopied, setShareCopied] = useState(false);
 
@@ -219,13 +225,81 @@ export default function TutorCardScreen() {
     if (!selectedSlot || isBooking) return;
     const token = await getAuthToken();
     if (!token) { setSelectedSlot(null); router.push('/login'); return; }
-    setIsBooking(true);
-    try {
-      await bookTutorSlot(selectedSlot.id);
+
+    // iOS: avoid Apple's 30% commission — redirect to web
+    if (Platform.OS === 'ios') {
       setSelectedSlot(null);
-      Alert.alert('Успешно', 'Вы записались на встречу!');
+      Linking.openURL(`https://platformaapp.ru/explore/${id ?? ''}`);
+      return;
+    }
+
+    setIsBooking(true);
+    setPayError('');
+    try {
+      const cards = await getPaymentMethods();
+      if (!cards.length) {
+        // No card linked — send to payments screen to add one
+        setSelectedSlot(null);
+        router.push('/(tabs)/profile/payments' as any);
+        return;
+      }
+      const card = cards.find((c) => c.isDefault) ?? cards[0];
+
+      const res = await authedFetch(endpoints.studentBookings, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slotId: selectedSlot.id, payment_method_id: card.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          // Slot already booked by this user — treat as success
+          setSelectedSlot(null);
+          setIsPaySuccess(true);
+          return;
+        }
+        throw new Error(data?.message ?? `Ошибка бронирования (${res.status})`);
+      }
+
+      // Handle 3DS confirmation redirect
+      const confirmUrl =
+        data?.confirmation_url ?? data?.confirmationUrl ??
+        data?.redirect_url ?? data?.booking?.confirmation_url ?? null;
+      if (confirmUrl) {
+        setSelectedSlot(null);
+        if (Platform.OS === 'web') {
+          (globalThis as any).window.location.href = confirmUrl;
+          return;
+        }
+        await WebBrowser.openBrowserAsync(confirmUrl);
+        // After browser closes, check what the backend says about payment status
+        const payStatusAfter = (
+          data?.payment_status ?? data?.booking?.payment_status ?? ''
+        ).toLowerCase();
+        if (payStatusAfter === 'failed' || payStatusAfter === 'cancelled') {
+          setIsPayFailed(true);
+        } else {
+          setIsPaySuccess(true);
+        }
+        return;
+      }
+
+      // No redirect — check status from response
+      const payStatus = (
+        data?.payment_status ?? data?.booking?.payment_status ?? data?.status ?? ''
+      ).toLowerCase();
+      setSelectedSlot(null);
+      if (payStatus === 'failed' || payStatus === 'cancelled' || payStatus === 'canceled') {
+        setIsPayFailed(true);
+      } else {
+        setIsPaySuccess(true);
+      }
     } catch (e: any) {
-      Alert.alert('Ошибка', e?.message ?? 'Не удалось забронировать слот');
+      const msg = e?.message ?? 'Не удалось оплатить встречу';
+      setPayError(msg);
+      setIsPayFailed(true);
+      setSelectedSlot(null);
     } finally {
       setIsBooking(false);
     }
@@ -414,6 +488,69 @@ export default function TutorCardScreen() {
         </Pressable>
       </Modal>
 
+      {/* ─── Payment success ─────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={isPaySuccess} onRequestClose={() => setIsPaySuccess(false)}>
+        <Pressable style={styles.overlay} onPress={() => setIsPaySuccess(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>ВСТРЕЧА{'\n'}ЗАБРОНИРОВАНА</Text>
+            <View style={styles.bookingCard}>
+              <View style={styles.bookingCardTop}>
+                <Text style={styles.bookingCardName}>{displayName || 'Наставник'}</Text>
+              </View>
+              <View style={styles.bookingCardBottom}>
+                <Text style={styles.bookingCardDateTime}>Чек придёт на почту</Text>
+                <View style={styles.bookingCardDivider} />
+                <Text style={styles.bookingCardPrice}>Возврат до 24 ч</Text>
+              </View>
+            </View>
+            <Pressable
+              style={styles.sheetPrimaryButton}
+              onPress={() => { setIsPaySuccess(false); router.push('/(tabs)/myevents' as any); }}
+            >
+              <Text style={styles.sheetPrimaryButtonText}>Мои записи</Text>
+            </Pressable>
+            <Pressable style={styles.sheetSecondaryButton} onPress={() => setIsPaySuccess(false)}>
+              <Text style={styles.sheetSecondaryButtonText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Payment failed ───────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={isPayFailed} onRequestClose={() => setIsPayFailed(false)}>
+        <Pressable style={styles.overlay} onPress={() => setIsPayFailed(false)}>
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={[styles.sheetTitle, styles.sheetTitleRed]}>ОПЛАТА{'\n'}НЕ ПРОШЛА</Text>
+            {payError ? (
+              <View style={styles.bookingCard}>
+                <Text style={styles.payErrorText}>{payError}</Text>
+              </View>
+            ) : (
+              <View style={styles.bookingCard}>
+                <Text style={styles.payErrorText}>Повторите попытку или привяжите другую карту</Text>
+              </View>
+            )}
+            <Pressable
+              style={styles.sheetPrimaryButton}
+              onPress={() => {
+                setIsPayFailed(false);
+                setPayError('');
+                // Re-open slot selection so user can try again
+                setShowSlots(true);
+              }}
+            >
+              <Text style={styles.sheetPrimaryButtonText}>Попробовать снова</Text>
+            </Pressable>
+            <Pressable
+              style={styles.sheetSecondaryButton}
+              onPress={() => { setIsPayFailed(false); router.push('/(tabs)/profile/payments' as any); }}
+            >
+              <Text style={styles.sheetSecondaryButtonText}>Сменить карту</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* ─── Share popup ──────────────────────────────────────── */}
       <Modal transparent animationType="fade" visible={isShareVisible} onRequestClose={() => setShareVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setShareVisible(false)}>
@@ -532,4 +669,7 @@ const styles = StyleSheet.create({
   shareCard: { borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#FFFFFF' },
   shareUrl: { paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#1E1E1E' },
   shareCopiedText: { marginTop: 4, fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
+
+  sheetTitleRed: { color: '#E02D2D' },
+  payErrorText: { paddingHorizontal: 16, paddingVertical: 16, fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#E02D2D' },
 });
