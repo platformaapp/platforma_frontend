@@ -494,13 +494,20 @@ export default function MyEventsScreen() {
   const upcomingEvents = [...events]
     .filter((e) => getEventMs(e) >= now)
     .sort((a, b) => getEventMs(a) - getEventMs(b));
+  const pastEvents = [...events]
+    .filter((e) => getEventMs(e) < now)
+    .sort((a, b) => getEventMs(b) - getEventMs(a));
 
   const upcomingBookings = [...bookings]
     .filter((b) => getBookingMs(b) >= now)
     .sort((a, b) => getBookingMs(a) - getBookingMs(b));
+  const pastBookings = [...bookings]
+    .filter((b) => getBookingMs(b) < now)
+    .sort((a, b) => getBookingMs(b) - getBookingMs(a));
 
   const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
-  const isEmpty = currentUpcoming.length === 0;
+  const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
+  const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
 
   // Nearest upcoming event across both tabs (for bottom countdown bar)
   const allUpcomingMs = [
@@ -540,6 +547,26 @@ export default function MyEventsScreen() {
           {activeTab === 'events'
             ? currentUpcoming.map(renderEventCard)
             : currentUpcoming.map(renderBookingCard)}
+          {currentPast.length > 0 && (
+            <>
+              <View style={styles.pastSeparator}>
+                <View style={styles.pastSeparatorLine} />
+                <Text style={styles.pastSeparatorLabel}>ПРОШЕДШИЕ</Text>
+                <View style={styles.pastSeparatorLine} />
+              </View>
+              {activeTab === 'events'
+                ? currentPast.map((item) => (
+                    <View key={`past-${(item as EventItem).id}`} style={styles.pastCardWrap}>
+                      {renderEventCard(item as EventItem)}
+                    </View>
+                  ))
+                : currentPast.map((item) => (
+                    <View key={`past-${(item as BookingItem).id}`} style={styles.pastCardWrap}>
+                      {renderBookingCard(item as BookingItem)}
+                    </View>
+                  ))}
+            </>
+          )}
         </ScrollView>
       )}
 
@@ -801,6 +828,10 @@ const styles = StyleSheet.create({
   cancelModalConfirmText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   cancelSuccessCloseButton: { height: 52, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   cancelSuccessCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  pastSeparator: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16 },
+  pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
+  pastSeparatorLabel: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },
+  pastCardWrap: { opacity: 0.55 },
   videoButton: { backgroundColor: '#E02D2D', height: 44, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   videoButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   countdownBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#181818', paddingHorizontal: 16, paddingTop: 12 },
