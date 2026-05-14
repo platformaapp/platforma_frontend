@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthError } from '@/lib/api/auth-error';
 import {
@@ -14,6 +15,7 @@ import { dayFromDate, toDisplayDate } from '@/lib/slots-utils';
 
 export default function SlotsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [slots, setSlotsState] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,7 +28,12 @@ export default function SlotsScreen() {
       setLoading(true);
       getTutorSlots()
         .then((data) => {
-          if (!cancelled) setSlotsState(data);
+          if (!cancelled) {
+            const nowTs = Date.now();
+            setSlotsState(data.filter((s) => {
+              try { return new Date(`${s.date}T${s.time}:00`).getTime() > nowTs; } catch { return true; }
+            }));
+          }
         })
         .catch((e) => {
           if (!cancelled) {
@@ -98,7 +105,7 @@ export default function SlotsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
@@ -173,7 +180,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 12,
   },
   backButton: {

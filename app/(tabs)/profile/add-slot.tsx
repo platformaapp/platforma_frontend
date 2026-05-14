@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthError } from '@/lib/api/auth-error';
 import { createTutorSlot, getTutorSlots, type Slot } from '@/lib/api/tutor';
@@ -63,6 +64,7 @@ function mkDraft(): DraftSlot {
 
 export default function AddSlotScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [existingSlots, setExistingSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,7 +78,14 @@ export default function AddSlotScreen() {
     useCallback(() => {
       let cancelled = false;
       getTutorSlots()
-        .then((data) => { if (!cancelled) setExistingSlots(data); })
+        .then((data) => {
+          if (!cancelled) {
+            const nowTs = Date.now();
+            setExistingSlots(data.filter((s) => {
+              try { return new Date(`${s.date}T${s.time}:00`).getTime() > nowTs; } catch { return true; }
+            }));
+          }
+        })
         .catch((e) => {
           if (!cancelled) {
             if (e instanceof AuthError || e?.name === 'AuthError') { router.replace('/login'); return; }
@@ -176,7 +185,7 @@ export default function AddSlotScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
@@ -210,7 +219,7 @@ export default function AddSlotScreen() {
                 onPress={() => openPicker(draft.id, 'date')}
               >
                 <Text style={draft.date ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
-                  {draft.date ? formatSlotDate(draft.date) : 'Дата'}
+                  {draft.date ? formatSlotDate(draft.date) : 'Выберите дату'}
                 </Text>
               </Pressable>
 
@@ -309,7 +318,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
     paddingBottom: 12,
   },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
@@ -324,9 +332,9 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 32,
     flexGrow: 1,
-    justifyContent: 'center',
   },
   slotRow: {
     flexDirection: 'row',
