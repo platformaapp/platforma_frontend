@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Mask, Path } from 'react-native-svg';
 
 import { endpoints, API_BASE } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
@@ -173,10 +174,13 @@ function timeRemainingLabel(ms: number): string {
   const totalMins = Math.floor(diff / 60000);
   const hours = Math.floor(totalMins / 60);
   const days = Math.floor(hours / 24);
-  if (days >= 1) return `До встречи ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
-  if (hours >= 1) return `До встречи ${hours} ${pluralRu(hours, 'час', 'часа', 'часов')}`;
-  if (totalMins >= 1) return `До встречи ${totalMins} ${pluralRu(totalMins, 'минута', 'минуты', 'минут')}`;
-  return '';
+  if (days >= 2) return `через ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
+  if (days === 1) return 'через день';
+  if (hours >= 2) return `через ${hours} ${pluralRu(hours, 'час', 'часа', 'часов')}`;
+  if (hours === 1) return 'через час';
+  if (totalMins >= 30) return 'через полчаса';
+  if (totalMins >= 1) return `через ${totalMins} ${pluralRu(totalMins, 'минуту', 'минуты', 'минут')}`;
+  return 'меньше минуты';
 }
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
@@ -490,20 +494,13 @@ export default function MyEventsScreen() {
   const upcomingEvents = [...events]
     .filter((e) => getEventMs(e) >= now)
     .sort((a, b) => getEventMs(a) - getEventMs(b));
-  const pastEvents = [...events]
-    .filter((e) => getEventMs(e) < now)
-    .sort((a, b) => getEventMs(b) - getEventMs(a));
 
   const upcomingBookings = [...bookings]
     .filter((b) => getBookingMs(b) >= now)
     .sort((a, b) => getBookingMs(a) - getBookingMs(b));
-  const pastBookings = [...bookings]
-    .filter((b) => getBookingMs(b) < now)
-    .sort((a, b) => getBookingMs(b) - getBookingMs(a));
 
   const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
-  const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
-  const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
+  const isEmpty = currentUpcoming.length === 0;
 
   // Nearest upcoming event across both tabs (for bottom countdown bar)
   const allUpcomingMs = [
@@ -536,39 +533,32 @@ export default function MyEventsScreen() {
         <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.list, countdownLabel && !isEmpty ? { paddingBottom: Math.max(insets.bottom, 12) + 56 } : undefined]}
+          contentContainerStyle={[styles.list, countdownLabel && !isEmpty ? { paddingBottom: Math.max(insets.bottom, 12) + 80 } : undefined]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
           {activeTab === 'events'
             ? currentUpcoming.map(renderEventCard)
             : currentUpcoming.map(renderBookingCard)}
-          {currentPast.length > 0 && (
-            <>
-              <View style={styles.pastSeparator}>
-                <View style={styles.pastSeparatorLine} />
-                <Text style={styles.pastSeparatorLabel}>ПРОШЕДШИЕ</Text>
-                <View style={styles.pastSeparatorLine} />
-              </View>
-              {activeTab === 'events'
-                ? currentPast.map((item) => (
-                    <View key={`past-${(item as EventItem).id}`} style={styles.pastCardWrap}>
-                      {renderEventCard(item as EventItem)}
-                    </View>
-                  ))
-                : currentPast.map((item) => (
-                    <View key={`past-${(item as BookingItem).id}`} style={styles.pastCardWrap}>
-                      {renderBookingCard(item as BookingItem)}
-                    </View>
-                  ))}
-            </>
-          )}
         </ScrollView>
       )}
 
       {!loading && !isEmpty && countdownLabel ? (
         <View style={[styles.countdownBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <Text style={styles.countdownBarText}>{countdownLabel}</Text>
+          <View style={styles.countdownBarRow}>
+            <Svg width="24" height="16" viewBox="0 0 24 16" fill="none" style={styles.countdownBarIcon}>
+              <Mask id="path-1-inside-1_4400_4890" fill="white">
+                <Path d="M18 5.59961L24 2V14L18 10.3994V16H0V0H18V5.59961Z" />
+              </Mask>
+              <Path d="M18 5.59961H17V7.3657L18.5145 6.45713L18 5.59961ZM24 2H25V0.233908L23.4855 1.14248L24 2ZM24 14L23.4854 14.8575L25 15.7663V14H24ZM18 10.3994L18.5146 9.54196L17 8.63308V10.3994H18ZM18 16V17H19V16H18ZM0 16H-1V17H0V16ZM0 0V-1H-1V0H0ZM18 0H19V-1H18V0ZM18 5.59961L18.5145 6.45713L24.5145 2.85752L24 2L23.4855 1.14248L17.4855 4.74209L18 5.59961ZM24 2H23V14H24H25V2H24ZM24 14L24.5146 13.1425L18.5146 9.54196L18 10.3994L17.4854 11.2569L23.4854 14.8575L24 14ZM18 10.3994H17V16H18H19V10.3994H18ZM18 16V15H0V16V17H18V16ZM0 16H1V0H0H-1V16H0ZM0 0V1H18V0V-1H0V0ZM18 0H17V5.59961H18H19V0H18Z" fill="#FAFAFA" mask="url(#path-1-inside-1_4400_4890)" />
+            </Svg>
+            <Text style={styles.countdownBarText} numberOfLines={1}>
+              {'До ближайшей встречи: ' + countdownLabel}
+            </Text>
+          </View>
+          <Text style={styles.countdownBarHint}>
+            Подключиться к встрече можно за 15 минут до начала или во время её проведения
+          </Text>
         </View>
       ) : null}
 
@@ -811,13 +801,12 @@ const styles = StyleSheet.create({
   cancelModalConfirmText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   cancelSuccessCloseButton: { height: 52, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   cancelSuccessCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
-  pastSeparator: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16 },
-  pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
-  pastSeparatorLabel: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },
-  pastCardWrap: { opacity: 0.55 },
   videoButton: { backgroundColor: '#E02D2D', height: 44, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   videoButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
-  countdownBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#181818', paddingHorizontal: 16, paddingTop: 16 },
-  countdownBarText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
+  countdownBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#181818', paddingHorizontal: 16, paddingTop: 12 },
+  countdownBarRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  countdownBarIcon: { marginRight: 12, flexShrink: 0 },
+  countdownBarText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
+  countdownBarHint: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#AAAAAA' },
   participantCount: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
 });
