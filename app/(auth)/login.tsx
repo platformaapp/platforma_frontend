@@ -63,6 +63,7 @@ export default function LoginScreen() {
       const res = await fetch(endpoints.login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email: email.trim(), password, role }),
       });
       const contentType = res.headers.get('content-type') || '';

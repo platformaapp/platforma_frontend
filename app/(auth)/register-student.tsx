@@ -127,6 +127,7 @@ export default function RegisterStudentScreen() {
       const res = await fetch(REGISTER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(requestBody),
       });
       

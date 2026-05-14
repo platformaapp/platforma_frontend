@@ -44,6 +44,7 @@ export default function ForgotPasswordScreen() {
         res = await fetch(endpoints.forgotPassword, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ email: email.trim() }),
           signal: controller.signal,
         });

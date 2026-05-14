@@ -21,6 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { API_BASE, endpoints } from '@/constants/env';
+
+const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getPaymentMethods } from '@/lib/api/student-payments';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -474,6 +476,11 @@ export default function TutorCardScreen() {
                 </Text>
               </View>
             </View>
+            <Text style={styles.legalText}>
+              {'Нажимая «Оплатить», вы принимаете '}
+              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(OFERTA_URL)}>оферту</Text>
+              {' и условия сервиса'}
+            </Text>
             <Pressable
               style={[styles.sheetPrimaryButton, isBooking && styles.sheetPrimaryButtonDisabled]}
               onPress={handleBook}
@@ -672,4 +679,6 @@ const styles = StyleSheet.create({
 
   sheetTitleRed: { color: '#E02D2D' },
   payErrorText: { paddingHorizontal: 16, paddingVertical: 16, fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#E02D2D' },
+  legalText: { fontSize: 12, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center', marginTop: 12 },
+  legalLink: { color: '#181818', textDecorationLine: 'underline' },
 });
