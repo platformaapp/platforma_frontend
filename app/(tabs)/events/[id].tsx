@@ -734,8 +734,8 @@ export default function EventDetailScreen() {
     nowMs >= eventStartMs - JOIN_EARLY_MS &&
     nowMs <= eventStartMs + MEETING_DURATION_MS;
   const canJoinEffective =
-    event.isRegistered &&
-    (event.canJoin || (event.isPaid && isEventHappening));
+    (event.isRegistered && (event.canJoin || (event.isPaid && isEventHappening))) ||
+    (isOwnEvent && isEventHappening);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -850,9 +850,15 @@ export default function EventDetailScreen() {
               ) : null}
             </View>
           </Pressable>
-          <Pressable style={styles.writeToCuratorButton} onPress={handleLinkTutor}>
-            <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
-          </Pressable>
+          {isOwnEvent ? (
+            <Pressable style={styles.writeToCuratorButton} onPress={() => event.mentor?.id ? router.push(`/(tabs)/explore/${event.mentor.id}` as any) : undefined}>
+              <Text style={styles.writeToCuratorText}>Перейти в профиль</Text>
+            </Pressable>
+          ) : (
+            <Pressable style={styles.writeToCuratorButton} onPress={handleLinkTutor}>
+              <Text style={styles.writeToCuratorText}>Написать наставнику</Text>
+            </Pressable>
+          )}
         </View>
       )}
 

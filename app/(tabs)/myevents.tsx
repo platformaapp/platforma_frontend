@@ -528,13 +528,38 @@ export default function MyEventsScreen() {
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
   const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
 
-  // Nearest upcoming event across both tabs (for bottom countdown bar)
-  const allUpcomingMs = [
-    ...upcomingEvents.map(getEventMs),
-    ...upcomingBookings.map(getBookingMs),
-  ].filter((ms) => ms > now && ms !== Infinity);
-  const nearestMs = allUpcomingMs.length > 0 ? Math.min(...allUpcomingMs) : null;
+  // Nearest upcoming item across both tabs (for bottom countdown bar)
+  const FIFTEEN_MIN_MS = 15 * 60 * 1000;
+  const NINETY_MIN_MS = 90 * 60 * 1000;
+
+  let nearestMs: number | null = null;
+  let nearestEventId: string | null = null;
+  let nearestBookingId: string | null = null;
+  let nearestBookingVideoUrl: string | null = null;
+
+  for (const e of upcomingEvents) {
+    const ms = getEventMs(e);
+    if (ms > now && ms !== Infinity && (nearestMs === null || ms < nearestMs)) {
+      nearestMs = ms;
+      nearestEventId = e.id;
+      nearestBookingId = null;
+      nearestBookingVideoUrl = null;
+    }
+  }
+  for (const b of upcomingBookings) {
+    const ms = getBookingMs(b);
+    if (ms > now && ms !== Infinity && (nearestMs === null || ms < nearestMs)) {
+      nearestMs = ms;
+      nearestBookingId = b.id;
+      nearestBookingVideoUrl = b.videoUrl ?? null;
+      nearestEventId = null;
+    }
+  }
+
   const countdownLabel = nearestMs ? timeRemainingLabel(nearestMs) : '';
+  const msUntilNearest = nearestMs !== null ? nearestMs - now : null;
+  const isNearestWithin15Min = msUntilNearest !== null && msUntilNearest <= FIFTEEN_MIN_MS;
+  const isNearestOngoing = nearestMs !== null && (now - nearestMs) >= 0 && (now - nearestMs) <= NINETY_MIN_MS;
 
   return (
     <View style={styles.container}>
@@ -559,7 +584,7 @@ export default function MyEventsScreen() {
         <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.list, countdownLabel && !isEmpty ? { paddingBottom: Math.max(insets.bottom, 12) + 80 } : undefined]}
+          contentContainerStyle={[styles.list, countdownLabel && !isEmpty ? { paddingBottom: Math.max(insets.bottom, 12) + (isNearestWithin15Min || isNearestOngoing ? 120 : 80) } : undefined]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
         >
@@ -604,12 +629,27 @@ export default function MyEventsScreen() {
               <Path d="M18 5.59961H17V7.3657L18.5145 6.45713L18 5.59961ZM24 2H25V0.233908L23.4855 1.14248L24 2ZM24 14L23.4854 14.8575L25 15.7663V14H24ZM18 10.3994L18.5146 9.54196L17 8.63308V10.3994H18ZM18 16V17H19V16H18ZM0 16H-1V17H0V16ZM0 0V-1H-1V0H0ZM18 0H19V-1H18V0ZM18 5.59961L18.5145 6.45713L24.5145 2.85752L24 2L23.4855 1.14248L17.4855 4.74209L18 5.59961ZM24 2H23V14H24H25V2H24ZM24 14L24.5146 13.1425L18.5146 9.54196L18 10.3994L17.4854 11.2569L23.4854 14.8575L24 14ZM18 10.3994H17V16H18H19V10.3994H18ZM18 16V15H0V16V17H18V16ZM0 16H1V0H0H-1V16H0ZM0 0V1H18V0V-1H0V0ZM18 0H17V5.59961H18H19V0H18Z" fill="#FAFAFA" mask="url(#path-1-inside-1_4400_4890)" />
             </Svg>
             <Text style={styles.countdownBarText} numberOfLines={1}>
-              {'До ближайшей встречи: ' + countdownLabel}
+              {isNearestOngoing ? 'Встреча уже идёт!' : ('До ближайшей встречи: ' + countdownLabel)}
             </Text>
           </View>
-          <Text style={styles.countdownBarHint}>
-            Подключиться к встрече можно за 15 минут до начала или во время её проведения
-          </Text>
+          {(isNearestWithin15Min || isNearestOngoing) ? (
+            <Pressable
+              style={styles.countdownBarButton}
+              onPress={() => {
+                if (nearestEventId) {
+                  router.push(`/(tabs)/events/${nearestEventId}` as any);
+                } else if (nearestBookingId) {
+                  openJitsi(nearestBookingVideoUrl ?? buildJitsiUrl('booking', nearestBookingId));
+                }
+              }}
+            >
+              <Text style={styles.countdownBarButtonText}>Войти в конференцию</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.countdownBarHint}>
+              Подключиться к встрече можно за 15 минут до начала или во время её проведения
+            </Text>
+          )}
         </View>
       ) : null}
 
@@ -865,5 +905,7 @@ const styles = StyleSheet.create({
   countdownBarIcon: { marginRight: 12, flexShrink: 0 },
   countdownBarText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   countdownBarHint: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#AAAAAA' },
+  countdownBarButton: { marginTop: 8, borderWidth: 1, borderColor: '#FFFFFF', height: 44, alignItems: 'center', justifyContent: 'center' },
+  countdownBarButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FFFFFF' },
   participantCount: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
 });
