@@ -12,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import {
@@ -32,9 +33,11 @@ import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import * as WebBrowser from 'expo-web-browser';
 
-function formatDate(iso: string): string {
+function formatDate(iso: string | undefined | null): string {
+  if (!iso) return '—';
   try {
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yy = String(d.getFullYear()).slice(-2);
@@ -42,7 +45,7 @@ function formatDate(iso: string): string {
     const min = String(d.getMinutes()).padStart(2, '0');
     return `${dd}.${mm}.${yy} ${hh}:${min}`;
   } catch {
-    return iso;
+    return '—';
   }
 }
 
@@ -63,6 +66,7 @@ const WITHDRAWAL_TOOLTIP =
 
 export default function TutorPaymentsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<PaymentsSummary | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -215,16 +219,15 @@ export default function TutorPaymentsScreen() {
       const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
       clearTimeout(timeoutId);
       const paymentId = yookassaPaymentId;
-      try {
-        const ls = (globalThis as any)?.localStorage;
-        if (ls && paymentId) {
-          ls.setItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY, paymentId);
-          ls.setItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY, String(cardCountBefore));
-        }
-      } catch {
-        /* ignore */
-      }
+
+      // Close modal before opening browser
       setEditModalVisible(false);
+
+      // Open YooKassa and WAIT for browser to close before navigating
+      await WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
+
+      // Browser is now closed — user has (hopefully) completed the flow
+      // Navigate to callback screen to verify card binding status
       router.push({
         pathname: '/(tabs)/profile/payment-methods-callback',
         params: {
@@ -234,7 +237,6 @@ export default function TutorPaymentsScreen() {
           returnTo: 'tutor-payments',
         },
       });
-      WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
     } catch (e: unknown) {
       clearTimeout(timeoutId);
       const msg = (e as Error)?.message ?? '';
@@ -257,8 +259,8 @@ export default function TutorPaymentsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any)}>
           <MaterialIcons name="chevron-left" size={24} color="#181818" />
         </Pressable>
         <Text style={styles.title}>ПЛАТЕЖИ</Text>
@@ -499,9 +501,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    paddingTop: 16,
-  },
+  header: {},
   backButton: {
     width: 40,
     height: 40,
