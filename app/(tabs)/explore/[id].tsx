@@ -129,7 +129,7 @@ export default function TutorCardScreen() {
         const tutor = authList.find((t) => t.id === id) ?? publicList.find((t) => t.id === id);
         if (active && tutor) {
           setDisplayName(tutor.fullName ?? '');
-          const roleLabel = (tutor as any).shortBio ?? (tutor as any).short_bio ?? '';
+          const roleLabel = (tutor as any).shortBio ?? (tutor as any).short_bio ?? (tutor as any).roleLabel ?? (tutor as any).role_label ?? (tutor as any).specialty ?? '';
           setDisplayRole(roleLabel);
           setDisplayBio((tutor as any).bio ?? '');
           setAvatarUrl(tutor.avatarUrl ?? '');
@@ -211,7 +211,9 @@ export default function TutorCardScreen() {
         status: 'available',
       })));
     } catch (e: any) {
-      setSlotsError(e?.message ?? 'Не удалось загрузить слоты');
+      const msg: string = e?.message ?? '';
+      const isForbidden = msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('403') || e?.status === 403;
+      setSlotsError(isForbidden ? 'Нет доступных слотов' : (msg || 'Не удалось загрузить слоты'));
     } finally {
       setLoadingSlots(false);
     }

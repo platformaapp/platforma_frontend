@@ -174,12 +174,12 @@ function timeRemainingLabel(ms: number): string {
   const totalMins = Math.floor(diff / 60000);
   const hours = Math.floor(totalMins / 60);
   const days = Math.floor(hours / 24);
-  if (days >= 2) return `через ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
-  if (days === 1) return 'через день';
-  if (hours >= 2) return `через ${hours} ${pluralRu(hours, 'час', 'часа', 'часов')}`;
-  if (hours === 1) return 'через час';
-  if (totalMins >= 30) return 'через полчаса';
-  if (totalMins >= 1) return `через ${totalMins} ${pluralRu(totalMins, 'минуту', 'минуты', 'минут')}`;
+  if (days >= 2) return `${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
+  if (days === 1) return '1 день';
+  if (hours >= 2) return `${hours} ${pluralRu(hours, 'час', 'часа', 'часов')}`;
+  if (hours === 1) return '1 час';
+  if (totalMins >= 30) return 'полчаса';
+  if (totalMins >= 1) return `${totalMins} ${pluralRu(totalMins, 'минуту', 'минуты', 'минут')}`;
   return 'меньше минуты';
 }
 

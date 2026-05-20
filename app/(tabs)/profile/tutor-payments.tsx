@@ -224,7 +224,15 @@ export default function TutorPaymentsScreen() {
       setEditModalVisible(false);
 
       // Open YooKassa and WAIT for browser to close before navigating
-      await WebBrowser.openBrowserAsync(confirmationUrl).catch(() => {});
+      let browserResult: Awaited<ReturnType<typeof WebBrowser.openBrowserAsync>> | null = null;
+      try {
+        browserResult = await WebBrowser.openBrowserAsync(confirmationUrl);
+      } catch {
+        // Browser failed to open — show error and abort
+        Alert.alert('Ошибка', 'Не удалось открыть браузер для привязки карты');
+        setIsLinking(false);
+        return;
+      }
 
       // Browser is now closed — user has (hopefully) completed the flow
       // Navigate to callback screen to verify card binding status

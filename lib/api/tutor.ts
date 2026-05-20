@@ -372,7 +372,7 @@ export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
       fullName: String(u.fullName ?? u.full_name ?? u.name ?? ''),
       avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url) ?? undefined,
       bio: (u.bio ?? undefined) as string | undefined,
-      shortBio: (u.shortBio ?? u.short_bio ?? undefined) as string | undefined,
+      shortBio: (u.shortBio ?? u.short_bio ?? u.roleLabel ?? u.role_label ?? u.specialty ?? undefined) as string | undefined,
     }));
   } catch {
     return [];
@@ -418,7 +418,7 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
       ...u,
       fullName: u.fullName ?? u.full_name ?? '',
       avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url),
-      shortBio: u.shortBio ?? u.short_bio ?? undefined,
+      shortBio: u.shortBio ?? u.short_bio ?? u.roleLabel ?? u.role_label ?? u.specialty ?? undefined,
       hourlyRate: u.hourlyRate ?? u.hourly_rate ?? u.pricePerHour ?? undefined,
       telegram: u.telegram ?? u.telegramUsername ?? u.telegram_username ?? undefined,
       isVerified: u.isVerified ?? u.is_verified ?? u.verified ?? undefined,
