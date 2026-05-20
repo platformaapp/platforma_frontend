@@ -290,7 +290,7 @@ export default function TutorPaymentsScreen() {
               style={[styles.cardAction, styles.cardActionPrimary]}
               onPress={() => setWithdrawModalVisible(true)}
             >
-              <Text style={styles.cardActionPrimaryText}>Вывести на карту</Text>
+              <Text style={styles.cardActionPrimaryText}>Запросить выплату</Text>
             </Pressable>
             <Pressable
               style={styles.cardAction}
@@ -315,7 +315,7 @@ export default function TutorPaymentsScreen() {
               <Text style={styles.plusText}>+</Text>
             </View>
             <View style={styles.linkTextBox}>
-              <Text style={styles.linkText}>Привязать карту для вывода</Text>
+              <Text style={styles.linkText}>Привязать карту для получения выплат</Text>
             </View>
           </Pressable>
         )}
@@ -325,8 +325,8 @@ export default function TutorPaymentsScreen() {
           <View key={p.id} style={styles.historyRow}>
             <View style={styles.historyLeft}>
               <Text style={styles.historyId}>№{p.id.replace(/\D/g, '').slice(-5) || p.id.slice(-5)}</Text>
-              <Text style={styles.historyDesc}>Вывод на карту</Text>
-              <Text style={styles.historyDate}>{formatDate(p.created_at ?? '')}</Text>
+              <Text style={styles.historyDesc}>Выплата от платформы</Text>
+              <Text style={styles.historyDate}>{formatDate(p.createdAt ?? p.created_at)}</Text>
             </View>
             <View style={styles.historyRight}>
               <View style={styles.historyStatusRow}>
@@ -358,7 +358,7 @@ export default function TutorPaymentsScreen() {
           onPress={() => setWithdrawModalVisible(false)}
         >
           <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <Text style={styles.modalTitle}>ОТПРАВИТЬ ДЕНЬГИ НА ЭТУ КАРТУ?</Text>
+            <Text style={styles.modalTitle}>ЗАПРОСИТЬ ВЫПЛАТУ НА ЭТУ КАРТУ?</Text>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>{cardMasked}</Text>
               <Text style={styles.modalEventSubtitle}>{cardBank}</Text>
@@ -392,12 +392,12 @@ export default function TutorPaymentsScreen() {
           onPress={() => { setMoneySentModalVisible(false); loadData(); }}
         >
           <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <Text style={styles.modalTitle}>ДЕНЬГИ ОТПРАВЛЕНЫ!</Text>
+            <Text style={styles.modalTitle}>ЗАПРОС ОТПРАВЛЕН!</Text>
             <Text style={styles.moneySentMessage}>
-              Мы отправили вам на карту {formatAmount(balance)}.
+              Запрос на выплату {formatAmount(balance)} отправлен.
             </Text>
             <Text style={styles.moneySentSubtext}>
-              Они придут в течении 3 рабочих дней, а может быть и раньше.
+              Выплата поступит в течение 3 рабочих дней.
             </Text>
             <Pressable
               style={styles.modalPayButton}

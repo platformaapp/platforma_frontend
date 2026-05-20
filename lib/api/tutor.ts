@@ -125,6 +125,7 @@ export interface Payment {
   amount: number;
   currency?: string;
   status: PaymentStatus;
+  createdAt?: string;
   created_at?: string;
 }
 
