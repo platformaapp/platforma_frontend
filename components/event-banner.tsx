@@ -27,12 +27,12 @@ function formatCountdown(targetIso: string): string {
   const totalHours = Math.floor(totalMin / 60);
   const totalDays = Math.floor(totalHours / 24);
 
-  if (totalDays >= 2) return `через ${totalDays} ${pluralizeRu(totalDays, 'день', 'дня', 'дней')}`;
-  if (totalDays === 1) return 'через день';
-  if (totalHours >= 2) return `через ${totalHours} ${pluralizeRu(totalHours, 'час', 'часа', 'часов')}`;
-  if (totalHours === 1) return 'через час';
-  if (totalMin >= 30) return 'через полчаса';
-  if (totalMin >= 1) return `через ${totalMin} ${pluralizeRu(totalMin, 'минуту', 'минуты', 'минут')}`;
+  if (totalDays >= 2) return `${totalDays} ${pluralizeRu(totalDays, 'день', 'дня', 'дней')}`;
+  if (totalDays === 1) return '1 день';
+  if (totalHours >= 2) return `${totalHours} ${pluralizeRu(totalHours, 'час', 'часа', 'часов')}`;
+  if (totalHours === 1) return '1 час';
+  if (totalMin >= 30) return 'полчаса';
+  if (totalMin >= 1) return `${totalMin} ${pluralizeRu(totalMin, 'минуту', 'минуты', 'минут')}`;
   return 'меньше минуты';
 }
 
