@@ -706,7 +706,7 @@ export default function EventDetailScreen() {
   if (!event) {
     return (
       <View style={styles.container}>
-        <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.back()}>
+        <Pressable style={[styles.backButton, { top: insets.top + 12 }]} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/events')}>
           <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <Path d="M17.1436 21.9004L7.22266 12.0103L17.1436 2.09918" stroke="#181818"/>
           </Svg>

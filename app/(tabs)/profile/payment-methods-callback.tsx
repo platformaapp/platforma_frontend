@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthError } from '@/lib/api/auth-error';
 import { fetchPaymentBindingCallback, getPaymentMethods } from '@/lib/api/student-payments';
@@ -106,7 +106,10 @@ export default function PaymentMethodsCallbackScreen() {
   return (
     <View style={styles.container}>
       {status === 'loading' && (
-        <Text style={styles.text}>{message}</Text>
+        <>
+          <ActivityIndicator size="large" color="#181818" style={{ marginBottom: 16 }} />
+          <Text style={styles.text}>{message}</Text>
+        </>
       )}
 
       {status === 'success' && (
@@ -163,6 +166,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: '#1E1E1E',
+  },
+  buttonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#FAFAFA',
   },
   primaryButtonText: {
     fontSize: 14,
