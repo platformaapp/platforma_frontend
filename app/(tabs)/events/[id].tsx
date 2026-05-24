@@ -34,7 +34,7 @@ function resolveUrl(url: unknown): string | null {
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   return `${API_BASE}${url}`;
 }
-import { getPaymentMethods } from '@/lib/api/student-payments';
+import { getPaymentMethods, fetchPaymentBindingCallback, type PaymentMethod } from '@/lib/api/student-payments';
 import { getPublicTutorList } from '@/lib/api/tutor';
 import { authedFetch } from '@/lib/authed-fetch';
 import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
@@ -398,35 +398,81 @@ export default function EventDetailScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // After 3DS redirect back to app with ?payment=callback — sync status with payment ID
+  // After YooKassa redirects back with ?payment=callback — poll GET /api/student/payments/callback
   useEffect(() => {
     if (!id || payment !== 'callback') return;
-    const run = async () => {
-      setIsPollingPayment(true);
-      // Use stored yookassa_payment_id so backend can sync with YooKassa
-      const storedId = yookassaPaymentIdRef.current ?? _pendingYookassaPaymentId;
-      const { status } = await fetchPaymentStatus(id, storedId);
-      if (status === 'paid') {
-        _pendingYookassaPaymentId = null;
-        yookassaPaymentIdRef.current = null;
-        clearPaymentIdFromSession();
-        const active = { value: true };
-        await loadEvent(active);
-        setIsPollingPayment(false);
+
+    let stopped = false;
+    const POLL_INTERVAL_MS = 3000;
+    const POLL_TIMEOUT_MS = 60000;
+    const startMs = Date.now();
+
+    setIsPollingPayment(true);
+
+    const poll = async () => {
+      if (stopped) return;
+      const paymentId = yookassaPaymentIdRef.current ?? _pendingYookassaPaymentId;
+
+      // No payment ID stored — fall back to event status endpoint
+      if (!paymentId) {
+        const { status } = await fetchPaymentStatus(id);
+        if (!stopped) {
+          if (status === 'paid') {
+            clearPaymentIdFromSession();
+            const active = { value: true };
+            await loadEvent(active);
+          } else if (status === 'failed') {
+            clearPaymentIdFromSession();
+            setPaymentFailedModalVisible(true);
+          }
+          setIsPollingPayment(false);
+        }
         return;
       }
-      if (status === 'failed') {
-        _pendingYookassaPaymentId = null;
-        yookassaPaymentIdRef.current = null;
-        clearPaymentIdFromSession();
-        setIsPollingPayment(false);
-        setPaymentFailedModalVisible(true);
-        return;
+
+      try {
+        const result = await fetchPaymentBindingCallback(paymentId);
+        if (stopped) return;
+
+        if (result.status === 'succeeded') {
+          _pendingYookassaPaymentId = null;
+          yookassaPaymentIdRef.current = null;
+          clearPaymentIdFromSession();
+          const active = { value: true };
+          await loadEvent(active);
+          setIsPollingPayment(false);
+          return;
+        }
+
+        if (result.status === 'failed') {
+          _pendingYookassaPaymentId = null;
+          yookassaPaymentIdRef.current = null;
+          clearPaymentIdFromSession();
+          setIsPollingPayment(false);
+          setPaymentFailedModalVisible(true);
+          return;
+        }
+
+        // pending — keep polling until timeout
+        if (Date.now() - startMs < POLL_TIMEOUT_MS) {
+          setTimeout(poll, POLL_INTERVAL_MS);
+        } else {
+          // Timed out — show payment as pending (user can refresh)
+          setIsPollingPayment(false);
+          setEvent((prev) => prev ? {
+            ...prev,
+            isRegistered: true,
+            isPaid: false,
+            currentUserParticipation: { status: 'pending', paymentStatus: 'pending' },
+          } : prev);
+        }
+      } catch {
+        if (!stopped) setIsPollingPayment(false);
       }
-      // Still pending — continue polling
-      pollUntilPaid(id);
     };
-    run();
+
+    poll();
+    return () => { stopped = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, payment]);
 
@@ -553,26 +599,23 @@ export default function EventDetailScreen() {
     setIsPaying(true);
     setPayError('');
     try {
-      const [token, role, cards] = await Promise.all([
+      const [token, , cards] = await Promise.all([
         getAuthToken(),
         getAuthRole(),
-        getPaymentMethods(),
+        getPaymentMethods().catch(() => [] as PaymentMethod[]),
       ]);
       if (!token) throw new Error('Для оплаты нужно войти в аккаунт');
 
-      if (!cards?.length) {
-        setCardModalVisible(false);
-        router.push('/(tabs)/profile/payments');
-        return;
-      }
-
-      // Use the default card; fall back to first card
-      const defaultCard = cards.find((c) => c.isDefault) ?? cards[0];
+      // Send payment_method_id only when a card is already linked.
+      // Backend handles the no-card case by returning confirmation_url for YooKassa checkout.
+      const defaultCard = cards.find((c) => c.isDefault) ?? cards[0] ?? null;
+      const body: Record<string, unknown> = {};
+      if (defaultCard) body.payment_method_id = defaultCard.id;
 
       const res = await fetch(`${endpoints.events}/${event.id}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ payment_method_id: defaultCard.id }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -589,7 +632,7 @@ export default function EventDetailScreen() {
         throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);
       }
 
-      // Store yookassa_payment_id — needed for status sync endpoint
+      // Store yookassa_payment_id — needed for callback verification after YooKassa redirect
       const yid =
         data?.yookassa_payment_id ?? data?.userEvent?.yookassa_payment_id ??
         data?.payment_id ?? data?.userEvent?.payment_id ?? null;
@@ -599,27 +642,47 @@ export default function EventDetailScreen() {
         savePaymentIdToSession(yid, event.id);
       }
 
-      // 3DS confirmation: redirect/open browser, then sync status and reload
       const confirmUrl =
         data?.confirmation_url ?? data?.confirmationUrl ??
         data?.redirect_url ?? data?.userEvent?.confirmation_url ??
         data?.userEvent?.redirect_url ?? null;
+
+      // payment_required: true but no URL — backend error
+      if (data?.payment_required && !confirmUrl) {
+        throw new Error(data?.payment_error ?? data?.message ?? 'Ошибка оплаты: не получена ссылка для оплаты');
+      }
+
+      // Redirect user to YooKassa (works for both saved-card 3DS and new-card flow)
       if (confirmUrl) {
         setCardModalVisible(false);
         if (Platform.OS === 'web') {
-          // Web: redirect current tab to YooKassa; app returns via ?payment=callback
           redirectToPaymentUrl(confirmUrl);
           return;
         }
+        // Native: open in-app browser, then check status
         await WebBrowser.openBrowserAsync(confirmUrl);
-        // Sync with YooKassa after user completes 3DS
-        await fetchPaymentStatus(event.id, yid);
-        const active = { value: true };
-        await loadEvent(active);
+        const { status: afterStatus } = await fetchPaymentStatus(event.id, yid);
+        if (afterStatus === 'paid') {
+          _pendingYookassaPaymentId = null;
+          yookassaPaymentIdRef.current = null;
+          clearPaymentIdFromSession();
+          const active = { value: true };
+          await loadEvent(active);
+          return;
+        }
+        if (afterStatus === 'failed') {
+          _pendingYookassaPaymentId = null;
+          yookassaPaymentIdRef.current = null;
+          clearPaymentIdFromSession();
+          setPaymentFailedModalVisible(true);
+          return;
+        }
+        // Still pending — continue polling
+        pollUntilPaid(event.id);
         return;
       }
 
-      // No redirect — check payment status from registration response
+      // No redirect needed — free event or auto-paid with saved card
       const payStatus = (data?.userEvent?.payment_status ?? data?.payment_status ?? '').toLowerCase();
       const isPendingPayment = payStatus === 'pending';
 
