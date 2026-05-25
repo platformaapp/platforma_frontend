@@ -861,11 +861,12 @@ export default function EventDetailScreen() {
           <Text style={styles.registerButtonText}>Вы уже зарегистрированы</Text>
         </View>
       ) : Platform.OS === 'ios' ? (
-        // iOS: open in-app browser (SFSafariViewController) — fast, no app switch,
-        // still uses the external website to avoid Apple's 30% commission on IAP.
+        // iOS: open external Safari to avoid Apple's 30% IAP commission.
+        // Cannot use WebBrowser (SFSafariViewController) — the website
+        // redirects unauthenticated users, causing a blank-page loop there.
         <Pressable
           style={styles.registerButton}
-          onPress={() => WebBrowser.openBrowserAsync(`https://platformaapp.ru/events/${id}`)}
+          onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
         >
           <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
         </Pressable>
