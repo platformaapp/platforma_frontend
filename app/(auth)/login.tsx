@@ -60,12 +60,23 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     try {
       const role = isMentor ? 'tutor' : 'student';
-      const res = await fetch(endpoints.login, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: email.trim(), password, role }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      let res: Response;
+      try {
+        res = await fetch(endpoints.login, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          signal: controller.signal,
+          body: JSON.stringify({ email: email.trim(), password, role }),
+        });
+      } catch (fetchErr: any) {
+        if (fetchErr?.name === 'AbortError') throw new Error('Сервер не отвечает. Проверьте соединение и попробуйте ещё раз.');
+        throw fetchErr;
+      } finally {
+        clearTimeout(timeoutId);
+      }
       const contentType = res.headers.get('content-type') || '';
       const isJson = contentType.includes('application/json');
       const data = isJson ? await res.json() : await res.text();
