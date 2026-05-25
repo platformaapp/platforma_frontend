@@ -208,25 +208,33 @@ function redirectToPaymentUrl(url: string): void {
   }
 }
 
-/** Store/restore yookassaPaymentId across web page navigation via sessionStorage. */
+/** Store/restore yookassaPaymentId in localStorage before YooKassa redirect. */
 function savePaymentIdToSession(paymentId: string, eventId: string): void {
-  if (Platform.OS === 'web' && typeof (globalThis as any).sessionStorage !== 'undefined') {
-    (globalThis as any).sessionStorage.setItem('yk_payment_id', paymentId);
-    (globalThis as any).sessionStorage.setItem('yk_event_id', eventId);
-  }
+  if (Platform.OS !== 'web') return;
+  try {
+    const ls = (globalThis as any).localStorage;
+    if (!ls) return;
+    ls.setItem('pending_payment_id', paymentId);
+    ls.setItem('pending_payment_event_id', eventId);
+  } catch { /* ignore quota/privacy errors */ }
 }
 function loadPaymentIdFromSession(eventId: string): string | null {
-  if (Platform.OS !== 'web' || typeof (globalThis as any).sessionStorage === 'undefined') return null;
-  const ss = (globalThis as any).sessionStorage;
-  if (ss.getItem('yk_event_id') !== eventId) return null;
-  return ss.getItem('yk_payment_id') ?? null;
+  if (Platform.OS !== 'web') return null;
+  try {
+    const ls = (globalThis as any).localStorage;
+    if (!ls) return null;
+    if (ls.getItem('pending_payment_event_id') !== eventId) return null;
+    return ls.getItem('pending_payment_id') ?? null;
+  } catch { return null; }
 }
 function clearPaymentIdFromSession(): void {
-  if (Platform.OS === 'web' && typeof (globalThis as any).sessionStorage !== 'undefined') {
-    const ss = (globalThis as any).sessionStorage;
-    ss.removeItem('yk_payment_id');
-    ss.removeItem('yk_event_id');
-  }
+  if (Platform.OS !== 'web') return;
+  try {
+    const ls = (globalThis as any).localStorage;
+    if (!ls) return;
+    ls.removeItem('pending_payment_id');
+    ls.removeItem('pending_payment_event_id');
+  } catch { /* ignore */ }
 }
 
 export default function EventDetailScreen() {
@@ -258,7 +266,7 @@ export default function EventDetailScreen() {
   // Kept in sync with module-level _pendingYookassaPaymentId
   const yookassaPaymentIdRef = React.useRef<string | null>(_pendingYookassaPaymentId);
 
-  // On web: restore payment ID from sessionStorage (survives page redirect during 3DS)
+  // On web: restore payment ID from localStorage (survives YooKassa redirect)
   useEffect(() => {
     if (!id) return;
     const stored = loadPaymentIdFromSession(id);
@@ -585,7 +593,7 @@ export default function EventDetailScreen() {
 
   async function handleLinkNow() {
     const token = await getAuthToken();
-    if (!token) { router.push('/login'); return; }
+    if (!token) { router.push(`/login?redirect=/events/${id}` as any); return; }
     setCardModalVisible(true);
     setIsShareCopied(false);
     setPayError('');
@@ -632,30 +640,35 @@ export default function EventDetailScreen() {
         throw new Error(data?.message ?? `Ошибка регистрации (${res.status})`);
       }
 
-      // Store yookassa_payment_id — needed for callback verification after YooKassa redirect
-      const yid =
-        data?.yookassa_payment_id ?? data?.userEvent?.yookassa_payment_id ??
-        data?.payment_id ?? data?.userEvent?.payment_id ?? null;
+      // ── Step 1: free event or card auto-charged — immediate success ──────────
+      if (!data?.payment_required) {
+        setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
+        setCardModalVisible(false);
+        setDonePaymentPending(false);
+        setCardModalDoneVisible(true);
+        return;
+      }
+
+      // ── Step 2: payment required — save payment ID then redirect ─────────────
+      const yid: string | null =
+        data?.yookassa_payment_id ?? data?.payment_id ??
+        data?.userEvent?.yookassa_payment_id ?? data?.userEvent?.payment_id ?? null;
       if (yid) {
         yookassaPaymentIdRef.current = yid;
         _pendingYookassaPaymentId = yid;
+        // Save to localStorage so callback page can retrieve it after redirect
         savePaymentIdToSession(yid, event.id);
       }
 
-      const confirmUrl =
+      const confirmUrl: string | null =
         data?.confirmation_url ?? data?.confirmationUrl ??
         data?.redirect_url ?? data?.userEvent?.confirmation_url ??
         data?.userEvent?.redirect_url ?? null;
 
-      // payment_required: true but no URL — backend error
-      if (data?.payment_required && !confirmUrl) {
-        throw new Error(data?.payment_error ?? data?.message ?? 'Ошибка оплаты: не получена ссылка для оплаты');
-      }
-
-      // Redirect user to YooKassa (works for both saved-card 3DS and new-card flow)
       if (confirmUrl) {
         setCardModalVisible(false);
         if (Platform.OS === 'web') {
+          // Web: redirect in same tab; returns to /events/:id?payment=callback
           redirectToPaymentUrl(confirmUrl);
           return;
         }
@@ -677,28 +690,12 @@ export default function EventDetailScreen() {
           setPaymentFailedModalVisible(true);
           return;
         }
-        // Still pending — continue polling
         pollUntilPaid(event.id);
         return;
       }
 
-      // No redirect needed — free event or auto-paid with saved card
-      const payStatus = (data?.userEvent?.payment_status ?? data?.payment_status ?? '').toLowerCase();
-      const isPendingPayment = payStatus === 'pending';
-
-      setEvent((prev) => prev ? {
-        ...prev,
-        isRegistered: true,
-        isPaid: !isPendingPayment,
-        currentUserParticipation: isPendingPayment
-          ? { status: 'pending', paymentStatus: 'pending' }
-          : prev?.currentUserParticipation,
-      } : prev);
-      setCardModalVisible(false);
-      setDonePaymentPending(isPendingPayment);
-      setCardModalDoneVisible(true);
-
-      if (isPendingPayment) pollUntilPaid(event.id);
+      // ── Step 3: payment required but no URL — backend error ───────────────────
+      throw new Error(data?.payment_error ?? data?.message ?? 'Ошибка оплаты: не получена ссылка для оплаты');
     } catch (e: any) {
       const rawMessage = e?.message ?? 'Не удалось зарегистрироваться';
       const message = rawMessage.toLowerCase().includes('token expired') ? 'Авторизуйтесь заново' : rawMessage;
@@ -864,11 +861,12 @@ export default function EventDetailScreen() {
           <Text style={styles.registerButtonText}>Вы уже зарегистрированы</Text>
         </View>
       ) : Platform.OS === 'ios' ? (
-        // iOS: open in-app browser (SFSafariViewController) — fast, no app switch,
-        // still uses the external website to avoid Apple's 30% commission on IAP.
+        // iOS: open external Safari to avoid Apple's 30% IAP commission.
+        // Cannot use WebBrowser (SFSafariViewController) — the website
+        // redirects unauthenticated users, causing a blank-page loop there.
         <Pressable
           style={styles.registerButton}
-          onPress={() => WebBrowser.openBrowserAsync(`https://platformaapp.ru/events/${id}`)}
+          onPress={() => Linking.openURL(`https://platformaapp.ru/events/${id}`)}
         >
           <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
         </Pressable>
