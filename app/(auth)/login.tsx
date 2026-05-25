@@ -28,7 +28,7 @@ import {
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { role: roleParam, showLogin: showLoginParam } = useLocalSearchParams<{ role?: string; showLogin?: string }>();
+  const { role: roleParam, showLogin: showLoginParam, redirect: redirectParam } = useLocalSearchParams<{ role?: string; showLogin?: string; redirect?: string }>();
   const [showLogin, setShowLogin] = useState(showLoginParam === '1');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -97,7 +97,8 @@ export default function LoginScreen() {
           } catch { /* ignore — initial save above is enough to proceed */ }
         }
       }
-      router.replace(user?.id ? `/(tabs)/profile/${user.id}` : '/(tabs)/events');
+      const redirectTo = typeof redirectParam === 'string' && redirectParam ? redirectParam : null;
+      router.replace((redirectTo ?? (user?.id ? `/(tabs)/profile/${user.id}` : '/(tabs)/events')) as any);
     } catch (e: any) {
       const message = e?.message ?? 'Неизвестная ошибка';
       const n = message.toLowerCase();

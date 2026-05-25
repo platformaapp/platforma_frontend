@@ -593,7 +593,7 @@ export default function EventDetailScreen() {
 
   async function handleLinkNow() {
     const token = await getAuthToken();
-    if (!token) { router.push('/login'); return; }
+    if (!token) { router.push(`/login?redirect=/events/${id}` as any); return; }
     setCardModalVisible(true);
     setIsShareCopied(false);
     setPayError('');
