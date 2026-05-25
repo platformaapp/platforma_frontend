@@ -163,7 +163,7 @@ export function EventBanner() {
   const msUntilStart = upcomingEntry?.datetimeStart
     ? new Date(upcomingEntry.datetimeStart).getTime() - Date.now()
     : null;
-  const isWithin15Min = msUntilStart !== null && msUntilStart <= 15 * 60 * 1000;
+  const isWithin5Min = msUntilStart !== null && msUntilStart <= 5 * 60 * 1000;
 
   return (
     <View style={styles.container}>
@@ -175,7 +175,7 @@ export function EventBanner() {
           {'До ближайшего события: ' + banner.text}
         </Text>
       </View>
-      {isWithin15Min ? (
+      {isWithin5Min && (
         <Pressable
           style={[styles.button, joining && styles.buttonDisabled]}
           onPress={() => !joining && handleJoin(banner.eventId)}
@@ -187,10 +187,6 @@ export function EventBanner() {
             <Text style={styles.buttonText}>Открыть видео</Text>
           )}
         </Pressable>
-      ) : (
-        <Text style={styles.joinHintText}>
-          Подключиться к событию можно за 15 минут до начала или во время его проведения
-        </Text>
       )}
     </View>
   );
@@ -235,11 +231,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
-  },
-  joinHintText: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: 'Inter-Regular',
-    color: '#AAAAAA',
   },
 });
