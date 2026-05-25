@@ -163,8 +163,6 @@ export function EventBanner() {
   const msUntilStart = upcomingEntry?.datetimeStart
     ? new Date(upcomingEntry.datetimeStart).getTime() - Date.now()
     : null;
-  const isWithin5Min = msUntilStart !== null && msUntilStart <= 5 * 60 * 1000;
-
   return (
     <View style={styles.container}>
       <View style={styles.row}>
@@ -175,19 +173,17 @@ export function EventBanner() {
           {'До ближайшего события: ' + banner.text}
         </Text>
       </View>
-      {isWithin5Min && (
-        <Pressable
-          style={[styles.button, joining && styles.buttonDisabled]}
-          onPress={() => !joining && handleJoin(banner.eventId)}
-          disabled={joining}
-        >
-          {joining ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>Открыть видео</Text>
-          )}
-        </Pressable>
-      )}
+      <Pressable
+        style={[styles.button, joining && styles.buttonDisabled]}
+        onPress={() => !joining && handleJoin(banner.eventId)}
+        disabled={joining}
+      >
+        {joining ? (
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Открыть видео</Text>
+        )}
+      </Pressable>
     </View>
   );
 }
