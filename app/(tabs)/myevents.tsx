@@ -21,7 +21,7 @@ import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken, getAuthRole, getUserProfile } from '@/lib/auth';
-import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
+import { openJitsi } from '@/lib/jitsi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -489,7 +489,13 @@ export default function MyEventsScreen() {
         {isNearlyStarting && (
           <Pressable
             style={styles.videoButton}
-            onPress={() => openJitsi(item.videoUrl ?? buildJitsiUrl('booking', item.id))}
+            onPress={async () => {
+                if (item.videoUrl) { openJitsi(item.videoUrl); return; }
+                const res = await authedFetch(`${API_BASE}/api/bookings/${item.id}/join`).catch(() => null);
+                const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
+                if (url) { openJitsi(url); return; }
+                Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.');
+              }}
           >
             <Text style={styles.videoButtonText}>Открыть видео</Text>
           </Pressable>
@@ -639,7 +645,10 @@ export default function MyEventsScreen() {
                 if (nearestEventId) {
                   router.push(`/(tabs)/events/${nearestEventId}` as any);
                 } else if (nearestBookingId) {
-                  openJitsi(nearestBookingVideoUrl ?? buildJitsiUrl('booking', nearestBookingId));
+                  if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl); return; }
+                  const res = await authedFetch(`${API_BASE}/api/bookings/${nearestBookingId}/join`).catch(() => null);
+                  const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
+                  if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
                 }
               }}
             >
