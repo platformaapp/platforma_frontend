@@ -637,23 +637,21 @@ export default function MyEventsScreen() {
               {(isNearestWithin5Min || isNearestOngoing) ? 'Встреча уже идёт, присоединяйся!' : ('До ближайшей встречи: ' + countdownLabel)}
             </Text>
           </View>
-          {(isNearestWithin5Min || isNearestOngoing) ? (
-            <Pressable
-              style={styles.countdownBarButton}
-              onPress={async () => {
-                if (nearestEventId) {
-                  router.push(`/(tabs)/events/${nearestEventId}` as any);
-                } else if (nearestBookingId) {
-                  if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl); return; }
-                  const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${nearestBookingId}/join`).catch(() => null);
-                  const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-                  if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
-                }
-              }}
-            >
-              <Text style={styles.countdownBarButtonText}>Войти в конференцию</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            style={styles.countdownBarButton}
+            onPress={async () => {
+              if (nearestEventId) {
+                router.push(`/(tabs)/events/${nearestEventId}` as any);
+              } else if (nearestBookingId) {
+                if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl); return; }
+                const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${nearestBookingId}/join`).catch(() => null);
+                const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
+                if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
+              }
+            }}
+          >
+            <Text style={styles.countdownBarButtonText}>Открыть видео</Text>
+          </Pressable>
         </View>
       ) : null}
 
