@@ -30,6 +30,8 @@ export const endpoints = {
   tutorEvents: `${API_BASE}/api/tutor/events`,
   tutorPayments: `${API_BASE}/api/tutor/payments`,
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
+  tutorPayoutsBalance: `${API_BASE}/api/tutor/payouts/balance`,
+  tutorPayouts: `${API_BASE}/api/tutor/payouts`,
 
   // Events (события)
   events: `${API_BASE}/api/events`,

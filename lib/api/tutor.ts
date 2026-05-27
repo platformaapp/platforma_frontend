@@ -135,6 +135,21 @@ export interface PaymentsSummary {
   balance?: number;
 }
 
+export interface PayoutBalance {
+  balance: number;
+  currency?: string;
+}
+
+export interface Payout {
+  id: string;
+  amount: number;
+  currency?: string;
+  status: 'pending' | 'succeeded' | 'failed' | string;
+  createdAt?: string;
+  created_at?: string;
+  description?: string;
+}
+
 // --- Хелперы ---
 
 async function authHeaders(): Promise<HeadersInit> {
@@ -311,6 +326,23 @@ export async function getTutorPaymentsSummary(): Promise<PaymentsSummary> {
     headers: await authHeaders(),
   });
   return handleResponse<PaymentsSummary>(res);
+}
+
+/** GET /tutor/payouts/balance — доступный баланс для вывода */
+export async function getTutorPayoutsBalance(): Promise<PayoutBalance> {
+  const res = await fetch(endpoints.tutorPayoutsBalance, {
+    headers: await authHeaders(),
+  });
+  return handleResponse<PayoutBalance>(res);
+}
+
+/** GET /tutor/payouts — история выплат (статус обновляется асинхронно через вебхук) */
+export async function getTutorPayouts(): Promise<Payout[]> {
+  const res = await fetch(endpoints.tutorPayouts, {
+    headers: await authHeaders(),
+  });
+  const data = await handleResponse<Payout[] | { payouts?: Payout[]; data?: Payout[] }>(res);
+  return Array.isArray(data) ? data : (data.payouts ?? data.data ?? []);
 }
 
 // ─── Публичные эндпоинты (для студентов) ────────────────────────────────────

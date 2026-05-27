@@ -202,6 +202,7 @@ export default function MyEventsScreen() {
   const [cancelEventTarget, setCancelEventTarget] = useState<EventItem | null>(null);
   const [cancelEventConfirmVisible, setCancelEventConfirmVisible] = useState(false);
   const [cancelEventSuccessVisible, setCancelEventSuccessVisible] = useState(false);
+  const [cancelEventMessage, setCancelEventMessage] = useState<string | null>(null);
   const [isCancellingEvent, setIsCancellingEvent] = useState(false);
 
   // Booking menu
@@ -332,6 +333,15 @@ export default function MyEventsScreen() {
       }
 
       if (res.ok || res.status === 404) {
+        const data = res.ok ? await res.json().catch(() => ({})) : {};
+        const msg: string | null = data?.message ?? null;
+        const refunded: boolean = data?.refunded ?? false;
+        const noRefundReason: string | null = data?.no_refund_reason ?? null;
+        setCancelEventMessage(
+          msg ?? (refunded
+            ? 'Средства будут возвращены в течение 3 рабочих дней.'
+            : noRefundReason ?? null)
+        );
         setEvents((prev) => prev.filter((e) => e.id !== eventId));
         setCancelEventSuccessVisible(true);
       } else {
@@ -755,6 +765,20 @@ export default function MyEventsScreen() {
                       {isViewerTutor ? 'Написать ученику' : 'Написать наставнику'}
                     </Text>
                   </Pressable>
+                  <Pressable
+                    style={styles.modalActionButton}
+                    onPress={async () => {
+                      const b = menuBooking;
+                      setMenuBooking(null);
+                      if (!b) return;
+                      if (b.videoUrl) { openJitsi(b.videoUrl); return; }
+                      const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${b.id}/join`).catch(() => null);
+                      const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
+                      if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
+                    }}
+                  >
+                    <Text style={styles.modalActionButtonText}>Открыть видео</Text>
+                  </Pressable>
                   <Pressable style={styles.modalCancelButton} onPress={handleCancelBooking} disabled={isCancellingBooking}>
                     <Text style={styles.modalCancelButtonText}>Отменить запись</Text>
                   </Pressable>
@@ -774,7 +798,7 @@ export default function MyEventsScreen() {
               {role === 'tutor' ? 'ВЫ ДЕЙСТВИТЕЛЬНО ХОТИТЕ ОТМЕНИТЬ СОБЫТИЕ?' : 'ВЫ ДЕЙСТВИТЕЛЬНО ХОТИТЕ ОТМЕНИТЬ ЗАПИСЬ?'}
             </Text>
             {cancelEventTarget?.datetimeStart && new Date(cancelEventTarget.datetimeStart).getTime() - Date.now() < 24 * 60 * 60 * 1000 ? (
-              <Text style={styles.cancelModalWarning}>Вы отменяете позднее, чем за 24 часа. Вернуть деньги уже не получится.</Text>
+              <Text style={styles.cancelModalWarning}>Вы отменяете участие менее чем за 24 часа до события. Оплата не возвращается.</Text>
             ) : (
               <Text style={styles.cancelModalSubtext}>После отмены вы потеряете место на этом мероприятии.</Text>
             )}
@@ -795,10 +819,10 @@ export default function MyEventsScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => { setCancelEventSuccessVisible(false); setCancelEventTarget(null); }}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.cancelModalTitle}>ЗАПИСЬ ОТМЕНЕНА</Text>
-            {(!cancelEventTarget?.datetimeStart || new Date(cancelEventTarget.datetimeStart).getTime() - Date.now() >= 24 * 60 * 60 * 1000) && (
-              <Text style={styles.cancelModalSubtext}>Деньги вернутся на карту в течении 3 рабочих дней</Text>
-            )}
-            <Pressable style={styles.cancelSuccessCloseButton} onPress={() => { setCancelEventSuccessVisible(false); setCancelEventTarget(null); }}>
+            {cancelEventMessage ? (
+              <Text style={styles.cancelModalSubtext}>{cancelEventMessage}</Text>
+            ) : null}
+            <Pressable style={styles.cancelSuccessCloseButton} onPress={() => { setCancelEventSuccessVisible(false); setCancelEventTarget(null); setCancelEventMessage(null); }}>
               <Text style={styles.cancelSuccessCloseText}>Закрыть</Text>
             </Pressable>
           </Pressable>

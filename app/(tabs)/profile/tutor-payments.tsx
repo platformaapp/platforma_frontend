@@ -18,8 +18,12 @@ import { ThemedText } from '@/components/themed-text';
 import {
   getTutorPayments,
   getTutorPaymentsSummary,
+  getTutorPayoutsBalance,
+  getTutorPayouts,
   type Payment,
   type PaymentsSummary,
+  type PayoutBalance,
+  type Payout,
 } from '@/lib/api/tutor';
 import {
   bindPaymentMethod,
@@ -54,7 +58,7 @@ function formatAmount(amount: number): string {
 }
 
 function statusLabel(status: string): string {
-  if (status === 'success') return 'исполнено';
+  if (status === 'success' || status === 'succeeded') return 'исполнено';
   if (status === 'pending') return 'в обработке';
   if (status === 'failed') return 'ошибка';
   return status;
@@ -70,6 +74,8 @@ export default function TutorPaymentsScreen() {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<PaymentsSummary | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [payoutBalance, setPayoutBalance] = useState<PayoutBalance | null>(null);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
   const [isWithdrawModalVisible, setWithdrawModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -106,16 +112,18 @@ export default function TutorPaymentsScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [sum, list] = await Promise.all([
-        getTutorPaymentsSummary(),
-        getTutorPayments(),
+      const [sum, list, bal, pouts] = await Promise.all([
+        getTutorPaymentsSummary().catch(() => null),
+        getTutorPayments().catch(() => [] as Payment[]),
+        getTutorPayoutsBalance().catch(() => null),
+        getTutorPayouts().catch(() => [] as Payout[]),
       ]);
       setSummary(sum);
       setPayments(list);
+      setPayoutBalance(bal);
+      setPayouts(pouts);
       await loadCards();
     } catch (e: any) {
-      setSummary(null);
-      setPayments([]);
       Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
     } finally {
       setLoading(false);
@@ -126,20 +134,23 @@ export default function TutorPaymentsScreen() {
     useCallback(() => {
       let cancelled = false;
       setLoading(true);
-      Promise.all([getTutorPaymentsSummary(), getTutorPayments()])
-        .then(([sum, list]) => {
+      Promise.all([
+        getTutorPaymentsSummary().catch(() => null),
+        getTutorPayments().catch(() => [] as Payment[]),
+        getTutorPayoutsBalance().catch(() => null),
+        getTutorPayouts().catch(() => [] as Payout[]),
+      ])
+        .then(([sum, list, bal, pouts]) => {
           if (!cancelled) {
             setSummary(sum);
             setPayments(list);
+            setPayoutBalance(bal);
+            setPayouts(pouts);
           }
           return loadCards();
         })
         .catch((e) => {
-          if (!cancelled) {
-            setSummary(null);
-            setPayments([]);
-            Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
-          }
+          if (!cancelled) Alert.alert('Ошибка', e?.message ?? 'Не удалось загрузить данные');
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -263,7 +274,7 @@ export default function TutorPaymentsScreen() {
     );
   }
 
-  const balance = summary?.balance ?? summary?.total_income ?? 0;
+  const balance = payoutBalance?.balance ?? summary?.balance ?? summary?.total_income ?? 0;
 
   return (
     <View style={styles.container}>
@@ -328,12 +339,12 @@ export default function TutorPaymentsScreen() {
           </Pressable>
         )}
 
-        <Text style={styles.sectionTitle}>История платежей</Text>
-        {payments.map((p) => (
+        <Text style={styles.sectionTitle}>История выплат</Text>
+        {payouts.map((p) => (
           <View key={p.id} style={styles.historyRow}>
             <View style={styles.historyLeft}>
               <Text style={styles.historyId}>№{p.id.replace(/\D/g, '').slice(-5) || p.id.slice(-5)}</Text>
-              <Text style={styles.historyDesc}>Выплата от платформы</Text>
+              <Text style={styles.historyDesc}>{p.description ?? 'Выплата на карту'}</Text>
               <Text style={styles.historyDate}>{formatDate(p.createdAt ?? p.created_at)}</Text>
             </View>
             <View style={styles.historyRight}>
@@ -350,7 +361,22 @@ export default function TutorPaymentsScreen() {
             </View>
           </View>
         ))}
-        {payments.length === 0 ? (
+        {payouts.length === 0 && payments.map((p) => (
+          <View key={p.id} style={styles.historyRow}>
+            <View style={styles.historyLeft}>
+              <Text style={styles.historyId}>№{p.id.replace(/\D/g, '').slice(-5) || p.id.slice(-5)}</Text>
+              <Text style={styles.historyDesc}>Выплата от платформы</Text>
+              <Text style={styles.historyDate}>{formatDate(p.createdAt ?? p.created_at)}</Text>
+            </View>
+            <View style={styles.historyRight}>
+              <View style={styles.historyStatusRow}>
+                <Text style={styles.historyStatus}>{statusLabel(p.status)}</Text>
+              </View>
+              <Text style={styles.historyAmount}>{formatAmount(p.amount)}</Text>
+            </View>
+          </View>
+        ))}
+        {payouts.length === 0 && payments.length === 0 ? (
           <Text style={styles.emptyText}>История пуста</Text>
         ) : null}
       </ScrollView>
