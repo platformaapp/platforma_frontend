@@ -429,6 +429,8 @@ export default function EventDetailScreen() {
             clearPaymentIdFromSession();
             const active = { value: true };
             await loadEvent(active);
+            setDonePaymentPending(false);
+            setCardModalDoneVisible(true);
           } else if (status === 'failed') {
             clearPaymentIdFromSession();
             setPaymentFailedModalVisible(true);
@@ -442,17 +444,20 @@ export default function EventDetailScreen() {
         const result = await fetchPaymentBindingCallback(paymentId);
         if (stopped) return;
 
-        if (result.status === 'succeeded') {
+        const s = (result.status ?? '').toLowerCase();
+        if (s === 'succeeded' || s === 'paid' || s === 'success') {
           _pendingYookassaPaymentId = null;
           yookassaPaymentIdRef.current = null;
           clearPaymentIdFromSession();
           const active = { value: true };
           await loadEvent(active);
           setIsPollingPayment(false);
+          setDonePaymentPending(false);
+          setCardModalDoneVisible(true);
           return;
         }
 
-        if (result.status === 'failed') {
+        if (s === 'failed' || s === 'canceled' || s === 'cancelled') {
           _pendingYookassaPaymentId = null;
           yookassaPaymentIdRef.current = null;
           clearPaymentIdFromSession();
