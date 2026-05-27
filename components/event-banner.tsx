@@ -1,4 +1,3 @@
-import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +7,7 @@ import { endpoints } from '@/constants/env';
 import { getMyEventsForStudent } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken } from '@/lib/auth';
+import { openJitsi } from '@/lib/jitsi';
 
 const MEETING_DURATION_MS = 90 * 60 * 1000;
 
@@ -127,7 +127,7 @@ export function EventBanner() {
     try {
       const url = await joinEvent(eventId);
       if (url) {
-        await Linking.openURL(url);
+        await openJitsi(url);
       } else {
         router.push(`/(tabs)/events/${eventId}` as any);
       }
@@ -159,12 +159,6 @@ export function EventBanner() {
   }
 
   // countdown
-  const upcomingEntry = eventsRef.current.find((e) => e.id === banner.eventId);
-  const msUntilStart = upcomingEntry?.datetimeStart
-    ? new Date(upcomingEntry.datetimeStart).getTime() - Date.now()
-    : null;
-  const isWithin5Min = msUntilStart !== null && msUntilStart <= 5 * 60 * 1000;
-
   return (
     <View style={styles.container}>
       <View style={styles.row}>
@@ -175,19 +169,17 @@ export function EventBanner() {
           {'До ближайшего события: ' + banner.text}
         </Text>
       </View>
-      {isWithin5Min && (
-        <Pressable
-          style={[styles.button, joining && styles.buttonDisabled]}
-          onPress={() => !joining && handleJoin(banner.eventId)}
-          disabled={joining}
-        >
-          {joining ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>Открыть видео</Text>
-          )}
-        </Pressable>
-      )}
+      <Pressable
+        style={[styles.button, joining && styles.buttonDisabled]}
+        onPress={() => !joining && handleJoin(banner.eventId)}
+        disabled={joining}
+      >
+        {joining ? (
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Открыть видео</Text>
+        )}
+      </Pressable>
     </View>
   );
 }
