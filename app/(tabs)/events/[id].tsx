@@ -37,7 +37,7 @@ function resolveUrl(url: unknown): string | null {
 import { getPaymentMethods, fetchPaymentBindingCallback, type PaymentMethod } from '@/lib/api/student-payments';
 import { getPublicTutorList } from '@/lib/api/tutor';
 import { authedFetch } from '@/lib/authed-fetch';
-import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
+import { openJitsi } from '@/lib/jitsi';
 
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
@@ -732,11 +732,11 @@ export default function EventDetailScreen() {
         setJoinErrorVisible(true);
         return;
       }
-      // Fallback 1: video_room.url from event detail
+      // Fallback: video_room.url from event detail
       const backendUrl = event.videoRoom?.url;
       if (backendUrl) { await openJitsi(backendUrl); return; }
-      // Fallback 2: deterministic Jitsi room derived from event ID
-      await openJitsi(buildJitsiUrl('event', event.id));
+      setJoinErrorMessage('Видеокомната не найдена. Попробуйте позже или обратитесь к организатору.');
+      setJoinErrorVisible(true);
     } catch { /* ignore */ } finally {
       setIsJoining(false);
     }
