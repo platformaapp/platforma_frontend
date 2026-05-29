@@ -3,14 +3,22 @@ import { router } from 'expo-router';
 import { API_BASE } from '@/constants/env';
 import { getAuthRole, getAuthToken, getRefreshToken, saveAuthToken } from './auth';
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
 // Single in-flight refresh — all concurrent 401s share the same promise
 let refreshing: Promise<string | null> | null = null;
+
+function fetchWithTimeout(url: string, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(id));
+}
 
 async function doRefresh(): Promise<string | null> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
 
-  const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+  const res = await fetchWithTimeout(`${API_BASE}/api/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -55,6 +63,7 @@ async function applyNewAccessToken(res: Response): Promise<void> {
  * - Reads New-Access-Token response header and persists new token if present.
  * - On 401: silently refreshes the access token and retries once.
  * - Only redirects to /login if refresh also fails.
+ * - Aborts after 15 s to prevent infinite loading on slow/blocked networks.
  */
 export async function authedFetch(
   url: string,
@@ -68,7 +77,7 @@ export async function authedFetch(
   });
   const withoutAuth: RequestInit = { ...init, credentials: 'include' };
 
-  const res = await fetch(url, token ? withAuth(token) : withoutAuth);
+  const res = await fetchWithTimeout(url, token ? withAuth(token) : withoutAuth);
 
   // Persist rotated access token sent by the server
   await applyNewAccessToken(res);
@@ -81,7 +90,7 @@ export async function authedFetch(
     return res;
   }
 
-  const retryRes = await fetch(url, withAuth(newToken));
+  const retryRes = await fetchWithTimeout(url, withAuth(newToken));
   await applyNewAccessToken(retryRes);
   return retryRes;
 }

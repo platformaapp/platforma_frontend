@@ -62,8 +62,15 @@ export default function EventsScreen() {
     const load = useCallback(async () => {
     try {
       setError('');
-      // Public endpoint — never send auth token
-      const res = await fetch(endpoints.eventsFeed);
+      // Public endpoint — never send auth token; 15 s timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15_000);
+      let res: Response;
+      try {
+        res = await fetch(endpoints.eventsFeed, { signal: controller.signal });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         const msg = body?.message ?? body?.error ?? `Ошибка загрузки событий (${res.status})`;
@@ -160,6 +167,9 @@ export default function EventsScreen() {
       {error ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
+          <Pressable style={styles.retryButton} onPress={() => { setLoading(true); load(); }}>
+            <Text style={styles.retryButtonText}>Повторить</Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList
@@ -212,7 +222,9 @@ const styles = StyleSheet.create({
     fontSize: 13, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818',
     textDecorationLine: 'underline',
   },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },
+  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16, paddingHorizontal: 24 },
+  retryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 32 },
+  retryButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   card: { borderWidth: 1, borderColor: '#1E1E1E', marginHorizontal: 16, marginBottom: 16, backgroundColor: '#fff' },
   image: { width: '100%', height: 200, borderBottomWidth: 1, borderColor: '#1E1E1E' },
   imagePlaceholder: { backgroundColor: '#E5E5E5' },
