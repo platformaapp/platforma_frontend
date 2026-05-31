@@ -21,7 +21,7 @@ import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken, getAuthRole, getUserProfile } from '@/lib/auth';
-import { openJitsi } from '@/lib/jitsi';
+import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -503,7 +503,7 @@ export default function MyEventsScreen() {
               if (item.videoUrl) { openJitsi(item.videoUrl); return; }
               const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${item.id}/join`).catch(() => null);
               const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-              if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
+              openJitsi(url ?? buildJitsiUrl('booking', item.id));
             }}
           >
             <Text style={styles.videoButtonText}>Войти во встречу</Text>
@@ -656,7 +656,7 @@ export default function MyEventsScreen() {
                 if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl); return; }
                 const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${nearestBookingId}/join`).catch(() => null);
                 const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-                if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
+                openJitsi(url ?? buildJitsiUrl('booking', nearestBookingId));
               }
             }}
           >
@@ -774,7 +774,7 @@ export default function MyEventsScreen() {
                       if (b.videoUrl) { openJitsi(b.videoUrl); return; }
                       const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${b.id}/join`).catch(() => null);
                       const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-                      if (url) { openJitsi(url); } else { Alert.alert('Ошибка', 'Видеоссылка пока не готова. Попробуйте позже.'); }
+                      openJitsi(url ?? buildJitsiUrl('booking', b.id));
                     }}
                   >
                     <Text style={styles.modalActionButtonText}>Открыть видео</Text>

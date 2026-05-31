@@ -7,7 +7,7 @@ import { endpoints } from '@/constants/env';
 import { getMyEventsForStudent } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken } from '@/lib/auth';
-import { openJitsi } from '@/lib/jitsi';
+import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 const MEETING_DURATION_MS = 90 * 60 * 1000;
 
@@ -126,11 +126,7 @@ export function EventBanner() {
     setJoining(true);
     try {
       const url = await joinEvent(eventId);
-      if (url) {
-        await openJitsi(url);
-      } else {
-        router.push(`/(tabs)/events/${eventId}` as any);
-      }
+      await openJitsi(url ?? buildJitsiUrl('event', eventId));
     } catch {
       router.push(`/(tabs)/events/${eventId}` as any);
     } finally {
