@@ -412,16 +412,15 @@ export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
 }
 
 /**
- * GET /api/users — список пользователей.
+ * GET /api/users/tutors — публичный список наставников.
  * Если доступен токен — отправляем его (эндпоинт может требовать auth).
- * Фильтруем на клиенте по roles.includes('tutor').
  */
 export async function getPublicTutorList(): Promise<PublicTutor[]> {
   const token = await getAuthToken().catch(() => null);
   const headers: HeadersInit = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(endpoints.users, { headers });
+  const res = await fetch(endpoints.tutors, { headers });
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const payload = isJson ? await res.json() : await res.text();
@@ -441,11 +440,6 @@ export async function getPublicTutorList(): Promise<PublicTutor[]> {
   const raw = Array.isArray(payload) ? payload : (payload as { data?: unknown })?.data;
   const list = Array.isArray(raw) ? raw : [];
   return (list as Record<string, any>[])
-    .filter((u) =>
-      Array.isArray(u.roles)
-        ? u.roles.some((r: unknown) => r === 'tutor' || (r as any)?.name === 'tutor')
-        : u.role === 'tutor'
-    )
     .map((u) => ({
       ...u,
       fullName: u.fullName ?? u.full_name ?? '',

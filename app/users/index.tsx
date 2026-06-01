@@ -7,7 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 
-const USERS_URL = endpoints.users;
+const USERS_URL = endpoints.tutors;
 
 type User = {
   id?: string | number;
