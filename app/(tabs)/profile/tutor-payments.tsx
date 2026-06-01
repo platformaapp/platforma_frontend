@@ -216,37 +216,38 @@ export default function TutorPaymentsScreen() {
   const handleEditSubmit = async () => {
     if (isLinking) return;
     setIsLinking(true);
-    // Abort if the API call takes more than 15s
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
+      // Preflight: get card count before binding (best-effort, 5s max)
       let cardCountBefore = 0;
       try {
-        const methods = await getPaymentMethods();
-        cardCountBefore = methods.length;
+        const methods = await Promise.race([
+          getPaymentMethods(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+        ]);
+        cardCountBefore = (methods as Card[]).length;
       } catch {
-        /* ignore */
+        /* ignore — 0 is safe fallback */
       }
-      const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
-      clearTimeout(timeoutId);
+
+      // Bind with 15s timeout
+      const { confirmationUrl, yookassaPaymentId } = await Promise.race([
+        bindPaymentMethod({ provider: 'yookassa' }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Время ожидания истекло, попробуйте ещё раз')), 15000),
+        ),
+      ]);
       const paymentId = yookassaPaymentId;
 
-      // Close modal before opening browser
       setEditModalVisible(false);
 
-      // Open YooKassa and WAIT for browser to close before navigating
-      let browserResult: Awaited<ReturnType<typeof WebBrowser.openBrowserAsync>> | null = null;
       try {
-        browserResult = await WebBrowser.openBrowserAsync(confirmationUrl);
+        await WebBrowser.openBrowserAsync(confirmationUrl);
       } catch {
-        // Browser failed to open — show error and abort
         Alert.alert('Ошибка', 'Не удалось открыть браузер для привязки карты');
         setIsLinking(false);
         return;
       }
 
-      // Browser is now closed — user has (hopefully) completed the flow
-      // Navigate to callback screen to verify card binding status
       router.push({
         pathname: '/(tabs)/profile/payment-methods-callback',
         params: {
@@ -257,10 +258,8 @@ export default function TutorPaymentsScreen() {
         },
       });
     } catch (e: unknown) {
-      clearTimeout(timeoutId);
       const msg = (e as Error)?.message ?? '';
-      const isAbort = msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel');
-      Alert.alert('Ошибка', isAbort ? 'Время ожидания истекло, попробуйте ещё раз' : (msg || 'Не удалось привязать карту'));
+      Alert.alert('Ошибка', msg || 'Не удалось привязать карту');
     } finally {
       setIsLinking(false);
     }
@@ -503,7 +502,7 @@ export default function TutorPaymentsScreen() {
         visible={isEditModalVisible}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => !isLinking && setEditModalVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => { setIsLinking(false); setEditModalVisible(false); }}>
           <Pressable style={styles.editModalSheet} onPress={() => {}}>
             <ThemedText type="title" style={styles.editModalTitle}>
               {activeCard ? 'ИЗМЕНИТЬ КАРТУ' : 'ДОБАВИТЬ КАРТУ'}
