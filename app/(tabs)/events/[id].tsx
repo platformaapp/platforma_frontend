@@ -787,10 +787,13 @@ export default function EventDetailScreen() {
     !event.isPaid &&
     event.currentUserParticipation?.paymentStatus === 'pending';
 
-  // Show join button for any registered/paid participant or event owner.
-  // Time-based access control is handled by the backend (/api/events/:id/join returns 403 if not ready).
-  // Never show join button while payment is still pending.
-  const canJoinEffective = !paymentPending && (event.isRegistered || isOwnEvent);
+  const MEETING_DURATION_MS = 90 * 60 * 1000;
+  const eventStartMs = event.datetimeStart ? new Date(event.datetimeStart).getTime() : null;
+  const isEventOver = eventStartMs !== null && Date.now() > eventStartMs + MEETING_DURATION_MS;
+
+  // Show join button for registered participants/owner only while event hasn't ended.
+  // 90-minute window after start matches the backend's own join guard.
+  const canJoinEffective = !paymentPending && !isEventOver && (event.isRegistered || isOwnEvent);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
