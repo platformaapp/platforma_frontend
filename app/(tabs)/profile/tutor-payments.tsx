@@ -35,6 +35,7 @@ import {
 } from '@/lib/api/student-payments';
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
+import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
 function formatDate(iso: string | undefined | null): string {
@@ -81,6 +82,7 @@ export default function TutorPaymentsScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
+  const [bindError, setBindError] = useState<string | null>(null);
   const [isMoneySentModalVisible, setMoneySentModalVisible] = useState(false);
   const [isPaymentFailedModalVisible, setPaymentFailedModalVisible] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
@@ -216,6 +218,7 @@ export default function TutorPaymentsScreen() {
   const handleEditSubmit = async () => {
     if (isLinking) return;
     setIsLinking(true);
+    setBindError(null);
     try {
       // Preflight: get card count before binding (best-effort, 5s max)
       let cardCountBefore = 0;
@@ -229,37 +232,83 @@ export default function TutorPaymentsScreen() {
         /* ignore — 0 is safe fallback */
       }
 
-      // Bind with 15s timeout
-      const { confirmationUrl, yookassaPaymentId } = await Promise.race([
-        bindPaymentMethod({ provider: 'yookassa' }),
+      const token = await getAuthToken();
+      if (!token) throw new Error('Требуется авторизация');
+
+      // Try tutor endpoint first, fall back to student endpoint
+      let bindData: { confirmationUrl: string; yookassaPaymentId?: string } | null = null;
+      const tryBind = async (url: string) => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ provider: 'yookassa' }),
+        });
+        if (res.status === 404 || res.status === 405) return null;
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.message ?? data?.error ?? `Ошибка ${res.status}`);
+        const url2: string | undefined =
+          data?.data?.confirmationUrl ?? data?.confirmationUrl ?? data?.confirmation_url;
+        if (!url2) throw new Error('Сервер не вернул ссылку для привязки карты');
+        return {
+          confirmationUrl: url2,
+          yookassaPaymentId: data?.data?.yookassaPaymentId ?? data?.yookassaPaymentId ?? undefined,
+        };
+      };
+
+      bindData = await Promise.race([
+        (async () => {
+          const r = await tryBind(endpoints.tutorPaymentMethodsBind);
+          if (r) return r;
+          // tutor endpoint not found — try student endpoint
+          return await tryBind(endpoints.studentPaymentMethodsBind);
+        })(),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Время ожидания истекло, попробуйте ещё раз')), 15000),
         ),
       ]);
-      const paymentId = yookassaPaymentId;
 
+      if (!bindData) throw new Error('Не удалось получить ссылку для привязки карты');
+
+      const { confirmationUrl, yookassaPaymentId } = bindData;
       setEditModalVisible(false);
 
+      // Open YooKassa — try in-app browser first, fall back to system browser
+      let opened = false;
       try {
         await WebBrowser.openBrowserAsync(confirmationUrl);
+        opened = true;
       } catch {
-        Alert.alert('Ошибка', 'Не удалось открыть браузер для привязки карты');
-        setIsLinking(false);
+        /* fall through to Linking */
+      }
+      if (!opened) {
+        await Linking.openURL(confirmationUrl);
+        // Can't wait for return when using Linking — go to callback page after short delay
+        setTimeout(() => {
+          router.push({
+            pathname: '/(tabs)/profile/payment-methods-callback',
+            params: {
+              yookassaPaymentId: yookassaPaymentId ?? '',
+              orderId: yookassaPaymentId ?? '',
+              initialCardCount: String(cardCountBefore),
+              returnTo: 'tutor-payments',
+            },
+          });
+        }, 1000);
         return;
       }
 
       router.push({
         pathname: '/(tabs)/profile/payment-methods-callback',
         params: {
-          yookassaPaymentId: paymentId ?? '',
-          orderId: paymentId ?? '',
+          yookassaPaymentId: yookassaPaymentId ?? '',
+          orderId: yookassaPaymentId ?? '',
           initialCardCount: String(cardCountBefore),
           returnTo: 'tutor-payments',
         },
       });
     } catch (e: unknown) {
-      const msg = (e as Error)?.message ?? '';
-      Alert.alert('Ошибка', msg || 'Не удалось привязать карту');
+      const msg = (e as Error)?.message ?? 'Не удалось привязать карту';
+      setBindError(msg);
     } finally {
       setIsLinking(false);
     }
@@ -502,12 +551,15 @@ export default function TutorPaymentsScreen() {
         visible={isEditModalVisible}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => { setIsLinking(false); setEditModalVisible(false); }}>
+        <Pressable style={styles.modalOverlay} onPress={() => { setIsLinking(false); setBindError(null); setEditModalVisible(false); }}>
           <Pressable style={styles.editModalSheet} onPress={() => {}}>
             <ThemedText type="title" style={styles.editModalTitle}>
               {activeCard ? 'ИЗМЕНИТЬ КАРТУ' : 'ДОБАВИТЬ КАРТУ'}
             </ThemedText>
 
+            {bindError ? (
+              <Text style={styles.bindErrorText}>{bindError}</Text>
+            ) : null}
             <Pressable
               style={[styles.editModalBtn, styles.editModalBtnPrimary, isLinking && styles.editModalBtnDisabled]}
               onPress={handleEditSubmit}
@@ -933,5 +985,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#FAFAFA',
+  },
+  bindErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#E02D2D',
+    marginBottom: 10,
   },
 });

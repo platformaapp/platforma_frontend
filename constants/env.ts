@@ -32,6 +32,7 @@ export const endpoints = {
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
   tutorPayoutsBalance: `${API_BASE}/api/tutor/payouts/balance`,
   tutorPayouts: `${API_BASE}/api/tutor/payouts`,
+  tutorPaymentMethodsBind: `${API_BASE}/api/tutor/payment-methods/bind`,
 
   // Events (события)
   events: `${API_BASE}/api/events`,
