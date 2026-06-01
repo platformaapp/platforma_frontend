@@ -36,7 +36,6 @@ import {
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
 
 function formatDate(iso: string | undefined | null): string {
   if (!iso) return '—';
@@ -270,32 +269,11 @@ export default function TutorPaymentsScreen() {
       if (!bindData) throw new Error('Не удалось получить ссылку для привязки карты');
 
       const { confirmationUrl, yookassaPaymentId } = bindData;
-      setEditModalVisible(false);
 
-      // Open YooKassa — try in-app browser first, fall back to system browser
-      let opened = false;
-      try {
-        await WebBrowser.openBrowserAsync(confirmationUrl);
-        opened = true;
-      } catch {
-        /* fall through to Linking */
-      }
-      if (!opened) {
-        await Linking.openURL(confirmationUrl);
-        // Can't wait for return when using Linking — go to callback page after short delay
-        setTimeout(() => {
-          router.push({
-            pathname: '/(tabs)/profile/payment-methods-callback',
-            params: {
-              yookassaPaymentId: yookassaPaymentId ?? '',
-              orderId: yookassaPaymentId ?? '',
-              initialCardCount: String(cardCountBefore),
-              returnTo: 'tutor-payments',
-            },
-          });
-        }, 1000);
-        return;
-      }
+      // Close modal, open in system browser (Linking avoids Expo Go WebBrowser freeze),
+      // then navigate to callback page — user returns here after completing YooKassa flow.
+      setEditModalVisible(false);
+      await Linking.openURL(confirmationUrl);
 
       router.push({
         pathname: '/(tabs)/profile/payment-methods-callback',
