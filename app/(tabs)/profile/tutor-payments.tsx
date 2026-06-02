@@ -535,6 +535,10 @@ export default function TutorPaymentsScreen() {
               {activeCard ? 'ИЗМЕНИТЬ КАРТУ' : 'ДОБАВИТЬ КАРТУ'}
             </ThemedText>
 
+            <Text style={styles.vpnWarning}>
+              Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.
+            </Text>
+
             {bindError ? (
               <Text style={styles.bindErrorText}>{bindError}</Text>
             ) : null}
@@ -963,6 +967,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Inter-Regular',
     color: '#FAFAFA',
+  },
+  vpnWarning: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    marginBottom: 12,
   },
   bindErrorText: {
     fontSize: 13,
