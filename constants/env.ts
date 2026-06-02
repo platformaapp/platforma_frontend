@@ -13,6 +13,8 @@ export const endpoints = {
   studentPaymentsCallback: `${API_BASE}/api/student/payments/callback`,
   studentPaymentMethods: `${API_BASE}/api/student/payment-methods`,
   studentPaymentMethodsBind: `${API_BASE}/api/student/payment-methods/bind`,
+  paymentMethodsBind: `${API_BASE}/api/payment-methods/bind`,
+  paymentMethodsBindingStatus: `${API_BASE}/api/payment-methods/binding-status`,
   /** return_url для YooKassa — бэкенд должен использовать этот путь, не /api/student/payments */
   studentPaymentMethodsCallback: `${API_BASE}/api/student/payment-methods/callback`,
   paymentsMethod: `${API_BASE}/api/payments/method`,

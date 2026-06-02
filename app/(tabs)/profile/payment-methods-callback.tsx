@@ -3,7 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthError } from '@/lib/api/auth-error';
-import { fetchPaymentBindingCallback } from '@/lib/api/student-payments';
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
 
 type ScreenStatus = 'loading' | 'success' | 'error';
 
@@ -12,7 +13,8 @@ const POLL_TIMEOUT_MS = 60000;
 
 export default function PaymentMethodsCallbackScreen() {
   const router = useRouter();
-  const { yookassaPaymentId, orderId, returnTo } = useLocalSearchParams<{
+  const { transactionId, yookassaPaymentId, orderId, returnTo } = useLocalSearchParams<{
+    transactionId?: string;
     yookassaPaymentId?: string;
     orderId?: string;
     returnTo?: string;
@@ -26,13 +28,15 @@ export default function PaymentMethodsCallbackScreen() {
     ? '/(tabs)/profile/tutor-payments'
     : '/(tabs)/profile/payments';
 
+  // Prefer transactionId (attachmentId) for new endpoint; fall back to yookassaPaymentId
+  const effectiveTransactionId = (transactionId && String(transactionId)) || '';
   const effectivePaymentId =
     (yookassaPaymentId && String(yookassaPaymentId)) ||
     (orderId && String(orderId)) ||
     '';
 
   useEffect(() => {
-    if (!effectivePaymentId) {
+    if (!effectiveTransactionId && !effectivePaymentId) {
       setStatus('error');
       setMessage('Нет данных о платеже.');
       return;
@@ -51,20 +55,44 @@ export default function PaymentMethodsCallbackScreen() {
     const poll = async () => {
       if (stopRef.current) return;
       try {
-        const result = await fetchPaymentBindingCallback(effectivePaymentId);
+        const token = await getAuthToken();
+        if (!token) { router.replace('/login'); return; }
+
+        let statusStr = 'pending';
+        let messageStr = '';
+
+        if (effectiveTransactionId) {
+          // New endpoint: GET /api/payment-methods/binding-status?transactionId=...
+          const params = new URLSearchParams({ transactionId: effectiveTransactionId });
+          const res = await fetch(`${endpoints.paymentMethodsBindingStatus}?${params}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error(`Ошибка проверки статуса (${res.status})`);
+          const data = await res.json().catch(() => ({}));
+          // Backend may return: { status, message } or { success, data: { status, message } }
+          const payload = data?.data ?? data;
+          statusStr = (payload?.status ?? '').toLowerCase();
+          messageStr = payload?.message ?? '';
+        } else {
+          // Legacy fallback: old student callback endpoint
+          const { fetchPaymentBindingCallback } = await import('@/lib/api/student-payments');
+          const result = await fetchPaymentBindingCallback(effectivePaymentId);
+          statusStr = result.status ?? 'pending';
+          messageStr = result.message ?? '';
+        }
 
         if (stopRef.current) return;
 
-        if (result.status === 'succeeded') {
+        if (statusStr === 'succeeded' || statusStr === 'success' || statusStr === 'active') {
           setStatus('success');
-          setMessage(result.message || 'Карта успешно привязана!');
+          setMessage(messageStr || 'Карта успешно привязана!');
           goPayments(1500);
           return;
         }
 
-        if (result.status === 'failed') {
+        if (statusStr === 'failed' || statusStr === 'canceled' || statusStr === 'cancelled') {
           setStatus('error');
-          setMessage(result.message || 'Привязка карты не удалась');
+          setMessage(messageStr || 'Привязка карты не удалась');
           return;
         }
 

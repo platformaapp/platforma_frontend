@@ -234,52 +234,37 @@ export default function TutorPaymentsScreen() {
       const token = await getAuthToken();
       if (!token) throw new Error('Требуется авторизация');
 
-      // Try tutor endpoint first, fall back to student endpoint
-      let bindData: { confirmationUrl: string; yookassaPaymentId?: string } | null = null;
-      const tryBind = async (url: string) => {
-        const res = await fetch(url, {
+      const bindRes = await Promise.race([
+        fetch(endpoints.paymentMethodsBind, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ provider: 'yookassa' }),
-        });
-        if (res.status === 404 || res.status === 405) return null;
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.message ?? data?.error ?? `Ошибка ${res.status}`);
-        const url2: string | undefined =
-          data?.data?.confirmationUrl ?? data?.confirmationUrl ?? data?.confirmation_url;
-        if (!url2) throw new Error('Сервер не вернул ссылку для привязки карты');
-        return {
-          confirmationUrl: url2,
-          yookassaPaymentId: data?.data?.yookassaPaymentId ?? data?.yookassaPaymentId ?? undefined,
-        };
-      };
-
-      bindData = await Promise.race([
-        (async () => {
-          const r = await tryBind(endpoints.tutorPaymentMethodsBind);
-          if (r) return r;
-          // tutor endpoint not found — try student endpoint
-          return await tryBind(endpoints.studentPaymentMethodsBind);
-        })(),
+        }),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Время ожидания истекло, попробуйте ещё раз')), 15000),
         ),
       ]);
 
-      if (!bindData) throw new Error('Не удалось получить ссылку для привязки карты');
+      const bindJson = await bindRes.json().catch(() => ({}));
+      if (!bindRes.ok) {
+        throw new Error(bindJson?.message ?? bindJson?.error ?? `Ошибка сервера (${bindRes.status})`);
+      }
 
-      const { confirmationUrl, yookassaPaymentId } = bindData;
+      const confirmationUrl: string | undefined = bindJson?.data?.confirmationUrl;
+      const attachmentId: string | undefined = bindJson?.data?.attachmentId;
+      const yookassaPaymentId: string | undefined = bindJson?.data?.yookassaPaymentId;
 
-      // Close modal, open in system browser (Linking avoids Expo Go WebBrowser freeze),
-      // then navigate to callback page — user returns here after completing YooKassa flow.
+      if (!confirmationUrl) throw new Error('Сервер не вернул ссылку для привязки карты');
+
+      // Open YooKassa in system browser, then navigate to status polling page
       setEditModalVisible(false);
       await Linking.openURL(confirmationUrl);
 
       router.push({
         pathname: '/(tabs)/profile/payment-methods-callback',
         params: {
+          transactionId: attachmentId ?? '',
           yookassaPaymentId: yookassaPaymentId ?? '',
-          orderId: yookassaPaymentId ?? '',
           initialCardCount: String(cardCountBefore),
           returnTo: 'tutor-payments',
         },

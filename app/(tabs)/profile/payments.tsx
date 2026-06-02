@@ -1,13 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  AppState,
-  AppStateStatus,
   Modal,
   Platform,
   Pressable,
@@ -22,18 +21,17 @@ const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp
 
 import { AuthError } from '@/lib/api/auth-error';
 import {
-  bindPaymentMethod,
   deleteCurrentPaymentMethod,
   deletePaymentMethod,
   getPaymentMethods,
   getStudentPayments,
   MAX_CARDS,
-  PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
-  PENDING_CARD_BINDING_PAYMENT_ID_KEY,
   setDefaultPaymentMethod,
   type Card,
   type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
+import { endpoints } from '@/constants/env';
+import { getAuthToken } from '@/lib/auth';
 
 function formatDate(iso: string): string {
   try {
@@ -131,31 +129,10 @@ export default function PaymentsScreen() {
     }, [router])
   );
 
-  const pendingCallbackRef = useRef(false);
-  const pendingBindParams = useRef<{
-    yookassaPaymentId?: string;
-    initialCardCount?: number;
-  }>({});
-
-  const navigateToCallback = () => {
-    const { yookassaPaymentId, initialCardCount } = pendingBindParams.current;
-    router.push({
-      pathname: '/(tabs)/profile/payment-methods-callback',
-      params: {
-        yookassaPaymentId: yookassaPaymentId ?? '',
-        orderId: yookassaPaymentId ?? '',
-        initialCardCount: String(initialCardCount ?? 0),
-      },
-    });
-  };
-
   const handleLinkCard = async () => {
     if (isLinking) return;
     if (cards.length >= MAX_CARDS) {
-      Alert.alert(
-        'Внимание',
-        'Можно привязать только одну карту. Удалите текущую, чтобы привязать новую.'
-      );
+      Alert.alert('Внимание', 'Можно привязать только одну карту. Удалите текущую, чтобы привязать новую.');
       return;
     }
     setIsLinking(true);
@@ -164,35 +141,41 @@ export default function PaymentsScreen() {
       try {
         const methods = await getPaymentMethods();
         cardCountBefore = methods.length;
-      } catch {
-        /* use cards.length */
-      }
+      } catch { /* use cards.length */ }
 
-      const { confirmationUrl, yookassaPaymentId } = await bindPaymentMethod({ provider: 'yookassa' });
-      const paymentId = yookassaPaymentId;
-      pendingBindParams.current = { yookassaPaymentId: paymentId, initialCardCount: cardCountBefore };
-      try {
-        const ls = (globalThis as any)?.localStorage;
-        if (ls && paymentId) {
-          ls.setItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY, paymentId);
-          ls.setItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY, String(cardCountBefore));
-        }
-      } catch { /* ignore */ }
-      pendingCallbackRef.current = true;
-      WebBrowser.openBrowserAsync(confirmationUrl).then(() => {
-        if (pendingCallbackRef.current) {
-          pendingCallbackRef.current = false;
-          navigateToCallback();
-        }
+      const token = await getAuthToken();
+      if (!token) { router.replace('/login'); return; }
+
+      const bindRes = await Promise.race([
+        fetch(endpoints.paymentMethodsBind, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ provider: 'yookassa' }),
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Время ожидания истекло, попробуйте ещё раз')), 15000),
+        ),
+      ]);
+
+      const bindJson = await bindRes.json().catch(() => ({}));
+      if (!bindRes.ok) throw new Error(bindJson?.message ?? bindJson?.error ?? `Ошибка ${bindRes.status}`);
+
+      const confirmationUrl: string | undefined = bindJson?.data?.confirmationUrl;
+      const attachmentId: string | undefined = bindJson?.data?.attachmentId;
+      const yookassaPaymentId: string | undefined = bindJson?.data?.yookassaPaymentId;
+      if (!confirmationUrl) throw new Error('Сервер не вернул ссылку для привязки карты');
+
+      await Linking.openURL(confirmationUrl);
+
+      router.push({
+        pathname: '/(tabs)/profile/payment-methods-callback',
+        params: {
+          transactionId: attachmentId ?? '',
+          yookassaPaymentId: yookassaPaymentId ?? '',
+          initialCardCount: String(cardCountBefore),
+        },
       });
     } catch (e: unknown) {
-      pendingCallbackRef.current = false;
-      pendingBindParams.current = {};
-      try {
-        const ls = (globalThis as any)?.localStorage;
-        ls?.removeItem(PENDING_CARD_BINDING_PAYMENT_ID_KEY);
-        ls?.removeItem(PENDING_CARD_BINDING_INITIAL_COUNT_KEY);
-      } catch { /* ignore */ }
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
         return;
@@ -203,16 +186,6 @@ export default function PaymentsScreen() {
     }
   };
 
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active' && pendingCallbackRef.current) {
-        pendingCallbackRef.current = false;
-        navigateToCallback();
-      }
-    });
-    return () => sub.remove();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
 
   const handleSetDefault = async (card: Card) => {
     if (settingDefaultId || card.isDefault) return;
