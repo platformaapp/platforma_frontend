@@ -62,17 +62,15 @@ export default function PaymentMethodsCallbackScreen() {
         let messageStr = '';
 
         if (effectiveTransactionId) {
-          // New endpoint: GET /api/payment-methods/binding-status?transactionId=...
-          const params = new URLSearchParams({ transactionId: effectiveTransactionId });
+          // GET /api/payment-methods/binding-status?tx=<attachmentId>
+          const params = new URLSearchParams({ tx: effectiveTransactionId });
           const res = await fetch(`${endpoints.paymentMethodsBindingStatus}?${params}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (!res.ok) throw new Error(`Ошибка проверки статуса (${res.status})`);
           const data = await res.json().catch(() => ({}));
-          // Backend may return: { status, message } or { success, data: { status, message } }
-          const payload = data?.data ?? data;
-          statusStr = (payload?.status ?? '').toLowerCase();
-          messageStr = payload?.message ?? '';
+          statusStr = (data?.status ?? '').toLowerCase();
+          messageStr = '';
         } else {
           // Legacy fallback: old student callback endpoint
           const { fetchPaymentBindingCallback } = await import('@/lib/api/student-payments');
@@ -83,16 +81,16 @@ export default function PaymentMethodsCallbackScreen() {
 
         if (stopRef.current) return;
 
-        if (statusStr === 'succeeded' || statusStr === 'success' || statusStr === 'active') {
+        if (statusStr === 'active') {
           setStatus('success');
-          setMessage(messageStr || 'Карта успешно привязана!');
+          setMessage('Карта успешно привязана!');
           goPayments(1500);
           return;
         }
 
-        if (statusStr === 'failed' || statusStr === 'canceled' || statusStr === 'cancelled') {
+        if (statusStr === 'failed' || statusStr === 'not_found') {
           setStatus('error');
-          setMessage(messageStr || 'Привязка карты не удалась');
+          setMessage(statusStr === 'not_found' ? 'Транзакция не найдена. Попробуйте привязать карту снова.' : 'Привязка карты не удалась.');
           return;
         }
 
