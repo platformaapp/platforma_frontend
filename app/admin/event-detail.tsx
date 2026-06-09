@@ -95,6 +95,10 @@ const TYPE_LABELS: Record<string, string> = {
   workshop: 'Воркшоп',
 };
 
+const MOD_DISCLAIMER =
+  'Мы немного подправили ваше событие, чтобы оно лучше соответствовало общей стилистике платформы и помогло вам привлечь больше пользователей.\n\n' +
+  'Если вы не согласны с нашим предложением, то вот контакт для связи в тг @vladislav_yakunin. Давайте вместе доработаем событие, чтобы и вам, и нам было хорошо и приятно.';
+
 export default function AdminEventDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -185,7 +189,10 @@ export default function AdminEventDetailScreen() {
       if (modFields.coverUrl.trim()) body.coverUrl = modFields.coverUrl.trim();
       if (modFields.title.trim()) body.title = modFields.title.trim();
       if (modFields.description.trim()) body.description = modFields.description.trim();
-      if (modFields.comment.trim()) body.comment = modFields.comment.trim();
+      const adminComment = modFields.comment.trim();
+      body.comment = adminComment
+        ? `${MOD_DISCLAIMER}\n\n${adminComment}`
+        : MOD_DISCLAIMER;
 
       const res = await fetch(`${endpoints.adminEventsAdmin}/${id}/moderate`, {
         method: 'PATCH',
@@ -368,8 +375,13 @@ export default function AdminEventDetailScreen() {
           {modVisible && (
             <View style={styles.modForm}>
               <Text style={styles.modHint}>
-                Заполните только те поля, которые нужно изменить. Наставнику придёт письмо с правками и контактом @vladislav_yakunin.
+                Заполните только те поля, которые нужно изменить. Наставнику придёт письмо со следующим дисклеймером и вашим комментарием.
               </Text>
+
+              <View style={styles.modDisclaimerBox}>
+                <Text style={styles.modDisclaimerLabel}>Дисклеймер (отправляется всегда)</Text>
+                <Text style={styles.modDisclaimerText}>{MOD_DISCLAIMER}</Text>
+              </View>
 
               <Text style={styles.modLabel}>Обложка (URL)</Text>
               <TextInput
@@ -482,7 +494,10 @@ const styles = StyleSheet.create({
   modToggle: { paddingHorizontal: 16, paddingVertical: 14 },
   modToggleText: { fontSize: 14, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818' },
   modForm: { paddingHorizontal: 16, paddingBottom: 24 },
-  modHint: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', lineHeight: 18, marginBottom: 16 },
+  modHint: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', lineHeight: 18, marginBottom: 12 },
+  modDisclaimerBox: { backgroundColor: '#F5F5F5', borderLeftWidth: 3, borderLeftColor: '#BDBDBD', padding: 12, marginBottom: 4 },
+  modDisclaimerLabel: { fontSize: 10, fontFamily: 'Inter-Regular', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
+  modDisclaimerText: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#444', lineHeight: 18 },
   modLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 4, marginTop: 12 },
   modInput: {
     borderWidth: 1,
