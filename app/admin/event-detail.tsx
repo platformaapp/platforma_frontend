@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -103,6 +104,12 @@ export default function AdminEventDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [modVisible, setModVisible] = useState(false);
+  const [modFields, setModFields] = useState({ coverUrl: '', title: '', description: '', comment: '' });
+  const [modSaving, setModSaving] = useState(false);
+  const [modError, setModError] = useState('');
+  const [modSuccess, setModSuccess] = useState(false);
+
   useEffect(() => {
     if (!id) return;
     let active = true;
@@ -165,6 +172,43 @@ export default function AdminEventDetailScreen() {
     load();
     return () => { active = false; };
   }, [id]);
+
+  const handleModerate = async () => {
+    setModSaving(true);
+    setModError('');
+    setModSuccess(false);
+    try {
+      const token = await getAdminToken();
+      if (!token) { router.replace('/admin/login'); return; }
+
+      const body: Record<string, string> = {};
+      if (modFields.coverUrl.trim()) body.coverUrl = modFields.coverUrl.trim();
+      if (modFields.title.trim()) body.title = modFields.title.trim();
+      if (modFields.description.trim()) body.description = modFields.description.trim();
+      if (modFields.comment.trim()) body.comment = modFields.comment.trim();
+
+      const res = await fetch(`${endpoints.adminEventsAdmin}/${id}/moderate`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 401 || res.status === 403) {
+        await clearAdminToken();
+        router.replace('/admin/login');
+        return;
+      }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.message ?? `Ошибка ${res.status}`);
+      }
+      setModSuccess(true);
+      setModFields({ coverUrl: '', title: '', description: '', comment: '' });
+    } catch (e) {
+      setModError((e as Error)?.message ?? 'Не удалось отправить правки');
+    } finally {
+      setModSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -309,6 +353,84 @@ export default function AdminEventDetailScreen() {
           <Row label="Создано" value={fmtDate(event.createdAt)} />
           <Row label="Обновлено" value={fmtDate(event.updatedAt)} />
         </Section>
+
+        {/* Moderation */}
+        <View style={styles.modSection}>
+          <Pressable
+            style={styles.modToggle}
+            onPress={() => { setModVisible(v => !v); setModError(''); setModSuccess(false); }}
+          >
+            <Text style={styles.modToggleText}>
+              {modVisible ? '▲ Скрыть форму правок' : '✏️ Предложить правки наставнику'}
+            </Text>
+          </Pressable>
+
+          {modVisible && (
+            <View style={styles.modForm}>
+              <Text style={styles.modHint}>
+                Заполните только те поля, которые нужно изменить. Наставнику придёт письмо с правками и контактом @vladislav_yakunin.
+              </Text>
+
+              <Text style={styles.modLabel}>Обложка (URL)</Text>
+              <TextInput
+                style={styles.modInput}
+                value={modFields.coverUrl}
+                onChangeText={v => setModFields(f => ({ ...f, coverUrl: v }))}
+                placeholder="https://..."
+                placeholderTextColor="#9B9B9B"
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+
+              <Text style={styles.modLabel}>Название</Text>
+              <TextInput
+                style={styles.modInput}
+                value={modFields.title}
+                onChangeText={v => setModFields(f => ({ ...f, title: v }))}
+                placeholder="Новое название события"
+                placeholderTextColor="#9B9B9B"
+              />
+
+              <Text style={styles.modLabel}>Описание</Text>
+              <TextInput
+                style={[styles.modInput, styles.modInputMultiline]}
+                value={modFields.description}
+                onChangeText={v => setModFields(f => ({ ...f, description: v }))}
+                placeholder="Новое описание"
+                placeholderTextColor="#9B9B9B"
+                multiline
+                numberOfLines={4}
+              />
+
+              <Text style={styles.modLabel}>Комментарий для наставника</Text>
+              <TextInput
+                style={[styles.modInput, styles.modInputMultiline]}
+                value={modFields.comment}
+                onChangeText={v => setModFields(f => ({ ...f, comment: v }))}
+                placeholder="Пояснение: что и почему нужно изменить"
+                placeholderTextColor="#9B9B9B"
+                multiline
+                numberOfLines={3}
+              />
+
+              {modError ? <Text style={styles.modError}>{modError}</Text> : null}
+              {modSuccess ? (
+                <Text style={styles.modSuccessText}>Правки отправлены. Наставник получит письмо.</Text>
+              ) : null}
+
+              <Pressable
+                style={[styles.modSubmitBtn, modSaving && styles.modSubmitBtnDisabled]}
+                onPress={handleModerate}
+                disabled={modSaving}
+              >
+                {modSaving
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.modSubmitText}>Отправить правки</Text>
+                }
+              </Pressable>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -355,4 +477,27 @@ const styles = StyleSheet.create({
   mentorName: { fontSize: 14, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818' },
   mentorEmail: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 1 },
   mentorLink: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#555', marginTop: 3 },
+
+  modSection: { borderTopWidth: 1, borderColor: '#E5E5E5', marginTop: 8 },
+  modToggle: { paddingHorizontal: 16, paddingVertical: 14 },
+  modToggleText: { fontSize: 14, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818' },
+  modForm: { paddingHorizontal: 16, paddingBottom: 24 },
+  modHint: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', lineHeight: 18, marginBottom: 16 },
+  modLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 4, marginTop: 12 },
+  modInput: {
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    backgroundColor: '#FAFAFA',
+  },
+  modInputMultiline: { minHeight: 88, textAlignVertical: 'top' },
+  modError: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 12 },
+  modSuccessText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#155724', backgroundColor: '#D4EDDA', padding: 10, marginTop: 12 },
+  modSubmitBtn: { marginTop: 16, backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },
+  modSubmitBtnDisabled: { opacity: 0.6 },
+  modSubmitText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#FAFAFA', fontWeight: '600' },
 });
