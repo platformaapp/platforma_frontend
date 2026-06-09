@@ -56,6 +56,7 @@ export default function EditEventScreen() {
   const insets = useSafeAreaInsets();
 
   const [loadingEvent, setLoadingEvent] = useState(true);
+  const [moderationComment, setModerationComment] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date | null>(null);
@@ -112,6 +113,8 @@ export default function EditEventScreen() {
         }
         const cover = event.coverUrl ?? event.cover_url ?? null;
         if (cover) setExistingCoverUrl(cover);
+        const modComment = event.admin_moderation_comment ?? event.adminModerationComment ?? null;
+        setModerationComment(typeof modComment === 'string' && modComment.trim() ? modComment.trim() : null);
         const dtStart = event.datetime_start ?? event.datetimeStart;
         if (dtStart) {
           const d = new Date(dtStart);
@@ -257,6 +260,15 @@ export default function EditEventScreen() {
         </View>
 
         <Text style={styles.title}>РЕДАКТИРОВАТЬ СОБЫТИЕ</Text>
+
+        {moderationComment && (
+          <View style={styles.moderationBanner}>
+            <Text style={styles.moderationBannerText}>{moderationComment}</Text>
+            <Pressable style={styles.moderationBannerClose} onPress={() => setModerationComment(null)}>
+              <Text style={styles.moderationBannerCloseText}>✕</Text>
+            </Pressable>
+          </View>
+        )}
 
         {hasPaidRegistrations && (
           <View style={styles.lockedBanner}>
@@ -543,6 +555,26 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: '#856404',
   },
+  moderationBanner: {
+    backgroundColor: '#EAF4FF',
+    borderWidth: 1,
+    borderColor: '#1A6FA8',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  moderationBannerText: {
+    flex: 1,
+    fontFamily: 'Inter-Regular',
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#1A4A72',
+  },
+  moderationBannerClose: { paddingTop: 2, paddingLeft: 4 },
+  moderationBannerCloseText: { fontSize: 16, color: '#1A6FA8', lineHeight: 20 },
   inputDisabled: {
     backgroundColor: '#F5F5F5',
     borderColor: '#CCCCCC',

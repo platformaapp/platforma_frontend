@@ -1,8 +1,11 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +17,33 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+
+async function uploadAdminCoverImage(uri: string): Promise<string> {
+  const token = await getAdminToken();
+  if (!token) throw new Error('Требуется авторизация');
+  const formData = new FormData();
+  const filename = `cover_${Date.now()}.jpg`;
+  if (Platform.OS === 'web') {
+    const resp = await fetch(uri);
+    const blob = await resp.blob();
+    formData.append('file', blob, filename);
+  } else {
+    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+  }
+  const res = await fetch(endpoints.uploadImage, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.message ?? `Ошибка загрузки обложки (${res.status})`);
+  }
+  const data = await res.json();
+  if (!data?.url) throw new Error('Сервер не вернул URL изображения');
+  const url = data.url as string;
+  return url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 
 type EventDetail = {
   id: string;
@@ -109,7 +139,9 @@ export default function AdminEventDetailScreen() {
   const [error, setError] = useState('');
 
   const [modVisible, setModVisible] = useState(false);
-  const [modFields, setModFields] = useState({ coverUrl: '', title: '', description: '', comment: '' });
+  const [modFields, setModFields] = useState({ title: '', description: '', comment: '' });
+  const [modCoverUri, setModCoverUri] = useState<string | null>(null);
+  const [modCoverUploading, setModCoverUploading] = useState(false);
   const [modSaving, setModSaving] = useState(false);
   const [modError, setModError] = useState('');
   const [modSuccess, setModSuccess] = useState(false);
@@ -177,6 +209,38 @@ export default function AdminEventDetailScreen() {
     return () => { active = false; };
   }, [id]);
 
+  const pickModCover = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+        try {
+          const resp = await fetch(uri);
+          const blob = await resp.blob();
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          setModCoverUri(dataUri);
+        } catch { setModCoverUri(uri); }
+      } else {
+        setModCoverUri(uri);
+      }
+    }
+  };
+
   const handleModerate = async () => {
     setModSaving(true);
     setModError('');
@@ -186,7 +250,20 @@ export default function AdminEventDetailScreen() {
       if (!token) { router.replace('/admin/login'); return; }
 
       const body: Record<string, string> = {};
-      if (modFields.coverUrl.trim()) body.coverUrl = modFields.coverUrl.trim();
+
+      if (modCoverUri) {
+        setModCoverUploading(true);
+        try {
+          body.coverUrl = await uploadAdminCoverImage(modCoverUri);
+        } catch (e) {
+          setModError((e as Error)?.message ?? 'Не удалось загрузить обложку');
+          setModCoverUploading(false);
+          setModSaving(false);
+          return;
+        }
+        setModCoverUploading(false);
+      }
+
       if (modFields.title.trim()) body.title = modFields.title.trim();
       if (modFields.description.trim()) body.description = modFields.description.trim();
       const adminComment = modFields.comment.trim();
@@ -209,7 +286,8 @@ export default function AdminEventDetailScreen() {
         throw new Error(d?.message ?? `Ошибка ${res.status}`);
       }
       setModSuccess(true);
-      setModFields({ coverUrl: '', title: '', description: '', comment: '' });
+      setModCoverUri(null);
+      setModFields({ title: '', description: '', comment: '' });
     } catch (e) {
       setModError((e as Error)?.message ?? 'Не удалось отправить правки');
     } finally {
@@ -383,16 +461,19 @@ export default function AdminEventDetailScreen() {
                 <Text style={styles.modDisclaimerText}>{MOD_DISCLAIMER}</Text>
               </View>
 
-              <Text style={styles.modLabel}>Обложка (URL)</Text>
-              <TextInput
-                style={styles.modInput}
-                value={modFields.coverUrl}
-                onChangeText={v => setModFields(f => ({ ...f, coverUrl: v }))}
-                placeholder="https://..."
-                placeholderTextColor="#9B9B9B"
-                autoCapitalize="none"
-                keyboardType="url"
-              />
+              <Text style={styles.modLabel}>Обложка</Text>
+              <Pressable style={styles.modCoverBtn} onPress={pickModCover}>
+                {modCoverUri ? (
+                  <Image source={{ uri: modCoverUri }} style={styles.modCoverPreview} resizeMode="cover" />
+                ) : (
+                  <Text style={styles.modCoverBtnText}>Выбрать изображение</Text>
+                )}
+              </Pressable>
+              {modCoverUri ? (
+                <Pressable onPress={() => setModCoverUri(null)}>
+                  <Text style={styles.modCoverRemove}>Удалить выбранное фото</Text>
+                </Pressable>
+              ) : null}
 
               <Text style={styles.modLabel}>Название</Text>
               <TextInput
@@ -431,11 +512,13 @@ export default function AdminEventDetailScreen() {
               ) : null}
 
               <Pressable
-                style={[styles.modSubmitBtn, modSaving && styles.modSubmitBtnDisabled]}
+                style={[styles.modSubmitBtn, (modSaving || modCoverUploading) && styles.modSubmitBtnDisabled]}
                 onPress={handleModerate}
-                disabled={modSaving}
+                disabled={modSaving || modCoverUploading}
               >
-                {modSaving
+                {modCoverUploading
+                  ? <><ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} /><Text style={styles.modSubmitText}>Загрузка обложки...</Text></>
+                  : modSaving
                   ? <ActivityIndicator size="small" color="#fff" />
                   : <Text style={styles.modSubmitText}>Отправить правки</Text>
                 }
@@ -510,6 +593,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   modInputMultiline: { minHeight: 88, textAlignVertical: 'top' },
+  modCoverBtn: {
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    backgroundColor: '#FAFAFA',
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  modCoverPreview: { width: '100%', height: 80 },
+  modCoverBtnText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  modCoverRemove: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 4 },
   modError: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 12 },
   modSuccessText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#155724', backgroundColor: '#D4EDDA', padding: 10, marginTop: 12 },
   modSubmitBtn: { marginTop: 16, backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },

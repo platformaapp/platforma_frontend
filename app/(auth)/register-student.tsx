@@ -168,13 +168,21 @@ export default function RegisterStudentScreen() {
           }
         }
 
+        // 400: validation / business rule error — show inline under email field
+        if (res.status === 400) {
+          const errorMsg = data?.message || data?.error || 'Ошибка регистрации';
+          setErrors(prev => ({ ...prev, email: errorMsg }));
+          setIsSubmitting(false);
+          return;
+        }
+
         // Для других ошибок показываем общее сообщение
         const errorMessage = data?.message || data?.error || `Ошибка регистрации (${res.status})`;
         Alert.alert('Ошибка', errorMessage);
         setIsSubmitting(false);
         return;
       }
-      
+
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
       const user = extractUserFromResponse(data);

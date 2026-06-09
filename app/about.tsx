@@ -10,7 +10,7 @@ export default function AboutScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+        <Pressable style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any)}>
           <Text style={styles.backText}>← Назад</Text>
         </Pressable>
       </View>
