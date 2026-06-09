@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
@@ -36,6 +37,13 @@ export default function IntroScreen() {
       }
     }
 
+    // Vibrate once per line as it fades in
+    const hapticTimers = LINES.map((_, i) =>
+      setTimeout(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }, i * STAGGER_MS)
+    );
+
     Animated.sequence([
       // Lines appear one by one
       Animated.stagger(
@@ -67,6 +75,8 @@ export default function IntroScreen() {
     ]).start(() => {
       router.replace('/(tabs)/events');
     });
+
+    return () => { hapticTimers.forEach(clearTimeout); };
   }, []);
 
   return (
