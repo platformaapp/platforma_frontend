@@ -267,9 +267,9 @@ export default function AdminEventDetailScreen() {
       if (modFields.title.trim()) body.title = modFields.title.trim();
       if (modFields.description.trim()) body.description = modFields.description.trim();
       const adminComment = modFields.comment.trim();
-      body.comment = adminComment
-        ? `${MOD_DISCLAIMER}\n\n${adminComment}`
-        : MOD_DISCLAIMER;
+      if (adminComment) {
+        body.comment = `${adminComment}\n\n${MOD_DISCLAIMER}`;
+      }
 
       const res = await fetch(`${endpoints.adminEventsAdmin}/${id}/moderate`, {
         method: 'PATCH',
@@ -453,11 +453,11 @@ export default function AdminEventDetailScreen() {
           {modVisible && (
             <View style={styles.modForm}>
               <Text style={styles.modHint}>
-                Заполните только те поля, которые нужно изменить. Наставнику придёт письмо со следующим дисклеймером и вашим комментарием.
+                Заполните только те поля, которые нужно изменить.
               </Text>
 
               <View style={styles.modDisclaimerBox}>
-                <Text style={styles.modDisclaimerLabel}>Дисклеймер (отправляется всегда)</Text>
+                <Text style={styles.modDisclaimerLabel}>Добавляется к комментарию</Text>
                 <Text style={styles.modDisclaimerText}>{MOD_DISCLAIMER}</Text>
               </View>
 
@@ -495,7 +495,7 @@ export default function AdminEventDetailScreen() {
                 numberOfLines={4}
               />
 
-              <Text style={styles.modLabel}>Комментарий для наставника</Text>
+              <Text style={styles.modLabel}>Комментарий от команды</Text>
               <TextInput
                 style={[styles.modInput, styles.modInputMultiline]}
                 value={modFields.comment}
@@ -508,7 +508,7 @@ export default function AdminEventDetailScreen() {
 
               {modError ? <Text style={styles.modError}>{modError}</Text> : null}
               {modSuccess ? (
-                <Text style={styles.modSuccessText}>Правки отправлены. Наставник получит письмо.</Text>
+                <Text style={styles.modSuccessText}>Правки отправлены.</Text>
               ) : null}
 
               <Pressable
