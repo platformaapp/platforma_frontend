@@ -32,6 +32,7 @@ export default function RegisterStudentScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarFileSize, setAvatarFileSize] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     fullName?: string;
     email?: string;
@@ -199,7 +200,7 @@ export default function RegisterStudentScreen() {
             uploadedAvatarUrl = await uploadEventImage(avatarUri);
             await updateStudentProfile({ avatarUrl: uploadedAvatarUrl });
           } catch (uploadErr: any) {
-            Alert.alert('Ошибка загрузки фото', uploadErr?.message ?? 'Не удалось загрузить фото. Добавьте его позже в профиле.');
+            setAvatarUploadError(uploadErr?.message ?? 'Не удалось загрузить фото. Добавьте его позже в профиле.');
           }
         }
 
@@ -322,10 +323,13 @@ export default function RegisterStudentScreen() {
           <ThemedText style={{ textAlign: 'center' }}>Загрузить фото</ThemedText>
         )}
       </Pressable>
+      {avatarUploadError ? (
+        <ThemedText style={styles.errorText}>{avatarUploadError}</ThemedText>
+      ) : null}
 
       <View>
-        <PasswordInput 
-          placeholder="Пароль" 
+        <PasswordInput
+          placeholder="Пароль"
           value={password} 
           onChangeText={(text: string) => {
             setPassword(text);

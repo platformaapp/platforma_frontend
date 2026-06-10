@@ -191,7 +191,6 @@ export default function EditEventScreen() {
         patch.coverUrl = await uploadEventImage(coverUri);
       } catch (uploadErr: any) {
         setStatusMessage(uploadErr?.message ?? 'Не удалось загрузить обложку');
-        Alert.alert('Ошибка', uploadErr?.message ?? 'Не удалось загрузить обложку');
         setIsSubmitting(false);
         return;
       }
