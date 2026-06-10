@@ -83,7 +83,7 @@ export default function PaymentMethodsCallbackScreen() {
 
         if (statusStr === 'active') {
           setStatus('success');
-          setMessage('Карта успешно привязана!');
+          setMessage('Карта привязана. А теперь время приключений');
           goPayments(1500);
           return;
         }

@@ -993,11 +993,7 @@ export default function EventDetailScreen() {
               <Text style={styles.modalPayButtonText}>{isPaying ? 'Оплата...' : 'Оплатить'}</Text>
             </Pressable>
             <Text style={styles.legalText}>
-              {'Нажимая «Оплатить», вы принимаете '}
-              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(OFERTA_URL)}>оферту</Text>
-              {', '}
-              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(CONF_URL)}>политику конфиденциальности</Text>
-              {' и условия сервиса'}
+              {'Нажимая кнопку «Далее», вы принимаете пользовательское, лицензионное и другие важные нам для работы соглашения.'}
             </Text>
           </Pressable>
         </Pressable>
@@ -1113,7 +1109,7 @@ export default function EventDetailScreen() {
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.paymentFailedTitle}>ОПЛАТА НЕ ПРОШЛА</Text>
             <Text style={styles.paymentFailedMessage}>
-              Повторите попытку или попробуйте привязать другую карту
+              Повторите попытку или попробуйте заплатить с другой карты.
             </Text>
             <Pressable
               style={styles.modalPayButton}

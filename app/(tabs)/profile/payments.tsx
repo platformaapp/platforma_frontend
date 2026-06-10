@@ -303,12 +303,11 @@ export default function PaymentsScreen() {
                 <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
               </View>
             </Pressable>
+            <Text style={styles.verificationNote}>
+              С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
+            </Text>
             <Text style={styles.legalText}>
-              {'Нажимая «Привязать карту», вы принимаете '}
-              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(OFERTA_URL)}>оферту</Text>
-              {', '}
-              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(CONF_URL)}>политику конфиденциальности</Text>
-              {' и условия сервиса'}
+              {'Нажимая кнопку «Далее», вы принимаете пользовательское, лицензионное и другие важные нам для работы соглашения.'}
             </Text>
           </>
         ) : (
@@ -637,6 +636,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#FFFFFF',
   },
-  legalText: { marginTop: 8, marginHorizontal: 16, fontSize: 11, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
+  legalText: { marginTop: 4, marginHorizontal: 16, fontSize: 11, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
+  verificationNote: { marginTop: 8, marginHorizontal: 16, fontSize: 12, lineHeight: 17, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
   legalLink: { color: '#181818', textDecorationLine: 'underline' },
 });

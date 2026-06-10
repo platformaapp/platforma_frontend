@@ -479,9 +479,7 @@ export default function TutorCardScreen() {
               </View>
             </View>
             <Text style={styles.legalText}>
-              {'Нажимая «Оплатить», вы принимаете '}
-              <Text style={styles.legalLink} onPress={() => WebBrowser.openBrowserAsync(OFERTA_URL)}>оферту</Text>
-              {' и условия сервиса'}
+              {'Нажимая кнопку «Далее», вы принимаете пользовательское, лицензионное и другие важные нам для работы соглашения.'}
             </Text>
             <Pressable
               style={[styles.sheetPrimaryButton, isBooking && styles.sheetPrimaryButtonDisabled]}
@@ -536,7 +534,7 @@ export default function TutorCardScreen() {
               </View>
             ) : (
               <View style={styles.bookingCard}>
-                <Text style={styles.payErrorText}>Повторите попытку или привяжите другую карту</Text>
+                <Text style={styles.payErrorText}>Повторите попытку или попробуйте заплатить с другой карты.</Text>
               </View>
             )}
             <Pressable

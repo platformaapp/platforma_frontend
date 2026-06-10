@@ -115,7 +115,7 @@ export default function RegistrationCompleteScreen() {
             </ThemedText>
 
             <ThemedText style={styles.description}>
-              Привяжите карту, чтобы ни в чём себе{"\n"}не отказывать
+              Привяжите карту, чтобы ни в чем себе{"\n"}не отказывать
             </ThemedText>
           </View>
 

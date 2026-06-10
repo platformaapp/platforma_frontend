@@ -66,7 +66,7 @@ function statusLabel(status: string): string {
 
 const BALANCE_TOOLTIP = 'Не забудьте оплатить налоги и жить счастливо, счатливо';
 const WITHDRAWAL_TOOLTIP =
-  'Деньги на ваш счет придут в течение 3 рабочих дней, а может быть и раньше';
+  'Мы отправили вам деньги на карту. Они придут в течении 3 рабочих дней, а может быть и раньше.';
 
 export default function TutorPaymentsScreen() {
   const router = useRouter();
@@ -439,10 +439,7 @@ export default function TutorPaymentsScreen() {
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>ЗАПРОС ОТПРАВЛЕН!</Text>
             <Text style={styles.moneySentMessage}>
-              Запрос на выплату {formatAmount(balance)} отправлен.
-            </Text>
-            <Text style={styles.moneySentSubtext}>
-              Выплата поступит в течение 3 рабочих дней.
+              Мы отправили вам на карту {formatAmount(balance)}. Они придут в течении 3 рабочих дней, а может быть и раньше.
             </Text>
             <Pressable
               style={styles.modalPayButton}
@@ -467,7 +464,7 @@ export default function TutorPaymentsScreen() {
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.paymentFailedTitle}>ОПЛАТА НЕ ПРОШЛА</Text>
             <Text style={styles.paymentFailedMessage}>
-              Повторите попытку или попробуйте привязать другую карту
+              Повторите попытку или попробуйте заплатить с другой карты.
             </Text>
             <Pressable
               style={styles.modalPayButton}
@@ -522,6 +519,9 @@ export default function TutorPaymentsScreen() {
 
             <Text style={styles.vpnWarning}>
               Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.
+            </Text>
+            <Text style={styles.verificationNote}>
+              С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
             </Text>
 
             {bindError ? (
@@ -958,6 +958,13 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontFamily: 'Inter-Regular',
     color: '#9B9B9B',
+    marginBottom: 8,
+  },
+  verificationNote: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
     marginBottom: 12,
   },
   bindErrorText: {
