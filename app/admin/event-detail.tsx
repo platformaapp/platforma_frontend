@@ -125,6 +125,10 @@ const TYPE_LABELS: Record<string, string> = {
   workshop: 'Воркшоп',
 };
 
+const TEAM_COMMENT =
+  'Комментарий от команды: Мы немного подправили ваше событие, чтобы оно лучше соответствовало общей стилистике платформы и помогло вам привлечь больше пользователей.\n\n' +
+  'Если вы не согласны с нашим предложением, то вот контакт для связи в тг @vladislav_yakunin. Давайте вместе доработаем событие, чтобы и вам, и нам было хорошо и приятно.';
+
 export default function AdminEventDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -263,9 +267,9 @@ export default function AdminEventDetailScreen() {
       if (modFields.title.trim()) body.title = modFields.title.trim();
       if (modFields.description.trim()) body.description = modFields.description.trim();
       const adminComment = modFields.comment.trim();
-      if (adminComment) {
-        body.comment = adminComment;
-      }
+      body.comment = adminComment
+        ? `${TEAM_COMMENT}\n\n${adminComment}`
+        : TEAM_COMMENT;
 
       const res = await fetch(`${endpoints.adminEventsAdmin}/${id}/moderate`, {
         method: 'PATCH',
@@ -482,7 +486,12 @@ export default function AdminEventDetailScreen() {
                 numberOfLines={4}
               />
 
-              <Text style={styles.modLabel}>Комментарий от команды</Text>
+              <View style={styles.modTeamCommentBox}>
+                <Text style={styles.modTeamCommentLabel}>Комментарий от команды (отправляется всегда)</Text>
+                <Text style={styles.modTeamCommentText}>{TEAM_COMMENT}</Text>
+              </View>
+
+              <Text style={styles.modLabel}>Дополнительный комментарий (необязательно)</Text>
               <TextInput
                 style={[styles.modInput, styles.modInputMultiline]}
                 value={modFields.comment}
@@ -565,6 +574,9 @@ const styles = StyleSheet.create({
   modToggleText: { fontSize: 14, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818' },
   modForm: { paddingHorizontal: 16, paddingBottom: 24 },
   modLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 4, marginTop: 12 },
+  modTeamCommentBox: { backgroundColor: '#F5F5F5', borderLeftWidth: 3, borderLeftColor: '#BDBDBD', padding: 12, marginTop: 12 },
+  modTeamCommentLabel: { fontSize: 10, fontFamily: 'Inter-Regular', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
+  modTeamCommentText: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#444', lineHeight: 18 },
   modInput: {
     borderWidth: 1,
     borderColor: '#E5E5E5',
