@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
   Alert,
@@ -15,25 +15,22 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
+import { endpoints } from '@/constants/env';
+import {
+  deleteCurrentPaymentMethod,
+  getPaymentMethods,
+  type Card
+} from '@/lib/api/student-payments';
 import {
   getTutorPayments,
   getTutorPaymentsSummary,
-  getTutorPayoutsBalance,
   getTutorPayouts,
+  getTutorPayoutsBalance,
   type Payment,
   type PaymentsSummary,
-  type PayoutBalance,
   type Payout,
+  type PayoutBalance,
 } from '@/lib/api/tutor';
-import {
-  bindPaymentMethod,
-  deleteCurrentPaymentMethod,
-  getPaymentMethods,
-  PENDING_CARD_BINDING_INITIAL_COUNT_KEY,
-  PENDING_CARD_BINDING_PAYMENT_ID_KEY,
-  type Card,
-} from '@/lib/api/student-payments';
-import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import * as Linking from 'expo-linking';
 
@@ -538,9 +535,9 @@ export default function TutorPaymentsScreen() {
             <Text style={styles.vpnWarning}>
               Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.
             </Text>
-            <Text style={styles.verificationNote}>
+            {/* <Text style={styles.verificationNote}>
               С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
-            </Text>
+            </Text> */}
 
             {bindError ? (
               <Text style={styles.bindErrorText}>{bindError}</Text>

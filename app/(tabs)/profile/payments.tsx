@@ -1,9 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +18,7 @@ import {
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
 
+import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import {
   deleteCurrentPaymentMethod,
@@ -30,7 +30,6 @@ import {
   type Card,
   type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
-import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 
 function formatDate(iso: string): string {
@@ -305,12 +304,12 @@ export default function PaymentsScreen() {
                 <Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text>
               </View>
             </Pressable>
-            <Text style={styles.verificationNote}>
+            {/* <Text style={styles.verificationNote}>
               С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
             </Text>
             <Text style={styles.legalText}>
               {'Нажимая кнопку «Далее», вы принимаете пользовательское, лицензионное и другие важные нам для работы соглашения.'}
-            </Text>
+            </Text> */}
           </>
         ) : (
           <View style={styles.linkRowDisabled}>
