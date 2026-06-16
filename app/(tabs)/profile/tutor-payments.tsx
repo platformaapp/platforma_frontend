@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -70,6 +70,7 @@ const WITHDRAWAL_TOOLTIP =
 
 export default function TutorPaymentsScreen() {
   const router = useRouter();
+  const { refresh } = useLocalSearchParams<{ refresh?: string }>();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<PaymentsSummary | null>(null);
@@ -79,6 +80,7 @@ export default function TutorPaymentsScreen() {
   const [isWithdrawModalVisible, setWithdrawModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
+  const [isCardBoundSuccessVisible, setCardBoundSuccessVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
@@ -160,6 +162,16 @@ export default function TutorPaymentsScreen() {
       return () => { cancelled = true; };
     }, [loadCards])
   );
+
+  // Show popup + retry when returning from card-binding callback
+  useEffect(() => {
+    if (!refresh) return;
+    setCardBoundSuccessVisible(true);
+    loadCards();
+    const retryTimer = setTimeout(() => { loadCards(); }, 3000);
+    return () => clearTimeout(retryTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
 
   const handleWithdrawConfirm = async () => {
     setWithdrawModalVisible(false);
@@ -553,6 +565,25 @@ export default function TutorPaymentsScreen() {
               <Text style={styles.editModalBtnText}>
                 {isLinking ? 'Открытие...' : 'Привязать карту'}
               </Text>
+            </Pressable>
+            <Text style={styles.legalText}>
+              {'Нажимая «Привязать карту», вы принимаете оферту, политику конфиденциальности и условия сервиса'}
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isCardBoundSuccessVisible}
+        onRequestClose={() => setCardBoundSuccessVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setCardBoundSuccessVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>КАРТА ПРИВЯЗАНА</Text>
+            <Pressable style={styles.deleteModalKeepButton} onPress={() => setCardBoundSuccessVisible(false)}>
+              <Text style={styles.deleteModalKeepText}>Начнем</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -991,5 +1022,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#E02D2D',
     marginBottom: 10,
+  },
+  legalText: {
+    marginTop: 8,
+    fontSize: 11,
+    lineHeight: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#9B9B9B',
+    textAlign: 'center',
   },
 });

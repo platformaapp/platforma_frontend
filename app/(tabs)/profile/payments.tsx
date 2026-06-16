@@ -66,6 +66,7 @@ export default function PaymentsScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
+  const [isCardBoundSuccessVisible, setCardBoundSuccessVisible] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
@@ -85,10 +86,13 @@ export default function PaymentsScreen() {
 
   // Reload data when navigating back from card-binding callback
   useEffect(() => {
-    if (refresh) {
-      setLoading(true);
-      loadData();
-    }
+    if (!refresh) return;
+    setCardBoundSuccessVisible(true);
+    setLoading(true);
+    loadData();
+    // Retry after 3s — backend may take a moment to propagate the new card
+    const retryTimer = setTimeout(() => { loadData(); }, 3000);
+    return () => clearTimeout(retryTimer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh]);
 
@@ -309,7 +313,7 @@ export default function PaymentsScreen() {
               С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
             </Text>
             <Text style={styles.legalText}>
-              {'Нажимая кнопку «Далее», вы принимаете пользовательское, лицензионное и другие важные нам для работы соглашения.'}
+              {'Нажимая «Привязать карту», вы принимаете оферту, политику конфиденциальности и условия сервиса'}
             </Text>
           </>
         ) : (
@@ -397,6 +401,22 @@ export default function PaymentsScreen() {
             <Text style={styles.deleteModalTitle}>КАРТА УДАЛЕНА</Text>
             <Pressable style={styles.deleteModalKeepButton} onPress={() => setDeleteSuccessVisible(false)}>
               <Text style={styles.deleteModalKeepText}>Закрыть</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isCardBoundSuccessVisible}
+        onRequestClose={() => setCardBoundSuccessVisible(false)}
+      >
+        <Pressable style={styles.deleteModalOverlay} onPress={() => setCardBoundSuccessVisible(false)}>
+          <Pressable style={styles.deleteModalSheet} onPress={() => {}}>
+            <Text style={styles.deleteModalTitle}>КАРТА ПРИВЯЗАНА</Text>
+            <Pressable style={styles.deleteModalKeepButton} onPress={() => setCardBoundSuccessVisible(false)}>
+              <Text style={styles.deleteModalKeepText}>Начнем</Text>
             </Pressable>
           </Pressable>
         </Pressable>
