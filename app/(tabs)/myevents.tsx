@@ -856,7 +856,7 @@ export default function MyEventsScreen() {
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.cancelModalTitle}>{role === 'tutor' ? 'ВСТРЕЧА ОТМЕНЕНА' : 'ЗАПИСЬ ОТМЕНЕНА'}</Text>
             {(!cancelBookingTarget?.date || new Date(`${cancelBookingTarget.date}T${cancelBookingTarget.time ?? '23:59'}:00`).getTime() - Date.now() >= 24 * 60 * 60 * 1000) && (
-              <Text style={styles.cancelModalSubtext}>Деньги вернутся на карту в течении 3 рабочих дней</Text>
+              <Text style={styles.cancelModalSubtext}>Деньги вернутся на карту в течении 3 рабочих дней или даже быстрее</Text>
             )}
             <Pressable style={styles.cancelSuccessCloseButton} onPress={() => { setCancelBookingSuccessVisible(false); setCancelBookingTarget(null); }}>
               <Text style={styles.cancelSuccessCloseText}>Закрыть</Text>

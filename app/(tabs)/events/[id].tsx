@@ -1023,13 +1023,13 @@ export default function EventDetailScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>
-              {isDonePaymentPending ? 'Оплата в обработке' : 'Оплата прошла'}
+              {isDonePaymentPending ? 'Оплата в обработке' : 'ОПЛАТА ПРОШЛА'}
             </Text>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>
                 {isDonePaymentPending
                   ? 'Вы успешно зарегистрированы.\n\nОплата обрабатывается — это может занять несколько минут. Вы получите уведомление, когда платёж будет подтверждён.'
-                  : 'Чек отправлен вам на почту.\n\nВозврат возможен не позднее, чем за 24 часа до начала'}
+                  : 'Чек отправили вам на почту.'}
               </Text>
             </View>
             <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>

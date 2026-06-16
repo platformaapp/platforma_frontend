@@ -78,6 +78,7 @@ export default function TutorPaymentsScreen() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [isWithdrawModalVisible, setWithdrawModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [isDeleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalVisible, setEditModalVisible] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
@@ -202,6 +203,7 @@ export default function TutorPaymentsScreen() {
     try {
       await deleteCurrentPaymentMethod();
       setDeleteModalVisible(false);
+      setDeleteSuccessVisible(true);
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Не удалось удалить карту');
     } finally {
@@ -500,6 +502,22 @@ export default function TutorPaymentsScreen() {
               disabled={isDeleting}
             >
               <Text style={styles.deleteModalDeleteText}>{isDeleting ? '…' : 'Удалить'}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isDeleteSuccessVisible}
+        onRequestClose={() => setDeleteSuccessVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setDeleteSuccessVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <Text style={styles.modalTitle}>КАРТА УДАЛЕНА</Text>
+            <Pressable style={styles.deleteModalKeepButton} onPress={() => setDeleteSuccessVisible(false)}>
+              <Text style={styles.deleteModalKeepText}>Закрыть</Text>
             </Pressable>
           </Pressable>
         </Pressable>

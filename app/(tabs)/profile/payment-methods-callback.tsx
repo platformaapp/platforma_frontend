@@ -83,8 +83,7 @@ export default function PaymentMethodsCallbackScreen() {
 
         if (statusStr === 'active') {
           setStatus('success');
-          setMessage('Карта привязана. А теперь время приключений');
-          goPayments(1500);
+          setMessage('А теперь время приключений');
           return;
         }
 
@@ -133,7 +132,13 @@ export default function PaymentMethodsCallbackScreen() {
       )}
 
       {status === 'success' && (
-        <Text style={styles.text}>{message}</Text>
+        <>
+          <Text style={styles.successTitle}>КАРТА ПРИВЯЗАНА</Text>
+          <Text style={styles.text}>{message}</Text>
+          <Pressable style={styles.button} onPress={handleGoToPayments}>
+            <Text style={styles.buttonText}>Начнем</Text>
+          </Pressable>
+        </>
       )}
 
       {status === 'error' && (
@@ -163,6 +168,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 28,
+    fontFamily: 'Inter-Regular',
+    fontWeight: '700',
+    color: '#181818',
+    textAlign: 'center',
+    letterSpacing: -1,
+    lineHeight: 36,
+    marginBottom: 12,
   },
   button: {
     marginTop: 12,

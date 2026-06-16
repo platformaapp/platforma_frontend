@@ -65,6 +65,7 @@ export default function PaymentsScreen() {
   const [history, setHistory] = useState<PaymentHistoryItem[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [isDeleteSuccessVisible, setDeleteSuccessVisible] = useState(false);
   const [cardToDelete, setCardToDelete] = useState<Card | null>(null);
   const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
 
@@ -225,6 +226,7 @@ export default function PaymentsScreen() {
       }
       setDeleteModalVisible(false);
       setCardToDelete(null);
+      setDeleteSuccessVisible(true);
     } catch (e: unknown) {
       if (e instanceof AuthError || (e as { name?: string })?.name === 'AuthError') {
         router.replace('/login');
@@ -379,6 +381,22 @@ export default function PaymentsScreen() {
               disabled={!!deletingId}
             >
               <Text style={styles.deleteModalDeleteText}>{deletingId ? '…' : 'Удалить'}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        transparent
+        animationType="none"
+        visible={isDeleteSuccessVisible}
+        onRequestClose={() => setDeleteSuccessVisible(false)}
+      >
+        <Pressable style={styles.deleteModalOverlay} onPress={() => setDeleteSuccessVisible(false)}>
+          <Pressable style={styles.deleteModalSheet} onPress={() => {}}>
+            <Text style={styles.deleteModalTitle}>КАРТА УДАЛЕНА</Text>
+            <Pressable style={styles.deleteModalKeepButton} onPress={() => setDeleteSuccessVisible(false)}>
+              <Text style={styles.deleteModalKeepText}>Закрыть</Text>
             </Pressable>
           </Pressable>
         </Pressable>
