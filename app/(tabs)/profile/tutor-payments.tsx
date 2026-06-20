@@ -547,9 +547,9 @@ export default function TutorPaymentsScreen() {
             <Text style={styles.vpnWarning}>
               Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.
             </Text>
-            {/* <Text style={styles.verificationNote}>
+            <Text style={styles.verificationNote}>
               С карты спишется проверочный платеж 1 ₽.
-            </Text> */}
+            </Text>
 
             {bindError ? (
               <Text style={styles.bindErrorText}>{bindError}</Text>
