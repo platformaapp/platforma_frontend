@@ -309,7 +309,7 @@ export default function PaymentsScreen() {
               </View>
             </Pressable>
             <Text style={styles.verificationNote}>
-              С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
+              С карты спишется проверочный платеж 1 ₽.
             </Text>
             <Text style={styles.legalText}>
               {'Нажимая «Привязать карту», вы принимаете оферту, политику конфиденциальности и условия сервиса'}
