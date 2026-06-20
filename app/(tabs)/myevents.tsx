@@ -247,15 +247,44 @@ export default function MyEventsScreen() {
         authedFetch(endpoints.tutorBookings),
       ]);
 
-      if (eventsRes.status === 'fulfilled') {
-        setEvents(eventsRes.value);
-      } else {
-        setEvents([]);
-      }
-
       const mergedBookings: BookingItem[] = [];
       const seenIds = new Set<string>();
       const bookingErrors: string[] = [];
+
+      if (eventsRes.status === 'fulfilled') {
+        // Separate standalone events from session_based meetings
+        const allItems = eventsRes.value;
+        setEvents(allItems.filter((e) => e.type !== 'session_based'));
+
+        // Convert session_based items to BookingItem so they appear in ЛИЧНЫЕ ВСТРЕЧИ
+        const sessionRole = (userRole === 'tutor' ? 'tutor' : 'student') as 'student' | 'tutor';
+        for (const e of allItems.filter((it) => it.type === 'session_based')) {
+          const id = String(e.id ?? '');
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          const ta = e.teacher as Record<string, unknown> | null | undefined;
+          const rawAv = ta?.avatarUrl ?? ta?.avatar_url ?? ta?.avatar ?? ta?.photo ?? ta?.photoUrl ?? ta?.photo_url;
+          const avatarUrl = rawAv && typeof rawAv === 'string' && !rawAv.startsWith('blob:')
+            ? (rawAv.startsWith('http') ? rawAv : `${API_BASE}${rawAv.startsWith('/') ? '' : '/'}${rawAv}`)
+            : undefined;
+          mergedBookings.push({
+            id,
+            date: e.start_at?.split('T')[0],
+            time: e.start_at?.split('T')[1]?.slice(0, 5),
+            scheduled_at: e.start_at,
+            status: e.status,
+            price: e.price,
+            tutor: ta ? {
+              id: String(ta.id ?? ''),
+              name: (ta.name ?? ta.fullName ?? ta.full_name ?? '') as string,
+              avatarUrl,
+            } : undefined,
+            _viewerRole: sessionRole,
+          } as BookingItem);
+        }
+      } else {
+        setEvents([]);
+      }
 
       const addBookings = async (res: PromiseSettledResult<Response>, viewerRole: 'student' | 'tutor') => {
         if (res.status !== 'fulfilled') {
@@ -284,6 +313,15 @@ export default function MyEventsScreen() {
             ...b,
             _viewerRole: viewerRole,
             videoUrl: b.videoUrl ?? b.video_url ?? b.meetingUrl ?? b.meeting_url ?? undefined,
+            price: typeof b.price === 'number' ? b.price
+              : typeof b.cost === 'number' ? b.cost
+              : typeof b.amount === 'number' ? b.amount
+              : typeof b.fee === 'number' ? b.fee
+              : typeof b.session_price === 'number' ? b.session_price
+              : typeof b.sessionPrice === 'number' ? b.sessionPrice
+              : typeof b.slot_price === 'number' ? b.slot_price
+              : typeof b.slotPrice === 'number' ? b.slotPrice
+              : undefined,
           } as BookingItem);
         }
       };
