@@ -54,6 +54,7 @@ type BookingItem = {
   status?: string;
   createdAt?: string;
   videoUrl?: string;
+  price?: number;
   _viewerRole?: 'student' | 'tutor'; // role of the current user in this booking
 };
 
@@ -62,6 +63,12 @@ type Tab = 'events' | 'meetings';
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const MONTHS_GEN = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+
+function formatPrice(price?: number): string | null {
+  if (price == null) return null;
+  if (price === 0) return 'Бесплатно';
+  return `${price.toLocaleString('ru-RU')} ₽`;
+}
 
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
@@ -410,6 +417,7 @@ export default function MyEventsScreen() {
           <View style={styles.cardTitleBox}>
             <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
             {(item.status || item.paymentStatus) ? <Text style={styles.eventStatus}>{translateEventStatus(item.status, item.paymentStatus)}</Text> : null}
+            {formatPrice(item.price) ? <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text> : null}
             {role === 'tutor' && typeof item.registeredCount === 'number' ? (
               <Text style={styles.participantCount}>Записалось: {item.registeredCount} чел.</Text>
             ) : null}
@@ -485,6 +493,7 @@ export default function MyEventsScreen() {
           <View style={styles.cardTitleBox}>
             <Text style={styles.cardTitle}>Личная встреча</Text>
             {item.status ? <Text style={styles.bookingStatus}>{translateStatus(item.status)}</Text> : null}
+            {formatPrice(item.price) ? <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text> : null}
           </View>
         </Pressable>
         <View style={styles.cardBottom}>
@@ -888,6 +897,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
   eventStatus: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
   bookingStatus: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  cardPrice: { marginTop: 4, fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
   cardBottom: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
   cardAuthor: { flex: 1, paddingHorizontal: 12, fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
   cardDate: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818', paddingRight: 4 },
