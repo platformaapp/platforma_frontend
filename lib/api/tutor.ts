@@ -136,7 +136,9 @@ export interface PaymentsSummary {
 }
 
 export interface PayoutBalance {
-  balance: number;
+  earned: number;
+  pendingPayout: number;
+  available: number;
   currency?: string;
 }
 
@@ -333,7 +335,15 @@ export async function getTutorPayoutsBalance(): Promise<PayoutBalance> {
   const res = await fetch(endpoints.tutorPayoutsBalance, {
     headers: await authHeaders(),
   });
-  return handleResponse<PayoutBalance>(res);
+  const body = await handleResponse<{ success?: boolean; data?: PayoutBalance } & PayoutBalance>(res);
+  // Unwrap { success, data: { earned, pendingPayout, available } } envelope
+  const d = body?.data ?? body;
+  return {
+    earned: d?.earned ?? 0,
+    pendingPayout: d?.pendingPayout ?? 0,
+    available: d?.available ?? 0,
+    currency: d?.currency,
+  };
 }
 
 /** GET /tutor/payouts — история выплат (статус обновляется асинхронно через вебхук) */

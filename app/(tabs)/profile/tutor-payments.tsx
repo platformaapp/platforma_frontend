@@ -296,7 +296,7 @@ export default function TutorPaymentsScreen() {
     );
   }
 
-  const balance = payoutBalance?.balance ?? summary?.balance ?? summary?.total_income ?? 0;
+  const balance = payoutBalance?.available ?? (summary as any)?.balance ?? (summary as any)?.total_income ?? 0;
 
   return (
     <View style={styles.container}>
