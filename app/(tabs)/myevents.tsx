@@ -284,6 +284,15 @@ export default function MyEventsScreen() {
             ...b,
             _viewerRole: viewerRole,
             videoUrl: b.videoUrl ?? b.video_url ?? b.meetingUrl ?? b.meeting_url ?? undefined,
+            price: typeof b.price === 'number' ? b.price
+              : typeof b.cost === 'number' ? b.cost
+              : typeof b.amount === 'number' ? b.amount
+              : typeof b.fee === 'number' ? b.fee
+              : typeof b.session_price === 'number' ? b.session_price
+              : typeof b.sessionPrice === 'number' ? b.sessionPrice
+              : typeof b.slot_price === 'number' ? b.slot_price
+              : typeof b.slotPrice === 'number' ? b.slotPrice
+              : undefined,
           } as BookingItem);
         }
       };
