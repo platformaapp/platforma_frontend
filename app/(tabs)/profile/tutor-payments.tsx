@@ -551,7 +551,7 @@ export default function TutorPaymentsScreen() {
               Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.
             </Text>
             <Text style={styles.verificationNote}>
-              С карты спишется проверочный платеж до 20 ₽. И сразу вернется.
+              С карты спишется проверочный платеж 1 ₽.
             </Text>
 
             {bindError ? (
