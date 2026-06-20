@@ -13,42 +13,86 @@ const POLL_TIMEOUT_MS = 60000;
 
 export default function PaymentMethodsCallbackScreen() {
   const router = useRouter();
-  const { transactionId, yookassaPaymentId, orderId, returnTo } = useLocalSearchParams<{
+  const {
+    status: statusParam,
+    tx: txParam,
+    transactionId,
+    yookassaPaymentId,
+    orderId,
+    returnTo,
+  } = useLocalSearchParams<{
+    status?: string;
+    tx?: string;
     transactionId?: string;
     yookassaPaymentId?: string;
     orderId?: string;
     returnTo?: string;
     initialCardCount?: string;
   }>();
+
   const [status, setStatus] = useState<ScreenStatus>('loading');
   const [message, setMessage] = useState('Проверяем привязку карты...');
+  const [cardMasked, setCardMasked] = useState<string | null>(null);
   const stopRef = useRef(false);
 
   const paymentsRoute = returnTo === 'tutor-payments'
     ? '/(tabs)/profile/tutor-payments'
     : '/(tabs)/profile/payments';
 
-  // Prefer transactionId (attachmentId) for new endpoint; fall back to yookassaPaymentId
-  const effectiveTransactionId = (transactionId && String(transactionId)) || '';
+  // tx comes from YooKassa return URL; transactionId comes from app-side push
+  const effectiveTransactionId =
+    (txParam && String(txParam)) ||
+    (transactionId && String(transactionId)) ||
+    '';
   const effectivePaymentId =
     (yookassaPaymentId && String(yookassaPaymentId)) ||
     (orderId && String(orderId)) ||
     '';
 
+  // Fetch the bound card and show it
+  const handleSuccess = async () => {
+    try {
+      const token = await getAuthToken();
+      if (token) {
+        const res = await fetch(endpoints.studentPaymentMethods, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          const methods: Array<{ cardMasked?: string; card_masked?: string }> =
+            data?.data?.paymentMethods ?? data?.cards ?? [];
+          const first = methods[0];
+          if (first) {
+            setCardMasked(first.cardMasked ?? first.card_masked ?? null);
+          }
+        }
+      }
+    } catch { /* show success without card details */ }
+    setStatus('success');
+    setMessage('А теперь время приключений');
+  };
+
   useEffect(() => {
+    // ── Case 1: YooKassa returned ?status=success ─────────────────────────
+    if (statusParam === 'success') {
+      handleSuccess();
+      return;
+    }
+
+    // ── Case 2: YooKassa returned ?status=failed / ?status=error ─────────
+    if (statusParam === 'failed' || statusParam === 'error') {
+      setStatus('error');
+      setMessage('Привязка карты не удалась. Попробуйте снова.');
+      return;
+    }
+
+    // ── Case 3 / fallback: poll binding-status ────────────────────────────
+    // Covers both ?status=pending&tx=<id> and native-app push with transactionId
     if (!effectiveTransactionId && !effectivePaymentId) {
       setStatus('error');
       setMessage('Нет данных о платеже.');
       return;
     }
-
-    const refresh = Date.now().toString();
-    const goPayments = (delay = 1500) => {
-      setTimeout(
-        () => router.replace({ pathname: paymentsRoute, params: { refresh } } as never),
-        delay,
-      );
-    };
 
     const startMs = Date.now();
 
@@ -59,10 +103,9 @@ export default function PaymentMethodsCallbackScreen() {
         if (!token) { router.replace('/login'); return; }
 
         let statusStr = 'pending';
-        let messageStr = '';
 
         if (effectiveTransactionId) {
-          // GET /api/payment-methods/binding-status?tx=<attachmentId>
+          // GET /api/student/payment-methods/binding-status?tx=<id>
           const params = new URLSearchParams({ tx: effectiveTransactionId });
           const res = await fetch(`${endpoints.paymentMethodsBindingStatus}?${params}`, {
             headers: { Authorization: `Bearer ${token}` },
@@ -70,30 +113,31 @@ export default function PaymentMethodsCallbackScreen() {
           if (!res.ok) throw new Error(`Ошибка проверки статуса (${res.status})`);
           const data = await res.json().catch(() => ({}));
           statusStr = (data?.status ?? '').toLowerCase();
-          messageStr = '';
         } else {
           // Legacy fallback: old student callback endpoint
           const { fetchPaymentBindingCallback } = await import('@/lib/api/student-payments');
           const result = await fetchPaymentBindingCallback(effectivePaymentId);
           statusStr = result.status ?? 'pending';
-          messageStr = result.message ?? '';
         }
 
         if (stopRef.current) return;
 
         if (statusStr === 'active') {
-          setStatus('success');
-          setMessage('А теперь время приключений');
+          await handleSuccess();
           return;
         }
 
         if (statusStr === 'failed' || statusStr === 'not_found') {
           setStatus('error');
-          setMessage(statusStr === 'not_found' ? 'Транзакция не найдена. Попробуйте привязать карту снова.' : 'Привязка карты не удалась.');
+          setMessage(
+            statusStr === 'not_found'
+              ? 'Транзакция не найдена. Попробуйте привязать карту снова.'
+              : 'Привязка карты не удалась.',
+          );
           return;
         }
 
-        // pending — keep polling if within timeout
+        // pending — keep polling within timeout
         if (Date.now() - startMs < POLL_TIMEOUT_MS) {
           setMessage('Проверяем привязку карты...');
           setTimeout(poll, POLL_INTERVAL_MS);
@@ -134,6 +178,9 @@ export default function PaymentMethodsCallbackScreen() {
       {status === 'success' && (
         <>
           <Text style={styles.successTitle}>КАРТА ПРИВЯЗАНА</Text>
+          {cardMasked ? (
+            <Text style={styles.cardText}>**** {cardMasked.replace(/\*/g, '').trim() || cardMasked}</Text>
+          ) : null}
           <Text style={styles.text}>{message}</Text>
           <Pressable style={styles.button} onPress={handleGoToPayments}>
             <Text style={styles.buttonText}>Начнем</Text>
@@ -178,6 +225,13 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     lineHeight: 36,
     marginBottom: 12,
+  },
+  cardText: {
+    fontSize: 18,
+    fontFamily: 'Inter-Regular',
+    color: '#181818',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   button: {
     marginTop: 12,
