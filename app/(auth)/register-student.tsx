@@ -17,6 +17,17 @@ const REGISTER_URL = endpoints.register;
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
 
+function translateAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('already registered with role: tutor')) return 'Этот аккаунт уже зарегистрирован как наставник. Войдите в аккаунт.';
+  if (m.includes('already registered with role: student')) return 'Этот аккаунт уже зарегистрирован как студент. Войдите в аккаунт.';
+  if (m.includes('already registered')) return 'Пользователь с такими данными уже зарегистрирован. Войдите в аккаунт.';
+  if (m.includes('phone number already exists') || (m.includes('phone') && m.includes('already'))) return 'Такой номер телефона уже зарегистрирован';
+  if (m.includes('email already exists') || (m.includes('email') && m.includes('already'))) return 'Такой email уже зарегистрирован';
+  if (m.includes('already exists')) return 'Пользователь с такими данными уже существует';
+  return message;
+}
+
 export default function RegisterStudentScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -139,12 +150,13 @@ export default function RegisterStudentScreen() {
         if (res.status === 409) {
           const errorMessage = data?.message || data?.error || '';
           const lowerMessage = errorMessage.toLowerCase();
+          const translated = translateAuthError(errorMessage);
 
           // Пользователь уже зарегистрирован с такой ролью
           if (lowerMessage.includes('already registered') || lowerMessage.includes('уже зарегистрирован')) {
             Alert.alert(
               'Аккаунт уже существует',
-              'Пользователь с таким email уже зарегистрирован. Войдите в аккаунт.',
+              translated,
               [
                 { text: 'Войти', onPress: () => router.replace('/login?showLogin=1' as any) },
                 { text: 'Отмена', style: 'cancel' },
@@ -156,17 +168,22 @@ export default function RegisterStudentScreen() {
 
           // Если конфликт по телефону
           if (lowerMessage.includes('phone') || lowerMessage.includes('телефон') || lowerMessage.includes('номер')) {
-            setErrors({ ...errors, phone: errorMessage });
+            setErrors({ ...errors, phone: translated });
             setIsSubmitting(false);
             return;
           }
 
           // Если конфликт по email
           if (lowerMessage.includes('email') || lowerMessage.includes('почта') || lowerMessage.includes('e-mail')) {
-            setErrors({ ...errors, email: errorMessage });
+            setErrors({ ...errors, email: translated });
             setIsSubmitting(false);
             return;
           }
+
+          // Прочие 409
+          setErrors({ ...errors, phone: translated || 'Пользователь с такими данными уже существует' });
+          setIsSubmitting(false);
+          return;
         }
 
         // 400: validation / business rule error — show inline under email field
@@ -226,12 +243,13 @@ export default function RegisterStudentScreen() {
       const msg = e?.message ?? '';
       const lowerMsg = msg.toLowerCase();
 
+      const translatedMsg = translateAuthError(msg);
       if (lowerMsg.includes('phone') || lowerMsg.includes('телефон') || lowerMsg.includes('номер')) {
-        setErrors({ ...errors, phone: msg });
+        setErrors({ ...errors, phone: translatedMsg });
       } else if (lowerMsg.includes('email') || lowerMsg.includes('почта') || lowerMsg.includes('e-mail')) {
-        setErrors({ ...errors, email: msg });
+        setErrors({ ...errors, email: translatedMsg });
       } else {
-        Alert.alert('Ошибка', msg || 'Неизвестная ошибка');
+        Alert.alert('Ошибка', translatedMsg || 'Неизвестная ошибка');
       }
     } finally {
       setIsSubmitting(false);
