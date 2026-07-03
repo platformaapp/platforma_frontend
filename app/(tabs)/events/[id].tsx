@@ -65,6 +65,7 @@ type EventDetail = {
   currentUserParticipation?: {
     status?: string;       // "registered" | "pending" | "attended"
     paymentStatus?: string; // "paid" | "pending"
+    createdAt?: string;
   };
 };
 
@@ -130,6 +131,7 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const currentUserParticipation = cupRaw ? {
     status: (cupRaw.status as string) ?? undefined,
     paymentStatus: (cupRaw.paymentStatus ?? cupRaw.payment_status) as string | undefined,
+    createdAt: (cupRaw.createdAt ?? cupRaw.created_at ?? cupRaw.registeredAt ?? cupRaw.registered_at) as string | undefined,
   } : undefined;
 
   // Registration flag — check both top-level fields and current_user_participation
@@ -209,6 +211,9 @@ function redirectToPaymentUrl(url: string): void {
 }
 
 /** Store/restore yookassaPaymentId in localStorage before YooKassa redirect. */
+// Payments older than this are considered stale — registration is auto-cancelled
+const STALE_PAYMENT_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 function savePaymentIdToSession(paymentId: string, eventId: string): void {
   if (Platform.OS !== 'web') return;
   try {
@@ -216,6 +221,7 @@ function savePaymentIdToSession(paymentId: string, eventId: string): void {
     if (!ls) return;
     ls.setItem('pending_payment_id', paymentId);
     ls.setItem('pending_payment_event_id', eventId);
+    ls.setItem('pending_payment_initiated_at', String(Date.now()));
   } catch { /* ignore quota/privacy errors */ }
 }
 function loadPaymentIdFromSession(eventId: string): string | null {
@@ -227,6 +233,18 @@ function loadPaymentIdFromSession(eventId: string): string | null {
     return ls.getItem('pending_payment_id') ?? null;
   } catch { return null; }
 }
+function loadPaymentInitiatedAt(eventId: string): number | null {
+  if (Platform.OS !== 'web') return null;
+  try {
+    const ls = (globalThis as any).localStorage;
+    if (!ls) return null;
+    if (ls.getItem('pending_payment_event_id') !== eventId) return null;
+    const raw = ls.getItem('pending_payment_initiated_at');
+    if (!raw) return null;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+  } catch { return null; }
+}
 function clearPaymentIdFromSession(): void {
   if (Platform.OS !== 'web') return;
   try {
@@ -234,6 +252,7 @@ function clearPaymentIdFromSession(): void {
     if (!ls) return;
     ls.removeItem('pending_payment_id');
     ls.removeItem('pending_payment_event_id');
+    ls.removeItem('pending_payment_initiated_at');
   } catch { /* ignore */ }
 }
 
@@ -262,6 +281,7 @@ export default function EventDetailScreen() {
   const [isJoining, setIsJoining] = useState(false);
   const [joinErrorMessage, setJoinErrorMessage] = useState('');
   const [isJoinErrorVisible, setJoinErrorVisible] = useState(false);
+  const [isCancellingStalePayment, setIsCancellingStalePayment] = useState(false);
 
   // Kept in sync with module-level _pendingYookassaPaymentId
   const yookassaPaymentIdRef = React.useRef<string | null>(_pendingYookassaPaymentId);
@@ -488,6 +508,13 @@ export default function EventDetailScreen() {
     return () => { stopped = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, payment]);
+
+  // Auto-cancel stale pending payments so the user can pay again
+  useEffect(() => {
+    if (!isPaymentStale || isPollingPayment || isCancellingStalePayment || !id) return;
+    cancelStalePayment(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaymentStale]);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -752,6 +779,32 @@ export default function EventDetailScreen() {
     router.replace('/(tabs)/events');
   }
 
+  // Cancel stale pending payment and let the user pay again
+  async function cancelStalePayment(eventId: string) {
+    setIsCancellingStalePayment(true);
+    try {
+      const attempts = [
+        () => authedFetch(`${endpoints.events}/${eventId}/registration`, { method: 'DELETE' }),
+        () => authedFetch(`${endpoints.events}/${eventId}/cancel`, { method: 'POST' }),
+        () => authedFetch(`${endpoints.studentBookings}/${eventId}`, { method: 'DELETE' }),
+        () => authedFetch(`${endpoints.events}/${eventId}/unregister`, { method: 'POST' }),
+      ];
+      let res = await attempts[0]();
+      if (res.status === 404 || res.status === 405) {
+        for (const attempt of attempts.slice(1)) {
+          res = await attempt();
+          if (res.status !== 404 && res.status !== 405) break;
+        }
+      }
+      clearPaymentIdFromSession();
+      // Reload event so isRegistered / paymentStatus reflect cancellation
+      const active = { value: true };
+      await loadEvent(active);
+    } catch { /* ignore — user can retry manually */ } finally {
+      setIsCancellingStalePayment(false);
+    }
+  }
+
   const eventUrl = `https://platformaapp.ru/events/${id}`;
   const handleCopyLink = async () => {
     await Clipboard.setStringAsync(eventUrl);
@@ -786,6 +839,21 @@ export default function EventDetailScreen() {
     event.isRegistered &&
     !event.isPaid &&
     event.currentUserParticipation?.paymentStatus === 'pending';
+
+  // Determine if the pending payment is stale (older than threshold).
+  // Priority: createdAt from backend → stored timestamp in session → no timestamp = treat as stale.
+  const paymentStaleMs: number | null = (() => {
+    if (!paymentPending) return null;
+    const cupCreatedAt = event.currentUserParticipation?.createdAt;
+    if (cupCreatedAt) return new Date(cupCreatedAt).getTime();
+    const stored = id ? loadPaymentInitiatedAt(id) : null;
+    if (stored) return stored;
+    return null; // unknown age
+  })();
+  const isPaymentStale = paymentPending && (
+    paymentStaleMs === null || // no timestamp at all — likely old, treat as stale
+    (Date.now() - paymentStaleMs) > STALE_PAYMENT_MS
+  );
 
   const MEETING_DURATION_MS = 90 * 60 * 1000;
   const eventStartMs = event.datetimeStart ? new Date(event.datetimeStart).getTime() : null;
@@ -878,15 +946,30 @@ export default function EventDetailScreen() {
       {paymentPending ? (
         <View style={styles.paymentPendingBadge}>
           <Text style={styles.paymentPendingText}>
-            {isPollingPayment ? 'Ожидаем подтверждения оплаты...' : 'Оплата в обработке'}
+            {isPollingPayment
+              ? 'Ожидаем подтверждения оплаты...'
+              : isCancellingStalePayment
+                ? 'Отменяем устаревший платёж...'
+                : isPaymentStale
+                  ? 'Платёж не был подтверждён'
+                  : 'Оплата в обработке'}
           </Text>
-          {!isPollingPayment && (
-            <Pressable
-              style={styles.paymentPendingRetry}
-              onPress={() => { const a = { value: true }; loadEvent(a); }}
-            >
-              <Text style={styles.paymentPendingRetryText}>Обновить статус</Text>
-            </Pressable>
+          {!isPollingPayment && !isCancellingStalePayment && (
+            isPaymentStale ? (
+              <Pressable
+                style={styles.paymentPendingRetry}
+                onPress={() => id && cancelStalePayment(id)}
+              >
+                <Text style={styles.paymentPendingRetryText}>Отменить и оплатить снова</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.paymentPendingRetry}
+                onPress={() => { const a = { value: true }; loadEvent(a); }}
+              >
+                <Text style={styles.paymentPendingRetryText}>Обновить статус</Text>
+              </Pressable>
+            )
           )}
         </View>
       ) : null}
