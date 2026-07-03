@@ -241,11 +241,16 @@ export default function MyEventsScreen() {
         }))
         .catch(() => [] as EventItem[]);
 
-      const [eventsRes, studentBookRes, tutorBookRes] = await Promise.allSettled([
+      const bookingFetch = userRole === 'tutor'
+        ? authedFetch(endpoints.tutorBookings)
+        : authedFetch(endpoints.studentBookings);
+
+      const [eventsRes, bookingsRes] = await Promise.allSettled([
         eventsPromise,
-        authedFetch(endpoints.studentBookings),
-        authedFetch(endpoints.tutorBookings),
+        bookingFetch,
       ]);
+      const studentBookRes = userRole !== 'tutor' ? bookingsRes : { status: 'fulfilled' as const, value: new Response('[]', { status: 200 }) };
+      const tutorBookRes   = userRole === 'tutor'  ? bookingsRes : { status: 'fulfilled' as const, value: new Response('[]', { status: 200 }) };
 
       const mergedBookings: BookingItem[] = [];
       const seenIds = new Set<string>();
