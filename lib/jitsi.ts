@@ -12,7 +12,10 @@ export function buildJitsiUrl(type: 'event' | 'booking', id: string): string {
 /** URL комнаты приходит с бэкенда (/api/events/:id/join или /api/{role}/bookings/:id/join). */
 export async function openJitsi(url: string): Promise<void> {
   if (Platform.OS === 'web') {
-    (globalThis as any).window?.open(url, '_blank', 'noopener,noreferrer');
+    // window.open(_blank) is blocked by mobile Safari when called after an await.
+    // location.href navigates in the same tab and is never blocked by popup blockers.
+    const w = (globalThis as any).window;
+    if (w) w.location.href = url;
   } else {
     await WebBrowser.openBrowserAsync(url, {
       presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
