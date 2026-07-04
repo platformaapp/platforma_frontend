@@ -509,12 +509,21 @@ export default function EventDetailScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, payment]);
 
-  // Auto-cancel stale pending payments so the user can pay again
+  // Auto-cancel stale pending payments so the user can pay again.
+  // Staleness is computed from `event` (state) to avoid TDZ — isPaymentStale
+  // is declared after the if(!event) guard and cannot be used in a dep array.
   useEffect(() => {
-    if (!isPaymentStale || isPollingPayment || isCancellingStalePayment || !id) return;
+    if (!event || event.isPaid || !event.isRegistered || isPollingPayment || isCancellingStalePayment || !id) return;
+    if (event.currentUserParticipation?.paymentStatus !== 'pending') return;
+    const cupCreatedAt = event.currentUserParticipation?.createdAt;
+    const initiatedMs = cupCreatedAt
+      ? new Date(cupCreatedAt).getTime()
+      : loadPaymentInitiatedAt(id);
+    const isStale = initiatedMs === null || (Date.now() - initiatedMs) > STALE_PAYMENT_MS;
+    if (!isStale) return;
     cancelStalePayment(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPaymentStale]);
+  }, [event, id, isPollingPayment, isCancellingStalePayment]);
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
