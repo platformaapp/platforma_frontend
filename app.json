@@ -16,8 +16,9 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "NSCameraUsageDescription": "Используется для загрузки фото профиля",
-        "NSPhotoLibraryUsageDescription": "Используется для выбора фото профиля"
+        "NSCameraUsageDescription": "Используется для загрузки фото профиля и видеоконференций",
+        "NSPhotoLibraryUsageDescription": "Используется для выбора фото профиля",
+        "NSMicrophoneUsageDescription": "Используется для видеоконференций"
       }
     },
     "android": {
@@ -34,6 +35,8 @@
       "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.INTERNET"

@@ -68,6 +68,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="admin" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', animation: 'slide_from_bottom', title: 'Modal' }} />
+            <Stack.Screen name="conference" options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
           </Stack>
         </View>
       </View>
