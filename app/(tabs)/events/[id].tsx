@@ -755,7 +755,7 @@ export default function EventDetailScreen() {
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
         const url = data?.join_url ?? data?.joinUrl ?? data?.url;
-        if (url) { await openJitsi(url); return; }
+        if (url) { await openJitsi(url, { title: event.title }); return; }
       }
       if (res.status === 403) {
         const errData = await res.json().catch(() => ({}));
@@ -775,9 +775,9 @@ export default function EventDetailScreen() {
       }
       // Fallback 1: video_room.url from event detail
       const backendUrl = event.videoRoom?.url;
-      if (backendUrl) { await openJitsi(backendUrl); return; }
+      if (backendUrl) { await openJitsi(backendUrl, { title: event.title }); return; }
       // Fallback 2: deterministic meet.jit.si room
-      await openJitsi(buildJitsiUrl('event', event.id));
+      await openJitsi(buildJitsiUrl('event', event.id), { title: event.title });
     } catch { /* ignore */ } finally {
       setIsJoining(false);
     }

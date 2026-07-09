@@ -552,10 +552,11 @@ export default function MyEventsScreen() {
           <Pressable
             style={styles.videoButton}
             onPress={async () => {
-              if (item.videoUrl) { openJitsi(item.videoUrl); return; }
+              const bookingTitle = `Личная встреча с ${otherPartyName}`;
+              if (item.videoUrl) { openJitsi(item.videoUrl, { title: bookingTitle }); return; }
               const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${item.id}/join`).catch(() => null);
               const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-              openJitsi(url ?? buildJitsiUrl('booking', item.id));
+              openJitsi(url ?? buildJitsiUrl('booking', item.id), { title: bookingTitle });
             }}
           >
             <Text style={styles.videoButtonText}>Войти во встречу</Text>
@@ -823,10 +824,11 @@ export default function MyEventsScreen() {
                       const b = menuBooking;
                       setMenuBooking(null);
                       if (!b) return;
-                      if (b.videoUrl) { openJitsi(b.videoUrl); return; }
+                      const bookingTitle = `Личная встреча с ${otherName}`;
+                      if (b.videoUrl) { openJitsi(b.videoUrl, { title: bookingTitle }); return; }
                       const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${b.id}/join`).catch(() => null);
                       const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-                      openJitsi(url ?? buildJitsiUrl('booking', b.id));
+                      openJitsi(url ?? buildJitsiUrl('booking', b.id), { title: bookingTitle });
                     }}
                   >
                     <Text style={styles.modalActionButtonText}>Открыть видео</Text>
