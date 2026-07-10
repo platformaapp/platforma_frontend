@@ -197,6 +197,7 @@ export default function MyEventsScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>('events');
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [eventsError, setEventsError] = useState<string>('');
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [bookingsError, setBookingsError] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -225,6 +226,7 @@ export default function MyEventsScreen() {
       if (!token) { setLoading(false); setRefreshing(false); return; }
       setRole(userRole);
       if (profile?.id) setCurrentUserId(profile.id);
+      setEventsError('');
       // Events: use /api/events/my with matching role for both tutor and student
       const eventsPromise = getMyEventsForStudent({ role: userRole as 'student' | 'tutor', filter: 'all', time: 'all', page: 1, per_page: 50 })
         .then(({ items }) => items.map((it) => {
@@ -239,7 +241,11 @@ export default function MyEventsScreen() {
             mentor: { id: String(ta?.id ?? ''), name: teacherName(it.teacher), avatarUrl: mentorAvatar },
           } as EventItem;
         }))
-        .catch(() => [] as EventItem[]);
+        .catch((e: any) => {
+          console.error('[myevents] /api/events/my failed:', e);
+          setEventsError(e?.message ?? 'Не удалось загрузить события');
+          return [] as EventItem[];
+        });
 
       const bookingFetch = userRole === 'tutor'
         ? authedFetch(endpoints.tutorBookings)
@@ -668,6 +674,11 @@ export default function MyEventsScreen() {
           {activeTab === 'meetings' && bookingsError && currentUpcoming.length === 0 && currentPast.length === 0 && (
             <View style={styles.bookingsErrorBox}>
               <Text style={styles.bookingsErrorText}>Не удалось загрузить встречи:{'\n'}{bookingsError}</Text>
+            </View>
+          )}
+          {activeTab === 'events' && eventsError && currentUpcoming.length === 0 && currentPast.length === 0 && (
+            <View style={styles.bookingsErrorBox}>
+              <Text style={styles.bookingsErrorText}>Не удалось загрузить события:{'\n'}{eventsError}</Text>
             </View>
           )}
           {activeTab === 'events'
