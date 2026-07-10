@@ -1,11 +1,25 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Constants from 'expo-constants';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
 import { getUserProfile } from '@/lib/auth';
+import { withoutDeepLinkingPrompt } from '@/lib/jitsi';
+
+/**
+ * expo-linking's createURL() has no native-app meaning on web (it returns a
+ * same-origin https URL there, not our custom scheme) — build the
+ * platformaapp:// deep link by hand so "Присоединиться в приложении" actually
+ * targets the app, not another web page.
+ */
+function buildAppDeepLink(url: string, title: string): string {
+  const scheme = (Constants.expoConfig?.scheme as string | undefined) ?? 'platformaapp';
+  const params = new URLSearchParams({ url, title });
+  return `${scheme}://conference?${params.toString()}`;
+}
 
 /** URL комнаты вида https://domain/roomName?query#hash → { domain, roomName, jwt }. */
 function parseJitsiUrl(rawUrl: string): { domain: string; roomName: string; jwt?: string } {
@@ -153,6 +167,34 @@ export default function ConferenceScreen() {
     return null;
   }
 
+  // Веб: показываем свой выбор "в приложении / в браузере" вместо родного экрана
+  // Jitsi (у него сломанный app-deep-link и нет способа открыть именно наше приложение).
+  if (Platform.OS === 'web') {
+    const openInBrowser = () => {
+      const w = (globalThis as any).window;
+      if (w) w.location.href = withoutDeepLinkingPrompt(url);
+    };
+    const openInApp = () => {
+      const w = (globalThis as any).window;
+      if (!w) return;
+      w.location.href = buildAppDeepLink(url, title || '');
+    };
+    return (
+      <View style={styles.webChooser}>
+        <View style={styles.webChooserCard}>
+          <Text style={styles.webChooserTitle} numberOfLines={2}>{title || 'Видеовстреча'}</Text>
+          <Text style={styles.webChooserSubtitle}>Как вы хотите присоединиться к встрече?</Text>
+          <Pressable style={styles.webChooserButtonPrimary} onPress={openInApp}>
+            <Text style={styles.webChooserButtonPrimaryText}>Присоединиться в приложении</Text>
+          </Pressable>
+          <Pressable style={styles.webChooserButtonSecondary} onPress={openInBrowser}>
+            <Text style={styles.webChooserButtonSecondaryText}>Присоединиться в браузере</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top || 12 }]}>
@@ -215,4 +257,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#000',
   },
+  webChooser: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  webChooserCard: { width: '100%', maxWidth: 360, alignItems: 'stretch' },
+  webChooserTitle: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#181818', textAlign: 'center', marginBottom: 8 },
+  webChooserSubtitle: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', textAlign: 'center', marginBottom: 24 },
+  webChooserButtonPrimary: { backgroundColor: '#E02D2D', paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  webChooserButtonPrimaryText: { color: '#fff', fontSize: 16, fontFamily: 'Inter-Medium' },
+  webChooserButtonSecondary: { borderWidth: 1, borderColor: '#CFCFCF', paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  webChooserButtonSecondaryText: { color: '#181818', fontSize: 16, fontFamily: 'Inter-Medium' },
 });
