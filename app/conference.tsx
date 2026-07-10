@@ -28,6 +28,30 @@ function jsString(value: string): string {
   return JSON.stringify(value).replace(/</g, '\\u003C');
 }
 
+/**
+ * interfaceConfigOverwrite.SHOW_JITSI_WATERMARK не гарантированно работает на всех
+ * версиях self-hosted Jitsi (сервер может игнорировать client-side overrides для
+ * interface_config.js). Дополнительно форсируем скрытие CSS-ом прямо внутри iframe
+ * конференции — inject идёт во все фреймы (injectedJavaScriptForMainFrameOnly=false),
+ * поэтому применяется и к нашей обёртке, и к самому Jitsi.
+ */
+const HIDE_WATERMARK_SCRIPT = `
+(function () {
+  function hide() {
+    var style = document.createElement('style');
+    style.setAttribute('data-platforma-hide-watermark', 'true');
+    style.textContent = '[class*="watermark" i] { display: none !important; visibility: hidden !important; }';
+    (document.head || document.documentElement).appendChild(style);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hide);
+  } else {
+    hide();
+  }
+})();
+true;
+`;
+
 function buildConferenceHtml(params: {
   domain: string;
   roomName: string;
@@ -67,6 +91,14 @@ function buildConferenceHtml(params: {
         SHOW_POWERED_BY: false,
         MOBILE_APP_PROMO: false
       }
+    });
+
+    // Некоторые версии Jitsi игнорируют userInfo/subject, переданные в конструктор —
+    // дублируем командами после того, как встреча реально запустилась.
+    api.addEventListener('videoConferenceJoined', function () {
+      ${avatarUrl ? `api.executeCommand('avatarUrl', ${jsString(avatarUrl)});` : ''}
+      ${displayName ? `api.executeCommand('displayName', ${jsString(displayName)});` : ''}
+      api.executeCommand('subject', ${jsString(subject)});
     });
 
     function notifyLeave() {
@@ -138,6 +170,8 @@ export default function ConferenceScreen() {
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           mediaCapturePermissionGrantType={Platform.OS === 'ios' ? 'grant' : undefined}
+          injectedJavaScriptBeforeContentLoaded={HIDE_WATERMARK_SCRIPT}
+          injectedJavaScriptForMainFrameOnly={false}
           onLoadEnd={() => setLoading(false)}
           onMessage={(event: WebViewMessageEvent) => {
             if (event.nativeEvent.data === 'jitsi-left') leaveToEvents();

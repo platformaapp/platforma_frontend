@@ -604,6 +604,7 @@ export default function MyEventsScreen() {
   let nearestEventId: string | null = null;
   let nearestBookingId: string | null = null;
   let nearestBookingVideoUrl: string | null = null;
+  let nearestBookingTitle: string | null = null;
 
   for (const e of upcomingEvents) {
     const ms = getEventMs(e);
@@ -612,6 +613,7 @@ export default function MyEventsScreen() {
       nearestEventId = e.id;
       nearestBookingId = null;
       nearestBookingVideoUrl = null;
+      nearestBookingTitle = null;
     }
   }
   for (const b of upcomingBookings) {
@@ -621,6 +623,13 @@ export default function MyEventsScreen() {
       nearestBookingId = b.id;
       nearestBookingVideoUrl = b.videoUrl ?? null;
       nearestEventId = null;
+      const isViewerTutor = b._viewerRole === 'tutor';
+      const otherPartyObj = isViewerTutor
+        ? ((b as any).student ?? (b as any).user ?? null)
+        : ((b as any).tutor ?? (b as any).mentor ?? (b as any).teacher ?? null);
+      const otherPartyName = otherPartyObj?.fullName ?? otherPartyObj?.full_name ?? otherPartyObj?.name
+        ?? (isViewerTutor ? 'Ученик' : 'Наставник');
+      nearestBookingTitle = `Личная встреча с ${otherPartyName}`;
     }
   }
 
@@ -706,10 +715,11 @@ export default function MyEventsScreen() {
               if (nearestEventId) {
                 router.push(`/(tabs)/events/${nearestEventId}` as any);
               } else if (nearestBookingId) {
-                if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl); return; }
+                const meta = { title: nearestBookingTitle ?? undefined };
+                if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl, meta); return; }
                 const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${nearestBookingId}/join`).catch(() => null);
                 const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
-                openJitsi(url ?? buildJitsiUrl('booking', nearestBookingId));
+                openJitsi(url ?? buildJitsiUrl('booking', nearestBookingId), meta);
               }
             }}
           >
