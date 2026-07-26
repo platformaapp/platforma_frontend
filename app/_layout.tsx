@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 // Предотвращаем автоматическое скрытие splash screen
@@ -15,11 +15,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  // Веб теперь на всю ширину браузера (отдельный десктоп-дизайн для веба) —
+  // раньше здесь было max-width:620 на web, имитируя мобильную колонку.
+  // Экраны, ещё не получившие веб-дизайн, могут временно выглядеть растянутыми.
   contentFrame: {
     flex: 1,
     width: '100%',
     backgroundColor: '#fff',
-    ...(Platform.OS === 'web' ? { maxWidth: 620, alignSelf: 'center' as const } : {}),
   },
 });
 
