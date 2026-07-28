@@ -55,6 +55,8 @@ type BookingItem = {
   createdAt?: string;
   videoUrl?: string;
   price?: number;
+  /** От бэкенда: роль текущего пользователя именно в этой брони (наставник может встретить обе). */
+  my_role?: 'student' | 'tutor';
   _viewerRole?: 'student' | 'tutor'; // role of the current user in this booking
 };
 
@@ -322,7 +324,9 @@ export default function MyEventsScreen() {
           seenIds.add(id);
           mergedBookings.push({
             ...b,
-            _viewerRole: viewerRole,
+            // /api/tutor/bookings теперь возвращает и брони, где пользователь — ученик
+            // (my_role на каждой записи); без него — прежнее поведение по эндпоинту.
+            _viewerRole: (b.my_role === 'student' || b.my_role === 'tutor') ? b.my_role : viewerRole,
             videoUrl: b.videoUrl ?? b.video_url ?? b.meetingUrl ?? b.meeting_url ?? undefined,
             price: typeof b.price === 'number' ? b.price
               : typeof b.cost === 'number' ? b.cost
@@ -428,7 +432,7 @@ export default function MyEventsScreen() {
     setCancelBookingConfirmVisible(false);
     setIsCancellingBooking(true);
     try {
-      const url = role === 'tutor'
+      const url = (cancelBookingTarget._viewerRole ?? role) === 'tutor'
         ? `${endpoints.tutorBookings}/${bookingId}`
         : `${endpoints.studentBookings}/${bookingId}`;
       const res = await authedFetch(url, { method: 'DELETE' });
@@ -560,7 +564,9 @@ export default function MyEventsScreen() {
             onPress={async () => {
               const bookingTitle = `Личная встреча с ${otherPartyName}`;
               if (item.videoUrl) { openJitsi(item.videoUrl, { title: bookingTitle }); return; }
-              const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${item.id}/join`).catch(() => null);
+              // В этой конкретной брони роль пользователя может отличаться от выбранной
+              // в приложении (наставник тоже видит свои брони как ученик).
+              const res = await authedFetch(`${API_BASE}/api/${item._viewerRole ?? role}/bookings/${item.id}/join`).catch(() => null);
               const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
               openJitsi(url ?? buildJitsiUrl('booking', item.id), { title: bookingTitle });
             }}
@@ -569,6 +575,32 @@ export default function MyEventsScreen() {
           </Pressable>
         )}
       </View>
+    );
+  };
+
+  // Наставник видит и брони, где он наставник ("Мои студенты"), и где он сам
+  // записался как ученик ("Мои наставники") — /api/tutor/bookings отдаёт оба
+  // вида с полем my_role. Для студента такого разделения нет — у него все
+  // брони одной роли, поэтому группировка не показывается.
+  const renderBookingGroups = (items: BookingItem[], wrap: (item: BookingItem) => React.ReactNode) => {
+    if (role !== 'tutor') return items.map(wrap);
+    const asTutor = items.filter((b) => b._viewerRole === 'tutor');
+    const asStudent = items.filter((b) => b._viewerRole === 'student');
+    return (
+      <>
+        {asTutor.length > 0 && (
+          <>
+            <Text style={styles.roleGroupHeader}>Мои студенты</Text>
+            {asTutor.map(wrap)}
+          </>
+        )}
+        {asStudent.length > 0 && (
+          <>
+            <Text style={styles.roleGroupHeader}>Мои наставники</Text>
+            {asStudent.map(wrap)}
+          </>
+        )}
+      </>
     );
   };
 
@@ -611,6 +643,7 @@ export default function MyEventsScreen() {
   let nearestBookingId: string | null = null;
   let nearestBookingVideoUrl: string | null = null;
   let nearestBookingTitle: string | null = null;
+  let nearestBookingViewerRole: 'student' | 'tutor' | null = null;
 
   for (const e of upcomingEvents) {
     const ms = getEventMs(e);
@@ -620,6 +653,7 @@ export default function MyEventsScreen() {
       nearestBookingId = null;
       nearestBookingVideoUrl = null;
       nearestBookingTitle = null;
+      nearestBookingViewerRole = null;
     }
   }
   for (const b of upcomingBookings) {
@@ -629,6 +663,7 @@ export default function MyEventsScreen() {
       nearestBookingId = b.id;
       nearestBookingVideoUrl = b.videoUrl ?? null;
       nearestEventId = null;
+      nearestBookingViewerRole = b._viewerRole ?? null;
       const isViewerTutor = b._viewerRole === 'tutor';
       const otherPartyObj = isViewerTutor
         ? ((b as any).student ?? (b as any).user ?? null)
@@ -683,7 +718,7 @@ export default function MyEventsScreen() {
           )}
           {activeTab === 'events'
             ? currentUpcoming.map(renderEventCard)
-            : currentUpcoming.map(renderBookingCard)}
+            : renderBookingGroups(currentUpcoming as BookingItem[], renderBookingCard)}
           {currentPast.length > 0 && (
             <>
               <View style={styles.pastSeparator}>
@@ -697,9 +732,9 @@ export default function MyEventsScreen() {
                       {renderEventCard(item as EventItem)}
                     </View>
                   ))
-                : currentPast.map((item) => (
-                    <View key={`past-${(item as BookingItem).id}`} style={styles.pastCardWrap}>
-                      {renderBookingCard(item as BookingItem)}
+                : renderBookingGroups(currentPast as BookingItem[], (item) => (
+                    <View key={`past-${item.id}`} style={styles.pastCardWrap}>
+                      {renderBookingCard(item)}
                     </View>
                   ))}
             </>
@@ -728,7 +763,7 @@ export default function MyEventsScreen() {
               } else if (nearestBookingId) {
                 const meta = { title: nearestBookingTitle ?? undefined };
                 if (nearestBookingVideoUrl) { openJitsi(nearestBookingVideoUrl, meta); return; }
-                const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${nearestBookingId}/join`).catch(() => null);
+                const res = await authedFetch(`${API_BASE}/api/${nearestBookingViewerRole ?? role}/bookings/${nearestBookingId}/join`).catch(() => null);
                 const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
                 openJitsi(url ?? buildJitsiUrl('booking', nearestBookingId), meta);
               }
@@ -847,7 +882,7 @@ export default function MyEventsScreen() {
                       if (!b) return;
                       const bookingTitle = `Личная встреча с ${otherName}`;
                       if (b.videoUrl) { openJitsi(b.videoUrl, { title: bookingTitle }); return; }
-                      const res = await authedFetch(`${API_BASE}/api/${role}/bookings/${b.id}/join`).catch(() => null);
+                      const res = await authedFetch(`${API_BASE}/api/${b._viewerRole ?? role}/bookings/${b.id}/join`).catch(() => null);
                       const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
                       openJitsi(url ?? buildJitsiUrl('booking', b.id), { title: bookingTitle });
                     }}
@@ -996,6 +1031,7 @@ const styles = StyleSheet.create({
   cancelSuccessCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
   bookingsErrorBox: { marginHorizontal: 16, marginTop: 24, padding: 16, borderWidth: 1, borderColor: '#E5E5E5' },
   bookingsErrorText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#E02D2D' },
+  roleGroupHeader: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Medium', color: '#181818', marginHorizontal: 16, marginTop: 16, marginBottom: 8 },
   pastSeparator: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16 },
   pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
   pastSeparatorLabel: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },
