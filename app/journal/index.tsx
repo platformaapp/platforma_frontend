@@ -2,7 +2,7 @@ import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-/** Заглушка: раздел "Журнал" на макете веб-ленты событий не был детализирован. */
+/** Заглушка для нативного приложения: "Журнал" — только веб-раздел (см. index.web.tsx). */
 export default function JournalScreen() {
   const router = useRouter();
   return (
