@@ -1,9 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { uploadEventImage } from '@/lib/api/events';
 import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
@@ -174,8 +175,9 @@ export default function RegisterStudentScreenWeb() {
   }
 
   return (
-    <View style={styles.page}>
+    <SiteShell>
       <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView contentContainerStyle={styles.page}>
       <View style={styles.card}>
         <Text style={styles.title}>РЕГИСТРАЦИЯ УЧАСТНИКА</Text>
 
@@ -225,7 +227,8 @@ export default function RegisterStudentScreenWeb() {
           <Text style={styles.termsLink} onPress={() => router.push('/privacy' as any)}>политику конфиденциальности</Text>
         </Text>
       </View>
-    </View>
+      </ScrollView>
+    </SiteShell>
   );
 }
 
@@ -248,7 +251,7 @@ function PasswordInput({ visible, onToggle, error, ...props }: any) {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, minHeight: '100vh' as any, alignItems: 'center', backgroundColor: '#fff', padding: 24, paddingTop: 48, paddingBottom: 48 },
+  page: { flex: 1, alignItems: 'center', backgroundColor: '#fff', padding: 24, paddingTop: 48, paddingBottom: 48 },
   card: { width: '100%', maxWidth: 420, borderWidth: 1, borderColor: '#CFCFCF', padding: 32 },
   title: { fontFamily: 'Inter-Bold', fontSize: 18, letterSpacing: 1, color: '#181818', marginBottom: 24 },
   input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },

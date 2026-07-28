@@ -2,38 +2,42 @@ import { Link, Stack } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { SiteShell } from '@/components/web/site-shell';
+
 /** Веб-версия экрана выбора роли при регистрации (см. app/(auth)/index.tsx для нативной). */
 export default function AuthChoiceScreenWeb() {
   return (
-    <View style={styles.page}>
+    <SiteShell>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.card}>
-        <Text style={styles.title}>АВТОРИЗАЦИЯ</Text>
+      <View style={styles.page}>
+        <View style={styles.card}>
+          <Text style={styles.title}>АВТОРИЗАЦИЯ</Text>
 
-        <Link href="/register-student" asChild>
-          <Pressable style={styles.btnPrimary}>
-            <Text style={styles.btnPrimaryText}>Хочу учиться</Text>
-          </Pressable>
-        </Link>
+          <Link href="/register-student" asChild>
+            <Pressable style={styles.btnPrimary}>
+              <Text style={styles.btnPrimaryText}>Хочу учиться</Text>
+            </Pressable>
+          </Link>
 
-        <Link href="/register-tutor" asChild>
-          <Pressable style={styles.btnOutline}>
-            <Text style={styles.btnOutlineText}>Хочу учить</Text>
-          </Pressable>
-        </Link>
+          <Link href="/register-tutor" asChild>
+            <Pressable style={styles.btnOutline}>
+              <Text style={styles.btnOutlineText}>Хочу учить</Text>
+            </Pressable>
+          </Link>
 
-        <Link href="/login" asChild>
-          <Pressable style={styles.loginLink}>
-            <Text style={styles.loginLinkText}>У меня уже есть профиль</Text>
-          </Pressable>
-        </Link>
+          <Link href="/login" asChild>
+            <Pressable style={styles.loginLink}>
+              <Text style={styles.loginLinkText}>У меня уже есть профиль</Text>
+            </Pressable>
+          </Link>
+        </View>
       </View>
-    </View>
+    </SiteShell>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, minHeight: '100vh' as any, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', padding: 24 },
+  page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', padding: 24 },
   card: { width: '100%', maxWidth: 400, borderWidth: 1, borderColor: '#CFCFCF', padding: 32 },
   title: { fontFamily: 'Inter-Bold', fontSize: 20, letterSpacing: 1, color: '#181818', marginBottom: 24 },
   btnPrimary: { backgroundColor: '#111', height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
