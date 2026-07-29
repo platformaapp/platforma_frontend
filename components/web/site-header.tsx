@@ -2,6 +2,7 @@ import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CONTENT_MAX_WIDTH } from './layout-constants';
 import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
 const ACTIVE = '#E02D2D';
@@ -26,34 +27,41 @@ export function SiteHeader() {
 
   return (
     <View style={styles.header}>
-      <View style={styles.nav}>
-        {NAV_ITEMS.map(({ key, label, href, Icon, match }) => {
-          const active = isActive(pathname, match);
-          const color = active ? ACTIVE : INACTIVE;
-          return (
-            <Pressable key={key} style={styles.navItem} onPress={() => router.push(href as any)}>
-              <Icon color={color} />
-              <Text style={[styles.navLabel, { color }]}>{label}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.headerInner}>
+        <View style={styles.nav}>
+          {NAV_ITEMS.map(({ key, label, href, Icon, match }) => {
+            const active = isActive(pathname, match);
+            const color = active ? ACTIVE : INACTIVE;
+            return (
+              <Pressable key={key} style={styles.navItem} onPress={() => router.push(href as any)}>
+                <Icon color={color} />
+                <Text style={[styles.navLabel, { color }]}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Pressable onPress={() => router.push('/events' as any)}>
+          <Text style={styles.logo}>p(34)</Text>
+        </Pressable>
       </View>
-      <Pressable onPress={() => router.push('/events' as any)}>
-        <Text style={styles.logo}>p(34)</Text>
-      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
+    borderBottomWidth: 1,
+    borderColor: '#E5E5E5',
+    alignItems: 'center',
+  },
+  headerInner: {
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 32,
     paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderColor: '#E5E5E5',
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
