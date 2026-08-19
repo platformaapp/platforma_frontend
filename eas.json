@@ -34,8 +34,8 @@
     "production": {
       "ios": {
         "appleId": "ВАША_APPLE_ID_ПОЧТА",
-        "ascAppId": "НОМЕР_ПРИЛОЖЕНИЯ_В_APP_STORE_CONNECT",
-        "appleTeamId": "ВАШ_TEAM_ID"
+        "ascAppId": "6803153966",
+        "appleTeamId": "468JPH789W"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
