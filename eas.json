@@ -33,9 +33,11 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "ВАША_APPLE_ID_ПОЧТА",
         "ascAppId": "6803153966",
-        "appleTeamId": "468JPH789W"
+        "appleTeamId": "468JPH789W",
+        "ascApiKeyPath": "./secrets/AuthKey_5ZXRR5YAM9.p8",
+        "ascApiKeyId": "5ZXRR5YAM9",
+        "ascApiKeyIssuerId": "ВАШ_ISSUER_ID"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
