@@ -18,7 +18,8 @@
         },
         "NSCameraUsageDescription": "Используется для загрузки фото профиля и видеоконференций",
         "NSPhotoLibraryUsageDescription": "Используется для выбора фото профиля",
-        "NSMicrophoneUsageDescription": "Используется для видеоконференций"
+        "NSMicrophoneUsageDescription": "Используется для видеоконференций",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
