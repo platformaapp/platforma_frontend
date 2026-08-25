@@ -11,14 +11,15 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ru.platformaapp",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
         "NSCameraUsageDescription": "Используется для загрузки фото профиля и видеоконференций",
         "NSPhotoLibraryUsageDescription": "Используется для выбора фото профиля",
-        "NSMicrophoneUsageDescription": "Используется для видеоконференций"
+        "NSMicrophoneUsageDescription": "Используется для видеоконференций",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -82,8 +83,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "ЗАМЕНИТЕ_НА_ВАШ_EAS_PROJECT_ID"
+        "projectId": "9dcc8893-2521-4f5f-b6bd-a19b19f330f1"
       }
-    }
+    },
+    "owner": "platformaapp34"
   }
 }
