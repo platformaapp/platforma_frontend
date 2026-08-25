@@ -36,6 +36,40 @@ async function authHeaders(): Promise<Record<string, string>> {
   };
 }
 
+/**
+ * POST /api/auth/change-password — сменить пароль по старому/новому значению.
+ *
+ * Бэкенд не реализовал этот эндпоинт (только сброс пароля по ссылке на
+ * почту через /api/auth/forgot). При 404 бросаем ошибку с кодом
+ * NOT_IMPLEMENTED, чтобы экран мог предложить пользователю запасной вариант
+ * (ссылку на почту) вместо того, чтобы молча делать вид, что пароль сменился.
+ */
+export async function changeStudentPassword(oldPassword: string, newPassword: string): Promise<void> {
+  const res = await authedFetch(endpoints.changePassword, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      oldPassword,
+      old_password: oldPassword,
+      newPassword,
+      new_password: newPassword,
+    }),
+  });
+  if (res.status === 404 || res.status === 405) {
+    const err = new Error('Смена пароля пока недоступна');
+    (err as Error & { code?: string }).code = 'NOT_IMPLEMENTED';
+    throw err;
+  }
+  if (res.status === 401) {
+    await handle401(res);
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const msg = data?.message ?? data?.error ?? `HTTP ${res.status}`;
+    throw new Error(typeof msg === 'string' ? msg : 'Не удалось сменить пароль');
+  }
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 401) {
     await handle401(res);

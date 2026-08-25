@@ -25,6 +25,8 @@ export const endpoints = {
 
   // Student (Ученик) — профиль
   studentProfile: `${API_BASE}/api/student/profile`,
+  /** Смена пароля по старому/новому паролю (без письма на почту). Бэкенд пока не реализовал этот эндпоинт. */
+  changePassword: `${API_BASE}/api/auth/change-password`,
 
   // Tutor (Наставник) — профиль, слоты, события, платежи
   tutorProfile: `${API_BASE}/api/tutor/profile`,
