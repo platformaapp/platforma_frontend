@@ -14,6 +14,7 @@ export interface StudentProfile {
   full_name?: string;
   fullName?: string;
   phone?: string;
+  telegram?: string;
   avatar_url?: string;
   avatarUrl?: string;
 }
@@ -23,6 +24,7 @@ export interface StudentProfileUpdate {
   fullName?: string;
   email?: string;
   phone?: string;
+  telegram?: string;
   avatar_url?: string;
   avatarUrl?: string;
 }
@@ -106,6 +108,7 @@ export async function updateStudentProfile(data: StudentProfileUpdate): Promise<
     ...(data.full_name  !== undefined ? { full_name:   data.full_name }  : {}),
     ...(data.email      !== undefined ? { email:       data.email }      : {}),
     ...(data.phone      !== undefined ? { phone:       data.phone }      : {}),
+    ...(data.telegram   !== undefined ? { telegram:    data.telegram }   : {}),
     ...(data.avatarUrl  !== undefined ? { avatar_url:  data.avatarUrl }  : {}),
     ...(data.avatar_url !== undefined ? { avatar_url:  data.avatar_url } : {}),
   };
@@ -120,4 +123,22 @@ export async function updateStudentProfile(data: StudentProfileUpdate): Promise<
   }
 
   return updated as StudentProfile;
+}
+
+/**
+ * PUT /api/auth/change-password — сменить пароль, зная старый (для формы
+ * "Старый пароль / Новый пароль" в вебе). ВАЖНО: такого эндпоинта пока нет
+ * в бэкенде (проверено — есть только email-флоу forgot/reset), поэтому
+ * этот вызов сейчас гарантированно вернёт 404. В отличие от
+ * updateStudentProfile здесь НЕТ локального фолбэка: подделать смену
+ * пароля на клиенте нельзя — реальный пароль для входа не поменяется,
+ * и это ввело бы пользователя в заблуждение.
+ */
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  const res = await authedFetch(endpoints.changePassword, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+  await handleResponse<void>(res);
 }
