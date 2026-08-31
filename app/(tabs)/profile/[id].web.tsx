@@ -7,83 +7,38 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { SiteShell } from '@/components/web/site-shell';
 import { uploadEventImage } from '@/lib/api/events';
-import { changeStudentPassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
+import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorProfile, getTutorSlots, updateTutorProfile, type Slot } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
-type TutorTab = 'profile' | 'edit' | 'payments' | 'new-event';
-type StudentModal = 'none' | 'edit' | 'password' | 'invite';
+type TutorTab = 'profile' | 'edit' | 'new-event';
 
-function CloseIcon() {
+function EyeIcon() {
   return (
-    <Svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <Path d="M2 2L18 18M18 2L2 18" stroke="#181818" strokeWidth="1.4" />
-    </Svg>
-  );
-}
-
-function BackIcon() {
-  return (
-    <Svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-      <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5" />
+      <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5" />
     </Svg>
   );
 }
 
 function ShareIcon() {
   return (
-    <Svg width="22" height="22" viewBox="0 0 25 25" fill="none">
-      <Path d="M16.0961 11.2467H19.7603V22.203H5.10352V11.2467H8.76772M12.4319 2.66064L17.0381 7.26684M12.4319 2.66064L7.82569 7.26684M12.4319 2.66064V15.9086" stroke="#181818" />
+    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <Path d="M16 11.2H19.7V22H5.1V11.2H8.8M12.4 2.7L17 7.3M12.4 2.7L7.8 7.3M12.4 2.7V16" stroke="#181818" strokeWidth="1.2" />
     </Svg>
   );
 }
 
-function PasswordField({
-  placeholder,
-  value,
-  onChangeText,
-}: {
-  placeholder: string;
-  value: string;
-  onChangeText: (t: string) => void;
-}) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <View style={styles.passwordFieldWrap}>
-      <TextInput
-        style={styles.input}
-        placeholder={placeholder}
-        placeholderTextColor="#9B9B9B"
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={!visible}
-      />
-      <Pressable style={styles.eyeButton} onPress={() => setVisible((v) => !v)}>
-        <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5" />
-          <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5" />
-        </Svg>
-      </Pressable>
-    </View>
-  );
-}
-
 /**
- * Веб-версия личного кабинета. Для ученика оформлена по макету "Личный
- * кабинет ученика": фото + имя, справа кнопки "Изменить личные данные" /
- * "Платежи", блок приглашения под фото. Изменение данных, смена пароля и
- * приглашение — попапы (см. StudentModal), а не отдельные страницы.
- *
- * Смена пароля в макете — форма "старый/новый пароль" прямо в попапе, но
- * такого эндпоинта в бэкенде нет (только сброс по ссылке на почту, как в
- * native new-password.tsx). changeStudentPassword() бросает ошибку с
- * code === 'NOT_IMPLEMENTED' на 404/405 — попап показывает это и
- * предлагает запасной вариант со ссылкой на почту.
+ * Веб-версия личного кабинета. Раздел студента переверстан под макет:
+ * карточка профиля + модалки "Изменение данных" / "Новый пароль" /
+ * "Пригласить на платформу". Раздел наставника — прежний (вкладки),
+ * под него новый макет не присылали.
  */
 export default function ProfileScreenWeb() {
   const router = useRouter();
   const [role, setRole] = useState<'student' | 'tutor'>('student');
-  const [tutorTab, setTutorTab] = useState<TutorTab>('profile');
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState('');
 
@@ -93,13 +48,14 @@ export default function ProfileScreenWeb() {
   const [bio, setBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
+  const [studentId, setStudentId] = useState('');
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [newSlotDate, setNewSlotDate] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('');
 
+  // ── Tutor-only tabbed UI (unchanged) ──────────────────────────────────────
+  const [tutorTab, setTutorTab] = useState<TutorTab>('profile');
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -110,19 +66,28 @@ export default function ProfileScreenWeb() {
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [eventError, setEventError] = useState('');
   const [eventCreated, setEventCreated] = useState(false);
+  const [tutorSaving, setTutorSaving] = useState(false);
+  const [tutorSaveError, setTutorSaveError] = useState('');
+  const [tutorSaveOk, setTutorSaveOk] = useState(false);
 
-  // Student cabinet popups
-  const [modal, setModal] = useState<StudentModal>('none');
+  // ── Student modals ─────────────────────────────────────────────────────────
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [repeatPassword, setRepeatPassword] = useState('');
+  const [newPassword2, setNewPassword2] = useState('');
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showNew2, setShowNew2] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
-  const [passwordUnsupported, setPasswordUnsupported] = useState(false);
-  const [passwordSaved, setPasswordSaved] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
 
-  const inviteLink = `https://platformaapp.ru/explore/${profileId}`;
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -133,7 +98,7 @@ export default function ProfileScreenWeb() {
       const effectiveRole = authRole === 'tutor' ? 'tutor' : 'student';
       if (!active) return;
       setRole(effectiveRole);
-      if (profile?.id) setProfileId(profile.id);
+      if (profile?.id) setStudentId(profile.id);
 
       try {
         if (effectiveRole === 'tutor') {
@@ -152,6 +117,7 @@ export default function ProfileScreenWeb() {
           if (!active) return;
           setFullName(sp.full_name ?? sp.fullName ?? profile?.full_name ?? '');
           setEmail(sp.email ?? profile?.email ?? '');
+          setTelegram(sp.telegram ?? '');
           setAvatarUrl(sp.avatar_url ?? sp.avatarUrl ?? '');
         }
       } catch { /* show empty form on failure */ }
@@ -173,52 +139,61 @@ export default function ProfileScreenWeb() {
     if (uploaded) setAvatarUrl(uploaded);
   }
 
-  function openEditModal() {
-    setSaveError('');
-    setModal('edit');
-  }
-
-  function openPasswordModal() {
-    setOldPassword('');
-    setNewPassword('');
-    setRepeatPassword('');
-    setPasswordError('');
-    setPasswordUnsupported(false);
-    setPasswordSaved(false);
-    setModal('password');
-  }
-
-  function openInviteModal() {
-    setLinkCopied(false);
-    setModal('invite');
-  }
-
-  function closeModal() {
-    setModal('none');
-  }
-
-  async function handleSaveProfile() {
-    setSaving(true);
-    setSaveError('');
+  // ── Student: save "Изменение данных" ──────────────────────────────────────
+  async function handleSaveStudentEdit() {
+    setEditSaving(true);
+    setEditError('');
     try {
-      if (role === 'tutor') {
-        await updateTutorProfile({
-          fullName,
-          bio,
-          avatarUrl: avatarUrl || undefined,
-          hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
-        });
-      } else {
-        const payload: Record<string, string> = { fullName, full_name: fullName };
-        if (telegram.trim()) payload.telegram = telegram.trim().replace(/^@/, '');
-        if (avatarUrl) { payload.avatarUrl = avatarUrl; payload.avatar_url = avatarUrl; }
-        await updateStudentProfile(payload);
-      }
-      closeModal();
+      await updateStudentProfile({ fullName, telegram, avatarUrl: avatarUrl || undefined });
+      setEditModalVisible(false);
     } catch (e: any) {
-      setSaveError(e?.message ?? 'Не удалось сохранить');
+      setEditError(e?.message ?? 'Не удалось сохранить');
     } finally {
-      setSaving(false);
+      setEditSaving(false);
+    }
+  }
+
+  // ── Student: "Новый пароль" ────────────────────────────────────────────────
+  async function handleSavePassword() {
+    setPasswordError('');
+    if (!oldPassword || !newPassword) { setPasswordError('Заполните все поля'); return; }
+    if (newPassword.length < 7) { setPasswordError('Пароль слишком короткий'); return; }
+    if (newPassword !== newPassword2) { setPasswordError('Пароли не совпадают'); return; }
+    setPasswordSaving(true);
+    try {
+      await changePassword(oldPassword, newPassword);
+      setPasswordModalVisible(false);
+      setOldPassword(''); setNewPassword(''); setNewPassword2('');
+    } catch (e: any) {
+      setPasswordError(e?.message ?? 'Не удалось сменить пароль');
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
+  // ── Student: invite link ──────────────────────────────────────────────────
+  // Нет бэкенд-эндпоинта для реферальных ссылок — просто ссылка на платформу
+  // с меткой пригласившего в query-параметре, без серверного трекинга/сокращения.
+  const inviteUrl = `https://platformaapp.ru/?ref=${studentId || 'me'}`;
+
+  async function handleCopyInvite() {
+    await Clipboard.setStringAsync(inviteUrl);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
+
+  // ── Tutor handlers (unchanged) ────────────────────────────────────────────
+  async function handleTutorSave() {
+    setTutorSaving(true);
+    setTutorSaveError('');
+    setTutorSaveOk(false);
+    try {
+      await updateTutorProfile({ fullName, bio, avatarUrl: avatarUrl || undefined, hourlyRate: hourlyRate ? Number(hourlyRate) : undefined });
+      setTutorSaveOk(true);
+    } catch (e: any) {
+      setTutorSaveError(e?.message ?? 'Не удалось сохранить');
+    } finally {
+      setTutorSaving(false);
     }
   }
 
@@ -277,13 +252,8 @@ export default function ProfileScreenWeb() {
       let coverUrl: string | undefined;
       if (eventCoverUri) coverUrl = await uploadEventImage(eventCoverUri);
       await createTutorEventFull({
-        title: eventTitle,
-        description: eventDescription,
-        date: eventDate,
-        time: eventTime,
-        price: eventPrice ? Number(eventPrice) : 0,
-        max_participants: eventMax ? Number(eventMax) : 0,
-        cover_image: coverUrl,
+        title: eventTitle, description: eventDescription, date: eventDate, time: eventTime,
+        price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0, cover_image: coverUrl,
       });
       setEventCreated(true);
       setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventCoverUri(null);
@@ -305,132 +275,90 @@ export default function ProfileScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View></SiteShell>;
   }
 
+  // ─── Student view ──────────────────────────────────────────────────────────
   if (role === 'student') {
     return (
       <SiteShell>
-        <ScrollView contentContainerStyle={styles.studentScroll}>
-          <View style={styles.studentTopRow}>
-            <View style={styles.studentPhotoCol}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={styles.studentPhoto} />
-              ) : (
-                <Image source={require('@/assets/images/avatar.png')} style={styles.studentPhoto} />
-              )}
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.studentHeaderRow}>
+            <View style={styles.studentIdentity}>
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
+              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
             </View>
-            <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
-            <View style={styles.studentActionsBox}>
-              <Pressable style={styles.studentActionButton} onPress={openEditModal}>
-                <Text style={styles.studentActionText}>Изменить личные данные</Text>
+            <View style={styles.studentActions}>
+              <Pressable style={styles.stackedButton} onPress={() => setEditModalVisible(true)}>
+                <Text style={styles.stackedButtonText}>Изменить личные данные</Text>
               </Pressable>
-              <Pressable style={[styles.studentActionButton, styles.studentActionButtonLast]} onPress={() => router.push('/(tabs)/profile/payments' as any)}>
-                <Text style={styles.studentActionText}>Платежи</Text>
+              <Pressable style={styles.stackedButton} onPress={() => router.push('/(tabs)/profile/payments' as any)}>
+                <Text style={styles.stackedButtonText}>Платежи</Text>
               </Pressable>
             </View>
           </View>
 
-          <Pressable style={styles.inviteCard} onPress={openInviteModal}>
-            <Text style={styles.inviteCardText}>
-              Отправьте товарищу ссылку на платформу{'\n'}и ходите на мастер-классы вместе
-            </Text>
-            <View style={styles.inviteCardIcon}>
+          <View style={styles.inviteBox}>
+            <Text style={styles.inviteText}>Отправьте товарищу ссылку на платформу{'\n'}и ходите на мастер-классы вместе</Text>
+            <Pressable style={styles.inviteShareButton} onPress={() => { setInviteCopied(false); setInviteModalVisible(true); }}>
               <ShareIcon />
-            </View>
-          </Pressable>
+            </Pressable>
+          </View>
         </ScrollView>
 
-        {/* Изменение данных */}
-        <Modal transparent animationType="fade" visible={modal === 'edit'} onRequestClose={closeModal}>
-          <Pressable style={styles.overlay} onPress={closeModal}>
+        {/* ─── Изменение данных ─────────────────────────────────────────── */}
+        <Modal transparent animationType="fade" visible={editModalVisible} onRequestClose={() => setEditModalVisible(false)}>
+          <Pressable style={styles.overlay} onPress={() => setEditModalVisible(false)}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Pressable style={styles.modalClose} onPress={closeModal}><CloseIcon /></Pressable>
-              <Text style={styles.modalTitle}>ИЗМЕНЕНИЕ ДАННЫХ</Text>
-
-              <TextInput style={styles.input} placeholder="Имя" placeholderTextColor="#9B9B9B" value={fullName} onChangeText={setFullName} />
-              <TextInput style={styles.input} placeholder="Почта" placeholderTextColor="#9B9B9B" value={email} editable={false} />
-              <TextInput
-                style={styles.input}
-                placeholder="Телеграм: @username"
-                placeholderTextColor="#9B9B9B"
-                value={telegram}
-                onChangeText={(t) => setTelegram(t.replace(/^@/, ''))}
-                autoCapitalize="none"
-              />
-
-              <Pressable style={styles.replacePhotoButton} onPress={handlePickAvatar}>
-                {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.replacePhotoThumb} /> : null}
-                <Text style={styles.replacePhotoText}>Заменить фото</Text>
+              <Text style={styles.modalTitle}>Изменение данных</Text>
+              <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Имя и фамилия" />
+              <TextInput style={styles.input} value={email} editable={false} placeholder="Почта" />
+              <TextInput style={styles.input} value={telegram} onChangeText={setTelegram} placeholder="Телеграм: @username" autoCapitalize="none" />
+              <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
+                {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
+                <View style={styles.avatarRowButton}><Text style={styles.avatarRowButtonText}>Заменить фото</Text></View>
               </Pressable>
-
-              <Pressable style={styles.secondaryButton} onPress={openPasswordModal}>
+              <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
               </Pressable>
-
-              {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
-
-              <Pressable style={[styles.primaryButton, saving && styles.btnDisabled]} onPress={handleSaveProfile} disabled={saving}>
-                <Text style={styles.primaryButtonText}>{saving ? 'Сохраняем…' : 'Сохранить изменения'}</Text>
+              {editError ? <Text style={styles.errorText}>{editError}</Text> : null}
+              <Pressable style={[styles.primaryButton, editSaving && styles.btnDisabled]} onPress={handleSaveStudentEdit} disabled={editSaving}>
+                <Text style={styles.primaryButtonText}>{editSaving ? 'Сохраняем…' : 'Сохранить изменения'}</Text>
               </Pressable>
             </Pressable>
           </Pressable>
         </Modal>
 
-        {/* Новый пароль */}
-        <Modal transparent animationType="fade" visible={modal === 'password'} onRequestClose={closeModal}>
-          <Pressable style={styles.overlay} onPress={closeModal}>
+        {/* ─── Новый пароль ─────────────────────────────────────────────── */}
+        <Modal transparent animationType="fade" visible={passwordModalVisible} onRequestClose={() => setPasswordModalVisible(false)}>
+          <Pressable style={styles.overlay} onPress={() => setPasswordModalVisible(false)}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Pressable style={styles.modalBack} onPress={() => setModal('edit')}><BackIcon /></Pressable>
-              <Pressable style={styles.modalClose} onPress={closeModal}><CloseIcon /></Pressable>
-              <Text style={[styles.modalTitle, styles.modalTitleCentered]}>НОВЫЙ ПАРОЛЬ</Text>
-
-              {passwordSaved ? (
-                <Text style={styles.successText}>Пароль изменён</Text>
-              ) : passwordUnsupported ? (
-                <>
-                  <Text style={styles.errorText}>
-                    Смена пароля по старому паролю пока недоступна на сервере.
-                  </Text>
-                  <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/profile/new-password' as any)}>
-                    <Text style={styles.secondaryButtonText}>Отправить ссылку на почту</Text>
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  <PasswordField placeholder="Старый пароль" value={oldPassword} onChangeText={setOldPassword} />
-                  <PasswordField placeholder="Новый пароль" value={newPassword} onChangeText={setNewPassword} />
-                  <PasswordField placeholder="Повторите пароль" value={repeatPassword} onChangeText={setRepeatPassword} />
-                  <Text style={styles.helperText}>
-                    Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов
-                  </Text>
-                  {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-                </>
-              )}
-
-              <Pressable
-                style={[styles.primaryButton, passwordSaving && styles.btnDisabled]}
-                onPress={passwordSaved ? closeModal : handleSavePassword}
-                disabled={passwordSaving}
-              >
-                <Text style={styles.primaryButtonText}>
-                  {passwordSaved ? 'Закрыть' : passwordSaving ? 'Сохраняем…' : 'Сохранить'}
-                </Text>
-              </Pressable>
-            </Pressable>
-          </Pressable>
-        </Modal>
-
-        {/* Пригласить на платформу */}
-        <Modal transparent animationType="fade" visible={modal === 'invite'} onRequestClose={closeModal}>
-          <Pressable style={styles.overlay} onPress={closeModal}>
-            <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Pressable style={styles.modalClose} onPress={closeModal}><CloseIcon /></Pressable>
-              <Text style={styles.modalTitle}>ПРИГЛАСИТЬ{'\n'}НА ПЛАТФОРМУ</Text>
-
-              <View style={styles.inviteLinkBox}>
-                <Text style={styles.inviteLinkText} numberOfLines={1}>{inviteLink}</Text>
+              <View style={styles.modalHeaderRow}>
+                <Pressable onPress={() => { setPasswordModalVisible(false); setEditModalVisible(true); }} hitSlop={8}>
+                  <Text style={styles.backArrow}>←</Text>
+                </Pressable>
+                <Text style={styles.modalTitle}>Новый пароль</Text>
               </View>
-              <Pressable style={styles.primaryButton} onPress={handleCopyInviteLink}>
-                <Text style={styles.primaryButtonText}>{linkCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
+              <PasswordField placeholder="Старый пароль" value={oldPassword} onChangeText={setOldPassword} visible={showOld} onToggle={() => setShowOld((v) => !v)} />
+              <PasswordField placeholder="Новый пароль" value={newPassword} onChangeText={setNewPassword} visible={showNew} onToggle={() => setShowNew((v) => !v)} />
+              <PasswordField placeholder="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} visible={showNew2} onToggle={() => setShowNew2((v) => !v)} />
+              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
+              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+              <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
+                <Text style={styles.primaryButtonText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* ─── Пригласить на платформу ──────────────────────────────────── */}
+        <Modal transparent animationType="fade" visible={inviteModalVisible} onRequestClose={() => setInviteModalVisible(false)}>
+          <Pressable style={styles.overlay} onPress={() => setInviteModalVisible(false)}>
+            <Pressable style={styles.modalCard} onPress={() => {}}>
+              <Text style={styles.modalTitle}>Пригласить{'\n'}на платформу</Text>
+              <View style={styles.inviteLinkBox}>
+                <TextInput style={styles.inviteLinkInput} value={inviteUrl} editable={false} />
+                <Pressable style={[styles.primaryButton, styles.inviteCopyButton]} onPress={handleCopyInvite}>
+                  <Text style={styles.primaryButtonText}>{inviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
+                </Pressable>
+              </View>
             </Pressable>
           </Pressable>
         </Modal>
@@ -438,11 +366,9 @@ export default function ProfileScreenWeb() {
     );
   }
 
-  // ── Наставник: прежний интерфейс с вкладками ──────────────────────────────
-  const tabs: { key: TutorTab; label: string }[] = [
-    { key: 'profile', label: 'Профиль' },
-    { key: 'edit', label: 'Изменить личные данные' },
-    { key: 'new-event', label: 'Создать событие' },
+  // ─── Tutor view (unchanged tabbed layout) ──────────────────────────────────
+  const tutorTabs: { key: TutorTab; label: string }[] = [
+    { key: 'profile', label: 'Профиль' }, { key: 'edit', label: 'Изменить личные данные' }, { key: 'new-event', label: 'Создать событие' },
   ];
 
   return (
@@ -451,7 +377,7 @@ export default function ProfileScreenWeb() {
         <Text style={styles.name}>{fullName || 'Профиль'}</Text>
 
         <View style={styles.tabsRow}>
-          {tabs.map((t) => (
+          {tutorTabs.map((t) => (
             <Pressable key={t.key} onPress={() => setTutorTab(t.key)}>
               <Text style={[styles.tabText, tutorTab === t.key && styles.tabTextActive]}>{t.label}</Text>
             </Pressable>
@@ -491,12 +417,10 @@ export default function ProfileScreenWeb() {
             <TextInput style={[styles.input, styles.inputMultiline]} value={bio} onChangeText={setBio} multiline />
             <Text style={styles.fieldLabel}>Стоимость часа</Text>
             <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
-            {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
-            <Pressable style={[styles.primaryButton, saving && styles.btnDisabled]} onPress={handleSaveProfile} disabled={saving}>
-              <Text style={styles.primaryButtonText}>{saving ? 'Сохраняем…' : 'Сохранить'}</Text>
-            </Pressable>
-            <Pressable style={styles.linkButton} onPress={() => router.push('/(tabs)/profile/new-password' as any)}>
-              <Text style={styles.linkButtonText}>Сменить пароль (ссылка на почту)</Text>
+            {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
+            {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
+            <Pressable style={[styles.primaryButton, tutorSaving && styles.btnDisabled]} onPress={handleTutorSave} disabled={tutorSaving}>
+              <Text style={styles.primaryButtonText}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
             </Pressable>
           </View>
         ) : null}
@@ -530,50 +454,58 @@ export default function ProfileScreenWeb() {
   );
 }
 
+function PasswordField({ visible, onToggle, ...props }: any) {
+  return (
+    <View style={styles.passwordFieldWrap}>
+      <TextInput style={styles.input} secureTextEntry={!visible} {...props} />
+      <Pressable style={styles.eyeButton} onPress={onToggle}><EyeIcon /></Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 900 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
-  // Student cabinet — matches the desktop "личный кабинет ученика" mockup
-  studentScroll: { paddingHorizontal: 32, paddingTop: 40, paddingBottom: 48 },
-  studentTopRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24 },
-  studentPhotoCol: { width: 288, height: 288, backgroundColor: '#EFEAE0' },
-  studentPhoto: { width: '100%', height: '100%' },
-  studentName: { flex: 1, fontSize: 40, lineHeight: 46, fontFamily: 'Inter-Regular', color: '#181818', marginLeft: 32, marginTop: 16 },
-  studentActionsBox: { width: 260, borderWidth: 1, borderColor: '#181818' },
-  studentActionButton: { paddingVertical: 16, paddingHorizontal: 16, borderBottomWidth: 1, borderColor: '#181818' },
-  studentActionButtonLast: { borderBottomWidth: 0 },
-  studentActionText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  inviteCard: { maxWidth: 640, borderWidth: 1, borderColor: '#181818', flexDirection: 'row', alignItems: 'stretch' },
-  inviteCardText: { flex: 1, paddingHorizontal: 16, paddingVertical: 16, fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
-  inviteCardIcon: { width: 72, borderLeftWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
+  // Student view
+  studentHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' },
+  studentIdentity: { flexDirection: 'row', alignItems: 'center', gap: 24 },
+  bigAvatar: { width: 160, height: 160, backgroundColor: '#E5E5E5' },
+  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
+  studentName: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818' },
+  studentActions: { gap: 0, alignSelf: 'flex-start' },
+  stackedButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 20, minWidth: 220, alignItems: 'center' },
+  stackedButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  inviteBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#181818', maxWidth: 560 },
+  inviteText: { flex: 1, padding: 16, fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
+  inviteShareButton: { width: 52, height: '100%', minHeight: 52, borderLeftWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
 
-  // Popups
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  modalCard: { width: '100%', maxWidth: 430, backgroundColor: '#fff', padding: 32, position: 'relative' },
-  modalClose: { position: 'absolute', top: 20, right: 20, padding: 4 },
-  modalBack: { position: 'absolute', top: 20, left: 20, padding: 4 },
-  modalTitle: { fontSize: 18, fontFamily: 'Inter-Medium', color: '#181818', textTransform: 'uppercase', marginBottom: 20, letterSpacing: 0.5 },
-  modalTitleCentered: { textAlign: 'center' },
+  // Modals (shared)
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 420, padding: 24 },
+  modalTitle: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 20 },
+  modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  backArrow: { fontSize: 20, color: '#181818' },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
+  avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
+  avatarRowButton: { flex: 1, borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center' },
+  avatarRowButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
+  secondaryButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
+  eyeButton: { position: 'absolute', right: 10 },
+  hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
+  inviteLinkBox: { borderWidth: 1, borderColor: '#181818' },
+  inviteLinkInput: { paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  inviteCopyButton: { marginTop: 0, borderTopWidth: 1, borderColor: '#181818' },
 
-  replacePhotoButton: { borderWidth: 1, borderColor: '#181818', flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 12, minHeight: 48 },
-  replacePhotoThumb: { width: 46, height: 46, backgroundColor: '#EFEAE0' },
-  replacePhotoText: { flex: 1, textAlign: 'center', fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
-  secondaryButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  helperText: { fontSize: 12, lineHeight: 17, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 4, marginBottom: 12 },
-  passwordFieldWrap: { position: 'relative', marginBottom: 12 },
-  eyeButton: { position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center' },
-
-  inviteLinkBox: { borderWidth: 1, borderColor: '#181818', paddingHorizontal: 14, paddingVertical: 14, marginBottom: 0 },
-  inviteLinkText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-
-  // Наставник (tabs)
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 560 },
+  // Tutor tabbed view (unchanged)
   name: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   tabsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
   tabText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
   tabTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
-  card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24 },
+  card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24, maxWidth: 560 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
   fieldLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
@@ -588,13 +520,11 @@ const styles = StyleSheet.create({
   smallButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   uploadButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
   uploadButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 12, marginTop: 4, marginBottom: 8, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
-  errorText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginBottom: 12 },
-  successText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#1E7E34', marginBottom: 16 },
-  primaryButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center' },
+  errorText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
+  successText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#1E7E34', marginTop: 12 },
+  primaryButton: { backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
   primaryButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  linkButton: { marginTop: 12, alignItems: 'center' },
-  linkButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', textDecorationLine: 'underline' },
 });

@@ -6,6 +6,8 @@ export const endpoints = {
   refreshToken: `${API_BASE}/api/auth/refresh`,
   forgotPassword: `${API_BASE}/api/auth/forgot`,
   resetPassword: `${API_BASE}/api/auth/reset`,
+  /** Не подтверждено бэкендом — эндпоинта для смены пароля по старому паролю пока нет. */
+  changePassword: `${API_BASE}/api/auth/change-password`,
   users: `${API_BASE}/api/users`,
   tutors: `${API_BASE}/api/users/tutors`,
   uploadImage: `${API_BASE}/api/uploads/image`,
