@@ -82,7 +82,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
   if (!res.ok) {
     if (res.status === 401) await handle401(res, payload);
-    const msg = typeof payload === 'string' ? payload : payload?.error ?? payload?.message ?? 'Ошибка запроса';
+    const msg = typeof payload === 'string' ? payload : payload?.message ?? payload?.error ?? 'Ошибка запроса';
     if (res.status === 504) throw new Error('Сервер не отвечает. Попробуйте позже.');
     throw new Error(msg);
   }
