@@ -22,6 +22,30 @@ function EyeIcon() {
   );
 }
 
+/** Группирует слоты по дате (для отображения "13 мая: 14:00 15:00 20:00"), сортируя даты и время. */
+function groupSlotsByDate(slots: Slot[]): { date: string; slots: Slot[] }[] {
+  const map = new Map<string, Slot[]>();
+  for (const s of slots) {
+    const arr = map.get(s.date) ?? [];
+    arr.push(s);
+    map.set(s.date, arr);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, daySlots]) => ({ date, slots: [...daySlots].sort((a, b) => a.time.localeCompare(b.time)) }));
+}
+
+function formatSlotDateLabel(date: string): string {
+  const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  try {
+    const d = new Date(`${date}T00:00:00`);
+    if (isNaN(d.getTime())) return date;
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return date;
+  }
+}
+
 function ShareIcon() {
   return (
     <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -53,6 +77,7 @@ export default function ProfileScreenWeb() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [newSlotDate, setNewSlotDate] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('');
+  const [slotsModalVisible, setSlotsModalVisible] = useState(false);
 
   // ── Tutor-only tabbed UI (unchanged) ──────────────────────────────────────
   const [tutorTab, setTutorTab] = useState<TutorTab>('profile');
@@ -195,37 +220,6 @@ export default function ProfileScreenWeb() {
     } finally {
       setTutorSaving(false);
     }
-  }
-
-  async function handleSavePassword() {
-    setPasswordError('');
-    setPasswordUnsupported(false);
-    if (newPassword.length < 7) {
-      setPasswordError('Пароль должен быть не меньше 7 символов');
-      return;
-    }
-    if (newPassword !== repeatPassword) {
-      setPasswordError('Пароли не совпадают');
-      return;
-    }
-    setPasswordSaving(true);
-    try {
-      await changeStudentPassword(oldPassword, newPassword);
-      setPasswordSaved(true);
-    } catch (e: any) {
-      if (e?.code === 'NOT_IMPLEMENTED') {
-        setPasswordUnsupported(true);
-      } else {
-        setPasswordError(e?.message ?? 'Не удалось сменить пароль');
-      }
-    } finally {
-      setPasswordSaving(false);
-    }
-  }
-
-  async function handleCopyInviteLink() {
-    await Clipboard.setStringAsync(inviteLink);
-    setLinkCopied(true);
   }
 
   async function handleAddSlot() {
@@ -392,17 +386,15 @@ export default function ProfileScreenWeb() {
             <Text style={styles.fieldLabel}>Почта</Text>
             <Text style={styles.fieldValue}>{email}</Text>
             <Text style={styles.sectionTitle}>Свободные слоты</Text>
-            {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : slots.map((s) => (
-              <View key={s.id} style={styles.slotRow}>
-                <Text style={styles.slotText}>{s.date} {s.time.slice(0, 5)}</Text>
-                <Pressable onPress={() => handleRemoveSlot(s.id)}><Text style={styles.removeLink}>Удалить</Text></Pressable>
+            {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : groupSlotsByDate(slots).map((group) => (
+              <View key={group.date} style={styles.slotDateGroup}>
+                <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
+                <View style={styles.slotTimesRow}>
+                  {group.slots.map((s) => <Text key={s.id} style={styles.slotTimeText}>{s.time.slice(0, 5)}</Text>)}
+                </View>
               </View>
             ))}
-            <View style={styles.addSlotRow}>
-              <TextInput style={styles.slotInput} placeholder="ГГГГ-ММ-ДД" value={newSlotDate} onChangeText={setNewSlotDate} />
-              <TextInput style={styles.slotInput} placeholder="ЧЧ:ММ" value={newSlotTime} onChangeText={setNewSlotTime} />
-              <Pressable style={styles.smallButton} onPress={handleAddSlot}><Text style={styles.smallButtonText}>Добавить слот</Text></Pressable>
-            </View>
+            <Pressable onPress={() => setSlotsModalVisible(true)}><Text style={styles.addSlotLink}>Добавить слот</Text></Pressable>
           </View>
         ) : null}
 
@@ -450,6 +442,44 @@ export default function ProfileScreenWeb() {
           </View>
         ) : null}
       </ScrollView>
+
+      <Modal transparent animationType="fade" visible={slotsModalVisible} onRequestClose={() => setSlotsModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setSlotsModalVisible(false)}>
+          <Pressable style={[styles.modalCard, styles.slotsModalCard]} onPress={() => {}}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitle}>Редактировать слоты для записи</Text>
+            </View>
+
+            <ScrollView style={styles.slotsModalScroll}>
+              {groupSlotsByDate(slots).map((group) => (
+                <View key={group.date} style={styles.slotDateGroup}>
+                  <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
+                  <View style={styles.slotTimesRow}>
+                    {group.slots.map((s) => (
+                      <Pressable key={s.id} onPress={() => handleRemoveSlot(s.id)}>
+                        <Text style={styles.slotTimeText}>{s.time.slice(0, 5)}</Text>
+                      </Pressable>
+                    ))}
+                    <Pressable style={styles.slotAddChip} onPress={() => setNewSlotDate(group.date)}>
+                      <Text style={styles.slotAddChipText}>+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.fieldLabel}>Дата</Text>
+            <TextInput style={styles.input} placeholder="ГГГГ-ММ-ДД" value={newSlotDate} onChangeText={setNewSlotDate} />
+            <Text style={styles.fieldLabel}>Время</Text>
+            <TextInput style={styles.input} placeholder="ЧЧ:ММ" value={newSlotTime} onChangeText={setNewSlotTime} />
+
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setSlotsModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleAddSlot}><Text style={styles.modalSaveText}>Сохранить</Text></Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SiteShell>
   );
 }
@@ -500,6 +530,13 @@ const styles = StyleSheet.create({
   inviteLinkInput: { paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   inviteCopyButton: { marginTop: 0, borderTopWidth: 1, borderColor: '#181818' },
 
+  // Slots modal ("Редактировать слоты для записи")
+  slotsModalCard: { maxWidth: 640 },
+  slotsModalScroll: { maxHeight: 320, marginBottom: 12 },
+  modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+  modalCancelText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
+  modalSaveText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#E02D2D' },
+
   // Tutor tabbed view (unchanged)
   name: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   tabsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
@@ -511,13 +548,13 @@ const styles = StyleSheet.create({
   fieldValue: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
   sectionTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 24, marginBottom: 8 },
   emptyText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
-  slotRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderColor: '#F0F0F0' },
-  slotText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  removeLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
-  addSlotRow: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'center' },
-  slotInput: { borderWidth: 1, borderColor: '#181818', paddingVertical: 8, paddingHorizontal: 10, fontSize: 13, width: 110 },
-  smallButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 8, paddingHorizontal: 12 },
-  smallButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  slotDateGroup: { marginBottom: 12 },
+  slotDateLabel: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
+  slotTimesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center' },
+  slotTimeText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  addSlotLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 8 },
+  slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
+  slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
   uploadButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
   uploadButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 12, marginTop: 4, marginBottom: 8, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
