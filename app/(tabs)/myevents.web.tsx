@@ -25,7 +25,13 @@ type BookingItem = {
   _viewerRole?: 'student' | 'tutor';
 };
 
-type Tab = 'events' | 'meetings';
+/**
+ * Формат события — как на /events (Трансляция/Лекция/Медиация/Практики/
+ * Встреча/Обсуждение). Бэкенд пока не подтвердил поле `format` для
+ * /api/events/my — до этого фильтр по формату будет пустым для всех событий,
+ * у которых это поле не пришло (см. MyEventItem.format в lib/api/student-events.ts).
+ */
+const FORMATS = ['Трансляция', 'Лекция', 'Медиация', 'Практики', 'Встреча', 'Обсуждение'];
 
 const MONTHS_GEN = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
@@ -49,11 +55,6 @@ function formatBookingDate(date?: string, time?: string): string {
   return `${date} ${timeClean}`;
 }
 
-function formatPrice(price?: number): string | null {
-  if (price == null) return null;
-  return price === 0 ? 'Бесплатно' : `${price.toLocaleString('ru-RU')} ₽`;
-}
-
 function isAuthError(e: unknown): boolean {
   if (!e) return false;
   if (e instanceof AuthError) return true;
@@ -62,14 +63,14 @@ function isAuthError(e: unknown): boolean {
 }
 
 /**
- * Веб-версия "Мои записи". Упрощена по сравнению с нативным экраном:
- * отмена события/брони — через window.confirm вместо кастомных модалок,
- * без выпадающего меню "•••". Данные и группировка (роль наставника —
- * "Мои студенты"/"Мои наставники" через my_role) — те же, что в приложении.
+ * Веб-версия "Мои записи" — сетка карточек с фильтром по формату события
+ * (как на /events), плюс отдельный блок личных встреч (не подчиняется
+ * фильтру формата — это 1:1-запись к наставнику, а не публичный контент).
+ * Отмена события/брони — через window.confirm вместо кастомных модалок.
  */
 export default function MyEventsScreenWeb() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>('events');
+  const [format, setFormat] = useState<string | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,14 +183,13 @@ export default function MyEventsScreenWeb() {
     return d ? new Date(`${d}T${t ?? '00:00'}:00`).getTime() : Infinity;
   };
 
-  const upcomingEvents = [...events].filter((e) => getEventMs(e) >= now).sort((a, b) => getEventMs(a) - getEventMs(b));
-  const pastEvents = [...events].filter((e) => getEventMs(e) < now).sort((a, b) => getEventMs(b) - getEventMs(a));
+  const filteredEvents = format ? events.filter((e) => e.format === format) : events;
+  const upcomingEvents = [...filteredEvents].filter((e) => getEventMs(e) >= now).sort((a, b) => getEventMs(a) - getEventMs(b));
+  const pastEvents = [...filteredEvents].filter((e) => getEventMs(e) < now).sort((a, b) => getEventMs(b) - getEventMs(a));
   const upcomingBookings = [...bookings].filter((b) => getBookingMs(b) >= now).sort((a, b) => getBookingMs(a) - getBookingMs(b));
   const pastBookings = [...bookings].filter((b) => getBookingMs(b) < now).sort((a, b) => getBookingMs(b) - getBookingMs(a));
 
-  const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
-  const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
-  const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
+  const isEmpty = upcomingEvents.length === 0 && pastEvents.length === 0 && upcomingBookings.length === 0 && pastBookings.length === 0;
 
   function otherPartyOf(b: BookingItem) {
     const isViewerTutor = b._viewerRole === 'tutor';
@@ -203,15 +203,12 @@ export default function MyEventsScreenWeb() {
   function renderEventCard(item: EventItem) {
     return (
       <View key={item.id} style={styles.card}>
-        <Pressable style={styles.cardTop} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-          {item.mentor?.avatarUrl ? <Image source={{ uri: item.mentor.avatarUrl }} style={styles.cardImage} /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
+        <Pressable onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
           <View style={styles.cardBody}>
-            <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
             <Text style={styles.cardAuthor}>{item.mentor?.name ?? ''}</Text>
-            <View style={styles.cardMetaRow}>
-              <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
-              {formatPrice(item.price) ? <Text style={styles.cardPrice}>{formatPrice(item.price)}</Text> : null}
-            </View>
+            <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+            <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
           </View>
         </Pressable>
         <Pressable style={styles.cancelLink} onPress={() => cancelEvent(item.id)}>
@@ -226,33 +223,31 @@ export default function MyEventsScreenWeb() {
     const title = `Личная встреча с ${other.name}`;
     return (
       <View key={item.id} style={styles.card}>
-        <View style={styles.cardTop}>
-          {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
-          <View style={styles.cardBody}>
-            <Text style={styles.cardTitle}>{title}</Text>
-            <Text style={styles.cardDate}>{formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time)}</Text>
-          </View>
+        {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle}>{other.name}</Text>
+          <Text style={styles.cardMeetingLabel}>Личная встреча</Text>
+          <Text style={styles.cardDate}>{formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time)}</Text>
         </View>
-        <View style={styles.cardActionsRow}>
-          <Pressable style={styles.joinButton} onPress={() => joinBooking(item, title)}>
-            <Text style={styles.joinButtonText}>Подключиться к встрече</Text>
-          </Pressable>
-          <Pressable style={styles.cancelLink} onPress={() => cancelBooking(item)}>
-            <Text style={styles.cancelLinkText}>Отменить</Text>
-          </Pressable>
-        </View>
+        <Pressable style={styles.joinButton} onPress={() => joinBooking(item, title)}>
+          <Text style={styles.joinButtonText}>Подключиться к встрече</Text>
+        </Pressable>
+        <Pressable style={styles.cancelLink} onPress={() => cancelBooking(item)}>
+          <Text style={styles.cancelLinkText}>Отменить</Text>
+        </Pressable>
       </View>
     );
   }
 
   function renderBookingGroups(items: BookingItem[]) {
-    if (role !== 'tutor') return items.map(renderBookingCard);
+    if (items.length === 0) return null;
+    if (role !== 'tutor') return <View style={styles.grid}>{items.map(renderBookingCard)}</View>;
     const asTutor = items.filter((b) => b._viewerRole === 'tutor');
     const asStudent = items.filter((b) => b._viewerRole === 'student');
     return (
       <>
-        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text>{asTutor.map(renderBookingCard)}</>}
-        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text>{asStudent.map(renderBookingCard)}</>}
+        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={styles.grid}>{asTutor.map(renderBookingCard)}</View></>}
+        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={styles.grid}>{asStudent.map(renderBookingCard)}</View></>}
       </>
     );
   }
@@ -262,14 +257,20 @@ export default function MyEventsScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Мои записи</Text>
 
-        <View style={styles.tabsRow}>
-          <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
-          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, activeTab === 'meetings' && styles.tabTextActive]}>Личные встречи</Text></Pressable>
+        <View style={styles.filtersRow}>
+          {FORMATS.map((f) => {
+            const active = f === format;
+            return (
+              <Pressable key={f} style={[styles.filterPill, active && styles.filterPillActive]} onPress={() => setFormat(active ? null : f)}>
+                <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{f}</Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
-        ) : error && activeTab === 'events' && isEmpty ? (
+        ) : error && isEmpty ? (
           <Text style={styles.errorText}>Не удалось загрузить события: {error}</Text>
         ) : isEmpty ? (
           <View style={styles.emptyBox}>
@@ -280,15 +281,14 @@ export default function MyEventsScreenWeb() {
             </Pressable>
           </View>
         ) : (
-          <View style={styles.list}>
-            {activeTab === 'events' ? currentUpcoming.map((e) => renderEventCard(e as EventItem)) : renderBookingGroups(currentUpcoming as BookingItem[])}
-            {currentPast.length > 0 && (
-              <>
-                <Text style={styles.pastSeparator}>ПРОШЕДШИЕ</Text>
-                {activeTab === 'events' ? currentPast.map((e) => renderEventCard(e as EventItem)) : renderBookingGroups(currentPast as BookingItem[])}
-              </>
-            )}
-          </View>
+          <>
+            {upcomingEvents.length > 0 && <View style={styles.grid}>{upcomingEvents.map(renderEventCard)}</View>}
+            {renderBookingGroups(upcomingBookings)}
+
+            {(pastEvents.length > 0 || pastBookings.length > 0) && <Text style={styles.pastSeparator}>ПРОШЕДШИЕ</Text>}
+            {pastEvents.length > 0 && <View style={styles.grid}>{pastEvents.map(renderEventCard)}</View>}
+            {renderBookingGroups(pastBookings)}
+          </>
         )}
       </ScrollView>
     </SiteShell>
@@ -296,11 +296,13 @@ export default function MyEventsScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
+  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48 },
   title: { fontSize: 28, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
-  tabsRow: { flexDirection: 'row', gap: 24, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
-  tabText: { fontFamily: 'Inter-Regular', fontSize: 15, color: '#687076' },
-  tabTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
+  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 24 },
+  filterPill: { paddingVertical: 4 },
+  filterPillActive: { borderBottomWidth: 2, borderColor: '#181818' },
+  filterPillText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
+  filterPillTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   emptyBox: { paddingVertical: 32 },
@@ -308,22 +310,19 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 20, maxWidth: 420 },
   primaryButton: { backgroundColor: '#E02D2D', paddingVertical: 14, paddingHorizontal: 24, alignSelf: 'flex-start' },
   primaryButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  list: { gap: 12 },
-  groupHeader: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 12, marginBottom: 4 },
-  pastSeparator: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', letterSpacing: 1, marginTop: 16, marginBottom: 4 },
-  card: { borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 4 },
-  cardTop: { flexDirection: 'row' },
-  cardImage: { width: 88, height: 88 },
+  groupHeader: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 8, marginBottom: 12 },
+  pastSeparator: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', letterSpacing: 1, marginTop: 24, marginBottom: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
+  card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#fff' },
+  cardImage: { width: '100%', height: 180 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
-  cardBody: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, justifyContent: 'center' },
-  cardTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
+  cardBody: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
   cardAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
-  cardMetaRow: { flexDirection: 'row', gap: 16 },
+  cardTitle: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  cardMeetingLabel: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
   cardDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
-  cardPrice: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-  cardActionsRow: { flexDirection: 'row', borderTopWidth: 1, borderColor: '#1E1E1E' },
-  joinButton: { flex: 1, backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  joinButton: { backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   joinButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  cancelLink: { paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderColor: '#1E1E1E' },
+  cancelLink: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
   cancelLinkText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#687076' },
 });

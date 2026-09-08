@@ -30,6 +30,12 @@ export interface MyEventItem {
   id: string;
   title: string;
   type?: string;
+  /**
+   * Формат контента события (Трансляция/Лекция/Медиация/Практики/Встреча/
+   * Обсуждение) — как на /events. Бэкенд пока не подтвердил это поле для
+   * /api/events/my, поэтому читаем его опционально (см. normalizeMyEventItem).
+   */
+  format?: string;
   teacher?: unknown;
   student?: unknown;
   start_at?: string;
@@ -76,6 +82,7 @@ export function normalizeMyEventItem(raw: Record<string, unknown>): MyEventItem 
     id: String(r.id ?? raw.event_id ?? nested?.id ?? ''),
     title: (r.title as string) ?? (nested?.title as string) ?? '',
     type: r.type as string | undefined,
+    format: (r.format as string) ?? (nested?.format as string) ?? undefined,
     teacher: r.teacher ?? r.mentor ?? r.tutor ?? nested?.teacher ?? nested?.mentor,
     student: r.student,
     start_at: start,
