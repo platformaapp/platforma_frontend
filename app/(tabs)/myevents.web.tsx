@@ -200,14 +200,18 @@ export default function MyEventsScreenWeb() {
     };
   }
 
-  function renderEventCard(item: EventItem) {
+  function renderEventCard(item: EventItem, featured = false) {
     return (
-      <View key={item.id} style={styles.card}>
+      <View key={item.id} style={[styles.card, featured && styles.cardFeatured]}>
         <Pressable onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
+          {item.coverUrl ? (
+            <Image source={{ uri: item.coverUrl }} style={[styles.cardImage, featured && styles.cardImageFeatured]} resizeMode="cover" />
+          ) : (
+            <View style={[styles.cardImage, featured && styles.cardImageFeatured, styles.cardImagePlaceholder]} />
+          )}
           <View style={styles.cardBody}>
             <Text style={styles.cardAuthor}>{item.mentor?.name ?? ''}</Text>
-            <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+            <Text style={[styles.cardTitle, featured && styles.cardTitleFeatured]} numberOfLines={3}>{item.title}</Text>
             <Text style={styles.cardDate}>{formatDatetime(item.datetimeStart)}</Text>
           </View>
         </Pressable>
@@ -282,11 +286,11 @@ export default function MyEventsScreenWeb() {
           </View>
         ) : (
           <>
-            {upcomingEvents.length > 0 && <View style={styles.grid}>{upcomingEvents.map(renderEventCard)}</View>}
+            {upcomingEvents.length > 0 && <View style={styles.grid}>{upcomingEvents.map((e, i) => renderEventCard(e, i === 0))}</View>}
             {renderBookingGroups(upcomingBookings)}
 
             {(pastEvents.length > 0 || pastBookings.length > 0) && <Text style={styles.pastSeparator}>ПРОШЕДШИЕ</Text>}
-            {pastEvents.length > 0 && <View style={styles.grid}>{pastEvents.map(renderEventCard)}</View>}
+            {pastEvents.length > 0 && <View style={styles.grid}>{pastEvents.map((e) => renderEventCard(e))}</View>}
             {renderBookingGroups(pastBookings)}
           </>
         )}
@@ -314,11 +318,14 @@ const styles = StyleSheet.create({
   pastSeparator: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', letterSpacing: 1, marginTop: 24, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
   card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#fff' },
+  cardFeatured: { flexBasis: 700, flexGrow: 2, maxWidth: 760 },
   cardImage: { width: '100%', height: 180 },
+  cardImageFeatured: { height: 320 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
   cardBody: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
   cardAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
   cardTitle: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  cardTitleFeatured: { fontSize: 20, lineHeight: 26 },
   cardMeetingLabel: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
   cardDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   joinButton: { backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
