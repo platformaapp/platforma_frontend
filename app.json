@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Платформа34",
+    "name": "Platforma34",
     "slug": "platforma-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,6 +13,7 @@
       "bundleIdentifier": "ru.platformaapp",
       "buildNumber": "3",
       "infoPlist": {
+        "CFBundleDisplayName": "Платформа34",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
