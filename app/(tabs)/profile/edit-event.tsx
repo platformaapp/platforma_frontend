@@ -72,7 +72,6 @@ export default function EditEventScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [hasPaidRegistrations, setHasPaidRegistrations] = useState(false);
-  const [originalPrice, setOriginalPrice] = useState('');
 
   const webDateRef = useRef<any>(null);
   const webTimeRef = useRef<any>(null);
@@ -100,9 +99,7 @@ export default function EditEventScreen() {
         setTitle(event.title ?? '');
         setDescription(event.description ?? '');
         if (event.price != null) {
-          const p = String(event.price);
-          setPrice(p);
-          setOriginalPrice(p);
+          setPrice(String(event.price));
         }
         const paidRaw =
           event.hasPaidRegistrations ?? event.has_paid_registrations ??
@@ -173,8 +170,13 @@ export default function EditEventScreen() {
     if (!hasPaidRegistrations) {
       if (title.trim()) patch.title = title.trim();
       if (description.trim()) patch.description = description.trim();
-      // Only send price if it actually changed — backend rejects price change when paid registrations exist
-      if (price !== originalPrice) patch.price = priceValue;
+      // Always send price when the event is editable — the backend already
+      // no-ops when the value is unchanged (see isPriceChanged in
+      // events.service.ts), so there's no need to detect "did it change"
+      // here too. Relying on that client-side comparison was the actual bug:
+      // it could read a stale `price` state and silently drop the field from
+      // the PATCH payload even after the user had edited it.
+      patch.price = priceValue;
       if (maxParticipants) patch.max_participants = Math.max(1, parseInt(maxParticipants) || 30);
       if (date && timeStr) {
         const range = toDatetimeRange(date, timeStr);
