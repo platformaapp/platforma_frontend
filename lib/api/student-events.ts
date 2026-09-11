@@ -6,6 +6,7 @@
 import { endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { API_BASE } from '@/constants/env';
+import { friendlyHttpErrorMessage, looksLikeHtml } from '@/lib/api/http-error';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -130,10 +131,10 @@ export async function getMyEventsForStudent(
   if (!res.ok) {
     const msg =
       typeof payload === 'string'
-        ? payload
+        ? (looksLikeHtml(payload) ? friendlyHttpErrorMessage(res.status) : payload)
         : (payload as { message?: string })?.message ??
           (payload as { error?: string })?.error ??
-          `Ошибка загрузки (${res.status})`;
+          friendlyHttpErrorMessage(res.status);
     throw new Error(msg);
   }
 

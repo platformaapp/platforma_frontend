@@ -18,6 +18,7 @@ import Svg, { Mask, Path } from 'react-native-svg';
 
 import { endpoints, API_BASE } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
+import { friendlyHttpErrorMessage } from '@/lib/api/http-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { authedFetch } from '@/lib/authed-fetch';
 import { getAuthToken, getAuthRole, getUserProfile } from '@/lib/auth';
@@ -299,13 +300,15 @@ export default function MyEventsScreen() {
         setEvents([]);
       }
 
+      const roleLabel = (r: 'student' | 'tutor') => (r === 'tutor' ? 'как наставник' : 'как ученик');
+
       const addBookings = async (res: PromiseSettledResult<Response>, viewerRole: 'student' | 'tutor') => {
         if (res.status !== 'fulfilled') {
-          bookingErrors.push(`${viewerRole}: сетевая ошибка`);
+          bookingErrors.push(`Нет соединения с сервером (${roleLabel(viewerRole)})`);
           return;
         }
         if (!res.value.ok) {
-          bookingErrors.push(`${viewerRole}: HTTP ${res.value.status}`);
+          bookingErrors.push(`${friendlyHttpErrorMessage(res.value.status)} (${roleLabel(viewerRole)})`);
           return;
         }
         const data = await res.value.json().catch(() => null);
