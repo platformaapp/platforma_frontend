@@ -7,6 +7,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 
 import { SiteShell } from '@/components/web/site-shell';
 import { uploadEventImage } from '@/lib/api/events';
+import { deletePaymentMethod, getPaymentMethods, type Card } from '@/lib/api/student-payments';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorProfile, getTutorSlots, updateTutorProfile, type Slot } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -99,6 +100,10 @@ export default function ProfileScreenWeb() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [paymentsModalVisible, setPaymentsModalVisible] = useState(false);
+  const [paymentCards, setPaymentCards] = useState<Card[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -207,6 +212,30 @@ export default function ProfileScreenWeb() {
     setTimeout(() => setInviteCopied(false), 2000);
   }
 
+  // ── Student: "Платежи" modal ───────────────────────────────────────────────
+  async function openPaymentsModal() {
+    setPaymentsModalVisible(true);
+    setPaymentsLoading(true);
+    try {
+      setPaymentCards(await getPaymentMethods());
+    } catch {
+      setPaymentCards([]);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }
+
+  async function handleDeleteCard(card: Card) {
+    setDeletingCardId(card.id);
+    try {
+      await deletePaymentMethod(card.id);
+      setPaymentCards((prev) => prev.filter((c) => c.id !== card.id));
+    } catch { /* keep card in list, user can retry */ }
+    finally {
+      setDeletingCardId(null);
+    }
+  }
+
   // ── Tutor handlers (unchanged) ────────────────────────────────────────────
   async function handleTutorSave() {
     setTutorSaving(true);
@@ -283,7 +312,7 @@ export default function ProfileScreenWeb() {
               <Pressable style={styles.stackedButton} onPress={() => setEditModalVisible(true)}>
                 <Text style={styles.stackedButtonText}>Изменить личные данные</Text>
               </Pressable>
-              <Pressable style={styles.stackedButton} onPress={() => router.push('/(tabs)/profile/payments' as any)}>
+              <Pressable style={styles.stackedButton} onPress={openPaymentsModal}>
                 <Text style={styles.stackedButtonText}>Платежи</Text>
               </Pressable>
             </View>
@@ -356,6 +385,42 @@ export default function ProfileScreenWeb() {
             </Pressable>
           </Pressable>
         </Modal>
+
+        {/* ─── Платежи ──────────────────────────────────────────────────── */}
+        <Modal transparent animationType="fade" visible={paymentsModalVisible} onRequestClose={() => setPaymentsModalVisible(false)}>
+          <Pressable style={styles.overlay} onPress={() => setPaymentsModalVisible(false)}>
+            <Pressable style={styles.modalCard} onPress={() => {}}>
+              <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+                <Text style={styles.modalTitle}>Платежи</Text>
+                <Pressable onPress={() => setPaymentsModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+              </View>
+
+              {paymentsLoading ? (
+                <ActivityIndicator color="#181818" />
+              ) : paymentCards.length === 0 ? (
+                <Text style={styles.emptyText}>Карта не привязана</Text>
+              ) : (
+                paymentCards.map((card) => (
+                  <View key={card.id} style={styles.paymentCardRow}>
+                    <View>
+                      <Text style={styles.paymentCardLabel}>Карта</Text>
+                      <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
+                      {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
+                    </View>
+                    <View style={styles.paymentCardActions}>
+                      <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
+                        <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
+                      </Pressable>
+                      <Pressable onPress={() => { setPaymentsModalVisible(false); router.push('/(tabs)/profile/payments' as any); }}>
+                        <Text style={styles.paymentCardEdit}>Изменить</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ))
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
       </SiteShell>
     );
   }
@@ -385,6 +450,7 @@ export default function ProfileScreenWeb() {
             <Text style={styles.fieldValue}>{fullName}</Text>
             <Text style={styles.fieldLabel}>Почта</Text>
             <Text style={styles.fieldValue}>{email}</Text>
+            {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
             <Text style={styles.sectionTitle}>Свободные слоты</Text>
             {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : groupSlotsByDate(slots).map((group) => (
               <View key={group.date} style={styles.slotDateGroup}>
@@ -515,6 +581,7 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 420, padding: 24 },
   modalTitle: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 20 },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  modalHeaderRowSpread: { justifyContent: 'space-between' },
   backArrow: { fontSize: 20, color: '#181818' },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
@@ -529,6 +596,13 @@ const styles = StyleSheet.create({
   inviteLinkBox: { borderWidth: 1, borderColor: '#181818' },
   inviteLinkInput: { paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   inviteCopyButton: { marginTop: 0, borderTopWidth: 1, borderColor: '#181818' },
+  paymentCardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
+  paymentCardLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  paymentCardNumber: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 2 },
+  paymentCardBank: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 2 },
+  paymentCardActions: { flexDirection: 'row', gap: 20, marginTop: 4 },
+  paymentCardDelete: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
+  paymentCardEdit: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
 
   // Slots modal ("Редактировать слоты для записи")
   slotsModalCard: { maxWidth: 640 },
@@ -546,6 +620,7 @@ const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
   fieldLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
+  bioText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818', marginTop: 16 },
   sectionTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 24, marginBottom: 8 },
   emptyText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   slotDateGroup: { marginBottom: 12 },
