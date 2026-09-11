@@ -116,7 +116,6 @@ export default function NewEventScreen() {
     if (!effectiveTime) { Alert.alert('Ошибка', 'Выберите время'); return; }
     const range = toDatetimeRange(date, effectiveTime);
     if (!range) { Alert.alert('Ошибка', 'Неверный формат времени'); return; }
-    if (priceValue <= 0) { Alert.alert('Ошибка', 'Введите стоимость участия'); return; }
 
     const max = maxParticipants ? Math.max(1, parseInt(maxParticipants) || 30) : 30;
 
@@ -371,17 +370,19 @@ export default function NewEventScreen() {
         <View style={styles.priceRow}>
           {price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
-              <Text style={styles.priceDisplay} numberOfLines={1}>Стоимость участия — {priceValue} ₽</Text>
+              <Text style={styles.priceDisplay} numberOfLines={1}>
+                {priceValue > 0 ? `Стоимость участия — ${priceValue} ₽` : 'Стоимость участия — Бесплатно'}
+              </Text>
             </Pressable>
           ) : (
             <TextInput
               value={price}
               onChangeText={(t) => setPrice(t.replace(/\D/g, ''))}
               style={styles.priceInput}
-              placeholder="Стоимость участия"
+              placeholder="Стоимость участия (0 — бесплатно)"
               placeholderTextColor="#9B9B9B"
               keyboardType="numeric"
-              onBlur={() => { if (price && parseInt(price) > 0) setIsEditingPrice(false); }}
+              onBlur={() => { if (price && parseInt(price) >= 0) setIsEditingPrice(false); }}
             />
           )}
           {price && priceValue > 0 ? (
@@ -389,6 +390,8 @@ export default function NewEventScreen() {
               <Text style={styles.commissionText}>Комиссия 10%</Text>
               <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} ₽</Text>
             </View>
+          ) : price && priceValue === 0 ? (
+            <Text style={styles.commissionText}>Без комиссии</Text>
           ) : (
             <Text style={styles.commissionText}>Комиссия 10%</Text>
           )}
