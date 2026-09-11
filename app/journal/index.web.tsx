@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 
 const CATEGORIES = ['Все', 'Кино', 'Музыка', 'Искусство', 'Литература', 'Театр', 'Танец', 'Новые увлечения'];
 
@@ -23,9 +23,11 @@ const MOCK_ARTICLES = [
 
 export default function JournalScreenWeb() {
   const router = useRouter();
+  const isMobile = useIsMobileWeb();
   const [category, setCategory] = useState('Все');
 
   const filtered = category === 'Все' ? MOCK_ARTICLES : MOCK_ARTICLES.filter((a) => a.category === category);
+  const [featured, ...rest] = filtered;
 
   return (
     <SiteShell>
@@ -39,16 +41,29 @@ export default function JournalScreenWeb() {
           ))}
         </View>
 
-        <View style={styles.grid}>
-          {filtered.map((a) => (
-            <Pressable key={a.id} style={styles.card} onPress={() => router.push(`/journal/${a.id}` as any)}>
-              <View style={styles.cardImage} />
-              <Text style={styles.cardCategory}>{a.category}</Text>
-              <Text style={styles.cardTitle} numberOfLines={2}>{a.title}</Text>
-              <Text style={styles.cardAuthor}>{a.author}</Text>
+        {featured ? (
+          <View style={[styles.contentRow, isMobile && styles.contentRowMobile]}>
+            <Pressable
+              style={[styles.featured, isMobile && styles.featuredMobile]}
+              onPress={() => router.push(`/journal/${featured.id}` as any)}
+            >
+              <View style={styles.featuredImage} />
+              <Text style={styles.featuredCategory}>{featured.category}</Text>
+              <Text style={styles.featuredTitle}>{featured.title}</Text>
+              <Text style={styles.featuredAuthor}>{featured.author}</Text>
             </Pressable>
-          ))}
-        </View>
+
+            <View style={styles.listCol}>
+              {rest.map((a) => (
+                <Pressable key={a.id} style={styles.listItem} onPress={() => router.push(`/journal/${a.id}` as any)}>
+                  <Text style={styles.listCategory}>{a.category}</Text>
+                  <Text style={styles.listTitle} numberOfLines={2}>{a.title}</Text>
+                  <Text style={styles.listAuthor}>{a.author}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <SiteFooter />
       </ScrollView>
@@ -62,10 +77,17 @@ const styles = StyleSheet.create({
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24 },
   filterText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
   filterTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  card: { flexBasis: 260, flexGrow: 1, minWidth: 220 },
-  cardImage: { width: '100%', height: 160, backgroundColor: '#E5E5E5', marginBottom: 8 },
-  cardCategory: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
-  cardTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
-  cardAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  contentRow: { flexDirection: 'row', gap: 40 },
+  contentRowMobile: { flexDirection: 'column', gap: 24 },
+  featured: { flex: 1.3 },
+  featuredMobile: { flex: undefined },
+  featuredImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5', marginBottom: 12 },
+  featuredCategory: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
+  featuredTitle: { fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 6 },
+  featuredAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  listCol: { flex: 1 },
+  listItem: { paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#E5E5E5' },
+  listCategory: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
+  listTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
+  listAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
 });

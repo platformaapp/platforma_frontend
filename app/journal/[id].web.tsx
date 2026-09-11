@@ -5,6 +5,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell } from '@/components/web/site-shell';
 
+const MOCK_EVENT = {
+  title: 'Групповое обсуждение выставки «Оттепель»',
+  author: 'Евгений Максимов',
+  date: '24 сентября, 19:00',
+};
+
 const LOREM = 'Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации «Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст..» Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию.';
 
 /**
@@ -54,13 +60,33 @@ export default function ArticleScreenWeb() {
           </View>
         </View>
 
-        <View style={styles.actionsRow}>
-          <Pressable style={styles.actionLink} onPress={() => router.push('/events' as any)}>
+        <View style={styles.ctaBlock}>
+          <Pressable onPress={() => router.push('/events' as any)}>
             <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
           </Pressable>
-          <Pressable style={styles.actionLink}>
-            <Text style={styles.actionLinkText}>Скачать приложение</Text>
+          <Pressable style={styles.eventCard} onPress={() => router.push('/events' as any)}>
+            <View style={styles.eventCardImage} />
+            <View style={styles.eventCardInfo}>
+              <Text style={styles.eventCardTitle} numberOfLines={2}>{MOCK_EVENT.title}</Text>
+              <Text style={styles.eventCardAuthor}>{MOCK_EVENT.author}</Text>
+              <Text style={styles.eventCardDate}>{MOCK_EVENT.date}</Text>
+            </View>
           </Pressable>
+        </View>
+
+        <View style={styles.ctaBlock}>
+          <Text style={styles.actionLinkText}>Скачать приложение</Text>
+          <View style={styles.appCard}>
+            <View style={styles.appCardIcon} />
+            <View style={styles.appCardStores}>
+              <Pressable style={styles.storeButton}>
+                <Text style={styles.storeButtonText}>App Store</Text>
+              </Pressable>
+              <Pressable style={styles.storeButton}>
+                <Text style={styles.storeButtonText}>Google Play</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
 
         <SiteFooter />
@@ -85,7 +111,17 @@ const styles = StyleSheet.create({
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5' },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, marginTop: 8, marginBottom: 24 },
-  actionLink: { paddingVertical: 8 },
-  actionLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  ctaBlock: { marginTop: 8, marginBottom: 24 },
+  actionLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D', paddingVertical: 8 },
+  eventCard: { flexDirection: 'row', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
+  eventCardImage: { width: 96, height: 96, backgroundColor: '#E5E5E5' },
+  eventCardInfo: { flex: 1, justifyContent: 'center' },
+  eventCardTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 6 },
+  eventCardAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 2 },
+  eventCardDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  appCard: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
+  appCardIcon: { width: 56, height: 56, backgroundColor: '#E5E5E5' },
+  appCardStores: { flexDirection: 'row', gap: 12 },
+  storeButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 16 },
+  storeButtonText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#181818' },
 });
