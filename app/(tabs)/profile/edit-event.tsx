@@ -174,7 +174,7 @@ export default function EditEventScreen() {
       if (title.trim()) patch.title = title.trim();
       if (description.trim()) patch.description = description.trim();
       // Only send price if it actually changed — backend rejects price change when paid registrations exist
-      if (price !== originalPrice && priceValue > 0) patch.price = priceValue;
+      if (price !== originalPrice) patch.price = priceValue;
       if (maxParticipants) patch.max_participants = Math.max(1, parseInt(maxParticipants) || 30);
       if (date && timeStr) {
         const range = toDatetimeRange(date, timeStr);
@@ -421,21 +421,23 @@ export default function EditEventScreen() {
         <View style={[styles.priceRow, hasPaidRegistrations && styles.inputDisabled]}>
           {hasPaidRegistrations ? (
             <Text style={[styles.priceDisplay, { color: '#9B9B9B' }]} numberOfLines={1}>
-              Стоимость участия — {priceValue} ₽
+              {priceValue > 0 ? `Стоимость участия — ${priceValue} ₽` : 'Стоимость участия — Бесплатно'}
             </Text>
           ) : price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
-              <Text style={styles.priceDisplay} numberOfLines={1}>Стоимость участия — {priceValue} ₽</Text>
+              <Text style={styles.priceDisplay} numberOfLines={1}>
+                {priceValue > 0 ? `Стоимость участия — ${priceValue} ₽` : 'Стоимость участия — Бесплатно'}
+              </Text>
             </Pressable>
           ) : (
             <TextInput
               value={price}
               onChangeText={(t) => setPrice(t.replace(/\D/g, ''))}
               style={styles.priceInput}
-              placeholder="Стоимость участия"
+              placeholder="Стоимость участия (0 — бесплатно)"
               placeholderTextColor="#9B9B9B"
               keyboardType="numeric"
-              onBlur={() => { if (price && parseInt(price) > 0) setIsEditingPrice(false); }}
+              onBlur={() => { if (price && parseInt(price) >= 0) setIsEditingPrice(false); }}
             />
           )}
           {price && priceValue > 0 ? (
@@ -443,6 +445,8 @@ export default function EditEventScreen() {
               <Text style={styles.commissionText}>Комиссия 10%</Text>
               <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} ₽</Text>
             </View>
+          ) : price && priceValue === 0 ? (
+            <Text style={styles.commissionText}>Без комиссии</Text>
           ) : (
             <Text style={styles.commissionText}>Комиссия 10%</Text>
           )}
