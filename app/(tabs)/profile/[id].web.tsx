@@ -12,8 +12,6 @@ import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/a
 import { createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorProfile, getTutorSlots, updateTutorProfile, type Slot } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
-type TutorTab = 'profile' | 'edit' | 'new-event';
-
 function EyeIcon() {
   return (
     <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -71,6 +69,7 @@ export default function ProfileScreenWeb() {
   const [email, setEmail] = useState('');
   const [telegram, setTelegram] = useState('');
   const [bio, setBio] = useState('');
+  const [shortBio, setShortBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -80,8 +79,9 @@ export default function ProfileScreenWeb() {
   const [newSlotTime, setNewSlotTime] = useState('');
   const [slotsModalVisible, setSlotsModalVisible] = useState(false);
 
-  // ── Tutor-only tabbed UI (unchanged) ──────────────────────────────────────
-  const [tutorTab, setTutorTab] = useState<TutorTab>('profile');
+  // ── Tutor-only modals ───────────────────────────────────────────────────────
+  const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
+  const [newEventModalVisible, setNewEventModalVisible] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -137,6 +137,8 @@ export default function ProfileScreenWeb() {
           setFullName(tp.fullName ?? tp.full_name ?? profile?.full_name ?? '');
           setEmail(tp.email ?? profile?.email ?? '');
           setBio(tp.bio ?? '');
+          setShortBio(tp.shortBio ?? tp.short_bio ?? '');
+          setTelegram(tp.telegram ?? '');
           const rate = tp.hourlyRate ?? tp.hourly_rate ?? tp.pricePerHour;
           if (typeof rate === 'number') setHourlyRate(String(rate));
           setAvatarUrl(tp.avatarUrl ?? tp.avatar_url ?? '');
@@ -242,8 +244,13 @@ export default function ProfileScreenWeb() {
     setTutorSaveError('');
     setTutorSaveOk(false);
     try {
-      await updateTutorProfile({ fullName, bio, avatarUrl: avatarUrl || undefined, hourlyRate: hourlyRate ? Number(hourlyRate) : undefined });
+      await updateTutorProfile({
+        fullName, bio, shortBio, telegram,
+        avatarUrl: avatarUrl || undefined,
+        hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
+      });
       setTutorSaveOk(true);
+      setTutorEditModalVisible(false);
     } catch (e: any) {
       setTutorSaveError(e?.message ?? 'Не удалось сохранить');
     } finally {
@@ -425,89 +432,192 @@ export default function ProfileScreenWeb() {
     );
   }
 
-  // ─── Tutor view (unchanged tabbed layout) ──────────────────────────────────
-  const tutorTabs: { key: TutorTab; label: string }[] = [
-    { key: 'profile', label: 'Профиль' }, { key: 'edit', label: 'Изменить личные данные' }, { key: 'new-event', label: 'Создать событие' },
-  ];
-
+  // ─── Tutor view ─────────────────────────────────────────────────────────────
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.name}>{fullName || 'Профиль'}</Text>
+        <View style={styles.tutorHeaderRow}>
+          <View style={styles.tutorInfoCol}>
+            <Text style={styles.name}>{fullName || 'Профиль'}</Text>
+            {shortBio.trim() ? <Text style={styles.tutorShortBio}>{shortBio.trim()}</Text> : null}
+            {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
 
-        <View style={styles.tabsRow}>
-          {tutorTabs.map((t) => (
-            <Pressable key={t.key} onPress={() => setTutorTab(t.key)}>
-              <Text style={[styles.tabText, tutorTab === t.key && styles.tabTextActive]}>{t.label}</Text>
-            </Pressable>
-          ))}
+            <View style={styles.linksRow}>
+              <Pressable onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
+                <Text style={styles.linkText}>Изменить личные данные</Text>
+              </Pressable>
+              <Pressable onPress={() => { setInviteCopied(false); setInviteModalVisible(true); }}>
+                <Text style={styles.linkText}>Копировать ссылку</Text>
+              </Pressable>
+              <Pressable onPress={openPaymentsModal}>
+                <Text style={styles.linkText}>Платежи</Text>
+              </Pressable>
+              <Pressable onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
+                <Text style={styles.linkText}>Создать событие</Text>
+              </Pressable>
+            </View>
+          </View>
+          {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
         </View>
 
-        {tutorTab === 'profile' ? (
-          <View style={styles.card}>
-            {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : null}
-            <Text style={styles.fieldLabel}>Имя</Text>
-            <Text style={styles.fieldValue}>{fullName}</Text>
-            <Text style={styles.fieldLabel}>Почта</Text>
-            <Text style={styles.fieldValue}>{email}</Text>
-            {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
-            <Text style={styles.sectionTitle}>Свободные слоты</Text>
-            {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : groupSlotsByDate(slots).map((group) => (
-              <View key={group.date} style={styles.slotDateGroup}>
-                <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
-                <View style={styles.slotTimesRow}>
-                  {group.slots.map((s) => <Text key={s.id} style={styles.slotTimeText}>{s.time.slice(0, 5)}</Text>)}
-                </View>
-              </View>
-            ))}
-            <Pressable onPress={() => setSlotsModalVisible(true)}><Text style={styles.addSlotLink}>Добавить слот</Text></Pressable>
+        <Text style={styles.sectionTitle}>Свободные слоты</Text>
+        {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : groupSlotsByDate(slots).map((group) => (
+          <View key={group.date} style={styles.slotDateGroup}>
+            <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
+            <View style={styles.slotTimesRow}>
+              {group.slots.map((s) => <Text key={s.id} style={styles.slotTimeText}>{s.time.slice(0, 5)}</Text>)}
+            </View>
           </View>
-        ) : null}
-
-        {tutorTab === 'edit' ? (
-          <View style={styles.card}>
-            <Pressable style={styles.uploadButton} onPress={handlePickAvatar}>
-              <Text style={styles.uploadButtonText}>{avatarUrl ? 'Заменить фото' : 'Загрузить фото'}</Text>
-            </Pressable>
-            <Text style={styles.fieldLabel}>Имя</Text>
-            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
-            <Text style={styles.fieldLabel}>Описание</Text>
-            <TextInput style={[styles.input, styles.inputMultiline]} value={bio} onChangeText={setBio} multiline />
-            <Text style={styles.fieldLabel}>Стоимость часа</Text>
-            <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
-            {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
-            {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
-            <Pressable style={[styles.primaryButton, tutorSaving && styles.btnDisabled]} onPress={handleTutorSave} disabled={tutorSaving}>
-              <Text style={styles.primaryButtonText}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {tutorTab === 'new-event' ? (
-          <View style={styles.card}>
-            {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
-            <Text style={styles.fieldLabel}>Название</Text>
-            <TextInput style={styles.input} value={eventTitle} onChangeText={setEventTitle} />
-            <Text style={styles.fieldLabel}>Описание</Text>
-            <TextInput style={[styles.input, styles.inputMultiline]} value={eventDescription} onChangeText={setEventDescription} multiline />
-            <Text style={styles.fieldLabel}>Дата (ГГГГ-ММ-ДД)</Text>
-            <TextInput style={styles.input} value={eventDate} onChangeText={setEventDate} />
-            <Text style={styles.fieldLabel}>Время (ЧЧ:ММ)</Text>
-            <TextInput style={styles.input} value={eventTime} onChangeText={setEventTime} />
-            <Text style={styles.fieldLabel}>Стоимость участия</Text>
-            <TextInput style={styles.input} value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
-            <Text style={styles.fieldLabel}>Максимальное количество участников</Text>
-            <TextInput style={styles.input} value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
-            <Pressable style={styles.uploadButton} onPress={handlePickCover}>
-              <Text style={styles.uploadButtonText}>{eventCoverUri ? 'Обложка выбрана' : 'Загрузить обложку'}</Text>
-            </Pressable>
-            {eventError ? <Text style={styles.errorText}>{eventError}</Text> : null}
-            <Pressable style={[styles.primaryButton, creatingEvent && styles.btnDisabled]} onPress={handleCreateEvent} disabled={creatingEvent}>
-              <Text style={styles.primaryButtonText}>{creatingEvent ? 'Создаём…' : 'Сохранить'}</Text>
-            </Pressable>
-          </View>
-        ) : null}
+        ))}
+        <Pressable onPress={() => setSlotsModalVisible(true)}><Text style={styles.addSlotLink}>Добавить слот</Text></Pressable>
       </ScrollView>
+
+      {/* ─── Изменение данных (наставник) ────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={tutorEditModalVisible} onRequestClose={() => setTutorEditModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setTutorEditModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <ScrollView style={styles.slotsModalScroll}>
+              <Text style={styles.modalTitle}>Изменение данных</Text>
+              <Text style={styles.fieldLabel}>Имя</Text>
+              <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
+              <Text style={styles.fieldLabel}>Описание</Text>
+              <TextInput style={styles.input} value={shortBio} onChangeText={setShortBio} placeholder="Например: Куратор, исследователь культуры" />
+              <Text style={styles.fieldLabel}>Почта</Text>
+              <TextInput style={styles.input} value={email} editable={false} />
+              <Text style={styles.fieldLabel}>Телеграм</Text>
+              <TextInput style={styles.input} value={telegram} onChangeText={setTelegram} placeholder="@username" autoCapitalize="none" />
+              <Text style={styles.fieldLabel}>Доп. информация</Text>
+              <TextInput style={[styles.input, styles.inputMultiline]} value={bio} onChangeText={setBio} multiline />
+              <Text style={styles.fieldLabel}>Стоимость часа</Text>
+              <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
+              {hourlyRate && Number(hourlyRate) > 0 ? (
+                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
+              ) : null}
+              <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
+                {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
+                <View style={styles.avatarRowButton}><Text style={styles.avatarRowButtonText}>Заменить фото</Text></View>
+              </Pressable>
+              <Pressable style={styles.secondaryButton} onPress={() => { setTutorEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
+                <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
+              </Pressable>
+              {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
+              {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
+            </ScrollView>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setTutorEditModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleTutorSave} disabled={tutorSaving}>
+                <Text style={styles.modalSaveText}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Новый пароль (общая модалка) ────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={passwordModalVisible} onRequestClose={() => setPasswordModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setPasswordModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={styles.modalHeaderRow}>
+              <Pressable onPress={() => { setPasswordModalVisible(false); setTutorEditModalVisible(true); }} hitSlop={8}>
+                <Text style={styles.backArrow}>←</Text>
+              </Pressable>
+              <Text style={styles.modalTitle}>Новый пароль</Text>
+            </View>
+            <PasswordField placeholder="Старый пароль" value={oldPassword} onChangeText={setOldPassword} visible={showOld} onToggle={() => setShowOld((v) => !v)} />
+            <PasswordField placeholder="Новый пароль" value={newPassword} onChangeText={setNewPassword} visible={showNew} onToggle={() => setShowNew((v) => !v)} />
+            <PasswordField placeholder="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} visible={showNew2} onToggle={() => setShowNew2((v) => !v)} />
+            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
+            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+            <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
+              <Text style={styles.primaryButtonText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Пригласить на платформу ──────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={inviteModalVisible} onRequestClose={() => setInviteModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setInviteModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Пригласить{'\n'}на платформу</Text>
+            <View style={styles.inviteLinkBox}>
+              <TextInput style={styles.inviteLinkInput} value={inviteUrl} editable={false} />
+              <Pressable style={[styles.primaryButton, styles.inviteCopyButton]} onPress={handleCopyInvite}>
+                <Text style={styles.primaryButtonText}>{inviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Платежи ──────────────────────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={paymentsModalVisible} onRequestClose={() => setPaymentsModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setPaymentsModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Платежи</Text>
+              <Pressable onPress={() => setPaymentsModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            {paymentsLoading ? (
+              <ActivityIndicator color="#181818" />
+            ) : paymentCards.length === 0 ? (
+              <Text style={styles.emptyText}>Карта не привязана</Text>
+            ) : (
+              paymentCards.map((card) => (
+                <View key={card.id} style={styles.paymentCardRow}>
+                  <View>
+                    <Text style={styles.paymentCardLabel}>Карта</Text>
+                    <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
+                    {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
+                  </View>
+                  <View style={styles.paymentCardActions}>
+                    <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
+                      <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
+                    </Pressable>
+                    <Pressable onPress={() => { setPaymentsModalVisible(false); router.push('/(tabs)/profile/payments' as any); }}>
+                      <Text style={styles.paymentCardEdit}>Изменить</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Добавить событие ─────────────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setNewEventModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <ScrollView style={styles.slotsModalScroll}>
+              <Text style={styles.modalTitle}>Добавить событие</Text>
+              {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
+              <Text style={styles.fieldLabel}>Название</Text>
+              <TextInput style={styles.input} value={eventTitle} onChangeText={setEventTitle} />
+              <Text style={styles.fieldLabel}>Описание</Text>
+              <TextInput style={[styles.input, styles.inputMultiline]} value={eventDescription} onChangeText={setEventDescription} multiline />
+              <Text style={styles.fieldLabel}>Дата (ГГГГ-ММ-ДД)</Text>
+              <TextInput style={styles.input} value={eventDate} onChangeText={setEventDate} />
+              <Text style={styles.fieldLabel}>Время (ЧЧ:ММ)</Text>
+              <TextInput style={styles.input} value={eventTime} onChangeText={setEventTime} />
+              <Text style={styles.fieldLabel}>Стоимость участия</Text>
+              <TextInput style={styles.input} value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
+              <Text style={styles.fieldLabel}>Максимальное количество участников</Text>
+              <TextInput style={styles.input} value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
+              <Pressable style={styles.uploadButton} onPress={handlePickCover}>
+                <Text style={styles.uploadButtonText}>{eventCoverUri ? 'Обложка выбрана' : 'Загрузить обложку'}</Text>
+              </Pressable>
+              {eventError ? <Text style={styles.errorText}>{eventError}</Text> : null}
+            </ScrollView>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleCreateEvent} disabled={creatingEvent}>
+                <Text style={styles.modalSaveText}>{creatingEvent ? 'Создаём…' : 'Сохранить'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal transparent animationType="fade" visible={slotsModalVisible} onRequestClose={() => setSlotsModalVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setSlotsModalVisible(false)}>
@@ -621,6 +731,11 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
   bioText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818', marginTop: 16 },
+  tutorHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' },
+  tutorInfoCol: { flex: 1, minWidth: 280 },
+  tutorShortBio: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 6 },
+  linksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 24 },
+  linkText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   sectionTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 24, marginBottom: 8 },
   emptyText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   slotDateGroup: { marginBottom: 12 },

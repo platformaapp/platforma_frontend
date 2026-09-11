@@ -28,6 +28,7 @@ export interface TutorProfile {
   bio?: string;
   shortBio?: string;
   short_bio?: string;
+  telegram?: string;
   phone?: string;
   hourlyRate?: number;
   hourly_rate?: number;
@@ -50,6 +51,7 @@ export interface TutorProfileUpdate {
   bio?: string;
   shortBio?: string;
   short_bio?: string;
+  telegram?: string;
   email?: string;
   phone?: string;
   hourlyRate?: number;
