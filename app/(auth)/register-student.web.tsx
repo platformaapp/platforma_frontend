@@ -177,10 +177,14 @@ export default function RegisterStudentScreenWeb() {
   return (
     <SiteShell>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView contentContainerStyle={styles.page}>
+      <View style={styles.page}>
       <View style={styles.card}>
-        <Text style={styles.title}>РЕГИСТРАЦИЯ УЧАСТНИКА</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Регистрация ученика</Text>
+          <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+        </View>
 
+        <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
         <LabeledInput placeholder="Имя и фамилия" value={fullName} error={errors.fullName}
           onChangeText={(t: string) => { setFullName(t); if (errors.fullName) setErrors((e) => ({ ...e, fullName: undefined })); }} />
         {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
@@ -215,19 +219,21 @@ export default function RegisterStudentScreenWeb() {
         <Text style={styles.hint}>Пароль должен быть не менее 7 символов и содержать буквы, цифры и спецсимволы</Text>
 
         {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
+        </ScrollView>
 
-        <Pressable style={[styles.btnPrimary, isSubmitting && styles.btnDisabled]} onPress={onSubmit} disabled={isSubmitting}>
-          <Text style={styles.btnPrimaryText}>{isSubmitting ? 'Отправляем…' : 'Далее'}</Text>
-        </Pressable>
-
-        <Text style={styles.terms}>
-          Нажимая кнопку «Далее», вы принимаете{' '}
-          <Text style={styles.termsLink} onPress={() => router.push('/offer' as any)}>публичную оферту</Text>
-          {' '}и{' '}
-          <Text style={styles.termsLink} onPress={() => router.push('/privacy' as any)}>политику конфиденциальности</Text>
-        </Text>
+        <View style={styles.footerRow}>
+          <Text style={styles.terms}>
+            Нажимая кнопку «Далее», вы принимаете{' '}
+            <Text style={styles.termsLink} onPress={() => router.push('/offer' as any)}>публичную оферту</Text>
+            {' '}и{' '}
+            <Text style={styles.termsLink} onPress={() => router.push('/privacy' as any)}>политику конфиденциальности</Text>
+          </Text>
+          <Pressable onPress={onSubmit} disabled={isSubmitting}>
+            <Text style={styles.nextLink}>{isSubmitting ? 'Отправляем…' : 'Далее'}</Text>
+          </Pressable>
+        </View>
       </View>
-      </ScrollView>
+      </View>
     </SiteShell>
   );
 }
@@ -251,13 +257,16 @@ function PasswordInput({ visible, onToggle, error, ...props }: any) {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, alignItems: 'center', backgroundColor: '#fff', padding: 24, paddingTop: 48, paddingBottom: 48 },
-  card: { width: '100%', maxWidth: 420, borderWidth: 1, borderColor: '#CFCFCF', padding: 32 },
-  title: { fontFamily: 'Inter-Bold', fontSize: 18, letterSpacing: 1, color: '#181818', marginBottom: 24 },
+  page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
+  card: { width: '100%', maxWidth: 480, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
+  title: { fontFamily: 'Inter-Bold', fontSize: 22, color: '#181818' },
+  close: { fontSize: 20, color: '#181818' },
+  scroll: { flexGrow: 0 },
   input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
   inputError: { borderColor: '#E02D2D', color: '#E02D2D' },
   errorText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#E02D2D', marginTop: -8, marginBottom: 12 },
-  hint: { fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginBottom: 16 },
+  hint: { fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginBottom: 4 },
   eye: { position: 'absolute', right: 10, top: 10 },
   upload: { borderWidth: 1, borderColor: '#181818', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12, minHeight: 48 },
   uploadWithPhotoContainer: { paddingVertical: 0, paddingHorizontal: 0 },
@@ -265,9 +274,8 @@ const styles = StyleSheet.create({
   uploadText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
   avatar: { width: 40, height: 40, backgroundColor: '#f0f0f0' },
   replacePhotoText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
-  btnPrimary: { backgroundColor: '#111', height: 52, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  btnDisabled: { opacity: 0.6 },
-  btnPrimaryText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#FAFAFA' },
-  terms: { fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#181818' },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginTop: 16 },
+  terms: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#181818' },
   termsLink: { textDecorationLine: 'underline' },
+  nextLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
 });
