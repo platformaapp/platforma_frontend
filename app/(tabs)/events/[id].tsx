@@ -270,6 +270,7 @@ export default function EventDetailScreen() {
   const [isCardModalVisible, setCardModalVisible] = useState(false);
   const [isCardModalDoneVisible, setCardModalDoneVisible] = useState(false);
   const [isDonePaymentPending, setDonePaymentPending] = useState(false);
+  const [isDoneFree, setIsDoneFree] = useState(false);
   const [isPollingPayment, setIsPollingPayment] = useState(false);
   const [isJoinBlockedVisible, setJoinBlockedVisible] = useState(false);
   const [isLinkTutorVisible, setLinkTutorVisible] = useState(false);
@@ -450,6 +451,7 @@ export default function EventDetailScreen() {
             const active = { value: true };
             await loadEvent(active);
             setDonePaymentPending(false);
+            setIsDoneFree(false);
             setCardModalDoneVisible(true);
           } else if (status === 'failed') {
             clearPaymentIdFromSession();
@@ -473,6 +475,7 @@ export default function EventDetailScreen() {
           await loadEvent(active);
           setIsPollingPayment(false);
           setDonePaymentPending(false);
+          setIsDoneFree(false);
           setCardModalDoneVisible(true);
           return;
         }
@@ -640,6 +643,15 @@ export default function EventDetailScreen() {
     setPayError('');
   }
 
+  // Free events (price 0) register in one tap — no point showing the "Оплатить"
+  // card modal when there's nothing to pay.
+  async function handleFreeRegister() {
+    const token = await getAuthToken();
+    if (!token) { router.push(`/login?redirect=/events/${id}` as any); return; }
+    setPayError('');
+    await handleGetPay();
+  }
+
   function handleLinkTutor() { setLinkTutorVisible(true); }
   function handleShareEventTutor() { setIsShareCopied(false); setShareEventVisible(true); }
 
@@ -675,6 +687,7 @@ export default function EventDetailScreen() {
           setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
           setCardModalVisible(false);
           setDonePaymentPending(false);
+          setIsDoneFree(event.price === 0);
           setCardModalDoneVisible(true);
           return;
         }
@@ -686,6 +699,7 @@ export default function EventDetailScreen() {
         setEvent((prev) => prev ? { ...prev, isRegistered: true, isPaid: true } : prev);
         setCardModalVisible(false);
         setDonePaymentPending(false);
+        setIsDoneFree(event.price === 0);
         setCardModalDoneVisible(true);
         return;
       }
@@ -945,11 +959,25 @@ export default function EventDetailScreen() {
         >
           <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
         </Pressable>
+      ) : event.price === 0 ? (
+        // Free event — register immediately, skip the "Оплатить" card modal.
+        <Pressable
+          style={[styles.registerButton, isPaying && styles.registerButtonDisabled]}
+          onPress={handleFreeRegister}
+          disabled={isPaying}
+        >
+          {isPaying ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
+          )}
+        </Pressable>
       ) : (
         <Pressable style={styles.registerButton} onPress={handleLinkNow}>
           <Text style={styles.registerButtonText}>Зарегистрироваться</Text>
         </Pressable>
       )}
+      {event.price === 0 && payError ? <Text style={styles.payErrorText}>{payError}</Text> : null}
 
       {/* Payment pending notice */}
       {paymentPending ? (
@@ -1115,13 +1143,15 @@ export default function EventDetailScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setCardModalDoneVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <Text style={styles.modalTitle}>
-              {isDonePaymentPending ? 'Оплата в обработке' : 'ОПЛАТА ПРОШЛА'}
+              {isDonePaymentPending ? 'Оплата в обработке' : isDoneFree ? 'ВЫ ЗАРЕГИСТРИРОВАНЫ' : 'ОПЛАТА ПРОШЛА'}
             </Text>
             <View style={styles.modalEventCard}>
               <Text style={styles.modalEventTitle}>
                 {isDonePaymentPending
                   ? 'Вы успешно зарегистрированы.\n\nОплата обрабатывается — это может занять несколько минут. Вы получите уведомление, когда платёж будет подтверждён.'
-                  : 'Чек отправили вам на почту.'}
+                  : isDoneFree
+                    ? 'До встречи на событии!'
+                    : 'Чек отправили вам на почту.'}
               </Text>
             </View>
             <Pressable style={styles.modalPayButton} onPress={handleCloseCard}>
