@@ -348,7 +348,7 @@ export default function ProfileScreenWeb() {
               <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
               </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+              <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setTutorEditModalVisible(false); router.push('/(tabs)/profile/delete-account' as any); }}>
                 <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
               </Pressable>
               {editError ? <Text style={styles.errorText}>{editError}</Text> : null}
@@ -503,7 +503,7 @@ export default function ProfileScreenWeb() {
               <Pressable style={styles.secondaryButton} onPress={() => { setTutorEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
               </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+              <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setTutorEditModalVisible(false); router.push('/(tabs)/profile/delete-account' as any); }}>
                 <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
