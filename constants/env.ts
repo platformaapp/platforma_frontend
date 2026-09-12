@@ -6,8 +6,12 @@ export const endpoints = {
   refreshToken: `${API_BASE}/api/auth/refresh`,
   forgotPassword: `${API_BASE}/api/auth/forgot`,
   resetPassword: `${API_BASE}/api/auth/reset`,
-  /** Не подтверждено бэкендом — эндпоинта для смены пароля по старому паролю пока нет. */
   changePassword: `${API_BASE}/api/auth/change-password`,
+  /** Запрос/подтверждение удаления аккаунта без входа в приложение — публичная веб-страница /delete-account. */
+  accountDeletionRequest: `${API_BASE}/api/auth/account-deletion/request`,
+  accountDeletionConfirm: `${API_BASE}/api/auth/account-deletion/confirm`,
+  /** Удаление своего аккаунта из приложения — требует пароль. */
+  deleteAccount: `${API_BASE}/api/auth/account`,
   users: `${API_BASE}/api/users`,
   tutors: `${API_BASE}/api/users/tutors`,
   uploadImage: `${API_BASE}/api/uploads/image`,
@@ -27,8 +31,6 @@ export const endpoints = {
 
   // Student (Ученик) — профиль
   studentProfile: `${API_BASE}/api/student/profile`,
-  /** Смена пароля по старому/новому паролю (без письма на почту). Бэкенд пока не реализовал этот эндпоинт. */
-  changePassword: `${API_BASE}/api/auth/change-password`,
 
   // Tutor (Наставник) — профиль, слоты, события, платежи
   tutorProfile: `${API_BASE}/api/tutor/profile`,

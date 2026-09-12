@@ -439,6 +439,13 @@ export default function EditProfileScreen() {
           </Pressable>
 
           <Pressable
+            style={styles.secondaryButton}
+            onPress={() => router.push('/(tabs)/profile/delete-account' as any)}
+          >
+            <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
+          </Pressable>
+
+          <Pressable
             style={[styles.primaryButton, saving && styles.primaryButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
@@ -616,6 +623,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: 'Inter-Regular',
     color: '#181818',
+  },
+  deleteAccountText: {
+    color: '#E02D2D',
   },
   primaryButton: {
     backgroundColor: '#111',

@@ -348,6 +348,9 @@ export default function ProfileScreenWeb() {
               <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
               </Pressable>
+              <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+                <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
+              </Pressable>
               {editError ? <Text style={styles.errorText}>{editError}</Text> : null}
               <Pressable style={[styles.primaryButton, editSaving && styles.btnDisabled]} onPress={handleSaveStudentEdit} disabled={editSaving}>
                 <Text style={styles.primaryButtonText}>{editSaving ? 'Сохраняем…' : 'Сохранить изменения'}</Text>
@@ -499,6 +502,9 @@ export default function ProfileScreenWeb() {
               </Pressable>
               <Pressable style={styles.secondaryButton} onPress={() => { setTutorEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
+              </Pressable>
+              <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+                <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
               {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
@@ -700,6 +706,7 @@ const styles = StyleSheet.create({
   avatarRowButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
   secondaryButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  deleteAccountText: { color: '#E02D2D' },
   passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
   eyeButton: { position: 'absolute', right: 10 },
   hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
