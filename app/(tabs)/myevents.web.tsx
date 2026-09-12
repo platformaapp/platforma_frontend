@@ -363,7 +363,6 @@ export default function MyEventsScreenWeb() {
           { label: 'Отменить событие', danger: true, onPress: () => openCancelModal({ kind: 'event', item }) },
         ]
       : [
-          { label: 'Написать наставнику', onPress: () => item.mentor?.id && router.push(`/(tabs)/explore/${item.mentor.id}` as any) },
           { label: 'Отменить запись', danger: true, onPress: () => openCancelModal({ kind: 'event', item }) },
         ];
     return (
@@ -394,12 +393,9 @@ export default function MyEventsScreenWeb() {
     const isViewerTutor = item._viewerRole === 'tutor';
     const options: MenuOption[] = isViewerTutor
       ? [
-          // Бэкенду нужен эндпоинт сообщений наставнику↔ученику — пока его нет, эта ссылка ничего не открывает.
-          { label: 'Написать ученику', onPress: () => {} },
           { label: 'Отменить встречу', danger: true, onPress: () => openCancelModal({ kind: 'booking', item }) },
         ]
       : [
-          { label: 'Написать наставнику', onPress: () => other.id && router.push(`/(tabs)/explore/${other.id}` as any) },
           { label: 'Отменить запись', danger: true, onPress: () => openCancelModal({ kind: 'booking', item }) },
         ];
     return (
