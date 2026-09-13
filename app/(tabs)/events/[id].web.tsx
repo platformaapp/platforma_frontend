@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
@@ -86,6 +86,7 @@ function formatPrice(price?: number): string {
  */
 export default function EventDetailScreenWeb() {
   const router = useRouter();
+  const isMobile = useIsMobileWeb();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,8 +176,8 @@ export default function EventDetailScreenWeb() {
         ) : error || !event ? (
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
         ) : (
-          <View style={styles.layout}>
-            <View style={styles.main}>
+          <View style={[styles.layout, isMobile && styles.layoutMobile]}>
+            <View style={[styles.main, isMobile && styles.mainMobile]}>
               {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
               <Text style={styles.title}>{event.title}</Text>
               {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
@@ -204,19 +205,19 @@ export default function EventDetailScreenWeb() {
                     <Text style={styles.registerButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
                   </Pressable>
                 )}
-                <Pressable style={styles.shareButton} onPress={handleShare}>
-                  <Text style={styles.shareButtonText}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+                <Pressable style={[styles.shareButton, isMobile && styles.chipButton]} onPress={handleShare}>
+                  <Text style={[styles.shareButtonText, isMobile && styles.chipButtonText]}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
                 </Pressable>
               </View>
             </View>
 
             {event.mentor ? (
-              <View style={styles.mentorCard}>
+              <View style={[styles.mentorCard, isMobile && styles.mentorCardMobile]}>
                 {event.mentor.avatarUrl ? <Image source={{ uri: event.mentor.avatarUrl }} style={styles.mentorAvatar} /> : null}
                 <Text style={styles.mentorName}>{event.mentor.name}</Text>
                 {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
-                <Pressable style={styles.mentorWriteButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                  <Text style={styles.mentorWriteButtonText}>Написать</Text>
+                <Pressable style={[styles.mentorWriteButton, isMobile && styles.chipButton]} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                  <Text style={[styles.mentorWriteButtonText, isMobile && styles.chipButtonText]}>Написать</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -234,7 +235,9 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   layout: { flexDirection: 'row', flexWrap: 'wrap', gap: 32 },
-  main: { flexBasis: 480, flexGrow: 1 },
+  layoutMobile: { flexDirection: 'column', flexWrap: 'nowrap', gap: 24 },
+  main: { flexBasis: 480, flexGrow: 1, flexShrink: 1 },
+  mainMobile: { flexBasis: 'auto', flexGrow: 0, width: '100%' },
   cover: { width: '100%', height: 320, marginBottom: 24, backgroundColor: '#E5E5E5' },
   title: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   description: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 24 },
@@ -249,9 +252,13 @@ const styles = StyleSheet.create({
   shareButton: { paddingVertical: 14, paddingHorizontal: 24, borderWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
   shareButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
   mentorCard: { flexBasis: 260, flexGrow: 1, maxWidth: 320, borderWidth: 1, borderColor: '#E5E5E5', padding: 24, alignSelf: 'flex-start' },
+  mentorCardMobile: { flexBasis: 'auto', flexGrow: 0, maxWidth: '100%', width: '100%', alignSelf: 'stretch' },
   mentorAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#E5E5E5', marginBottom: 12 },
   mentorName: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
   mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 16 },
   mentorWriteButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
   mentorWriteButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  // Мобильные экшн-кнопки — заливка вместо обводки, см. мобильные макеты.
+  chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
+  chipButtonText: { color: '#68717A' },
 });

@@ -4,7 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { parseFeedItems } from '@/lib/event-feed';
@@ -53,6 +53,7 @@ function formatEventTime(iso?: string): string {
 
 export default function EventsScreenWeb() {
   const router = useRouter();
+  const isMobile = useIsMobileWeb();
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -192,8 +193,8 @@ export default function EventsScreenWeb() {
         ) : error ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={() => { setLoading(true); load(); }}>
-              <Text style={styles.retryButtonText}>Повторить</Text>
+            <Pressable style={[styles.retryButton, isMobile && styles.chipButton]} onPress={() => { setLoading(true); load(); }}>
+              <Text style={[styles.retryButtonText, isMobile && styles.chipButtonText]}>Повторить</Text>
             </Pressable>
           </View>
         ) : filtered.length === 0 ? (
@@ -217,8 +218,8 @@ export default function EventsScreenWeb() {
         )}
 
         {!loading && !error && hasMore ? (
-          <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
-            {loadingMore ? <ActivityIndicator color="#181818" /> : <Text style={styles.loadMoreButtonText}>Показать ещё</Text>}
+          <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
+            {loadingMore ? <ActivityIndicator color="#181818" /> : <Text style={[styles.loadMoreButtonText, isMobile && styles.chipButtonText]}>Показать ещё</Text>}
           </Pressable>
         ) : null}
 
@@ -244,6 +245,9 @@ const styles = StyleSheet.create({
   retryButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
   loadMoreButtonText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818' },
+  // Мобильные экшн-кнопки — заливка вместо обводки, см. мобильные макеты.
+  chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
+  chipButtonText: { color: '#68717A' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   card: { flexBasis: 320, flexGrow: 1, minWidth: 280, borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#fff' },
   image: { width: '100%', height: 200, borderBottomWidth: 1, borderColor: '#1E1E1E' },
