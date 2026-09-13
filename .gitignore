@@ -36,6 +36,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Claude Code local state (subagent worktrees, etc.)
+.claude/
+
 app-example
 
 # generated native folders
