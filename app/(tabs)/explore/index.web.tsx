@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteFooter } from '@/components/web/site-footer';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { getPublicTutorList, getPublicTutors, type PublicTutor } from '@/lib/api/tutor';
 import { getAuthRole, getUserProfile } from '@/lib/auth';
 
@@ -18,6 +19,7 @@ const CATEGORIES = ['Кино', 'Музыка', 'Искусство', 'Лите�
 
 export default function MentorsScreenWeb() {
   const router = useRouter();
+  const isMobile = useIsMobileWeb();
   const [tutors, setTutors] = useState<PublicTutor[]>([]);
   const [myId, setMyId] = useState<string | null>(null);
   const [myRole, setMyRole] = useState<string | null>(null);
@@ -56,12 +58,21 @@ export default function MentorsScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Наставники</Text>
-        <View style={styles.filtersRow}>
-          {CATEGORIES.map((c) => (
-            <View key={c} style={styles.filterPill}><Text style={styles.filterPillText}>{c}</Text></View>
-          ))}
-        </View>
+        <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
+
+        {isMobile ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
+            {CATEGORIES.map((c) => (
+              <View key={c} style={styles.filterPill}><Text style={styles.filterPillText}>{c}</Text></View>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.filtersRow}>
+            {CATEGORIES.map((c) => (
+              <View key={c} style={styles.filterPill}><Text style={styles.filterPillText}>{c}</Text></View>
+            ))}
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
@@ -75,7 +86,11 @@ export default function MentorsScreenWeb() {
               const isOwn = tutor.id === myId && myRole === 'tutor';
               const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
               return (
-                <Pressable key={tutor.id} style={styles.card} onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}>
+                <Pressable
+                  key={tutor.id}
+                  style={[styles.card, isMobile && styles.cardMobile]}
+                  onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
+                >
                   <Image
                     source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
                     style={styles.avatar}
@@ -87,15 +102,20 @@ export default function MentorsScreenWeb() {
             })}
           </View>
         )}
+
+        <SiteFooter />
       </ScrollView>
     </SiteShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48 },
+  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   title: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
+  titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
+  filtersScroll: { marginBottom: 24 },
+  filtersRowMobile: { flexDirection: 'row', gap: 10, paddingRight: 16 },
   filterPill: { paddingVertical: 6, paddingHorizontal: 16, borderWidth: 1, borderColor: '#181818' },
   filterPillText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#181818' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
@@ -103,6 +123,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   card: { flexBasis: 220, flexGrow: 1, minWidth: 200, borderWidth: 1, borderColor: '#1E1E1E', padding: 16 },
+  cardMobile: { flexBasis: '100%', minWidth: 0 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 12 },
   name: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
   shortBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076' },

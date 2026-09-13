@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -38,6 +38,7 @@ function formatEventDate(iso?: string): string {
 export default function TutorCardScreenWeb() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const isMobile = useIsMobileWeb();
 
   const [displayName, setDisplayName] = useState('');
   const [displayBio, setDisplayBio] = useState('');
@@ -104,7 +105,8 @@ export default function TutorCardScreenWeb() {
             if (active) setMentorEvents(events);
           }
         } catch { /* events section stays empty */ }
-      } finally {
+      } catch { /* network failure — show empty/placeholder profile instead of crashing */ }
+      finally {
         if (active) setLoadingProfile(false);
       }
     })();
@@ -139,11 +141,11 @@ export default function TutorCardScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.layout}>
-          <View style={styles.main}>
-            <View style={styles.headerRow}>
-              <Image source={imageSource} style={styles.avatar} />
+          <View style={[styles.main, isMobile && styles.mainMobile]}>
+            <View style={[styles.headerRow, isMobile && styles.headerRowMobile]}>
+              <Image source={imageSource} style={[styles.avatar, isMobile && styles.avatarMobile]} />
               <View style={styles.headerText}>
-                <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+                <Text style={[styles.name, isMobile && styles.nameMobile]}>{displayName || 'Наставник'}</Text>
                 {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               </View>
               <Pressable onPress={toggleFavorite} hitSlop={12} style={styles.favoriteButton}>
@@ -163,20 +165,29 @@ export default function TutorCardScreenWeb() {
               </View>
             ) : null}
 
-            <View style={styles.actionsRow}>
+            <View style={[styles.actionsRow, isMobile && styles.actionsRowMobile]}>
               {!isOwnProfile && isMentorVerified ? (
-                <Pressable style={styles.primaryButton} onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}>
+                <Pressable
+                  style={[styles.primaryButton, isMobile && styles.actionButtonMobileFull]}
+                  onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
+                >
                   <Text style={styles.primaryButtonText}>Записаться на встречу</Text>
                 </Pressable>
               ) : null}
               {!isOwnProfile ? (
-                <Pressable style={styles.secondaryButton} onPress={handleWrite}>
-                  <Text style={styles.secondaryButtonText}>Написать наставнику</Text>
+                <Pressable
+                  style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile, isMobile && styles.actionButtonMobileFull]}
+                  onPress={handleWrite}
+                >
+                  <Text style={[styles.secondaryButtonText, isMobile && styles.secondaryButtonTextMobile]}>Написать наставнику</Text>
                 </Pressable>
               ) : null}
               {instagramUrl ? (
-                <Pressable style={styles.secondaryButton} onPress={() => Linking.openURL(instagramUrl)}>
-                  <Text style={styles.secondaryButtonText}>Instagram</Text>
+                <Pressable
+                  style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile, isMobile && styles.actionButtonMobileFull]}
+                  onPress={() => Linking.openURL(instagramUrl)}
+                >
+                  <Text style={[styles.secondaryButtonText, isMobile && styles.secondaryButtonTextMobile]}>Instagram</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -213,24 +224,36 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   layout: { flexDirection: 'row' },
   main: { flexBasis: 640, maxWidth: 640 },
+  // RN's default flexShrink is 0 (unlike web), so without this override `main`
+  // keeps its 640px flexBasis at mobile widths and overflows the viewport.
+  mainMobile: { flexBasis: 'auto', maxWidth: '100%', width: '100%' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 8 },
+  headerRowMobile: { gap: 12 },
   avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#E5E5E5' },
+  avatarMobile: { width: 56, height: 56, borderRadius: 28 },
   headerText: { flex: 1 },
   name: { fontSize: 22, fontFamily: 'Inter-Bold', color: '#181818' },
+  nameMobile: { fontSize: 18 },
   role: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 2 },
   favoriteButton: { padding: 8 },
   favoriteStar: { fontSize: 22, color: '#CFCFCF' },
   favoriteStarActive: { color: '#E02D2D' },
   favoriteHint: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 12 },
   bio: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginVertical: 16 },
-  priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
   priceLabel: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
   priceValue: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818' },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
+  actionsRowMobile: { flexDirection: 'column' },
+  actionButtonMobileFull: { width: '100%' },
   primaryButton: { backgroundColor: '#E02D2D', paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
   primaryButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
   secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
   secondaryButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  // Mobile action-button convention: plain bordered/text buttons become a
+  // filled light-blue chip on narrow widths (see MOBILE_BREAKPOINT usages).
+  secondaryButtonMobile: { borderWidth: 0, backgroundColor: '#F0F5FB' },
+  secondaryButtonTextMobile: { color: '#68717A' },
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 24 },
   eventsSection: { marginTop: 32 },
   eventsSectionTitle: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },
