@@ -2,10 +2,11 @@ import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import { SiteShell } from '@/components/web/site-shell';
+import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
+import { SiteFooter } from '@/components/web/site-footer';
 import { uploadEventImage } from '@/lib/api/events';
 import { deletePaymentMethod, getPaymentMethods, type Card } from '@/lib/api/student-payments';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
@@ -61,6 +62,8 @@ function ShareIcon() {
  */
 export default function ProfileScreenWeb() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState('');
@@ -315,12 +318,14 @@ export default function ProfileScreenWeb() {
               {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
               <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
             </View>
-            <View style={styles.studentActions}>
-              <Pressable style={styles.stackedButton} onPress={() => setEditModalVisible(true)}>
-                <Text style={styles.stackedButtonText}>Изменить личные данные</Text>
+            <View style={[styles.studentActions, isMobile && styles.studentActionsMobile]}>
+              <Pressable style={[styles.stackedButton, isMobile && styles.mobileChip]} onPress={() => setEditModalVisible(true)}>
+                <Text style={[styles.stackedButtonText, isMobile && styles.mobileChipText]}>
+                  {isMobile ? 'Личные данные' : 'Изменить личные данные'}
+                </Text>
               </Pressable>
-              <Pressable style={styles.stackedButton} onPress={openPaymentsModal}>
-                <Text style={styles.stackedButtonText}>Платежи</Text>
+              <Pressable style={[styles.stackedButton, isMobile && styles.mobileChip]} onPress={openPaymentsModal}>
+                <Text style={[styles.stackedButtonText, isMobile && styles.mobileChipText]}>Платежи</Text>
               </Pressable>
             </View>
           </View>
@@ -331,6 +336,8 @@ export default function ProfileScreenWeb() {
               <ShareIcon />
             </Pressable>
           </View>
+
+          <SiteFooter />
         </ScrollView>
 
         {/* ─── Изменение данных ─────────────────────────────────────────── */}
@@ -446,17 +453,25 @@ export default function ProfileScreenWeb() {
             {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
 
             <View style={styles.linksRow}>
-              <Pressable onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
-                <Text style={styles.linkText}>Изменить личные данные</Text>
+              <Pressable
+                style={isMobile && styles.mobileChip}
+                onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}
+              >
+                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>
+                  {isMobile ? 'Личные данные' : 'Изменить личные данные'}
+                </Text>
               </Pressable>
-              <Pressable onPress={() => { setInviteCopied(false); setInviteModalVisible(true); }}>
-                <Text style={styles.linkText}>Копировать ссылку</Text>
+              <Pressable style={isMobile && styles.mobileChip} onPress={() => { setInviteCopied(false); setInviteModalVisible(true); }}>
+                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>Копировать ссылку</Text>
               </Pressable>
-              <Pressable onPress={openPaymentsModal}>
-                <Text style={styles.linkText}>Платежи</Text>
+              <Pressable style={isMobile && styles.mobileChip} onPress={openPaymentsModal}>
+                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>Платежи</Text>
               </Pressable>
-              <Pressable onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
-                <Text style={styles.linkText}>Создать событие</Text>
+              <Pressable
+                style={isMobile && styles.mobileChip}
+                onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}
+              >
+                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>Создать событие</Text>
               </Pressable>
             </View>
           </View>
@@ -472,7 +487,11 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ))}
-        <Pressable onPress={() => setSlotsModalVisible(true)}><Text style={styles.addSlotLink}>Добавить слот</Text></Pressable>
+        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => setSlotsModalVisible(true)}>
+          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
+        </Pressable>
+
+        <SiteFooter />
       </ScrollView>
 
       {/* ─── Изменение данных (наставник) ────────────────────────────────── */}
@@ -686,8 +705,12 @@ const styles = StyleSheet.create({
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
   studentName: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818' },
   studentActions: { gap: 0, alignSelf: 'flex-start' },
+  studentActionsMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   stackedButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 20, minWidth: 220, alignItems: 'center' },
   stackedButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  // Filled light-blue button used for action chips on mobile widths (see mobile mockups).
+  mobileChip: { backgroundColor: '#F0F5FB', borderWidth: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  mobileChipText: { color: '#68717A', fontSize: 15 },
   inviteBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#181818', maxWidth: 560 },
   inviteText: { flex: 1, padding: 16, fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
   inviteShareButton: { width: 52, height: '100%', minHeight: 52, borderLeftWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
@@ -749,7 +772,8 @@ const styles = StyleSheet.create({
   slotDateLabel: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
   slotTimesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center' },
   slotTimeText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  addSlotLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 8 },
+  addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
+  addSlotLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
   uploadButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
