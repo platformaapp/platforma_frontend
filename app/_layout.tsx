@@ -5,7 +5,16 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { enableScreens } from 'react-native-screens';
 import 'react-native-reanimated';
+
+// react-native-screens ~4.16 крашит на iOS 26 в RNSTabBarController.updateTabBarAppearance
+// (https://github.com/software-mansion/react-native-screens/issues/3940), а RN 0.81.x не
+// перехватывает NSException из async void TurboModule-методов, поэтому это не JS-ошибка,
+// а хард-краш всего приложения на старте. Апгрейд screens невозможен: 4.25+/4.26+ требуют
+// react-native >=0.82/>=0.84, а Expo SDK 54 закреплён на 0.81.5. Отключаем нативные экраны
+// как обходной путь до апстрим-фикса.
+enableScreens(false);
 
 // Предотвращаем автоматическое скрытие splash screen
 SplashScreen.preventAutoHideAsync();
