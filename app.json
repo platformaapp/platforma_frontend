@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "ru.platformaapp",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "CFBundleDisplayName": "Платформа34",
         "NSAppTransportSecurity": {
