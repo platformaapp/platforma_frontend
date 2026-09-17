@@ -168,59 +168,112 @@ export default function EventDetailScreenWeb() {
     setTimeout(() => setShareCopied(false), 2000);
   }
 
+  const metaBlock = (
+    <View style={styles.metaRow}>
+      <View>
+        <Text style={styles.metaLabel}>Дата:</Text>
+        <Text style={styles.metaValue}>{formatDatetime(event?.datetimeStart)}</Text>
+      </View>
+      <View>
+        <Text style={styles.metaLabel}>Стоимость:</Text>
+        <Text style={styles.metaValue}>{formatPrice(event?.price)}</Text>
+      </View>
+    </View>
+  );
+
+  const mentorRow = event?.mentor ? (
+    <View style={styles.mentorRow}>
+      <View style={styles.mentorInfo}>
+        <Text style={styles.mentorName}>{event.mentor.name}</Text>
+        {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+      </View>
+      {event.mentor.avatarUrl ? <Image source={{ uri: event.mentor.avatarUrl }} style={styles.mentorAvatar} /> : null}
+    </View>
+  ) : null;
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/events' as any))} hitSlop={8}>
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
+
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
         ) : error || !event ? (
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
-        ) : (
-          <View style={[styles.layout, isMobile && styles.layoutMobile]}>
-            <View style={[styles.main, isMobile && styles.mainMobile]}>
-              {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
-              <Text style={styles.title}>{event.title}</Text>
-              {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+        ) : isMobile ? (
+          <View>
+            <Text style={styles.title}>{event.title}</Text>
 
-              <View style={styles.metaRow}>
-                <View>
-                  <Text style={styles.metaLabel}>Дата:</Text>
+            {event.coverUrl ? (
+              <View style={styles.mobileHeaderRow}>
+                <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" />
+                <View style={styles.mobileMetaCol}>
                   <Text style={styles.metaValue}>{formatDatetime(event.datetimeStart)}</Text>
-                </View>
-                <View>
-                  <Text style={styles.metaLabel}>Стоимость:</Text>
                   <Text style={styles.metaValue}>{formatPrice(event.price)}</Text>
                 </View>
               </View>
+            ) : metaBlock}
+
+            {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+
+            {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
+
+            {event.isRegistered ? (
+              <View style={[styles.chipButton, styles.btnDisabled]}><Text style={styles.chipButtonText}>Вы зарегистрированы</Text></View>
+            ) : (
+              <Pressable style={[styles.chipButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
+                <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
+              </Pressable>
+            )}
+            <Pressable style={styles.chipButton} onPress={handleShare}>
+              <Text style={styles.chipButtonText}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+            </Pressable>
+
+            {event.mentor ? (
+              <>
+                {mentorRow}
+                <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                  <Text style={styles.chipButtonText}>Перейти в профиль</Text>
+                </Pressable>
+              </>
+            ) : null}
+          </View>
+        ) : (
+          <View style={styles.desktopLayout}>
+            <View style={styles.leftCol}>
+              <Text style={styles.title}>{event.title}</Text>
+              {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+              {metaBlock}
 
               {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
               <View style={styles.actionsRow}>
                 {event.isRegistered ? (
-                  <View style={[styles.registerButton, styles.registerButtonDisabled]}>
-                    <Text style={styles.registerButtonText}>Вы зарегистрированы</Text>
-                  </View>
+                  <Text style={[styles.actionLink, styles.actionLinkDisabled]}>Вы зарегистрированы</Text>
                 ) : (
-                  <Pressable style={[styles.registerButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
-                    <Text style={styles.registerButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
+                  <Pressable onPress={handleRegister} disabled={isRegistering}>
+                    <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
                   </Pressable>
                 )}
-                <Pressable style={[styles.shareButton, isMobile && styles.chipButton]} onPress={handleShare}>
-                  <Text style={[styles.shareButtonText, isMobile && styles.chipButtonText]}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+                <Pressable onPress={handleShare}>
+                  <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
                 </Pressable>
               </View>
             </View>
 
-            {event.mentor ? (
-              <View style={[styles.mentorCard, isMobile && styles.mentorCardMobile]}>
-                {event.mentor.avatarUrl ? <Image source={{ uri: event.mentor.avatarUrl }} style={styles.mentorAvatar} /> : null}
-                <Text style={styles.mentorName}>{event.mentor.name}</Text>
-                {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
-                <Pressable style={[styles.mentorWriteButton, isMobile && styles.chipButton]} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                  <Text style={[styles.mentorWriteButtonText, isMobile && styles.chipButtonText]}>Написать</Text>
-                </Pressable>
-              </View>
-            ) : null}
+            <View style={styles.rightCol}>
+              {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
+              {event.mentor ? (
+                <View>
+                  {mentorRow}
+                  <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                    <Text style={styles.actionLink}>Перейти в профиль</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
           </View>
         )}
 
@@ -234,31 +287,36 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
-  layout: { flexDirection: 'row', flexWrap: 'wrap', gap: 32 },
-  layoutMobile: { flexDirection: 'column', flexWrap: 'nowrap', gap: 24 },
-  main: { flexBasis: 480, flexGrow: 1, flexShrink: 1 },
-  mainMobile: { flexBasis: 'auto', flexGrow: 0, width: '100%' },
-  cover: { width: '100%', height: 320, marginBottom: 24, backgroundColor: '#E5E5E5' },
+  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
+  backArrow: { fontSize: 20, color: '#181818' },
+
+  // Desktop: текст слева, картинка + карточка наставника — справа.
+  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
+  leftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
+  rightCol: { flexBasis: 340, flexShrink: 0, maxWidth: 380 },
+  cover: { width: '100%', height: 400, marginBottom: 24, backgroundColor: '#E5E5E5' },
+
   title: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   description: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 24 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818' },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  registerButton: { backgroundColor: '#E02D2D', paddingVertical: 14, paddingHorizontal: 32, alignItems: 'center', justifyContent: 'center' },
-  registerButtonDisabled: { backgroundColor: '#9B9B9B' },
+
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
+  actionLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
-  registerButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  shareButton: { paddingVertical: 14, paddingHorizontal: 24, borderWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
-  shareButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
-  mentorCard: { flexBasis: 260, flexGrow: 1, maxWidth: 320, borderWidth: 1, borderColor: '#E5E5E5', padding: 24, alignSelf: 'flex-start' },
-  mentorCardMobile: { flexBasis: 'auto', flexGrow: 0, maxWidth: '100%', width: '100%', alignSelf: 'stretch' },
-  mentorAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#E5E5E5', marginBottom: 12 },
-  mentorName: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
-  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 16 },
-  mentorWriteButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  mentorWriteButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
-  // Мобильные экшн-кнопки — заливка вместо обводки, см. мобильные макеты.
-  chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
-  chipButtonText: { color: '#68717A' },
+
+  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  mentorInfo: { flex: 1 },
+  mentorName: { fontSize: 18, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 4 },
+  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076' },
+  mentorAvatar: { width: 64, height: 64, backgroundColor: '#E5E5E5' },
+
+  // Mobile: маленькая миниатюра рядом с датой/ценой, кнопки — заливка (см. моб. макеты).
+  mobileHeaderRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 16 },
+  mobileThumb: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
+  mobileMetaCol: { flex: 1, gap: 6 },
+  chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  chipButtonText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#68717A' },
 });
