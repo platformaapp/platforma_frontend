@@ -9,7 +9,10 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { uploadEventImage } from '@/lib/api/events';
 import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
-import { createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorProfile, getTutorSlots, updateTutorProfile, type Slot } from '@/lib/api/tutor';
+import {
+  createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorPayoutsBalance, getTutorPayouts,
+  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
+} from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 function EyeIcon() {
@@ -54,6 +57,15 @@ function historyStatusLabel(status: PaymentHistoryItem['status']): string {
   if (status === 'failed') return 'Ошибка оплаты';
   return 'Ожидает оплаты';
 }
+
+function payoutStatusLabel(status: Payout['status']): string {
+  if (status === 'succeeded' || status === 'success') return 'Исполнено';
+  if (status === 'failed') return 'Ошибка';
+  return 'В обработке';
+}
+
+const BALANCE_TOOLTIP = 'Не забудьте оплатить налоги и жить счастливо, счатливо';
+const WITHDRAWAL_TOOLTIP = 'Мы отправили вам деньги на карту. Они придут в течении 3 рабочих дней, а может быть и раньше.';
 
 function formatSlotDateLabel(date: string): string {
   const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -128,7 +140,11 @@ export default function ProfileScreenWeb() {
   const [editCardSubmitting, setEditCardSubmitting] = useState(false);
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+  const [payoutHistory, setPayoutHistory] = useState<Payout[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [payoutTooltipId, setPayoutTooltipId] = useState<string | null>(null);
+  const [payoutBalance, setPayoutBalance] = useState(0);
+  const [balanceTooltipVisible, setBalanceTooltipVisible] = useState(false);
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -229,8 +245,13 @@ export default function ProfileScreenWeb() {
   async function openPaymentsModal() {
     setPaymentsModalVisible(true);
     setPaymentsLoading(true);
+    setBalanceTooltipVisible(false);
     try {
       setPaymentCards(await getPaymentMethods());
+      if (role === 'tutor') {
+        const balance = await getTutorPayoutsBalance().catch(() => null);
+        setPayoutBalance(balance?.available ?? 0);
+      }
     } catch {
       setPaymentCards([]);
     } finally {
@@ -322,11 +343,17 @@ export default function ProfileScreenWeb() {
   async function openHistoryModal() {
     setHistoryModalVisible(true);
     setHistoryLoading(true);
+    setPayoutTooltipId(null);
     try {
-      const { items } = await fetchStudentPaymentHistory();
-      setPaymentHistory(items);
+      if (role === 'tutor') {
+        setPayoutHistory(await getTutorPayouts());
+      } else {
+        const { items } = await fetchStudentPaymentHistory();
+        setPaymentHistory(items);
+      }
     } catch {
       setPaymentHistory([]);
+      setPayoutHistory([]);
     } finally {
       setHistoryLoading(false);
     }
@@ -334,6 +361,7 @@ export default function ProfileScreenWeb() {
 
   // ── "История платежей" modal — открывается из "Платежи" ────────────────────
   function renderHistoryModal() {
+    const isEmpty = role === 'tutor' ? payoutHistory.length === 0 : paymentHistory.length === 0;
     return (
       <Modal transparent animationType="fade" visible={historyModalVisible} onRequestClose={() => setHistoryModalVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setHistoryModalVisible(false)}>
@@ -345,8 +373,28 @@ export default function ProfileScreenWeb() {
 
             {historyLoading ? (
               <ActivityIndicator color="#181818" />
-            ) : paymentHistory.length === 0 ? (
+            ) : isEmpty ? (
               <Text style={styles.emptyText}>Платежей пока нет</Text>
+            ) : role === 'tutor' ? (
+              <ScrollView style={styles.historyScroll}>
+                {payoutHistory.map((p) => (
+                  <View key={p.id} style={styles.historyItem}>
+                    <View style={styles.historyTopRow}>
+                      <Text style={styles.historyOrderNumber}>№{p.id}</Text>
+                      <Text style={styles.historyStatus}>{payoutStatusLabel(p.status)}</Text>
+                    </View>
+                    <View style={styles.historyTopRow}>
+                      <Text style={styles.historySubtitle}>{p.description ?? 'Вывод на карту'}</Text>
+                      <Pressable onPress={() => setPayoutTooltipId((cur) => (cur === p.id ? null : p.id))}>
+                        <Text style={styles.infoIconText}>ⓘ</Text>
+                      </Pressable>
+                    </View>
+                    <Text style={styles.historyDate}>{formatHistoryDate(p.createdAt ?? p.created_at ?? '')}</Text>
+                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} ₽</Text>
+                    {payoutTooltipId === p.id ? <Text style={styles.payoutTooltipText}>{WITHDRAWAL_TOOLTIP}</Text> : null}
+                  </View>
+                ))}
+              </ScrollView>
             ) : (
               <ScrollView style={styles.historyScroll}>
                 {paymentHistory.map((item) => (
@@ -392,14 +440,35 @@ export default function ProfileScreenWeb() {
                   <Text style={styles.paymentCardLabel}>Карта</Text>
                   <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
                   {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
+
+                  {role === 'tutor' ? (
+                    <>
+                      <View style={styles.balanceRow}>
+                        <Text style={styles.balanceLabel}>Баланс: {payoutBalance.toLocaleString('ru-RU')} ₽</Text>
+                        <Pressable style={styles.balanceInfoIcon} onPress={() => setBalanceTooltipVisible((v) => !v)}>
+                          <Text style={styles.infoIconText}>ⓘ</Text>
+                        </Pressable>
+                      </View>
+                      {balanceTooltipVisible ? <Text style={styles.balanceTooltipText}>{BALANCE_TOOLTIP}</Text> : null}
+                    </>
+                  ) : null}
+
                   <View style={styles.paymentActionsRow}>
                     <Pressable onPress={openHistoryModal}>
                       <Text style={styles.paymentHistoryLink}>История платежей</Text>
                     </Pressable>
                     <View style={styles.paymentRightActions}>
-                      <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
-                        <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
-                      </Pressable>
+                      {role === 'tutor' ? (
+                        !isMobile ? (
+                          <Pressable onPress={() => router.push('/(tabs)/profile/tutor-payments' as any)}>
+                            <Text style={styles.paymentCardEdit}>Вывод на карту</Text>
+                          </Pressable>
+                        ) : null
+                      ) : (
+                        <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
+                          <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
+                        </Pressable>
+                      )}
                       <Pressable onPress={() => openEditCard(card)}>
                         <Text style={styles.paymentCardEdit}>Изменить</Text>
                       </Pressable>
@@ -875,6 +944,13 @@ const styles = StyleSheet.create({
   historyBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   historyDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   historyAmount: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818' },
+  infoIconText: { fontSize: 14, color: '#9B9B9B' },
+  historyAmountRight: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818', textAlign: 'right', marginTop: 8 },
+  payoutTooltipText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#687076', textAlign: 'right', marginTop: 4 },
+  balanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 20 },
+  balanceLabel: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818' },
+  balanceInfoIcon: { marginTop: 2 },
+  balanceTooltipText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4 },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
