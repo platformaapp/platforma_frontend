@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
@@ -38,8 +38,11 @@ function formatDateHeading(rawDate: string): string {
  * Привязка карты (шаг "новая карта") использует тот же bindPaymentMethod,
  * что и app/(tabs)/profile/payments.tsx — тоже уводит на хостед-страницу
  * YooKassa, вернуться на этот же шаг брони после привязки нельзя (return_url
- * настроен на бэкенде на страницу платежей), поэтому шаг лишь готовит
- * пользователя к редиректу, а не имитирует ввод номера карты в самом приложении.
+ * настроен на бэкенде на страницу платежей). Поля "Номер карты"/MM-ГГ/CVV
+ * ниже — визуальное соответствие макету: реальный ввод номера карты и CVV
+ * должен идти через хостед-форму YooKassa (PCI DSS), поэтому значения этих
+ * полей никуда не отправляются — кнопка "Оплата" всё равно просто запускает
+ * тот же редирект на bindPaymentMethod().
  */
 export default function TutorSlotsScreenWeb() {
   const router = useRouter();
@@ -57,6 +60,10 @@ export default function TutorSlotsScreenWeb() {
   const [bookError, setBookError] = useState('');
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [addCardError, setAddCardError] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [rememberCard, setRememberCard] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -109,11 +116,6 @@ export default function TutorSlotsScreenWeb() {
     if (!selected) return;
     setBookError('');
     setStep('confirm');
-  }
-
-  function handleBackToPick() {
-    setBookError('');
-    setStep('pick');
   }
 
   async function handleBook() {
@@ -174,53 +176,87 @@ export default function TutorSlotsScreenWeb() {
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
 
-          <Text style={styles.title}>{mentorName || 'Наставник'}</Text>
-          <Text style={styles.subtitle}>
-            {step === 'confirm' ? 'Подтверждение записи' : step === 'addCard' ? 'Привязка карты' : step === 'success' ? 'Оплата прошла' : 'Запись на встречу'}
-          </Text>
-          {mentorPrice && step === 'pick' ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
+          {step === 'pick' ? (
+            <>
+              <Text style={styles.title}>{mentorName || 'Наставник'}</Text>
+              <Text style={styles.subtitle}>Запись на встречу</Text>
+              {mentorPrice ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
+            </>
+          ) : (
+            <Text style={styles.title}>
+              {step === 'confirm' ? 'Подтверждение записи' : step === 'addCard' ? 'Новая карта' : 'Оплата прошла'}
+            </Text>
+          )}
 
           {loading ? (
             <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : step === 'success' ? (
-            <View>
-              <Text style={styles.successText}>Чек придёт на почту. Возврат возможен в течение 24 часов.</Text>
-              <Pressable style={styles.primaryButton} onPress={() => router.push('/myevents' as any)}>
-                <Text style={styles.primaryButtonText}>Мои записи</Text>
-              </Pressable>
+            <View style={styles.successBody}>
+              <Text style={styles.successText}>Чек отправили вам на почту</Text>
+              <Text style={styles.successText}>Возврат возможен не позднее, чем за 24 часа до начала</Text>
             </View>
           ) : step === 'addCard' ? (
-            <View>
-              <Text style={styles.successText}>
-                Чтобы оплатить встречу{selected ? ` ${formatDateHeading(selected.rawDate)} в ${selected.time}` : ''}, привяжите карту — вы будете перенаправлены на страницу оплаты YooKassa.
-              </Text>
+            <View style={styles.cardForm}>
+              <Text style={styles.inputLabel}>Номер карты</Text>
+              <TextInput
+                style={styles.cardInput}
+                value={cardNumber}
+                onChangeText={setCardNumber}
+                placeholder="0000 0000 0000 0000"
+                placeholderTextColor="#9B9B9B"
+                keyboardType="number-pad"
+              />
+              <View style={styles.cardRow}>
+                <View style={styles.cardRowItem}>
+                  <Text style={styles.inputLabel}>MM/ГГ</Text>
+                  <TextInput
+                    style={styles.cardInput}
+                    value={cardExpiry}
+                    onChangeText={setCardExpiry}
+                    placeholder="ММ/ГГ"
+                    placeholderTextColor="#9B9B9B"
+                  />
+                </View>
+                <View style={styles.cardRowItem}>
+                  <Text style={styles.inputLabel}>CVV</Text>
+                  <TextInput
+                    style={styles.cardInput}
+                    value={cardCvv}
+                    onChangeText={setCardCvv}
+                    placeholder="000"
+                    placeholderTextColor="#9B9B9B"
+                    keyboardType="number-pad"
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+
               {addCardError ? <Text style={styles.errorText}>{addCardError}</Text> : null}
-              <Pressable style={[styles.primaryButton, isAddingCard && styles.btnDisabled]} onPress={handleAddCard} disabled={isAddingCard}>
-                <Text style={styles.primaryButtonText}>{isAddingCard ? 'Открываем…' : 'Привязать карту'}</Text>
-              </Pressable>
-              <Pressable onPress={() => setStep('confirm')} style={styles.backLinkSpacing}>
-                <Text style={styles.backLink}>Назад</Text>
-              </Pressable>
+
+              <View style={styles.cardFooterRow}>
+                <Pressable style={styles.checkboxRow} onPress={() => setRememberCard((v) => !v)} hitSlop={8}>
+                  <View style={[styles.checkboxCircle, rememberCard && styles.checkboxCircleActive]} />
+                  <Text style={styles.checkboxLabel}>Запомнить карту</Text>
+                </Pressable>
+                <Pressable onPress={handleAddCard} disabled={isAddingCard}>
+                  <Text style={[styles.payLink, isAddingCard && styles.payLinkDisabled]}>{isAddingCard ? 'Открываем…' : 'Оплата'}</Text>
+                </Pressable>
+              </View>
             </View>
           ) : step === 'confirm' && selected ? (
             <View>
-              <Text style={styles.confirmLabel}>Дата и время</Text>
-              <Text style={styles.confirmText}>{formatDateHeading(selected.rawDate)} в {selected.time}</Text>
-              {selected.price != null ? (
-                <>
-                  <Text style={styles.confirmLabel}>Стоимость</Text>
-                  <Text style={styles.confirmText}>{selected.price.toLocaleString('ru-RU')} ₽</Text>
-                </>
-              ) : null}
-              <Text style={styles.cancellationNote}>Возврат возможен в течение 24 часов после оплаты.</Text>
+              <View style={styles.confirmRow}>
+                <Text style={styles.confirmMentorName}>{mentorName || 'Наставник'}</Text>
+                <Text style={styles.confirmDate}>{formatDateHeading(selected.rawDate)}, {selected.time}</Text>
+              </View>
+              {selected.price != null ? <Text style={styles.confirmPrice}>{selected.price.toLocaleString('ru-RU')} ₽</Text> : null}
+
               {bookError ? <Text style={styles.errorText}>{bookError}</Text> : null}
-              <Pressable style={[styles.primaryButton, isBooking && styles.btnDisabled]} onPress={handleBook} disabled={isBooking}>
-                <Text style={styles.primaryButtonText}>{isBooking ? 'Оплата…' : 'Оплатить'}</Text>
-              </Pressable>
-              <Pressable onPress={handleBackToPick} style={styles.backLinkSpacing}>
-                <Text style={styles.backLink}>Изменить время</Text>
+
+              <Pressable style={styles.payLinkSpacing} onPress={handleBook} disabled={isBooking}>
+                <Text style={[styles.payLink, isBooking && styles.payLinkDisabled]}>{isBooking ? 'Оплата…' : 'Оплатить'}</Text>
               </Pressable>
             </View>
           ) : groupedSlots.length === 0 ? (
@@ -284,13 +320,26 @@ const styles = StyleSheet.create({
   nextLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
   nextLinkTextDisabled: { color: '#9B9B9B' },
 
-  confirmLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 2 },
-  confirmText: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 12 },
-  cancellationNote: { fontSize: 12, lineHeight: 17, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 16 },
-  primaryButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  btnDisabled: { opacity: 0.6 },
-  primaryButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  backLinkSpacing: { marginTop: 16, alignSelf: 'flex-start' },
-  backLink: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#687076' },
-  successText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 16 },
+  confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  confirmMentorName: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818' },
+  confirmDate: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
+  confirmPrice: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 8 },
+
+  payLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  payLinkDisabled: { color: '#9B9B9B' },
+  payLinkSpacing: { alignSelf: 'flex-end', marginTop: 40 },
+
+  cardForm: { marginTop: 8 },
+  inputLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
+  cardInput: { borderWidth: 1, borderColor: '#D6DBE0', borderRadius: 6, paddingVertical: 10, paddingHorizontal: 12, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 16 },
+  cardRow: { flexDirection: 'row', gap: 16 },
+  cardRowItem: { flex: 1 },
+  cardFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 12 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  checkboxCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 1, borderColor: '#D6DBE0' },
+  checkboxCircleActive: { backgroundColor: '#181818', borderColor: '#181818' },
+  checkboxLabel: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
+
+  successBody: { marginTop: 8, gap: 8 },
+  successText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#687076' },
 });
