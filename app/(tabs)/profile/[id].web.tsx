@@ -65,7 +65,7 @@ function payoutStatusLabel(status: Payout['status']): string {
 }
 
 const BALANCE_TOOLTIP = 'Не забудьте оплатить налоги и жить счастливо, счатливо';
-const WITHDRAWAL_TOOLTIP = 'Мы отправили вам деньги на карту. Они придут в течении 3 рабочих дней, а может быть и раньше.';
+const WITHDRAWAL_TOOLTIP = 'Деньги на ваш счет придут в течение 3 рабочих дней, а может быть и раньше';
 
 function formatSlotDateLabel(date: string): string {
   const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -145,6 +145,10 @@ export default function ProfileScreenWeb() {
   const [payoutTooltipId, setPayoutTooltipId] = useState<string | null>(null);
   const [payoutBalance, setPayoutBalance] = useState(0);
   const [balanceTooltipVisible, setBalanceTooltipVisible] = useState(false);
+  const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
+  const [withdrawCard, setWithdrawCard] = useState<Card | null>(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawSuccessVisible, setWithdrawSuccessVisible] = useState(false);
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -270,7 +274,11 @@ export default function ProfileScreenWeb() {
     }
   }
 
+  // Каждая вложенная модалка закрывает "Платежи" перед открытием — два
+  // одновременно видимых <Modal> с разной высотой карточки иначе накладываются
+  // друг на друга (более короткая не полностью перекрывает более высокую).
   function openEditCard(card: Card) {
+    setPaymentsModalVisible(false);
     setEditingCard(card);
     const month = (card as { expiryMonth?: string }).expiryMonth;
     const year = (card as { expiryYear?: string }).expiryYear;
@@ -296,6 +304,81 @@ export default function ProfileScreenWeb() {
     } finally {
       setEditCardSubmitting(false);
     }
+  }
+
+  function openWithdrawModal(card: Card) {
+    setPaymentsModalVisible(false);
+    setWithdrawCard(card);
+    setWithdrawModalVisible(true);
+  }
+
+  // "Нет, заменю" — закрываем подтверждение выплаты и открываем "Изменить карту".
+  function handleWithdrawReplace() {
+    setWithdrawModalVisible(false);
+    if (withdrawCard) openEditCard(withdrawCard);
+  }
+
+  // "Да, все ок" — реального эндпоинта вывода средств пока нет (см. TODO в
+  // tutor-payments.web.tsx), поэтому имитируем успешную отправку так же, как
+  // уже сделано на той странице.
+  async function handleWithdrawConfirm() {
+    if (isWithdrawing) return;
+    setIsWithdrawing(true);
+    try {
+      await new Promise((r) => setTimeout(r, 300));
+      setWithdrawModalVisible(false);
+      setWithdrawSuccessVisible(true);
+    } finally {
+      setIsWithdrawing(false);
+    }
+  }
+
+  // ── "Отправить деньги на эту карту?" modal — открывается из "Платежи" ──────
+  function renderWithdrawModal() {
+    return (
+      <Modal transparent animationType="fade" visible={withdrawModalVisible} onRequestClose={() => setWithdrawModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setWithdrawModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Отправить деньги на эту карту?</Text>
+              <Pressable onPress={() => setWithdrawModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+
+            <Text style={styles.paymentCardLabel}>Карта</Text>
+            <Text style={styles.paymentCardNumber}>{withdrawCard?.cardMasked ?? withdrawCard?.card_masked ?? '****'}</Text>
+            {(withdrawCard?.cardType ?? withdrawCard?.provider) ? (
+              <Text style={styles.paymentCardBank}>{withdrawCard?.cardType ?? withdrawCard?.provider}</Text>
+            ) : null}
+
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={handleWithdrawReplace}><Text style={styles.modalCancelText}>Нет, заменю</Text></Pressable>
+              <Pressable onPress={handleWithdrawConfirm} disabled={isWithdrawing}>
+                <Text style={styles.modalSaveText}>{isWithdrawing ? '…' : 'Да, все ок'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
+  // ── "Запрос отправлен" modal — после подтверждения выплаты ─────────────────
+  function renderWithdrawSuccessModal() {
+    return (
+      <Modal transparent animationType="fade" visible={withdrawSuccessVisible} onRequestClose={() => setWithdrawSuccessVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setWithdrawSuccessVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Запрос отправлен!</Text>
+              <Pressable onPress={() => setWithdrawSuccessVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.emptyText}>
+              Мы отправили вам на карту {payoutBalance.toLocaleString('ru-RU')} ₽. {WITHDRAWAL_TOOLTIP}.
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
   }
 
   // ── "Изменить карту" modal — открывается из "Платежи" ──────────────────────
@@ -341,6 +424,7 @@ export default function ProfileScreenWeb() {
   }
 
   async function openHistoryModal() {
+    setPaymentsModalVisible(false);
     setHistoryModalVisible(true);
     setHistoryLoading(true);
     setPayoutTooltipId(null);
@@ -385,13 +469,19 @@ export default function ProfileScreenWeb() {
                     </View>
                     <View style={styles.historyTopRow}>
                       <Text style={styles.historySubtitle}>{p.description ?? 'Вывод на карту'}</Text>
-                      <Pressable onPress={() => setPayoutTooltipId((cur) => (cur === p.id ? null : p.id))}>
-                        <Text style={styles.infoIconText}>ⓘ</Text>
-                      </Pressable>
+                      <View style={styles.tooltipAnchor}>
+                        <Pressable onPress={() => setPayoutTooltipId((cur) => (cur === p.id ? null : p.id))}>
+                          <Text style={styles.infoIconText}>ⓘ</Text>
+                        </Pressable>
+                        {payoutTooltipId === p.id ? (
+                          <View style={styles.payoutTooltipBubble}>
+                            <Text style={styles.tooltipBubbleText}>{WITHDRAWAL_TOOLTIP}</Text>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                     <Text style={styles.historyDate}>{formatHistoryDate(p.createdAt ?? p.created_at ?? '')}</Text>
                     <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} ₽</Text>
-                    {payoutTooltipId === p.id ? <Text style={styles.payoutTooltipText}>{WITHDRAWAL_TOOLTIP}</Text> : null}
                   </View>
                 ))}
               </ScrollView>
@@ -442,15 +532,19 @@ export default function ProfileScreenWeb() {
                   {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
 
                   {role === 'tutor' ? (
-                    <>
-                      <View style={styles.balanceRow}>
-                        <Text style={styles.balanceLabel}>Баланс: {payoutBalance.toLocaleString('ru-RU')} ₽</Text>
+                    <View style={styles.balanceRow}>
+                      <Text style={styles.balanceLabel}>Баланс: {payoutBalance.toLocaleString('ru-RU')} ₽</Text>
+                      <View style={styles.tooltipAnchor}>
                         <Pressable style={styles.balanceInfoIcon} onPress={() => setBalanceTooltipVisible((v) => !v)}>
                           <Text style={styles.infoIconText}>ⓘ</Text>
                         </Pressable>
+                        {balanceTooltipVisible ? (
+                          <View style={styles.balanceTooltipBubble}>
+                            <Text style={styles.tooltipBubbleText}>{BALANCE_TOOLTIP}</Text>
+                          </View>
+                        ) : null}
                       </View>
-                      {balanceTooltipVisible ? <Text style={styles.balanceTooltipText}>{BALANCE_TOOLTIP}</Text> : null}
-                    </>
+                    </View>
                   ) : null}
 
                   <View style={styles.paymentActionsRow}>
@@ -460,7 +554,7 @@ export default function ProfileScreenWeb() {
                     <View style={styles.paymentRightActions}>
                       {role === 'tutor' ? (
                         !isMobile ? (
-                          <Pressable onPress={() => router.push('/(tabs)/profile/tutor-payments' as any)}>
+                          <Pressable onPress={() => openWithdrawModal(card)}>
                             <Text style={styles.paymentCardEdit}>Вывод на карту</Text>
                           </Pressable>
                         ) : null
@@ -649,6 +743,8 @@ export default function ProfileScreenWeb() {
         {renderPaymentsModal()}
         {renderEditCardModal()}
         {renderHistoryModal()}
+        {renderWithdrawModal()}
+        {renderWithdrawSuccessModal()}
       </SiteShell>
     );
   }
@@ -781,6 +877,8 @@ export default function ProfileScreenWeb() {
       {renderPaymentsModal()}
       {renderEditCardModal()}
       {renderHistoryModal()}
+      {renderWithdrawModal()}
+      {renderWithdrawSuccessModal()}
 
       {/* ─── Добавить событие ─────────────────────────────────────────── */}
       <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
@@ -946,11 +1044,15 @@ const styles = StyleSheet.create({
   historyAmount: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818' },
   infoIconText: { fontSize: 14, color: '#9B9B9B' },
   historyAmountRight: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818', textAlign: 'right', marginTop: 8 },
-  payoutTooltipText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#687076', textAlign: 'right', marginTop: 4 },
+  // Обёртка вокруг значка ⓘ — точка отсчёта для абсолютно спозиционированного
+  // всплывающего пузыря с подсказкой (см. "Баланс"/строки истории выплат в макете).
+  tooltipAnchor: { position: 'relative' },
+  payoutTooltipBubble: { position: 'absolute', top: 22, right: 0, width: 150, backgroundColor: '#181818', padding: 8, zIndex: 10 },
   balanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 20 },
   balanceLabel: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818' },
   balanceInfoIcon: { marginTop: 2 },
-  balanceTooltipText: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4 },
+  balanceTooltipBubble: { position: 'absolute', top: 24, left: 0, width: 180, backgroundColor: '#181818', padding: 8, zIndex: 10 },
+  tooltipBubbleText: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#fff' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
