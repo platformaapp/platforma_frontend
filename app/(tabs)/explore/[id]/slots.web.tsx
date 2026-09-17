@@ -222,7 +222,7 @@ export default function TutorSlotsScreenWeb() {
                   <FieldWithPlus label="ММ/ГГ" value={cardExpiry} onChangeText={setCardExpiry} />
                 </View>
                 <View style={styles.cardRowItem}>
-                  <FieldWithPlus label="CVV" value={cardCvv} onChangeText={setCardCvv} keyboardType="number-pad" secureTextEntry />
+                  <FieldWithPlus label="CVV" value={cardCvv} onChangeText={setCardCvv} keyboardType="number-pad" />
                 </View>
               </View>
 

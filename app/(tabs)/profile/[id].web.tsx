@@ -7,7 +7,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
 import { SiteFooter } from '@/components/web/site-footer';
 import { uploadEventImage } from '@/lib/api/events';
-import { bindPaymentMethod, deletePaymentMethod, getPaymentMethods, type Card } from '@/lib/api/student-payments';
+import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorProfile, getTutorSlots, updateTutorProfile, type Slot } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -32,6 +32,27 @@ function groupSlotsByDate(slots: Slot[]): { date: string; slots: Slot[] }[] {
   return [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, daySlots]) => ({ date, slots: [...daySlots].sort((a, b) => a.time.localeCompare(b.time)) }));
+}
+
+function formatHistoryDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(2);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day}.${month}.${year} ${hh}:${mm}`;
+  } catch {
+    return '';
+  }
+}
+
+function historyStatusLabel(status: PaymentHistoryItem['status']): string {
+  if (status === 'success') return 'Оплачено';
+  if (status === 'failed') return 'Ошибка оплаты';
+  return 'Ожидает оплаты';
 }
 
 function formatSlotDateLabel(date: string): string {
@@ -105,6 +126,9 @@ export default function ProfileScreenWeb() {
   const [editCardCvv, setEditCardCvv] = useState('');
   const [editCardError, setEditCardError] = useState('');
   const [editCardSubmitting, setEditCardSubmitting] = useState(false);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -225,11 +249,6 @@ export default function ProfileScreenWeb() {
     }
   }
 
-  function goToPaymentsPage() {
-    setPaymentsModalVisible(false);
-    router.push('/(tabs)/profile/payments' as any);
-  }
-
   function openEditCard(card: Card) {
     setEditingCard(card);
     const month = (card as { expiryMonth?: string }).expiryMonth;
@@ -282,7 +301,7 @@ export default function ProfileScreenWeb() {
                 <FieldWithPlus label="ММ/ГГ" value={editCardExpiry} onChangeText={setEditCardExpiry} />
               </View>
               <View style={styles.editCardRowItem}>
-                <FieldWithPlus label="CVV" value={editCardCvv} onChangeText={setEditCardCvv} keyboardType="numeric" secureTextEntry />
+                <FieldWithPlus label="CVV" value={editCardCvv} onChangeText={setEditCardCvv} keyboardType="numeric" />
               </View>
             </View>
 
@@ -294,6 +313,58 @@ export default function ProfileScreenWeb() {
                 <Text style={styles.modalSaveText}>{editCardSubmitting ? 'Открываем…' : 'Изменить'}</Text>
               </Pressable>
             </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
+  async function openHistoryModal() {
+    setHistoryModalVisible(true);
+    setHistoryLoading(true);
+    try {
+      const { items } = await fetchStudentPaymentHistory();
+      setPaymentHistory(items);
+    } catch {
+      setPaymentHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  // ── "История платежей" modal — открывается из "Платежи" ────────────────────
+  function renderHistoryModal() {
+    return (
+      <Modal transparent animationType="fade" visible={historyModalVisible} onRequestClose={() => setHistoryModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setHistoryModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>История платежей</Text>
+              <Pressable onPress={() => setHistoryModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+
+            {historyLoading ? (
+              <ActivityIndicator color="#181818" />
+            ) : paymentHistory.length === 0 ? (
+              <Text style={styles.emptyText}>Платежей пока нет</Text>
+            ) : (
+              <ScrollView style={styles.historyScroll}>
+                {paymentHistory.map((item) => (
+                  <View key={item.id} style={styles.historyItem}>
+                    <View style={styles.historyTopRow}>
+                      <Text style={styles.historyOrderNumber}>№{item.id}</Text>
+                      <Text style={styles.historyStatus}>{historyStatusLabel(item.status)}</Text>
+                    </View>
+                    <Text style={styles.historyTitle}>{item.title}</Text>
+                    {item.subtitle ? <Text style={styles.historySubtitle}>{item.subtitle}</Text> : null}
+                    <View style={styles.historyBottomRow}>
+                      <Text style={styles.historyDate}>{formatHistoryDate(item.created_at)}</Text>
+                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} ₽</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -322,7 +393,7 @@ export default function ProfileScreenWeb() {
                   <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
                   {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
                   <View style={styles.paymentActionsRow}>
-                    <Pressable onPress={goToPaymentsPage}>
+                    <Pressable onPress={openHistoryModal}>
                       <Text style={styles.paymentHistoryLink}>История платежей</Text>
                     </Pressable>
                     <View style={styles.paymentRightActions}>
@@ -508,6 +579,7 @@ export default function ProfileScreenWeb() {
 
         {renderPaymentsModal()}
         {renderEditCardModal()}
+        {renderHistoryModal()}
       </SiteShell>
     );
   }
@@ -639,6 +711,7 @@ export default function ProfileScreenWeb() {
 
       {renderPaymentsModal()}
       {renderEditCardModal()}
+      {renderHistoryModal()}
 
       {/* ─── Добавить событие ─────────────────────────────────────────── */}
       <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
@@ -792,6 +865,16 @@ const styles = StyleSheet.create({
   editCardNumberBlock: { marginBottom: 16 },
   editCardRow: { flexDirection: 'row', gap: 16 },
   editCardRowItem: { flex: 1 },
+  historyScroll: { maxHeight: 420 },
+  historyItem: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
+  historyTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  historyOrderNumber: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  historyStatus: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  historyTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  historySubtitle: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
+  historyBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  historyDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  historyAmount: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
