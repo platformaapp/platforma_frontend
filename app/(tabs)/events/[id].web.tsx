@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -94,6 +94,9 @@ export default function EventDetailScreenWeb() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerError, setRegisterError] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
+  const [cancelStep, setCancelStep] = useState<'none' | 'confirm' | 'success'>('none');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -161,6 +164,33 @@ export default function EventDetailScreenWeb() {
     }
   }
 
+  async function handleCancelRegistration() {
+    if (!event || isCancelling) return;
+    setIsCancelling(true);
+    setCancelError('');
+    try {
+      const token = await getAuthToken();
+      if (!token) { router.push(`/login?redirect=/events/${event.id}` as any); return; }
+      const headers = { Authorization: `Bearer ${token}` };
+
+      let res = await fetch(`${endpoints.events}/${event.id}/registration`, { method: 'DELETE', headers });
+      if (res.status === 404 || res.status === 405) {
+        res = await fetch(`${endpoints.events}/${event.id}/unregister`, { method: 'POST', headers });
+      }
+      if (!res.ok && res.status !== 404) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message ?? `Не удалось отменить запись (${res.status})`);
+      }
+
+      setEvent((prev) => (prev ? { ...prev, isRegistered: false } : prev));
+      setCancelStep('success');
+    } catch (e: any) {
+      setCancelError(e?.message ?? 'Не удалось отменить запись');
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
   async function handleShare() {
     const w = (globalThis as any).window;
     if (w) await Clipboard.setStringAsync(w.location.href);
@@ -221,7 +251,9 @@ export default function EventDetailScreenWeb() {
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
             {event.isRegistered ? (
-              <View style={[styles.chipButton, styles.btnDisabled]}><Text style={styles.chipButtonText}>Вы зарегистрированы</Text></View>
+              <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
+                <Text style={styles.chipButtonText}>Отменить запись</Text>
+              </Pressable>
             ) : (
               <Pressable style={[styles.chipButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
                 <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
@@ -235,7 +267,7 @@ export default function EventDetailScreenWeb() {
               <>
                 {mentorRow}
                 <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                  <Text style={styles.chipButtonText}>Перейти в профиль</Text>
+                  <Text style={styles.chipButtonText}>Написать</Text>
                 </Pressable>
               </>
             ) : null}
@@ -251,7 +283,9 @@ export default function EventDetailScreenWeb() {
 
               <View style={styles.actionsRow}>
                 {event.isRegistered ? (
-                  <Text style={[styles.actionLink, styles.actionLinkDisabled]}>Вы зарегистрированы</Text>
+                  <Pressable onPress={() => setCancelStep('confirm')}>
+                    <Text style={styles.actionLink}>Отменить запись</Text>
+                  </Pressable>
                 ) : (
                   <Pressable onPress={handleRegister} disabled={isRegistering}>
                     <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
@@ -269,7 +303,7 @@ export default function EventDetailScreenWeb() {
                 <View>
                   {mentorRow}
                   <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                    <Text style={styles.actionLink}>Перейти в профиль</Text>
+                    <Text style={styles.actionLink}>Написать</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -279,6 +313,35 @@ export default function EventDetailScreenWeb() {
 
         <SiteFooter />
       </ScrollView>
+
+      <Modal transparent animationType="fade" visible={cancelStep !== 'none'} onRequestClose={() => setCancelStep('none')}>
+        <View style={styles.cancelOverlay}>
+          <View style={styles.cancelModalCard}>
+            <Pressable style={styles.cancelCloseButton} onPress={() => setCancelStep('none')} hitSlop={8}>
+              <Text style={styles.cancelCloseText}>✕</Text>
+            </Pressable>
+            {cancelStep === 'success' ? (
+              <Text style={styles.cancelModalTitle}>Запись отменена</Text>
+            ) : (
+              <>
+                <Text style={styles.cancelModalTitle}>Вы действительно хотите отменить запись?</Text>
+                <Text style={styles.cancelModalText}>Отменить запись можно не позднее, чем за 24 часа до начала</Text>
+                {cancelError ? <Text style={styles.errorText}>{cancelError}</Text> : null}
+                <View style={styles.cancelModalActions}>
+                  <Pressable onPress={() => setCancelStep('none')}>
+                    <Text style={styles.cancelModalLeave}>Оставить</Text>
+                  </Pressable>
+                  <Pressable onPress={handleCancelRegistration} disabled={isCancelling}>
+                    <Text style={[styles.cancelModalConfirm, isCancelling && styles.actionLinkDisabled]}>
+                      {isCancelling ? 'Отменяем…' : 'Отменить запись'}
+                    </Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SiteShell>
   );
 }
@@ -319,4 +382,14 @@ const styles = StyleSheet.create({
   mobileMetaCol: { flex: 1, gap: 6 },
   chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   chipButtonText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#68717A' },
+
+  cancelOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(24,24,24,0.45)', padding: 16 },
+  cancelModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24, position: 'relative' },
+  cancelCloseButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
+  cancelCloseText: { fontSize: 18, color: '#687076' },
+  cancelModalTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 8, paddingRight: 24 },
+  cancelModalText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 20 },
+  cancelModalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cancelModalLeave: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
+  cancelModalConfirm: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#E02D2D' },
 });
