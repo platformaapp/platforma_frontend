@@ -31,12 +31,14 @@ type SlotItem = { id: string; rawDate: string; time: string; price?: number };
 /**
  * Шаг веб-версии страницы "Слоты": "запись" (список, сгруппированный по
  * датам) → "Подтверждение" (выбранный слот) → "новая карта" (если карта не
- * привязана) → "оплата прошла" (успех). В макете это модальное окно поверх
- * профиля наставника; здесь — состояния одной страницы с тем же визуальным
+ * привязана) → "оплата прошла" (успех) / "оплата не прошла" (ошибка оплаты —
+ * "Сменить карту" ведёт на "новая карта", "Попробовать ещё раз" повторяет
+ * попытку с той же картой). В макете это модальное окно поверх профиля
+ * наставника; здесь — состояния одной страницы с тем же визуальным
  * оформлением (карточка на затемнённом фоне), т.к. в expo-router это
  * отдельный маршрут, а не оверлей над предыдущим экраном.
  */
-type Step = 'pick' | 'confirm' | 'addCard' | 'success';
+type Step = 'pick' | 'confirm' | 'addCard' | 'success' | 'failed';
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
@@ -153,7 +155,7 @@ export default function TutorSlotsScreenWeb() {
 
       if (!res.ok) {
         if (res.status === 409) { setStep('success'); return; }
-        throw new Error(data?.message ?? `Ошибка бронирования (${res.status})`);
+        throw new Error(data?.message ?? 'Повторите попытку или попробуйте оплатить с другой карты');
       }
 
       const confirmUrl = data?.confirmation_url ?? data?.confirmationUrl ?? data?.redirect_url ?? null;
@@ -164,7 +166,8 @@ export default function TutorSlotsScreenWeb() {
       }
       setStep('success');
     } catch (e: any) {
-      setBookError(e?.message ?? 'Не удалось оплатить встречу');
+      setBookError(e?.message ?? 'Повторите попытку или попробуйте оплатить с другой карты');
+      setStep('failed');
     } finally {
       setIsBooking(false);
     }
@@ -200,8 +203,11 @@ export default function TutorSlotsScreenWeb() {
               {mentorPrice ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
             </>
           ) : (
-            <Text style={styles.title}>
-              {step === 'confirm' ? 'Подтверждение записи' : step === 'addCard' ? 'Новая карта' : 'Оплата прошла'}
+            <Text style={[styles.title, step === 'failed' && styles.titleError]}>
+              {step === 'confirm' ? 'Подтверждение записи'
+                : step === 'addCard' ? 'Новая карта'
+                : step === 'failed' ? 'Оплата не прошла'
+                : 'Оплата прошла'}
             </Text>
           )}
 
@@ -213,6 +219,18 @@ export default function TutorSlotsScreenWeb() {
             <View style={styles.successBody}>
               <Text style={styles.successText}>Чек отправили вам на почту</Text>
               <Text style={styles.successText}>Возврат возможен не позднее, чем за 24 часа до начала</Text>
+            </View>
+          ) : step === 'failed' ? (
+            <View style={styles.failedBody}>
+              <Text style={styles.failedMessage}>{bookError}</Text>
+              <View style={styles.cardFooterRow}>
+                <Pressable onPress={() => { setBookError(''); setStep('addCard'); }}>
+                  <Text style={styles.changeCardLink}>Сменить карту</Text>
+                </Pressable>
+                <Pressable onPress={handleBook} disabled={isBooking}>
+                  <Text style={[styles.payLink, isBooking && styles.payLinkDisabled]}>{isBooking ? 'Оплата…' : 'Попробовать ещё раз'}</Text>
+                </Pressable>
+              </View>
             </View>
           ) : step === 'addCard' ? (
             <View style={styles.cardForm}>
@@ -245,8 +263,6 @@ export default function TutorSlotsScreenWeb() {
                 <Text style={styles.confirmDate}>{formatDateHeading(selected.rawDate)}, {selected.time}</Text>
               </View>
               {selected.price != null ? <Text style={styles.confirmPrice}>{selected.price.toLocaleString('ru-RU')} ₽</Text> : null}
-
-              {bookError ? <Text style={styles.errorText}>{bookError}</Text> : null}
 
               <Pressable style={styles.payLinkSpacing} onPress={handleBook} disabled={isBooking}>
                 <Text style={[styles.payLink, isBooking && styles.payLinkDisabled]}>{isBooking ? 'Оплата…' : 'Оплатить'}</Text>
@@ -341,4 +357,9 @@ const styles = StyleSheet.create({
 
   successBody: { marginTop: 8, gap: 8 },
   successText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#687076' },
+
+  titleError: { color: '#E02D2D' },
+  failedBody: { marginTop: 8 },
+  failedMessage: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', marginBottom: 40 },
+  changeCardLink: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
 });
