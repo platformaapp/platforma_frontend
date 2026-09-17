@@ -73,6 +73,7 @@ export default function ProfileScreenWeb() {
   const [newSlotDate, setNewSlotDate] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('');
   const [slotsModalVisible, setSlotsModalVisible] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
   // ── Tutor-only modals ───────────────────────────────────────────────────────
   const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
@@ -497,7 +498,7 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ))}
-        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => setSlotsModalVisible(true)}>
+        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsModalVisible(true); }}>
           <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
         </Pressable>
 
@@ -525,15 +526,13 @@ export default function ProfileScreenWeb() {
               {hourlyRate && Number(hourlyRate) > 0 ? (
                 <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
               ) : null}
-              <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
+              <Text style={styles.fieldLabel}>Фото</Text>
+              <Pressable onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
-                <View style={styles.avatarRowButton}><Text style={styles.avatarRowButtonText}>Заменить фото</Text></View>
               </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => { setTutorEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
-                <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
-              </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setTutorEditModalVisible(false); router.push('/(tabs)/profile/delete-account' as any); }}>
-                <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
+              <Text style={styles.fieldLabel}>Пароль</Text>
+              <Pressable onPress={() => { setTutorEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
+                <Text style={styles.passwordDots}>*********</Text>
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
               {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
@@ -618,11 +617,21 @@ export default function ProfileScreenWeb() {
                 <View key={group.date} style={styles.slotDateGroup}>
                   <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
                   <View style={styles.slotTimesRow}>
-                    {group.slots.map((s) => (
-                      <Pressable key={s.id} onPress={() => handleRemoveSlot(s.id)}>
-                        <Text style={styles.slotTimeText}>{s.time.slice(0, 5)}</Text>
-                      </Pressable>
-                    ))}
+                    {group.slots.map((s) => {
+                      const selected = selectedSlotId === s.id;
+                      return (
+                        <View key={s.id} style={styles.slotTimeWrap}>
+                          <Pressable onPress={() => setSelectedSlotId(selected ? null : s.id)}>
+                            <Text style={[styles.slotTimeText, selected && styles.slotTimeTextSelected]}>{s.time.slice(0, 5)}</Text>
+                          </Pressable>
+                          {selected ? (
+                            <Pressable onPress={() => { handleRemoveSlot(s.id); setSelectedSlotId(null); }} hitSlop={6}>
+                              <Text style={styles.slotRemoveIcon}>⊖</Text>
+                            </Pressable>
+                          ) : null}
+                        </View>
+                      );
+                    })}
                     <Pressable style={styles.slotAddChip} onPress={() => setNewSlotDate(group.date)}>
                       <Text style={styles.slotAddChipText}>+</Text>
                     </Pressable>
@@ -691,11 +700,6 @@ const styles = StyleSheet.create({
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  avatarRowButton: { flex: 1, borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center' },
-  avatarRowButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-  secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
-  secondaryButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-  deleteAccountText: { color: '#E02D2D' },
   passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
   eyeButton: { position: 'absolute', right: 10 },
   hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
@@ -731,7 +735,10 @@ const styles = StyleSheet.create({
   slotDateGroup: { marginBottom: 12 },
   slotDateLabel: { fontSize: 13, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
   slotTimesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center' },
+  slotTimeWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   slotTimeText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  slotTimeTextSelected: { color: '#E02D2D' },
+  slotRemoveIcon: { fontSize: 15, color: '#E02D2D' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
   addSlotLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
