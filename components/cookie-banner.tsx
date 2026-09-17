@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { acceptCookieConsent, isCookieConsentAccepted } from '@/lib/cookie-consent';
 
@@ -12,52 +12,36 @@ export function CookieBanner() {
     });
   }, []);
 
-  if (!visible) return null;
-
   async function handleOk() {
     setVisible(false);
     await acceptCookieConsent();
   }
 
   return (
-    <View style={styles.bar} pointerEvents="box-none">
-      <Text style={styles.text}>Мы используем куки. Все так делают.</Text>
-      <Pressable style={styles.button} onPress={handleOk}>
-        <Text style={styles.buttonText}>ОК</Text>
-      </Pressable>
-    </View>
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={handleOk}>
+      <View style={styles.overlay}>
+        <View style={styles.card}>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Мы используем куки</Text>
+            <Pressable onPress={handleOk}><Text style={styles.close}>✕</Text></Pressable>
+          </View>
+          <Text style={styles.text}>Все так делают</Text>
+          <Pressable style={styles.okButton} onPress={handleOk}>
+            <Text style={styles.okText}>Окей</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#181818',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  text: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-    marginRight: 16,
-  },
-  button: {
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: 'Inter-Regular',
-    color: '#FFFFFF',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  card: { backgroundColor: '#fff', width: '100%', maxWidth: 420, padding: 24 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  title: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#181818' },
+  close: { fontSize: 20, color: '#181818' },
+  text: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 24 },
+  okButton: { alignSelf: 'flex-end' },
+  okText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#E02D2D' },
 });
