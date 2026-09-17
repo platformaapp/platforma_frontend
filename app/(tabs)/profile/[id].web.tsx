@@ -7,7 +7,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
 import { SiteFooter } from '@/components/web/site-footer';
 import { uploadEventImage } from '@/lib/api/events';
-import { deletePaymentMethod, getPaymentMethods, type Card } from '@/lib/api/student-payments';
+import { bindPaymentMethod, deletePaymentMethod, getPaymentMethods, type Card } from '@/lib/api/student-payments';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorProfile, getTutorSlots, updateTutorProfile, type Slot } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -99,6 +99,12 @@ export default function ProfileScreenWeb() {
   const [paymentCards, setPaymentCards] = useState<Card[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [editCardModalVisible, setEditCardModalVisible] = useState(false);
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [editCardExpiry, setEditCardExpiry] = useState('');
+  const [editCardCvv, setEditCardCvv] = useState('');
+  const [editCardError, setEditCardError] = useState('');
+  const [editCardSubmitting, setEditCardSubmitting] = useState(false);
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -224,6 +230,76 @@ export default function ProfileScreenWeb() {
     router.push('/(tabs)/profile/payments' as any);
   }
 
+  function openEditCard(card: Card) {
+    setEditingCard(card);
+    const month = (card as { expiryMonth?: string }).expiryMonth;
+    const year = (card as { expiryYear?: string }).expiryYear;
+    setEditCardExpiry(month && year ? `${month}/${year}` : '');
+    setEditCardCvv('');
+    setEditCardError('');
+    setEditCardModalVisible(true);
+  }
+
+  // "Изменить" в модалке редактирования карты — реальное изменение данных карты
+  // (номер/CVV) возможно только через хостед-форму YooKassa (PCI DSS), поэтому
+  // кнопка просто запускает ту же привязку, что и при добавлении новой карты.
+  async function handleChangeCard() {
+    if (editCardSubmitting) return;
+    setEditCardSubmitting(true);
+    setEditCardError('');
+    try {
+      const { confirmationUrl } = await bindPaymentMethod();
+      const w = (globalThis as any).window;
+      if (w) w.location.href = confirmationUrl;
+    } catch (e: any) {
+      setEditCardError(e?.message ?? 'Не удалось изменить карту');
+    } finally {
+      setEditCardSubmitting(false);
+    }
+  }
+
+  // ── "Изменить карту" modal — открывается из "Платежи" ──────────────────────
+  function renderEditCardModal() {
+    return (
+      <Modal transparent animationType="fade" visible={editCardModalVisible} onRequestClose={() => setEditCardModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setEditCardModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Изменить карту</Text>
+              <Pressable onPress={() => setEditCardModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+
+            <View style={styles.editCardNumberBlock}>
+              <Text style={styles.paymentCardLabel}>Номер карты</Text>
+              <Text style={styles.paymentCardNumber}>{editingCard?.cardMasked ?? editingCard?.card_masked ?? '****'}</Text>
+              {(editingCard?.cardType ?? editingCard?.provider) ? (
+                <Text style={styles.paymentCardBank}>{editingCard?.cardType ?? editingCard?.provider}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.editCardRow}>
+              <View style={styles.editCardRowItem}>
+                <FieldWithPlus label="ММ/ГГ" value={editCardExpiry} onChangeText={setEditCardExpiry} />
+              </View>
+              <View style={styles.editCardRowItem}>
+                <FieldWithPlus label="CVV" value={editCardCvv} onChangeText={setEditCardCvv} keyboardType="numeric" secureTextEntry />
+              </View>
+            </View>
+
+            {editCardError ? <Text style={styles.errorText}>{editCardError}</Text> : null}
+
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setEditCardModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleChangeCard} disabled={editCardSubmitting}>
+                <Text style={styles.modalSaveText}>{editCardSubmitting ? 'Открываем…' : 'Изменить'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
   // ── "Платежи" modal — общая для студента и наставника ──────────────────────
   function renderPaymentsModal() {
     return (
@@ -253,7 +329,7 @@ export default function ProfileScreenWeb() {
                       <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
                         <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
                       </Pressable>
-                      <Pressable onPress={goToPaymentsPage}>
+                      <Pressable onPress={() => openEditCard(card)}>
                         <Text style={styles.paymentCardEdit}>Изменить</Text>
                       </Pressable>
                     </View>
@@ -431,6 +507,7 @@ export default function ProfileScreenWeb() {
         </Modal>
 
         {renderPaymentsModal()}
+        {renderEditCardModal()}
       </SiteShell>
     );
   }
@@ -561,6 +638,7 @@ export default function ProfileScreenWeb() {
       </Modal>
 
       {renderPaymentsModal()}
+      {renderEditCardModal()}
 
       {/* ─── Добавить событие ─────────────────────────────────────────── */}
       <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
@@ -711,6 +789,9 @@ const styles = StyleSheet.create({
   paymentCardLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
   paymentCardNumber: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 2 },
   paymentCardBank: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 2 },
+  editCardNumberBlock: { marginBottom: 16 },
+  editCardRow: { flexDirection: 'row', gap: 16 },
+  editCardRowItem: { flex: 1 },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
@@ -751,8 +832,9 @@ const styles = StyleSheet.create({
   inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
   // borderWidth:0 обязателен явно — иначе <textarea> (многострочный TextInput
-  // в RN Web) показывает браузерную рамку по умолчанию.
-  borderlessInput: { borderWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', minHeight: 20 },
+  // в RN Web) показывает браузерную рамку по умолчанию; outlineWidth:0 убирает
+  // нативный фокус-аутлайн браузера (иначе виден на однострочных полях при фокусе).
+  borderlessInput: { borderWidth: 0, outlineWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', minHeight: 20 },
   plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#181818' },
   errorText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
   successText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#1E7E34', marginTop: 12 },

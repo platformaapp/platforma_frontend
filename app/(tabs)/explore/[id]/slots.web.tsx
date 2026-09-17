@@ -9,6 +9,23 @@ import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib
 import { getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
 
+/**
+ * Поле без рамки: пустое значение показывает "⊕" вместо плейсхолдера (см.
+ * "Новая карта" в макете) — дублирует FieldWithPlus из profile/[id].web.tsx,
+ * общего компонента для этого пока нет.
+ */
+function FieldWithPlus({ label, value, style, ...props }: { label: string; value: string; style?: any } & Omit<React.ComponentProps<typeof TextInput>, 'style' | 'value'>) {
+  return (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.inputLabel}>{label}</Text>
+      <View style={styles.fieldInputWrap}>
+        <TextInput style={[styles.borderlessInput, style]} value={value} {...props} />
+        {!value ? <Text style={styles.plusIcon} pointerEvents="none">⊕</Text> : null}
+      </View>
+    </View>
+  );
+}
+
 type SlotItem = { id: string; rawDate: string; time: string; price?: number };
 
 /**
@@ -199,37 +216,13 @@ export default function TutorSlotsScreenWeb() {
             </View>
           ) : step === 'addCard' ? (
             <View style={styles.cardForm}>
-              <Text style={styles.inputLabel}>Номер карты</Text>
-              <TextInput
-                style={styles.cardInput}
-                value={cardNumber}
-                onChangeText={setCardNumber}
-                placeholder="0000 0000 0000 0000"
-                placeholderTextColor="#9B9B9B"
-                keyboardType="number-pad"
-              />
+              <FieldWithPlus label="Номер карты" value={cardNumber} onChangeText={setCardNumber} keyboardType="number-pad" />
               <View style={styles.cardRow}>
                 <View style={styles.cardRowItem}>
-                  <Text style={styles.inputLabel}>MM/ГГ</Text>
-                  <TextInput
-                    style={styles.cardInput}
-                    value={cardExpiry}
-                    onChangeText={setCardExpiry}
-                    placeholder="ММ/ГГ"
-                    placeholderTextColor="#9B9B9B"
-                  />
+                  <FieldWithPlus label="ММ/ГГ" value={cardExpiry} onChangeText={setCardExpiry} />
                 </View>
                 <View style={styles.cardRowItem}>
-                  <Text style={styles.inputLabel}>CVV</Text>
-                  <TextInput
-                    style={styles.cardInput}
-                    value={cardCvv}
-                    onChangeText={setCardCvv}
-                    placeholder="000"
-                    placeholderTextColor="#9B9B9B"
-                    keyboardType="number-pad"
-                    secureTextEntry
-                  />
+                  <FieldWithPlus label="CVV" value={cardCvv} onChangeText={setCardCvv} keyboardType="number-pad" secureTextEntry />
                 </View>
               </View>
 
@@ -241,7 +234,7 @@ export default function TutorSlotsScreenWeb() {
                   <Text style={styles.checkboxLabel}>Запомнить карту</Text>
                 </Pressable>
                 <Pressable onPress={handleAddCard} disabled={isAddingCard}>
-                  <Text style={[styles.payLink, isAddingCard && styles.payLinkDisabled]}>{isAddingCard ? 'Открываем…' : 'Оплата'}</Text>
+                  <Text style={[styles.payLink, isAddingCard && styles.payLinkDisabled]}>{isAddingCard ? 'Открываем…' : 'Оплатить'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -295,8 +288,8 @@ export default function TutorSlotsScreenWeb() {
 
 const styles = StyleSheet.create({
   backdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 16, backgroundColor: 'rgba(24,24,24,0.45)' },
-  modalCard: { width: '100%', maxWidth: 560, backgroundColor: '#fff', borderRadius: 12, padding: 32 },
-  modalCardMobile: { maxWidth: 420, padding: 20, borderRadius: 8 },
+  modalCard: { width: '100%', maxWidth: 560, backgroundColor: '#fff', padding: 32 },
+  modalCardMobile: { maxWidth: 420, padding: 20 },
   closeButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
   closeText: { fontSize: 18, color: '#687076' },
 
@@ -331,7 +324,13 @@ const styles = StyleSheet.create({
 
   cardForm: { marginTop: 8 },
   inputLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
-  cardInput: { borderWidth: 1, borderColor: '#D6DBE0', borderRadius: 6, paddingVertical: 10, paddingHorizontal: 12, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 16 },
+  fieldBlock: { marginBottom: 16 },
+  fieldInputWrap: { position: 'relative' },
+  // borderWidth:0 обязателен явно — иначе многострочный/нативный инпут может
+  // показать браузерную рамку по умолчанию (см. profile/[id].web.tsx); outlineWidth:0
+  // убирает нативный фокус-аутлайн браузера (RN Web иначе показывает его поверх).
+  borderlessInput: { borderWidth: 0, outlineWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', minHeight: 20 },
+  plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#181818' },
   cardRow: { flexDirection: 'row', gap: 16 },
   cardRowItem: { flex: 1 },
   cardFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 12 },
