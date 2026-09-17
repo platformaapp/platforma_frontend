@@ -383,12 +383,9 @@ export default function ProfileScreenWeb() {
                 <Text style={styles.modalTitle}>Изменить данные</Text>
                 <Pressable onPress={() => setEditModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
-              <Text style={styles.fieldLabel}>Имя</Text>
-              <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Имя и фамилия" />
-              <Text style={styles.fieldLabel}>Почта</Text>
-              <TextInput style={styles.input} value={email} editable={false} />
-              <Text style={styles.fieldLabel}>Телеграм</Text>
-              <TextInput style={styles.input} value={telegram} onChangeText={setTelegram} placeholder="@username" autoCapitalize="none" />
+              <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
+              <FieldWithPlus label="Почта" value={email} editable={false} />
+              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -511,18 +508,12 @@ export default function ProfileScreenWeb() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <ScrollView style={styles.slotsModalScroll}>
               <Text style={styles.modalTitle}>Изменение данных</Text>
-              <Text style={styles.fieldLabel}>Имя</Text>
-              <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
-              <Text style={styles.fieldLabel}>Описание</Text>
-              <TextInput style={styles.input} value={shortBio} onChangeText={setShortBio} placeholder="Например: Куратор, исследователь культуры" />
-              <Text style={styles.fieldLabel}>Почта</Text>
-              <TextInput style={styles.input} value={email} editable={false} />
-              <Text style={styles.fieldLabel}>Телеграм</Text>
-              <TextInput style={styles.input} value={telegram} onChangeText={setTelegram} placeholder="@username" autoCapitalize="none" />
-              <Text style={styles.fieldLabel}>Доп. информация</Text>
-              <TextInput style={[styles.input, styles.inputMultiline]} value={bio} onChangeText={setBio} multiline />
-              <Text style={styles.fieldLabel}>Стоимость часа</Text>
-              <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
+              <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
+              <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
+              <FieldWithPlus label="Почта" value={email} editable={false} />
+              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
+              <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline style={styles.inputMultiline} />
+              <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
                 <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
               ) : null}
@@ -575,23 +566,21 @@ export default function ProfileScreenWeb() {
       <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setNewEventModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
-            <ScrollView style={styles.slotsModalScroll}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
               <Text style={styles.modalTitle}>Добавить событие</Text>
+              <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <ScrollView style={styles.slotsModalScroll}>
               {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
-              <Text style={styles.fieldLabel}>Название</Text>
-              <TextInput style={styles.input} value={eventTitle} onChangeText={setEventTitle} />
-              <Text style={styles.fieldLabel}>Описание</Text>
-              <TextInput style={[styles.input, styles.inputMultiline]} value={eventDescription} onChangeText={setEventDescription} multiline />
-              <Text style={styles.fieldLabel}>Дата (ГГГГ-ММ-ДД)</Text>
-              <TextInput style={styles.input} value={eventDate} onChangeText={setEventDate} />
-              <Text style={styles.fieldLabel}>Время (ЧЧ:ММ)</Text>
-              <TextInput style={styles.input} value={eventTime} onChangeText={setEventTime} />
-              <Text style={styles.fieldLabel}>Стоимость участия</Text>
-              <TextInput style={styles.input} value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
-              <Text style={styles.fieldLabel}>Максимальное количество участников</Text>
-              <TextInput style={styles.input} value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
-              <Pressable style={styles.uploadButton} onPress={handlePickCover}>
-                <Text style={styles.uploadButtonText}>{eventCoverUri ? 'Обложка выбрана' : 'Загрузить обложку'}</Text>
+              <FieldWithPlus label="Название" value={eventTitle} onChangeText={setEventTitle} />
+              <FieldWithPlus label="Описание" value={eventDescription} onChangeText={setEventDescription} multiline style={styles.inputMultiline} />
+              <FieldWithPlus label="Дата" value={eventDate} onChangeText={setEventDate} />
+              <FieldWithPlus label="Время" value={eventTime} onChangeText={setEventTime} />
+              <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
+              <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
+              <Text style={styles.fieldLabel}>Обложка</Text>
+              <Pressable style={styles.fieldInputWrap} onPress={handlePickCover}>
+                {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : <Text style={styles.plusIcon}>⊕</Text>}
               </Pressable>
               {eventError ? <Text style={styles.errorText}>{eventError}</Text> : null}
             </ScrollView>
@@ -640,10 +629,8 @@ export default function ProfileScreenWeb() {
               ))}
             </ScrollView>
 
-            <Text style={styles.fieldLabel}>Дата</Text>
-            <TextInput style={styles.input} placeholder="ГГГГ-ММ-ДД" value={newSlotDate} onChangeText={setNewSlotDate} />
-            <Text style={styles.fieldLabel}>Время</Text>
-            <TextInput style={styles.input} placeholder="ЧЧ:ММ" value={newSlotTime} onChangeText={setNewSlotTime} />
+            <FieldWithPlus label="Дата" value={newSlotDate} onChangeText={setNewSlotDate} />
+            <FieldWithPlus label="Время" value={newSlotTime} onChangeText={setNewSlotTime} />
 
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setSlotsModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
@@ -662,6 +649,23 @@ function PasswordField({ visible, onToggle, ...props }: any) {
       <TextInput style={styles.input} secureTextEntry={!visible} {...props} />
       <Pressable style={styles.eyeButton} onPress={onToggle}><EyeIcon /></Pressable>
     </View>
+  );
+}
+
+/**
+ * Поле без рамки: пустое значение показывает "⊕" вместо пустого поля ввода
+ * (см. "Добавить событие"/"Изменение данных" в макете) — сам TextInput
+ * всегда под курсором, "⊕" — просто декоративная подсказка поверх него.
+ */
+function FieldWithPlus({ label, value, style, ...props }: { label: string; value: string; style?: any } & Omit<React.ComponentProps<typeof TextInput>, 'style' | 'value'>) {
+  return (
+    <>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldInputWrap}>
+        <TextInput style={[styles.borderlessInput, style]} value={value} {...props} />
+        {!value ? <Text style={styles.plusIcon} pointerEvents="none">⊕</Text> : null}
+      </View>
+    </>
   );
 }
 
@@ -743,10 +747,13 @@ const styles = StyleSheet.create({
   addSlotLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#181818' },
-  uploadButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, alignItems: 'center', marginBottom: 8 },
-  uploadButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 12, marginTop: 4, marginBottom: 8, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
   inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
+  fieldInputWrap: { position: 'relative', marginBottom: 16 },
+  // borderWidth:0 обязателен явно — иначе <textarea> (многострочный TextInput
+  // в RN Web) показывает браузерную рамку по умолчанию.
+  borderlessInput: { borderWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', minHeight: 20 },
+  plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#181818' },
   errorText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
   successText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#1E7E34', marginTop: 12 },
   primaryButton: { backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center', marginTop: 8 },
