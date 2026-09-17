@@ -233,6 +233,54 @@ export default function ProfileScreenWeb() {
     }
   }
 
+  function goToPaymentsPage() {
+    setPaymentsModalVisible(false);
+    router.push('/(tabs)/profile/payments' as any);
+  }
+
+  // ── "Платежи" modal — общая для студента и наставника ──────────────────────
+  function renderPaymentsModal() {
+    return (
+      <Modal transparent animationType="fade" visible={paymentsModalVisible} onRequestClose={() => setPaymentsModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setPaymentsModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Платежи</Text>
+              <Pressable onPress={() => setPaymentsModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+
+            {paymentsLoading ? (
+              <ActivityIndicator color="#181818" />
+            ) : paymentCards.length === 0 ? (
+              <Text style={styles.emptyText}>Карта не привязана</Text>
+            ) : (
+              paymentCards.map((card) => (
+                <View key={card.id} style={styles.paymentCardBlock}>
+                  <Text style={styles.paymentCardLabel}>Карта</Text>
+                  <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
+                  {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
+                  <View style={styles.paymentActionsRow}>
+                    <Pressable onPress={goToPaymentsPage}>
+                      <Text style={styles.paymentHistoryLink}>История платежей</Text>
+                    </Pressable>
+                    <View style={styles.paymentRightActions}>
+                      <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
+                        <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
+                      </Pressable>
+                      <Pressable onPress={goToPaymentsPage}>
+                        <Text style={styles.paymentCardEdit}>Изменить</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
   // ── Tutor handlers (unchanged) ────────────────────────────────────────────
   async function handleTutorSave() {
     setTutorSaving(true);
@@ -414,41 +462,7 @@ export default function ProfileScreenWeb() {
           </Pressable>
         </Modal>
 
-        {/* ─── Платежи ──────────────────────────────────────────────────── */}
-        <Modal transparent animationType="fade" visible={paymentsModalVisible} onRequestClose={() => setPaymentsModalVisible(false)}>
-          <Pressable style={styles.overlay} onPress={() => setPaymentsModalVisible(false)}>
-            <Pressable style={styles.modalCard} onPress={() => {}}>
-              <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-                <Text style={styles.modalTitle}>Платежи</Text>
-                <Pressable onPress={() => setPaymentsModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
-              </View>
-
-              {paymentsLoading ? (
-                <ActivityIndicator color="#181818" />
-              ) : paymentCards.length === 0 ? (
-                <Text style={styles.emptyText}>Карта не привязана</Text>
-              ) : (
-                paymentCards.map((card) => (
-                  <View key={card.id} style={styles.paymentCardRow}>
-                    <View>
-                      <Text style={styles.paymentCardLabel}>Карта</Text>
-                      <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
-                      {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
-                    </View>
-                    <View style={styles.paymentCardActions}>
-                      <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
-                        <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
-                      </Pressable>
-                      <Pressable onPress={() => { setPaymentsModalVisible(false); router.push('/(tabs)/profile/payments' as any); }}>
-                        <Text style={styles.paymentCardEdit}>Изменить</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ))
-              )}
-            </Pressable>
-          </Pressable>
-        </Modal>
+        {renderPaymentsModal()}
       </SiteShell>
     );
   }
@@ -586,40 +600,7 @@ export default function ProfileScreenWeb() {
         </Pressable>
       </Modal>
 
-      {/* ─── Платежи ──────────────────────────────────────────────────── */}
-      <Modal transparent animationType="fade" visible={paymentsModalVisible} onRequestClose={() => setPaymentsModalVisible(false)}>
-        <Pressable style={styles.overlay} onPress={() => setPaymentsModalVisible(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Платежи</Text>
-              <Pressable onPress={() => setPaymentsModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
-            </View>
-            {paymentsLoading ? (
-              <ActivityIndicator color="#181818" />
-            ) : paymentCards.length === 0 ? (
-              <Text style={styles.emptyText}>Карта не привязана</Text>
-            ) : (
-              paymentCards.map((card) => (
-                <View key={card.id} style={styles.paymentCardRow}>
-                  <View>
-                    <Text style={styles.paymentCardLabel}>Карта</Text>
-                    <Text style={styles.paymentCardNumber}>{card.cardMasked ?? card.card_masked ?? '****'}</Text>
-                    {(card.cardType ?? card.provider) ? <Text style={styles.paymentCardBank}>{card.cardType ?? card.provider}</Text> : null}
-                  </View>
-                  <View style={styles.paymentCardActions}>
-                    <Pressable onPress={() => handleDeleteCard(card)} disabled={deletingCardId === card.id}>
-                      <Text style={styles.paymentCardDelete}>{deletingCardId === card.id ? '…' : 'Удалить'}</Text>
-                    </Pressable>
-                    <Pressable onPress={() => { setPaymentsModalVisible(false); router.push('/(tabs)/profile/payments' as any); }}>
-                      <Text style={styles.paymentCardEdit}>Изменить</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {renderPaymentsModal()}
 
       {/* ─── Добавить событие ─────────────────────────────────────────── */}
       <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
@@ -751,11 +732,13 @@ const styles = StyleSheet.create({
   inviteLinkBox: { borderWidth: 1, borderColor: '#181818' },
   inviteLinkInput: { paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   inviteCopyButton: { marginTop: 0, borderTopWidth: 1, borderColor: '#181818' },
-  paymentCardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
+  paymentCardBlock: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
   paymentCardNumber: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 2 },
   paymentCardBank: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 2 },
-  paymentCardActions: { flexDirection: 'row', gap: 20, marginTop: 4 },
+  paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
+  paymentHistoryLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  paymentRightActions: { flexDirection: 'row', gap: 20 },
   paymentCardDelete: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   paymentCardEdit: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
 
