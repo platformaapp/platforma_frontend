@@ -1,27 +1,114 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell } from '@/components/web/site-shell';
+import { endpoints } from '@/constants/env';
+import { getArticle, type Article } from '@/lib/api/journal';
 
-const MOCK_EVENT = {
-  title: 'Групповое обсуждение выставки «Оттепель»',
-  author: 'Евгений Максимов',
-  date: '24 сентября, 19:00',
-};
+type RelatedEvent = { id: string; title: string; datetimeStart?: string; coverUrl?: string | null };
 
-const LOREM = 'Давно выяснено, что при оценке дизайна и композиции читаемый текст мешает сосредоточиться. Lorem Ipsum используют потому, что тот обеспечивает более или менее стандартное заполнение шаблона, а также реальное распределение букв и пробелов в абзацах, которое не получается при простой дубликации «Здесь ваш текст.. Здесь ваш текст.. Здесь ваш текст..» Многие программы электронной вёрстки и редакторы HTML используют Lorem Ipsum в качестве текста по умолчанию.';
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+function formatEventTime(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  } catch {
+    return '';
+  }
+}
 
 /**
- * Мок-контент — см. журнал/index.web.tsx: бэкенду нужен эндпоинт со статьями
- * (title, author.name/role/avatarUrl, coverUrl, body, gallery — картинки
- * ниже показаны серыми плейсхолдерами, т.к. реальных URL пока нет).
- * URL-параметр id пока не используется — все статьи показывают одну и ту же
- * заглушку, реальный fetch по id подключится вместе с бэкендом.
+ * Контент статьи — обычный текст, абзацы разделены пустой строкой; строка,
+ * начинающаяся с "## ", открывает второй блок (подзаголовок + текст),
+ * который на странице идёт рядом с галереей (см. макет). Второй "## " и
+ * дальше не поддерживаются — в макете такой блок всего один.
  */
+function parseContent(content: string | null): { intro: string[]; section: { heading: string; body: string[] } | null } {
+  if (!content) return { intro: [], section: null };
+  const headingIdx = content.indexOf('\n## ');
+  const headingAtStart = content.startsWith('## ');
+  if (!headingAtStart && headingIdx === -1) {
+    return { intro: content.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean), section: null };
+  }
+  const splitAt = headingAtStart ? 0 : headingIdx + 1;
+  const before = content.slice(0, splitAt).trim();
+  const after = content.slice(splitAt + 3).trim();
+  const newlineIdx = after.indexOf('\n');
+  const heading = (newlineIdx === -1 ? after : after.slice(0, newlineIdx)).trim();
+  const body = (newlineIdx === -1 ? '' : after.slice(newlineIdx + 1)).trim();
+  return {
+    intro: before.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
+    section: { heading, body: body.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) },
+  };
+}
+
 export default function ArticleScreenWeb() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [relatedEvent, setRelatedEvent] = useState<RelatedEvent | null>(null);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      setError('');
+      const a = await getArticle(id);
+      setArticle(a);
+
+      try {
+        const feedRes = await fetch(`${endpoints.eventsFeed}?per_page=50`);
+        if (feedRes.ok) {
+          const data = await feedRes.json();
+          const list: unknown[] = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
+          const now = Date.now();
+          const upcoming = list
+            .map((r: any) => ({
+              id: String(r.id ?? ''),
+              title: String(r.title ?? ''),
+              datetimeStart: r.datetimeStart ?? r.datetime_start ?? undefined,
+              coverUrl: r.coverUrl ?? r.cover_url ?? null,
+              mentorId: String(r.mentor?.id ?? r.mentor?.userId ?? ''),
+            }))
+            .filter((e) => e.mentorId === a.author.id && (!e.datetimeStart || new Date(e.datetimeStart).getTime() > now));
+          setRelatedEvent(upcoming[0] ?? null);
+        }
+      } catch { /* related event is optional, ignore failures */ }
+    } catch (e: any) {
+      setError(e?.message ?? 'Не удалось загрузить материал');
+      setArticle(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View></SiteShell>;
+  }
+
+  if (error || !article) {
+    return (
+      <SiteShell>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error || 'Материал не найден'}</Text>
+          <Pressable style={styles.retryButton} onPress={load}><Text style={styles.retryButtonText}>Повторить</Text></Pressable>
+        </View>
+      </SiteShell>
+    );
+  }
+
+  const { intro, section } = parseContent(article.content);
+  const [galleryLeft, galleryRight] = article.gallery;
 
   return (
     <SiteShell>
@@ -32,59 +119,70 @@ export default function ArticleScreenWeb() {
 
         <View style={styles.row}>
           <View style={styles.colText}>
-            <Text style={styles.title}>Как подойти к выставкам с умом, подготовиться и взять от них максимум?</Text>
+            <Text style={styles.title}>{article.title}</Text>
             <View style={styles.authorRow}>
-              <View style={styles.authorAvatar} />
+              {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
               <View>
-                <Text style={styles.author}>Евгений Максимов</Text>
-                <Text style={styles.role}>Куратор, деятель культуры</Text>
+                {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
+                {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
               </View>
             </View>
-            <Text style={styles.body}>{LOREM}</Text>
+            {intro.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
           </View>
           <View style={styles.colImage}>
-            <View style={styles.coverImage} />
+            {article.coverUrl ? <Image source={{ uri: article.coverUrl }} style={styles.coverImage} resizeMode="cover" /> : <View style={styles.coverImage} />}
           </View>
         </View>
 
-        <View style={styles.row}>
-          <View style={styles.colText}>
-            <Text style={styles.subheading}>Как подойти к выставкам с умом, подготовиться</Text>
-            <Text style={styles.body}>{LOREM}</Text>
-          </View>
-          <View style={styles.colImage}>
-            <View style={styles.galleryRow}>
-              <View style={styles.galleryImage} />
-              <View style={styles.galleryImage} />
+        {section ? (
+          <View style={styles.row}>
+            <View style={styles.colText}>
+              <Text style={styles.subheading}>{section.heading}</Text>
+              {section.body.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
             </View>
+            {galleryLeft || galleryRight ? (
+              <View style={styles.colImage}>
+                <View style={styles.galleryRow}>
+                  {galleryLeft ? <Image source={{ uri: galleryLeft }} style={styles.galleryImage} resizeMode="cover" /> : null}
+                  {galleryRight ? <Image source={{ uri: galleryRight }} style={styles.galleryImage} resizeMode="cover" /> : null}
+                </View>
+              </View>
+            ) : null}
           </View>
-        </View>
+        ) : null}
 
-        <View style={styles.ctaBlock}>
-          <Pressable onPress={() => router.push('/events' as any)}>
-            <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
-          </Pressable>
-          <Pressable style={styles.eventCard} onPress={() => router.push('/events' as any)}>
-            <View style={styles.eventCardImage} />
-            <View style={styles.eventCardInfo}>
-              <Text style={styles.eventCardTitle} numberOfLines={2}>{MOCK_EVENT.title}</Text>
-              <Text style={styles.eventCardAuthor}>{MOCK_EVENT.author}</Text>
-              <Text style={styles.eventCardDate}>{MOCK_EVENT.date}</Text>
-            </View>
-          </Pressable>
-        </View>
+        <PromoBanner withTelegramLink />
+
+        {relatedEvent ? (
+          <View style={styles.ctaBlock}>
+            <Pressable onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
+              <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+            </Pressable>
+            <Pressable style={styles.eventCard} onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
+              {relatedEvent.coverUrl ? <Image source={{ uri: relatedEvent.coverUrl }} style={styles.eventCardImage} /> : <View style={styles.eventCardImage} />}
+              <View style={styles.eventCardInfo}>
+                <Text style={styles.eventCardTitle} numberOfLines={2}>{relatedEvent.title}</Text>
+                <Text style={styles.eventCardAuthor}>{article.author.name}</Text>
+                <Text style={styles.eventCardDate}>{formatEventTime(relatedEvent.datetimeStart)}</Text>
+              </View>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.ctaBlock}>
           <Text style={styles.actionLinkText}>Скачать приложение</Text>
           <View style={styles.appCard}>
             <View style={styles.appCardIcon} />
-            <View style={styles.appCardStores}>
-              <Pressable style={styles.storeButton}>
-                <Text style={styles.storeButtonText}>App Store</Text>
-              </Pressable>
-              <Pressable style={styles.storeButton}>
-                <Text style={styles.storeButtonText}>Google Play</Text>
-              </Pressable>
+            <View style={styles.appCardTextBlock}>
+              <Text style={styles.appCardText}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
+              <View style={styles.appCardStores}>
+                <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
+                  <Text style={styles.storeLinkText}>app store</Text>
+                </Pressable>
+                <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
+                  <Text style={styles.storeLinkText}>google play</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </View>
@@ -97,20 +195,28 @@ export default function ArticleScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
+  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
+  retryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 32 },
+  retryButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+
   backArrow: { fontSize: 24, color: '#181818', marginBottom: 24 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, marginBottom: 40 },
-  colText: { flexBasis: 420, flexGrow: 1, minWidth: 300 },
-  colImage: { flexBasis: 420, flexGrow: 1, minWidth: 280 },
+  // flexShrink явно 1 — у RN Web дефолт 0, без этого колонка не сжимается
+  // ниже flexBasis и текст вылезает за край на узких экранах.
+  colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
+  colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240 },
   title: { fontSize: 26, lineHeight: 32, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   subheading: { fontSize: 22, lineHeight: 28, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  authorAvatar: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
+  authorAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E5E5' },
   author: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818' },
   role: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
-  body: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818' },
+  body: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 16 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5' },
+
   ctaBlock: { marginTop: 8, marginBottom: 24 },
   actionLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D', paddingVertical: 8 },
   eventCard: { flexDirection: 'row', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
@@ -121,7 +227,8 @@ const styles = StyleSheet.create({
   eventCardDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   appCard: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
   appCardIcon: { width: 56, height: 56, backgroundColor: '#E5E5E5' },
+  appCardTextBlock: { flex: 1, gap: 8 },
+  appCardText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
   appCardStores: { flexDirection: 'row', gap: 12 },
-  storeButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 16 },
-  storeButtonText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#181818' },
+  storeLinkText: { fontFamily: 'Inter-Medium', fontSize: 13, color: '#E02D2D' },
 });

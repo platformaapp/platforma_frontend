@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
@@ -243,16 +244,7 @@ export default function EventsScreenWeb() {
           </View>
         )}
 
-        {!loading && !error && filtered.length > 0 ? (
-          <Pressable style={styles.promoBanner} onPress={() => router.push('/journal' as any)}>
-            <View style={styles.promoInfoDot}><Text style={styles.promoInfoDotText}>i</Text></View>
-            <View style={styles.promoTextBlock}>
-              <Text style={styles.promoHeadline}>Заменят ли реальных моделей их AI-копиями?</Text>
-              <Text style={styles.promoSub}>читайте в нашем материале</Text>
-            </View>
-            <Text style={styles.promoBrand}>AI ISSUE</Text>
-          </Pressable>
-        ) : null}
+        {!loading && !error && filtered.length > 0 ? <PromoBanner /> : null}
 
         {!loading && !error && hasMore ? (
           <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
@@ -303,12 +295,4 @@ const styles = StyleSheet.create({
   mobileThumb: { width: 88, height: 64, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'center' },
   mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
-  // Промо-баннер материала — тёмная плашка на всю ширину, см. низ макета.
-  promoBanner: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#181818', minHeight: 220, marginTop: 24, padding: 24, position: 'relative' },
-  promoInfoDot: { position: 'absolute', top: 16, right: 56, width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  promoInfoDotText: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#fff' },
-  promoTextBlock: { flex: 1, paddingRight: 48 },
-  promoHeadline: { fontSize: 22, lineHeight: 28, fontFamily: 'Inter-Bold', color: '#fff', textTransform: 'uppercase', marginBottom: 12 },
-  promoSub: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#fff' },
-  promoBrand: { position: 'absolute', top: '50%', right: 16, fontSize: 16, fontFamily: 'Inter-Bold', color: '#fff', letterSpacing: 2, transform: [{ translateY: -10 }, { rotate: '90deg' }] },
 });
