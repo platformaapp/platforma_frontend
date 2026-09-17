@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -9,24 +9,31 @@ import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib
 import { getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
 
-type SlotItem = { id: string; date: string; time: string; price?: number };
+type SlotItem = { id: string; rawDate: string; time: string; price?: number };
 
 /**
- * Шаг веб-версии страницы "Слоты": "запись" (список) → "Подтверждение"
- * (выбранный слот) → "новая карта" (если карта не привязана) → "оплата
- * прошла" (успех). В макете это отдельные экраны; здесь — состояния одной
- * страницы (см. описание файла ниже).
+ * Шаг веб-версии страницы "Слоты": "запись" (список, сгруппированный по
+ * датам) → "Подтверждение" (выбранный слот) → "новая карта" (если карта не
+ * привязана) → "оплата прошла" (успех). В макете это модальное окно поверх
+ * профиля наставника; здесь — состояния одной страницы с тем же визуальным
+ * оформлением (карточка на затемнённом фоне), т.к. в expo-router это
+ * отдельный маршрут, а не оверлей над предыдущим экраном.
  */
 type Step = 'pick' | 'confirm' | 'addCard' | 'success';
 
-function formatSlotDate(apiDate: string): string {
-  const parts = apiDate.split('-');
-  return parts.length === 3 ? `${parts[2]}.${parts[1]}` : apiDate;
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+function formatDateHeading(rawDate: string): string {
+  const parts = rawDate.split('-');
+  if (parts.length !== 3) return rawDate;
+  const day = parseInt(parts[2], 10);
+  const month = MONTHS_GEN[parseInt(parts[1], 10) - 1];
+  return month ? `${day} ${month}` : rawDate;
 }
 
 /**
- * Веб-версия страницы "Слоты" (в макете — отдельная страница, а не модалка,
- * как в нативном приложении). Логика бронирования/оплаты продублирована из
+ * Веб-версия страницы "Слоты" (в макете — модальное окно поверх профиля
+ * наставника). Логика бронирования/оплаты продублирована из
  * app/(tabs)/explore/[id].tsx (handleBook) — тот же эндпоинт и разбор ответа.
  * Привязка карты (шаг "новая карта") использует тот же bindPaymentMethod,
  * что и app/(tabs)/profile/payments.tsx — тоже уводит на хостед-страницу
@@ -73,7 +80,7 @@ export default function TutorSlotsScreenWeb() {
           if (s.status !== 'free' && s.status !== 'available') return false;
           return new Date(`${s.date}T${s.time}:00`).getTime() > nowTs;
         });
-        if (active) setSlots(filtered.map((s) => ({ id: s.id, date: formatSlotDate(s.date), time: s.time.slice(0, 5), price: s.price })));
+        if (active) setSlots(filtered.map((s) => ({ id: s.id, rawDate: s.date, time: s.time.slice(0, 5), price: s.price })));
       } catch (e: any) {
         if (active) setError(e?.message ?? 'Не удалось загрузить слоты');
       } finally {
@@ -83,8 +90,23 @@ export default function TutorSlotsScreenWeb() {
     return () => { active = false; };
   }, [id, router]);
 
-  function handleSelectSlot(slot: SlotItem) {
-    setSelected(slot);
+  const groupedSlots = useMemo(() => {
+    const map = new Map<string, SlotItem[]>();
+    slots.forEach((s) => {
+      const list = map.get(s.rawDate) ?? [];
+      list.push(s);
+      map.set(s.rawDate, list);
+    });
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [slots]);
+
+  function handleClose() {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/(tabs)/explore/${id}` as any);
+  }
+
+  function handleNext() {
+    if (!selected) return;
     setBookError('');
     setStep('confirm');
   }
@@ -146,114 +168,129 @@ export default function TutorSlotsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.title, isMobile && styles.titleMobile]}>{mentorName || 'Наставник'}</Text>
-        <Text style={styles.subtitle}>
-          {step === 'confirm' ? 'Подтверждение записи' : step === 'addCard' ? 'Привязка карты' : step === 'success' ? 'Оплата прошла' : 'Запись на встречу'}
-        </Text>
-        {mentorPrice && step === 'pick' ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
+      <ScrollView contentContainerStyle={styles.backdrop}>
+        <View style={[styles.modalCard, isMobile && styles.modalCardMobile]}>
+          <Pressable style={styles.closeButton} onPress={handleClose} hitSlop={8}>
+            <Text style={styles.closeText}>✕</Text>
+          </Pressable>
 
-        {loading ? (
-          <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
-        ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
-        ) : step === 'success' ? (
-          <View style={styles.successBox}>
-            <Text style={styles.successTitle}>Встреча забронирована</Text>
-            <Text style={styles.successText}>Чек придёт на почту. Возврат возможен в течение 24 часов.</Text>
-            <Pressable style={styles.primaryButton} onPress={() => router.push('/myevents' as any)}>
-              <Text style={styles.primaryButtonText}>Мои записи</Text>
-            </Pressable>
-          </View>
-        ) : step === 'addCard' ? (
-          <View style={styles.successBox}>
-            <Text style={styles.successTitle}>Нет привязанной карты</Text>
-            <Text style={styles.successText}>
-              Чтобы оплатить встречу{selected ? ` ${selected.date} в ${selected.time}` : ''}, привяжите карту — вы будете перенаправлены на страницу оплаты YooKassa.
-            </Text>
-            {addCardError ? <Text style={styles.errorText}>{addCardError}</Text> : null}
-            <Pressable style={[styles.primaryButton, isAddingCard && styles.btnDisabled]} onPress={handleAddCard} disabled={isAddingCard}>
-              <Text style={styles.primaryButtonText}>{isAddingCard ? 'Открываем…' : 'Привязать карту'}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile, styles.backButtonSpacing]}
-              onPress={() => setStep('confirm')}
-            >
-              <Text style={[styles.secondaryButtonText, isMobile && styles.secondaryButtonTextMobile]}>Назад</Text>
-            </Pressable>
-          </View>
-        ) : step === 'confirm' && selected ? (
-          <View style={styles.confirmBox}>
-            <Text style={styles.confirmLabel}>Дата и время</Text>
-            <Text style={styles.confirmText}>{selected.date} в {selected.time}</Text>
-            {selected.price != null ? (
-              <>
-                <Text style={styles.confirmLabel}>Стоимость</Text>
-                <Text style={styles.confirmText}>{selected.price.toLocaleString('ru-RU')} ₽</Text>
-              </>
-            ) : null}
-            <Text style={styles.cancellationNote}>Возврат возможен в течение 24 часов после оплаты.</Text>
-            {bookError ? <Text style={styles.errorText}>{bookError}</Text> : null}
-            <Pressable style={[styles.primaryButton, isBooking && styles.btnDisabled]} onPress={handleBook} disabled={isBooking}>
-              <Text style={styles.primaryButtonText}>{isBooking ? 'Оплата…' : 'Оплатить'}</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile, styles.backButtonSpacing]}
-              onPress={handleBackToPick}
-            >
-              <Text style={[styles.secondaryButtonText, isMobile && styles.secondaryButtonTextMobile]}>Изменить время</Text>
-            </Pressable>
-          </View>
-        ) : slots.length === 0 ? (
-          <Text style={styles.emptyText}>Нет доступных слотов</Text>
-        ) : (
-          <View style={styles.slotGrid}>
-            {slots.map((slot) => {
-              const active = selected?.id === slot.id;
-              return (
-                <Pressable key={slot.id} style={[styles.slotCard, active && styles.slotCardActive]} onPress={() => handleSelectSlot(slot)}>
-                  <Text style={[styles.slotDate, active && styles.slotTextActive]}>{slot.date}</Text>
-                  <Text style={[styles.slotTime, active && styles.slotTextActive]}>{slot.time}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
+          <Text style={styles.title}>{mentorName || 'Наставник'}</Text>
+          <Text style={styles.subtitle}>
+            {step === 'confirm' ? 'Подтверждение записи' : step === 'addCard' ? 'Привязка карты' : step === 'success' ? 'Оплата прошла' : 'Запись на встречу'}
+          </Text>
+          {mentorPrice && step === 'pick' ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
+
+          {loading ? (
+            <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : step === 'success' ? (
+            <View>
+              <Text style={styles.successText}>Чек придёт на почту. Возврат возможен в течение 24 часов.</Text>
+              <Pressable style={styles.primaryButton} onPress={() => router.push('/myevents' as any)}>
+                <Text style={styles.primaryButtonText}>Мои записи</Text>
+              </Pressable>
+            </View>
+          ) : step === 'addCard' ? (
+            <View>
+              <Text style={styles.successText}>
+                Чтобы оплатить встречу{selected ? ` ${formatDateHeading(selected.rawDate)} в ${selected.time}` : ''}, привяжите карту — вы будете перенаправлены на страницу оплаты YooKassa.
+              </Text>
+              {addCardError ? <Text style={styles.errorText}>{addCardError}</Text> : null}
+              <Pressable style={[styles.primaryButton, isAddingCard && styles.btnDisabled]} onPress={handleAddCard} disabled={isAddingCard}>
+                <Text style={styles.primaryButtonText}>{isAddingCard ? 'Открываем…' : 'Привязать карту'}</Text>
+              </Pressable>
+              <Pressable onPress={() => setStep('confirm')} style={styles.backLinkSpacing}>
+                <Text style={styles.backLink}>Назад</Text>
+              </Pressable>
+            </View>
+          ) : step === 'confirm' && selected ? (
+            <View>
+              <Text style={styles.confirmLabel}>Дата и время</Text>
+              <Text style={styles.confirmText}>{formatDateHeading(selected.rawDate)} в {selected.time}</Text>
+              {selected.price != null ? (
+                <>
+                  <Text style={styles.confirmLabel}>Стоимость</Text>
+                  <Text style={styles.confirmText}>{selected.price.toLocaleString('ru-RU')} ₽</Text>
+                </>
+              ) : null}
+              <Text style={styles.cancellationNote}>Возврат возможен в течение 24 часов после оплаты.</Text>
+              {bookError ? <Text style={styles.errorText}>{bookError}</Text> : null}
+              <Pressable style={[styles.primaryButton, isBooking && styles.btnDisabled]} onPress={handleBook} disabled={isBooking}>
+                <Text style={styles.primaryButtonText}>{isBooking ? 'Оплата…' : 'Оплатить'}</Text>
+              </Pressable>
+              <Pressable onPress={handleBackToPick} style={styles.backLinkSpacing}>
+                <Text style={styles.backLink}>Изменить время</Text>
+              </Pressable>
+            </View>
+          ) : groupedSlots.length === 0 ? (
+            <Text style={styles.emptyText}>Нет доступных слотов</Text>
+          ) : (
+            <View>
+              {groupedSlots.map(([rawDate, list]) => (
+                <View key={rawDate} style={styles.dateGroup}>
+                  <Text style={styles.dateHeading}>{formatDateHeading(rawDate)}</Text>
+                  <View style={styles.timeRow}>
+                    {list.map((slot) => {
+                      const active = selected?.id === slot.id;
+                      return (
+                        <Pressable key={slot.id} style={[styles.timeChip, active && styles.timeChipActive]} onPress={() => setSelected(slot)}>
+                          <Text style={[styles.timeChipText, active && styles.timeChipTextActive]}>{slot.time}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
+              <Pressable
+                style={[styles.nextLink, !selected && styles.nextLinkDisabled]}
+                onPress={handleNext}
+                disabled={!selected}
+              >
+                <Text style={[styles.nextLinkText, !selected && styles.nextLinkTextDisabled]}>Далее</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SiteShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 640 },
+  backdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 16, backgroundColor: 'rgba(24,24,24,0.45)' },
+  modalCard: { width: '100%', maxWidth: 560, backgroundColor: '#fff', borderRadius: 12, padding: 32 },
+  modalCardMobile: { maxWidth: 420, padding: 20, borderRadius: 8 },
+  closeButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
+  closeText: { fontSize: 18, color: '#687076' },
+
   title: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818' },
-  titleMobile: { fontSize: 20 },
   subtitle: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
   price: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 24 },
-  centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
+  centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 12, marginBottom: 4 },
   emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
-  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24, marginTop: 16 },
-  slotCard: { width: 84, height: 76, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
-  slotCardActive: { backgroundColor: '#181818' },
-  slotDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-  slotTime: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#181818', marginTop: 2 },
-  slotTextActive: { color: '#FAFAFA' },
-  confirmBox: { borderWidth: 1, borderColor: '#1E1E1E', padding: 20, marginTop: 16 },
+
+  dateGroup: { marginTop: 20 },
+  dateHeading: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 10 },
+  timeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  timeChip: { paddingVertical: 10, paddingHorizontal: 18, borderWidth: 1, borderColor: '#D6DBE0', borderRadius: 24 },
+  timeChipActive: { backgroundColor: '#181818', borderColor: '#181818' },
+  timeChipText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  timeChipTextActive: { color: '#FAFAFA' },
+
+  nextLink: { alignSelf: 'flex-start', marginTop: 28 },
+  nextLinkDisabled: { opacity: 0.5 },
+  nextLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  nextLinkTextDisabled: { color: '#9B9B9B' },
+
   confirmLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 2 },
   confirmText: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 12 },
   cancellationNote: { fontSize: 12, lineHeight: 17, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 16 },
-  primaryButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  primaryButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
   primaryButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  secondaryButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
-  // Mobile action-button convention: plain bordered/text buttons become a
-  // filled light-blue chip on narrow widths (see MOBILE_BREAKPOINT usages).
-  secondaryButtonMobile: { borderWidth: 0, backgroundColor: '#F0F5FB' },
-  secondaryButtonTextMobile: { color: '#68717A' },
-  backButtonSpacing: { marginTop: 12 },
-  successBox: { borderWidth: 1, borderColor: '#1E1E1E', padding: 24, marginTop: 16 },
-  successTitle: { fontSize: 18, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 8 },
+  backLinkSpacing: { marginTop: 16, alignSelf: 'flex-start' },
+  backLink: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#687076' },
   successText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 16 },
 });

@@ -11,7 +11,7 @@ import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
-type MentorEvent = { id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null };
+type MentorEvent = { id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
 
 function resolveCover(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -30,9 +30,8 @@ function formatEventDate(iso?: string): string {
 }
 
 /**
- * Веб-версия профиля наставника. "Избранное" (звёздочка) — только локальная
- * UI-заглушка, бэкенд для избранного не найден; звонок "Instagram" показывается,
- * только если у наставника реально есть это поле (сейчас его нет в API — бэкенду
+ * Веб-версия профиля наставника. Звонок "Instagram" показывается, только
+ * если у наставника реально есть это поле (сейчас его нет в API — бэкенду
  * нужно добавить, если ссылка на Instagram должна отображаться).
  */
 export default function TutorCardScreenWeb() {
@@ -51,8 +50,6 @@ export default function TutorCardScreenWeb() {
   const [isMentorVerified, setIsMentorVerified] = useState(true);
   const [telegramHandle, setTelegramHandle] = useState('');
   const [mentorEvents, setMentorEvents] = useState<MentorEvent[]>([]);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showFavoriteHint, setShowFavoriteHint] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -100,6 +97,7 @@ export default function TutorCardScreenWeb() {
                 datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at ?? undefined,
                 price: typeof r.price === 'number' ? r.price : undefined,
                 coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url),
+                format: r.format ?? r.type ?? undefined,
               }))
               .filter((e: MentorEvent) => e.id);
             if (active) setMentorEvents(events);
@@ -127,11 +125,52 @@ export default function TutorCardScreenWeb() {
     }
   }
 
-  function toggleFavorite() {
-    setIsFavorite((v) => !v);
-    setShowFavoriteHint(true);
-    setTimeout(() => setShowFavoriteHint(false), 1500);
+  const now = Date.now();
+  const upcomingEvents = mentorEvents.filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now);
+  const pastEvents = mentorEvents.filter((e) => e.datetimeStart && new Date(e.datetimeStart).getTime() <= now);
+
+  function renderEventCard(ev: MentorEvent) {
+    return (
+      <Pressable
+        key={ev.id}
+        style={[styles.eventCard, isMobile && styles.eventCardMobile]}
+        onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}
+      >
+        {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
+        <View style={styles.eventCardBody}>
+          {ev.format ? <Text style={styles.eventFormat}>{ev.format}</Text> : null}
+          <Text style={styles.eventCardTitle} numberOfLines={2}>{ev.title}</Text>
+          <Text style={styles.eventCardMeta}>
+            {formatEventDate(ev.datetimeStart)}
+            {isMobile && ev.price != null ? ` · ${ev.price.toLocaleString('ru-RU')} ₽` : ''}
+          </Text>
+        </View>
+      </Pressable>
+    );
   }
+
+  const actions = (
+    <>
+      {!isOwnProfile && isMentorVerified ? (
+        <Pressable
+          style={isMobile && styles.chipHalf}
+          onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
+        >
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться на встречу</Text>
+        </Pressable>
+      ) : null}
+      {!isOwnProfile ? (
+        <Pressable style={isMobile && styles.chipHalf} onPress={handleWrite}>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>{isMobile ? 'Связаться' : 'Написать наставнику'}</Text>
+        </Pressable>
+      ) : null}
+      {instagramUrl ? (
+        <Pressable style={isMobile && styles.chipHalf} onPress={() => Linking.openURL(instagramUrl)}>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Instagram</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
 
   if (loadingProfile) {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View></SiteShell>;
@@ -140,21 +179,19 @@ export default function TutorCardScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.layout}>
-          <View style={[styles.main, isMobile && styles.mainMobile]}>
-            <View style={[styles.headerRow, isMobile && styles.headerRowMobile]}>
-              <Image source={imageSource} style={[styles.avatar, isMobile && styles.avatarMobile]} />
+        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/explore' as any))} hitSlop={8}>
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
+
+        {isMobile ? (
+          <View>
+            <View style={styles.headerRow}>
               <View style={styles.headerText}>
-                <Text style={[styles.name, isMobile && styles.nameMobile]}>{displayName || 'Наставник'}</Text>
+                <Text style={styles.name}>{displayName || 'Наставник'}</Text>
                 {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               </View>
-              <Pressable onPress={toggleFavorite} hitSlop={12} style={styles.favoriteButton}>
-                <Text style={[styles.favoriteStar, isFavorite && styles.favoriteStarActive]}>★</Text>
-              </Pressable>
+              <Image source={imageSource} style={styles.avatarMobile} />
             </View>
-            {showFavoriteHint ? (
-              <Text style={styles.favoriteHint}>{isFavorite ? 'Добавлено в избранное' : 'Убрано из избранного'}</Text>
-            ) : null}
 
             {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
 
@@ -165,54 +202,54 @@ export default function TutorCardScreenWeb() {
               </View>
             ) : null}
 
-            <View style={[styles.actionsRow, isMobile && styles.actionsRowMobile]}>
-              {!isOwnProfile && isMentorVerified ? (
-                <Pressable
-                  style={[styles.primaryButton, isMobile && styles.actionButtonMobileFull]}
-                  onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
-                >
-                  <Text style={styles.primaryButtonText}>Записаться на встречу</Text>
-                </Pressable>
-              ) : null}
-              {!isOwnProfile ? (
-                <Pressable
-                  style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile, isMobile && styles.actionButtonMobileFull]}
-                  onPress={handleWrite}
-                >
-                  <Text style={[styles.secondaryButtonText, isMobile && styles.secondaryButtonTextMobile]}>Написать наставнику</Text>
-                </Pressable>
-              ) : null}
-              {instagramUrl ? (
-                <Pressable
-                  style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile, isMobile && styles.actionButtonMobileFull]}
-                  onPress={() => Linking.openURL(instagramUrl)}
-                >
-                  <Text style={[styles.secondaryButtonText, isMobile && styles.secondaryButtonTextMobile]}>Instagram</Text>
-                </Pressable>
-              ) : null}
-            </View>
+            <View style={styles.actionsRowMobile}>{actions}</View>
             {instagramUrl ? (
               <Text style={styles.instagramDisclaimer}>
                 Социальная сеть Instagram, деятельность которой запрещена на территории РФ.
               </Text>
             ) : null}
-
-            {mentorEvents.length > 0 ? (
-              <View style={styles.eventsSection}>
-                <Text style={styles.eventsSectionTitle}>События наставника</Text>
-                {mentorEvents.map((ev) => (
-                  <Pressable key={ev.id} style={styles.eventCard} onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}>
-                    {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
-                    <View style={styles.eventBody}>
-                      <Text style={styles.eventTitle} numberOfLines={2}>{ev.title}</Text>
-                      {ev.datetimeStart ? <Text style={styles.eventDate}>{formatEventDate(ev.datetimeStart)}</Text> : null}
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
           </View>
-        </View>
+        ) : (
+          <View style={styles.desktopLayout}>
+            <View style={styles.leftCol}>
+              <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+              {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
+              {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
+
+              {displayPrice ? (
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceLabel}>Стоимость консультации:</Text>
+                  <Text style={styles.priceValue}>{displayPrice}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.actionsRow}>{actions}</View>
+              {instagramUrl ? (
+                <Text style={styles.instagramDisclaimer}>
+                  Социальная сеть Instagram, деятельность которой запрещена на территории РФ.
+                </Text>
+              ) : null}
+            </View>
+            <View style={styles.rightCol}>
+              <Image source={imageSource} style={styles.avatarLarge} />
+            </View>
+          </View>
+        )}
+
+        {upcomingEvents.length > 0 ? (
+          <View style={styles.eventsSection}>
+            <Text style={styles.eventsSectionTitle}>События наставника</Text>
+            <View style={styles.eventsGrid}>{upcomingEvents.map(renderEventCard)}</View>
+          </View>
+        ) : null}
+
+        {pastEvents.length > 0 ? (
+          <View style={styles.eventsSection}>
+            <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
+            <View style={styles.eventsGrid}>{pastEvents.map(renderEventCard)}</View>
+          </View>
+        ) : null}
+
         <SiteFooter />
       </ScrollView>
     </SiteShell>
@@ -222,45 +259,46 @@ export default function TutorCardScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  layout: { flexDirection: 'row' },
-  main: { flexBasis: 640, maxWidth: 640 },
-  // RN's default flexShrink is 0 (unlike web), so without this override `main`
-  // keeps its 640px flexBasis at mobile widths and overflows the viewport.
-  mainMobile: { flexBasis: 'auto', maxWidth: '100%', width: '100%' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 8 },
-  headerRowMobile: { gap: 12 },
-  avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#E5E5E5' },
-  avatarMobile: { width: 56, height: 56, borderRadius: 28 },
+  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
+  backArrow: { fontSize: 20, color: '#181818' },
+
+  // Desktop: текст слева, большой квадратный аватар — справа.
+  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
+  leftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
+  rightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
+  avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
+
+  // Mobile: имя/роль слева, небольшой квадратный аватар справа.
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
   headerText: { flex: 1 },
-  name: { fontSize: 22, fontFamily: 'Inter-Bold', color: '#181818' },
-  nameMobile: { fontSize: 18 },
-  role: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 2 },
-  favoriteButton: { padding: 8 },
-  favoriteStar: { fontSize: 22, color: '#CFCFCF' },
-  favoriteStarActive: { color: '#E02D2D' },
-  favoriteHint: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 12 },
+  avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
+
+  name: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818' },
+  role: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4 },
   bio: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginVertical: 16 },
   priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
   priceLabel: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
   priceValue: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818' },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
-  actionsRowMobile: { flexDirection: 'column' },
-  actionButtonMobileFull: { width: '100%' },
-  primaryButton: { backgroundColor: '#E02D2D', paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
-  primaryButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
-  secondaryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
-  secondaryButtonText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
-  // Mobile action-button convention: plain bordered/text buttons become a
-  // filled light-blue chip on narrow widths (see MOBILE_BREAKPOINT usages).
-  secondaryButtonMobile: { borderWidth: 0, backgroundColor: '#F0F5FB' },
-  secondaryButtonTextMobile: { color: '#68717A' },
-  instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 24 },
-  eventsSection: { marginTop: 32 },
-  eventsSectionTitle: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },
-  eventCard: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10 },
-  eventCover: { width: 80, height: 80, backgroundColor: '#E5E5E5' },
+
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8 },
+  actionLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+
+  // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
+  actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
+  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  chipHalfText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#68717A' },
+
+  instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
+
+  eventsSection: { marginTop: 40 },
+  eventsSectionTitle: { fontSize: 18, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
+  eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  eventCard: { width: '31%' },
+  eventCardMobile: { width: '47%' },
+  eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
-  eventBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
-  eventTitle: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
-  eventDate: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076' },
+  eventCardBody: { paddingTop: 10 },
+  eventFormat: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#687076', marginBottom: 4 },
+  eventCardTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
+  eventCardMeta: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076' },
 });
