@@ -1,4 +1,3 @@
-import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -47,10 +46,12 @@ function formatSlotDateLabel(date: string): string {
 }
 
 /**
- * Веб-версия личного кабинета. Раздел студента переверстан под макет:
- * карточка профиля + модалки "Изменение данных" / "Новый пароль" /
- * "Пригласить на платформу". Раздел наставника — прежний (вкладки),
- * под него новый макет не присылали.
+ * Веб-версия личного кабинета — обе роли переверстаны под макет с общим
+ * двухколоночным хедером (текст+действия слева, большой аватар справа на
+ * десктопе; имя/аватар/действия друг под другом на мобильном), общей
+ * модалкой "Платежи" и своим набором остальных модалок на роль (студент:
+ * "Изменить данные"/"Новый пароль"; наставник: те же плюс "Изменение
+ * данных наставника"/"Добавить событие"/"Редактировать слоты").
  */
 export default function ProfileScreenWeb() {
   const router = useRouter();
@@ -67,7 +68,6 @@ export default function ProfileScreenWeb() {
   const [shortBio, setShortBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [studentId, setStudentId] = useState('');
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [newSlotDate, setNewSlotDate] = useState('');
@@ -94,7 +94,6 @@ export default function ProfileScreenWeb() {
   // ── Student modals ─────────────────────────────────────────────────────────
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
-  const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [paymentsModalVisible, setPaymentsModalVisible] = useState(false);
   const [paymentCards, setPaymentCards] = useState<Card[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -112,8 +111,6 @@ export default function ProfileScreenWeb() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
-  const [inviteCopied, setInviteCopied] = useState(false);
-
   useEffect(() => {
     let active = true;
     (async () => {
@@ -123,7 +120,6 @@ export default function ProfileScreenWeb() {
       const effectiveRole = authRole === 'tutor' ? 'tutor' : 'student';
       if (!active) return;
       setRole(effectiveRole);
-      if (profile?.id) setStudentId(profile.id);
 
       try {
         if (effectiveRole === 'tutor') {
@@ -196,17 +192,6 @@ export default function ProfileScreenWeb() {
     } finally {
       setPasswordSaving(false);
     }
-  }
-
-  // ── Student: invite link ──────────────────────────────────────────────────
-  // Нет бэкенд-эндпоинта для реферальных ссылок — просто ссылка на платформу
-  // с меткой пригласившего в query-параметре, без серверного трекинга/сокращения.
-  const inviteUrl = `https://platformaapp.ru/?ref=${studentId || 'me'}`;
-
-  async function handleCopyInvite() {
-    await Clipboard.setStringAsync(inviteUrl);
-    setInviteCopied(true);
-    setTimeout(() => setInviteCopied(false), 2000);
   }
 
   // ── Student: "Платежи" modal ───────────────────────────────────────────────
@@ -375,12 +360,12 @@ export default function ProfileScreenWeb() {
               <View style={styles.actionsRowMobile}>{studentActions}</View>
             </View>
           ) : (
-            <View style={styles.studentDesktopLayout}>
-              <View style={styles.studentLeftCol}>
+            <View style={styles.profileDesktopLayout}>
+              <View style={styles.profileLeftCol}>
                 <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
                 <View style={styles.actionsRow}>{studentActions}</View>
               </View>
-              <View style={styles.studentRightCol}>
+              <View style={styles.profileRightCol}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
               </View>
             </View>
@@ -447,61 +432,61 @@ export default function ProfileScreenWeb() {
           </Pressable>
         </Modal>
 
-        {/* ─── Пригласить на платформу ──────────────────────────────────── */}
-        <Modal transparent animationType="fade" visible={inviteModalVisible} onRequestClose={() => setInviteModalVisible(false)}>
-          <Pressable style={styles.overlay} onPress={() => setInviteModalVisible(false)}>
-            <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Text style={styles.modalTitle}>Пригласить{'\n'}на платформу</Text>
-              <View style={styles.inviteLinkBox}>
-                <TextInput style={styles.inviteLinkInput} value={inviteUrl} editable={false} />
-                <Pressable style={[styles.primaryButton, styles.inviteCopyButton]} onPress={handleCopyInvite}>
-                  <Text style={styles.primaryButtonText}>{inviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
-                </Pressable>
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
-
         {renderPaymentsModal()}
       </SiteShell>
     );
   }
 
   // ─── Tutor view ─────────────────────────────────────────────────────────────
+  const tutorBioBlock = (
+    <>
+      {shortBio.trim() ? <Text style={styles.tutorShortBio}>{shortBio.trim()}</Text> : null}
+      {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
+    </>
+  );
+  const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />;
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.tutorHeaderRow}>
-          <View style={styles.tutorInfoCol}>
-            <Text style={styles.name}>{fullName || 'Профиль'}</Text>
-            {shortBio.trim() ? <Text style={styles.tutorShortBio}>{shortBio.trim()}</Text> : null}
-            {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
+        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
+          <Text style={styles.backArrow}>←</Text>
+        </Pressable>
 
-            <View style={styles.linksRow}>
-              <Pressable
-                style={isMobile && styles.mobileChip}
-                onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}
-              >
-                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>
-                  {isMobile ? 'Личные данные' : 'Изменить личные данные'}
-                </Text>
+        {isMobile ? (
+          <View>
+            <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+            {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
+            {tutorBioBlock}
+            <View style={styles.actionsRowMobile}>
+              <Pressable style={styles.chipHalf} onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
+                <Text style={styles.chipHalfText}>Личные данные</Text>
               </Pressable>
-              <Pressable style={isMobile && styles.mobileChip} onPress={() => { setInviteCopied(false); setInviteModalVisible(true); }}>
-                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>Копировать ссылку</Text>
-              </Pressable>
-              <Pressable style={isMobile && styles.mobileChip} onPress={openPaymentsModal}>
-                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>Платежи</Text>
-              </Pressable>
-              <Pressable
-                style={isMobile && styles.mobileChip}
-                onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}
-              >
-                <Text style={[styles.linkText, isMobile && styles.mobileChipText]}>Создать событие</Text>
+              <Pressable style={styles.chipHalf} onPress={openPaymentsModal}>
+                <Text style={styles.chipHalfText}>Платежи</Text>
               </Pressable>
             </View>
           </View>
-          {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
-        </View>
+        ) : (
+          <View style={styles.profileDesktopLayout}>
+            <View style={styles.profileLeftCol}>
+              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              {tutorBioBlock}
+              <View style={styles.actionsRow}>
+                <Pressable onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
+                  <Text style={styles.actionLink}>Изменить личные данные</Text>
+                </Pressable>
+                <Pressable onPress={openPaymentsModal}>
+                  <Text style={styles.actionLink}>Платежи</Text>
+                </Pressable>
+                <Pressable onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
+                  <Text style={styles.actionLink}>Создать событие</Text>
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.profileRightCol}>{tutorAvatar}</View>
+          </View>
+        )}
 
         <Text style={styles.sectionTitle}>Свободные слоты</Text>
         {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : groupSlotsByDate(slots).map((group) => (
@@ -585,21 +570,6 @@ export default function ProfileScreenWeb() {
         </Pressable>
       </Modal>
 
-      {/* ─── Пригласить на платформу ──────────────────────────────────── */}
-      <Modal transparent animationType="fade" visible={inviteModalVisible} onRequestClose={() => setInviteModalVisible(false)}>
-        <Pressable style={styles.overlay} onPress={() => setInviteModalVisible(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Пригласить{'\n'}на платформу</Text>
-            <View style={styles.inviteLinkBox}>
-              <TextInput style={styles.inviteLinkInput} value={inviteUrl} editable={false} />
-              <Pressable style={[styles.primaryButton, styles.inviteCopyButton]} onPress={handleCopyInvite}>
-                <Text style={styles.primaryButtonText}>{inviteCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {renderPaymentsModal()}
 
       {/* ─── Добавить событие ─────────────────────────────────────────── */}
@@ -640,7 +610,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setSlotsModalVisible(false)}>
           <Pressable style={[styles.modalCard, styles.slotsModalCard]} onPress={() => {}}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Редактировать слоты для записи</Text>
+              <Text style={styles.modalTitle}>{isMobile ? 'Редактировать слоты' : 'Редактировать слоты для записи'}</Text>
             </View>
 
             <ScrollView style={styles.slotsModalScroll}>
@@ -687,7 +657,7 @@ function PasswordField({ visible, onToggle, ...props }: any) {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 900 },
+  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // Student view
@@ -695,9 +665,9 @@ const styles = StyleSheet.create({
   bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
   studentName: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818' },
-  studentDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
-  studentLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
-  studentRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
+  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
+  profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
+  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16 },
   actionLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
@@ -729,9 +699,6 @@ const styles = StyleSheet.create({
   passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
   eyeButton: { position: 'absolute', right: 10 },
   hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
-  inviteLinkBox: { borderWidth: 1, borderColor: '#181818' },
-  inviteLinkInput: { paddingVertical: 12, paddingHorizontal: 12, fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-  inviteCopyButton: { marginTop: 0, borderTopWidth: 1, borderColor: '#181818' },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
   paymentCardNumber: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 2 },
@@ -750,7 +717,6 @@ const styles = StyleSheet.create({
   modalSaveText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#E02D2D' },
 
   // Tutor tabbed view (unchanged)
-  name: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
   tabsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
   tabText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
   tabTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
@@ -759,11 +725,7 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
   bioText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818', marginTop: 16 },
-  tutorHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' },
-  tutorInfoCol: { flex: 1, minWidth: 280 },
   tutorShortBio: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 6 },
-  linksRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 24 },
-  linkText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D' },
   sectionTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 24, marginBottom: 8 },
   emptyText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   slotDateGroup: { marginBottom: 12 },
