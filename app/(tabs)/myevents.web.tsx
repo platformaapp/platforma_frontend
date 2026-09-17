@@ -396,7 +396,6 @@ export default function MyEventsScreenWeb() {
 
   function renderBookingCard(item: BookingItem, muted = false) {
     const other = otherPartyOf(item);
-    const title = `Личная встреча с ${other.name}`;
     const isViewerTutor = item._viewerRole === 'tutor';
     const options: MenuOption[] = isViewerTutor
       ? [
@@ -407,24 +406,8 @@ export default function MyEventsScreenWeb() {
         ];
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
 
-    if (isMobile) {
-      return (
-        <View key={item.id} style={styles.listRow}>
-          <View style={styles.listRowMain}>
-            {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
-            <View style={styles.listBody}>
-              <Text style={[styles.listLabel, muted && styles.textMuted]}>Наставник</Text>
-              <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{other.name}</Text>
-              {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
-            </View>
-          </View>
-          <CardMenu id={`b-${item.id}`} options={options} />
-        </View>
-      );
-    }
-
     return (
-      <View key={item.id} style={[styles.card, muted && styles.cardMuted]}>
+      <View key={item.id} style={[styles.card, isMobile && styles.cardMobile, muted && styles.cardMuted]}>
         {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{other.name}</Text>
@@ -433,11 +416,6 @@ export default function MyEventsScreenWeb() {
             {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
           </View>
         </View>
-        {!muted && (
-          <Pressable style={styles.joinButton} onPress={() => joinBooking(item, title)}>
-            <Text style={styles.joinButtonText}>Подключиться к встрече</Text>
-          </Pressable>
-        )}
         <CardMenu id={`b-${item.id}`} options={options} />
       </View>
     );
@@ -445,14 +423,13 @@ export default function MyEventsScreenWeb() {
 
   function renderBookingGroups(items: BookingItem[], muted = false) {
     if (items.length === 0) return null;
-    const listStyle = isMobile ? styles.list : styles.grid;
-    if (role !== 'tutor') return <View style={listStyle}>{items.map((b) => renderBookingCard(b, muted))}</View>;
+    if (role !== 'tutor') return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
     const asTutor = items.filter((b) => b._viewerRole === 'tutor');
     const asStudent = items.filter((b) => b._viewerRole === 'student');
     return (
       <>
-        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={listStyle}>{asTutor.map((b) => renderBookingCard(b, muted))}</View></>}
-        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={listStyle}>{asStudent.map((b) => renderBookingCard(b, muted))}</View></>}
+        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={styles.grid}>{asTutor.map((b) => renderBookingCard(b, muted))}</View></>}
+        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={styles.grid}>{asStudent.map((b) => renderBookingCard(b, muted))}</View></>}
       </>
     );
   }
@@ -518,7 +495,9 @@ export default function MyEventsScreenWeb() {
               </View>
             ) : null}
 
-            {currentPast.length > 0 && <Text style={styles.pastSeparator}>Прошедшие события</Text>}
+            {currentPast.length > 0 ? (
+              <Text style={styles.pastSeparator}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
+            ) : null}
             {activeTab === 'events' ? (
               pastEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{pastEvents.map((e) => renderEventCard(e, true))}</View>
             ) : (
@@ -629,6 +608,9 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
   list: { gap: 20, marginBottom: 24 },
   card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, backgroundColor: '#fff', position: 'relative' },
+  // Личные встречи остаются карточками (не строками списка) и на мобильном —
+  // здесь у карточки нет минимальной ширины по умолчанию, поэтому переопределяем.
+  cardMobile: { flexBasis: '47%', minWidth: 0, maxWidth: '48%' },
   cardMuted: { opacity: 0.45 },
   cardImage: { width: '100%', height: 180 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
@@ -638,8 +620,6 @@ const styles = StyleSheet.create({
   cardMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
   cardMentorName: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   cardDateText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
-  joinButton: { backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  joinButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
 
   listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, position: 'relative' },
   listRowMain: { flexDirection: 'row', flex: 1, gap: 12 },
@@ -682,7 +662,7 @@ const styles = StyleSheet.create({
 
   modalCard: { width: '100%', maxWidth: 520, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  modalTitle: { fontFamily: 'Inter-Bold', fontSize: 20, color: '#181818', textTransform: 'uppercase' },
+  modalTitle: { fontFamily: 'Inter-Bold', fontSize: 20, color: '#181818' },
   modalClose: { fontSize: 20, color: '#181818' },
   modalScroll: { flexGrow: 0 },
   fieldLabel: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 6 },
