@@ -26,6 +26,7 @@ type BookingItem = {
   status?: string; videoUrl?: string; price?: number;
   my_role?: 'student' | 'tutor';
   _viewerRole?: 'student' | 'tutor';
+  studentId?: string; student_id?: string; tutorId?: string; tutor_id?: string;
 };
 
 type Tab = 'events' | 'meetings';
@@ -113,6 +114,7 @@ export default function MyEventsScreenWeb() {
   const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
   const [cancelPhase, setCancelPhase] = useState<'confirm' | 'success'>('confirm');
   const [cancelling, setCancelling] = useState(false);
+  const [viewingBooking, setViewingBooking] = useState<BookingItem | null>(null);
 
   const [editEventItem, setEditEventItem] = useState<EventItem | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -243,7 +245,7 @@ export default function MyEventsScreenWeb() {
     openJitsi(url ?? buildJitsiUrl('booking', booking.id), { title });
   }
 
-  function openEditEvent(item: EventItem) {
+  async function openEditEvent(item: EventItem) {
     setOpenMenuId(null);
     setEditEventItem(item);
     setEditTitle(item.title ?? '');
@@ -255,6 +257,20 @@ export default function MyEventsScreenWeb() {
     setEditMax('');
     setEditCoverUri(null);
     setEditError('');
+
+    // /api/events/my не отдаёт description/max_participants — подгружаем
+    // полную карточку события, чтобы поля модалки были предзаполнены (см. макет).
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`${endpoints.events}/${item.id}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+      if (res.ok) {
+        const data = await res.json();
+        const r = (data?.data ?? data) as Record<string, unknown>;
+        if (typeof r.description === 'string') setEditDescription(r.description);
+        const maxParticipants = r.max_participants ?? r.maxParticipants;
+        if (typeof maxParticipants === 'number') setEditMax(String(maxParticipants));
+      }
+    } catch { /* модалка остаётся с уже заполненными название/датой/ценой */ }
   }
 
   async function handlePickEditCover() {
@@ -314,11 +330,21 @@ export default function MyEventsScreenWeb() {
   function otherPartyOf(b: BookingItem) {
     const isViewerTutor = b._viewerRole === 'tutor';
     const obj = isViewerTutor ? b.student : (b.tutor ?? b.mentor);
+    const fallbackId = isViewerTutor ? (b.studentId ?? b.student_id) : (b.tutorId ?? b.tutor_id);
     return {
-      id: obj?.id,
+      id: obj?.id ?? fallbackId,
       name: obj?.fullName ?? obj?.full_name ?? obj?.name ?? (isViewerTutor ? 'Ученик' : 'Наставник'),
       avatarUrl: obj?.avatarUrl ?? obj?.avatar_url ?? null,
+      isViewerTutor,
     };
+  }
+
+  // Наставник пишет ученику (пока нет отдельной публичной страницы профиля
+  // ученика — тот же адрес, что и в нативном приложении), студент — наставнику.
+  function bookingProfileRoute(b: BookingItem): string | null {
+    const other = otherPartyOf(b);
+    if (!other.id) return null;
+    return other.isViewerTutor ? `/(tabs)/profile/student/${other.id}` : `/(tabs)/explore/${other.id}`;
   }
 
   function CardMenu({ id, options }: { id: string; options: MenuOption[] }) {
@@ -396,18 +422,10 @@ export default function MyEventsScreenWeb() {
 
   function renderBookingCard(item: BookingItem, muted = false) {
     const other = otherPartyOf(item);
-    const isViewerTutor = item._viewerRole === 'tutor';
-    const options: MenuOption[] = isViewerTutor
-      ? [
-          { label: 'Отменить встречу', danger: true, onPress: () => openCancelModal({ kind: 'booking', item }) },
-        ]
-      : [
-          { label: 'Отменить запись', danger: true, onPress: () => openCancelModal({ kind: 'booking', item }) },
-        ];
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
 
     return (
-      <View key={item.id} style={[styles.card, isMobile && styles.cardMobile, muted && styles.cardMuted]}>
+      <Pressable key={item.id} style={[styles.card, isMobile && styles.cardMobile, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
         {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{other.name}</Text>
@@ -416,8 +434,7 @@ export default function MyEventsScreenWeb() {
             {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
           </View>
         </View>
-        <CardMenu id={`b-${item.id}`} options={options} />
-      </View>
+      </Pressable>
     );
   }
 
@@ -551,10 +568,10 @@ export default function MyEventsScreenWeb() {
               <TextInput style={styles.input} value={editTitle} onChangeText={setEditTitle} />
               <Text style={styles.fieldLabel}>Описание</Text>
               <TextInput style={[styles.input, styles.inputMultiline]} value={editDescription} onChangeText={setEditDescription} multiline placeholder="Оставьте пустым, чтобы не менять" />
-              <Text style={styles.fieldLabel}>Дата (ГГГГ-ММ-ДД)</Text>
-              <TextInput style={styles.input} value={editDate} onChangeText={setEditDate} />
-              <Text style={styles.fieldLabel}>Время (ЧЧ:ММ)</Text>
-              <TextInput style={styles.input} value={editTime} onChangeText={setEditTime} />
+              <Text style={styles.fieldLabel}>Дата</Text>
+              <TextInput style={styles.input} value={editDate} onChangeText={setEditDate} placeholder="ГГГГ-ММ-ДД" placeholderTextColor="#9B9B9B" />
+              <Text style={styles.fieldLabel}>Время</Text>
+              <TextInput style={styles.input} value={editTime} onChangeText={setEditTime} placeholder="ЧЧ:ММ" placeholderTextColor="#9B9B9B" />
               <View style={styles.priceLabelRow}>
                 <Text style={styles.fieldLabel}>Стоимость</Text>
                 {Number(editPrice) > 0 ? <Text style={styles.commissionHint}>Комиссия 10% — вы получите {Math.round(Number(editPrice) * 0.9)} ₽</Text> : null}
@@ -576,6 +593,51 @@ export default function MyEventsScreenWeb() {
                 <Text style={styles.modalSaveText}>{editSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Карточка личной встречи (по клику на карточку) ────────────────── */}
+      <Modal transparent animationType="fade" visible={!!viewingBooking} onRequestClose={() => setViewingBooking(null)}>
+        <Pressable style={styles.overlay} onPress={() => setViewingBooking(null)}>
+          <Pressable style={styles.bookingModalCard} onPress={() => {}}>
+            {viewingBooking ? (() => {
+              const other = otherPartyOf(viewingBooking);
+              const dateText = formatBookingDate(
+                viewingBooking.date ?? viewingBooking.slot_date ?? viewingBooking.slot?.date,
+                viewingBooking.time ?? viewingBooking.slot_time ?? viewingBooking.slot?.time,
+              );
+              const profileRoute = bookingProfileRoute(viewingBooking);
+              return (
+                <>
+                  <View style={styles.modalHeaderRow}>
+                    <Text style={styles.modalTitle}>{other.name}</Text>
+                    <Pressable onPress={() => setViewingBooking(null)}><Text style={styles.modalClose}>✕</Text></Pressable>
+                  </View>
+                  <Text style={styles.bookingModalMeta}>Личная встреча</Text>
+                  {dateText ? <Text style={styles.bookingModalDate}>{dateText}</Text> : null}
+                  <View style={styles.modalFooterRow}>
+                    <Pressable
+                      onPress={() => {
+                        setViewingBooking(null);
+                        if (profileRoute) router.push(profileRoute as any);
+                      }}
+                    >
+                      <Text style={styles.modalCancelText}>{other.isViewerTutor ? 'Написать ученику' : 'Написать наставнику'}</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        const b = viewingBooking;
+                        setViewingBooking(null);
+                        openCancelModal({ kind: 'booking', item: b });
+                      }}
+                    >
+                      <Text style={styles.modalSaveText}>{other.isViewerTutor ? 'Отменить встречу' : 'Отменить запись'}</Text>
+                    </Pressable>
+                  </View>
+                </>
+              );
+            })() : null}
           </Pressable>
         </Pressable>
       </Modal>
@@ -661,6 +723,9 @@ const styles = StyleSheet.create({
   confirmBtnDarkText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#fff' },
 
   modalCard: { width: '100%', maxWidth: 520, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
+  bookingModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24 },
+  bookingModalMeta: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4 },
+  bookingModalDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   modalTitle: { fontFamily: 'Inter-Bold', fontSize: 20, color: '#181818' },
   modalClose: { fontSize: 20, color: '#181818' },
