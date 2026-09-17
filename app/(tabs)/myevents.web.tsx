@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
@@ -62,20 +62,7 @@ function formatBookingDate(date?: string, time?: string): string {
   return `${date} ${timeClean}`;
 }
 
-/** Короткий бейдж "Через N минут/часов/дней" для карточек предстоящих событий. */
-function formatRelativeBadge(targetMs: number): string {
-  const diff = targetMs - Date.now();
-  if (diff <= 0) return '';
-  const totalMinutes = Math.floor(diff / 60000);
-  if (totalMinutes < 60) return `Через ${totalMinutes} ${pluralRu(totalMinutes, ['минуту', 'минуты', 'минут'])}`;
-  const totalHours = Math.floor(totalMinutes / 60);
-  if (totalHours < 24) return `Через ${totalHours} ${pluralRu(totalHours, ['час', 'часа', 'часов'])}`;
-  const days = Math.floor(totalHours / 24);
-  if (days < 7) return `Через ${days} ${pluralRu(days, ['день', 'дня', 'дней'])}`;
-  return formatDatetime(new Date(targetMs).toISOString());
-}
-
-/** "2 дня 3 часа и 15 минут" — для виджета "До ближайшего события" внизу справа. */
+/** "2 дня 3 часа и 15 минут" — для виджета "До ближайшего события" в шапке страницы. */
 function formatCountdown(targetMs: number): string {
   const diff = targetMs - Date.now();
   if (diff <= 0) return 'уже началось';
@@ -114,6 +101,7 @@ function isAuthError(e: unknown): boolean {
  */
 export default function MyEventsScreenWeb() {
   const router = useRouter();
+  const isMobile = useIsMobileWeb();
   const [activeTab, setActiveTab] = useState<Tab>('events');
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
@@ -318,8 +306,10 @@ export default function MyEventsScreenWeb() {
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
   const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
 
-  // "Подключиться к встрече" в шапке и виджет справа внизу — ведут на ближайшую предстоящую личную встречу, если она есть.
+  // "Открыть видео" в шапке — ведёт на ближайшую предстоящую личную встречу, если она есть.
   const nextBooking = upcomingBookings[0];
+  const nextBookingMs = nextBooking ? getBookingMs(nextBooking) : null;
+  const meetingStarted = nextBookingMs != null && nextBookingMs <= now;
 
   function otherPartyOf(b: BookingItem) {
     const isViewerTutor = b._viewerRole === 'tutor';
@@ -356,7 +346,6 @@ export default function MyEventsScreenWeb() {
 
   function renderEventCard(item: EventItem, muted = false) {
     const isOwner = role === 'tutor';
-    const badge = !muted && item.datetimeStart ? formatRelativeBadge(getEventMs(item)) : '';
     const options: MenuOption[] = isOwner
       ? [
           { label: 'Настройки', onPress: () => openEditEvent(item) },
@@ -365,6 +354,24 @@ export default function MyEventsScreenWeb() {
       : [
           { label: 'Отменить запись', danger: true, onPress: () => openCancelModal({ kind: 'event', item }) },
         ];
+    const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
+
+    if (isMobile) {
+      return (
+        <View key={item.id} style={styles.listRow}>
+          <Pressable style={styles.listRowMain} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+            {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
+            <View style={styles.listBody}>
+              <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
+              <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{item.title}</Text>
+              {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+            </View>
+          </Pressable>
+          <CardMenu id={`e-${item.id}`} options={options} />
+        </View>
+      );
+    }
+
     return (
       <View key={item.id} style={[styles.card, muted && styles.cardMuted]}>
         <Pressable onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
@@ -376,10 +383,10 @@ export default function MyEventsScreenWeb() {
           <View style={styles.cardBody}>
             {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
             <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
-            <Text style={styles.cardSubtitle}>{item.mentor?.name ?? ''}</Text>
-            {badge ? <View style={styles.badgeDark}><Text style={styles.badgeDarkText}>{badge}</Text></View> : !muted && item.datetimeStart ? (
-              <View style={styles.badgeOutline}><Text style={styles.badgeOutlineText}>{formatDatetime(item.datetimeStart)}</Text></View>
-            ) : null}
+            <View style={styles.cardMetaRow}>
+              <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
+              {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
+            </View>
           </View>
         </Pressable>
         <CardMenu id={`e-${item.id}`} options={options} />
@@ -398,14 +405,32 @@ export default function MyEventsScreenWeb() {
       : [
           { label: 'Отменить запись', danger: true, onPress: () => openCancelModal({ kind: 'booking', item }) },
         ];
+    const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
+
+    if (isMobile) {
+      return (
+        <View key={item.id} style={styles.listRow}>
+          <View style={styles.listRowMain}>
+            {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
+            <View style={styles.listBody}>
+              <Text style={[styles.listLabel, muted && styles.textMuted]}>Наставник</Text>
+              <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{other.name}</Text>
+              {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+            </View>
+          </View>
+          <CardMenu id={`b-${item.id}`} options={options} />
+        </View>
+      );
+    }
+
     return (
       <View key={item.id} style={[styles.card, muted && styles.cardMuted]}>
         {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{other.name}</Text>
-          <Text style={styles.cardSubtitle}>Личная встреча</Text>
-          <View style={styles.badgeOutline}>
-            <Text style={styles.badgeOutlineText}>{formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time)}</Text>
+          <View style={styles.cardMetaRow}>
+            <Text style={styles.cardMentorName}>Личная встреча</Text>
+            {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
           </View>
         </View>
         {!muted && (
@@ -420,13 +445,14 @@ export default function MyEventsScreenWeb() {
 
   function renderBookingGroups(items: BookingItem[], muted = false) {
     if (items.length === 0) return null;
-    if (role !== 'tutor') return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
+    const listStyle = isMobile ? styles.list : styles.grid;
+    if (role !== 'tutor') return <View style={listStyle}>{items.map((b) => renderBookingCard(b, muted))}</View>;
     const asTutor = items.filter((b) => b._viewerRole === 'tutor');
     const asStudent = items.filter((b) => b._viewerRole === 'student');
     return (
       <>
-        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={styles.grid}>{asTutor.map((b) => renderBookingCard(b, muted))}</View></>}
-        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={styles.grid}>{asStudent.map((b) => renderBookingCard(b, muted))}</View></>}
+        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={listStyle}>{asTutor.map((b) => renderBookingCard(b, muted))}</View></>}
+        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={listStyle}>{asStudent.map((b) => renderBookingCard(b, muted))}</View></>}
       </>
     );
   }
@@ -436,10 +462,15 @@ export default function MyEventsScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Мои записи</Text>
-          {nextBooking ? (
-            <Pressable onPress={() => joinBooking(nextBooking, `Личная встреча с ${otherPartyOf(nextBooking).name}`)}>
-              <Text style={styles.joinHeaderLink}>Подключиться к встрече</Text>
-            </Pressable>
+          {nextBooking && !isMobile ? (
+            <View style={styles.headerVideoBlock}>
+              <Pressable style={styles.headerVideoButton} onPress={() => joinBooking(nextBooking, `Личная встреча с ${otherPartyOf(nextBooking).name}`)}>
+                <Text style={styles.headerVideoButtonText}>Открыть видео</Text>
+              </Pressable>
+              <Text style={styles.headerCountdownText}>
+                {meetingStarted ? 'Встреча уже идёт, присоединяйся!' : `До ближайшего события:\n${formatCountdown(nextBookingMs!)}`}
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -468,14 +499,28 @@ export default function MyEventsScreenWeb() {
         ) : (
           <>
             {activeTab === 'events' ? (
-              upcomingEvents.length > 0 && <View style={styles.grid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
+              upcomingEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
             ) : (
               renderBookingGroups(upcomingBookings)
             )}
 
+            {nextBooking && isMobile ? (
+              <View style={styles.mobileVideoBar}>
+                <View style={styles.mobileVideoBarTextRow}>
+                  <Text style={styles.mobileVideoBarIcon}>🎥</Text>
+                  <Text style={styles.mobileVideoBarText}>
+                    {meetingStarted ? 'Встреча уже идёт, присоединяйся!' : `До ближайшего события: ${formatCountdown(nextBookingMs!)}`}
+                  </Text>
+                </View>
+                <Pressable style={styles.mobileVideoBarButton} onPress={() => joinBooking(nextBooking, `Личная встреча с ${otherPartyOf(nextBooking).name}`)}>
+                  <Text style={styles.mobileVideoBarButtonText}>Открыть видео</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
             {currentPast.length > 0 && <Text style={styles.pastSeparator}>Прошедшие события</Text>}
             {activeTab === 'events' ? (
-              pastEvents.length > 0 && <View style={styles.grid}>{pastEvents.map((e) => renderEventCard(e, true))}</View>
+              pastEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{pastEvents.map((e) => renderEventCard(e, true))}</View>
             ) : (
               renderBookingGroups(pastBookings, true)
             )}
@@ -484,18 +529,6 @@ export default function MyEventsScreenWeb() {
 
         <SiteFooter />
       </ScrollView>
-
-      {nextBooking ? (
-        <View style={styles.floatingWidget}>
-          <View style={styles.floatingWidgetRow}>
-            <Text style={styles.floatingWidgetIcon}>🎥</Text>
-            <Text style={styles.floatingWidgetText}>До ближайшего события: {formatCountdown(getBookingMs(nextBooking))}</Text>
-          </View>
-          <Pressable style={styles.floatingWidgetButton} onPress={() => joinBooking(nextBooking, `Личная встреча с ${otherPartyOf(nextBooking).name}`)}>
-            <Text style={styles.floatingWidgetButtonText}>Открыть видео</Text>
-          </Pressable>
-        </View>
-      ) : null}
 
       {/* ─── Подтверждение отмены записи ───────────────────────────────── */}
       <Modal transparent animationType="fade" visible={!!cancelTarget} onRequestClose={closeCancelModal}>
@@ -573,9 +606,12 @@ export default function MyEventsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   title: { fontSize: 28, fontFamily: 'Inter-Bold', color: '#181818' },
-  joinHeaderLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  headerVideoBlock: { alignItems: 'flex-end' },
+  headerVideoButton: { backgroundColor: '#181818', paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  headerVideoButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#fff' },
+  headerCountdownText: { fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#687076', textAlign: 'right' },
   tabsRow: { flexDirection: 'row', gap: 24, marginBottom: 24 },
   tabText: { fontFamily: 'Inter-Regular', fontSize: 16, color: '#9B9B9B' },
   tabTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
@@ -591,20 +627,28 @@ const styles = StyleSheet.create({
   groupHeader: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 22, fontFamily: 'Inter-Bold', color: '#181818', marginTop: 32, marginBottom: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
-  card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#fff', position: 'relative' },
+  list: { gap: 20, marginBottom: 24 },
+  card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, backgroundColor: '#fff', position: 'relative' },
   cardMuted: { opacity: 0.45 },
   cardImage: { width: '100%', height: 180 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
-  cardBody: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
+  cardBody: { paddingTop: 14 },
   cardMeta: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
-  cardTitle: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
-  cardSubtitle: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 10 },
-  badgeDark: { alignSelf: 'flex-start', backgroundColor: '#181818', paddingVertical: 4, paddingHorizontal: 10 },
-  badgeDarkText: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#fff' },
-  badgeOutline: { alignSelf: 'flex-start', borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 4, paddingHorizontal: 10 },
-  badgeOutlineText: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#181818' },
-  joinButton: { backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderColor: '#1E1E1E' },
+  cardTitle: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 8 },
+  cardMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
+  cardMentorName: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  cardDateText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  joinButton: { backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
   joinButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#FFFFFF' },
+
+  listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, position: 'relative' },
+  listRowMain: { flexDirection: 'row', flex: 1, gap: 12 },
+  listThumb: { width: 72, height: 72, backgroundColor: '#E5E5E5' },
+  listBody: { flex: 1, minHeight: 72, justifyContent: 'space-between' },
+  listLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076' },
+  listTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Inter-Medium', color: '#181818' },
+  listDate: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', alignSelf: 'flex-end' },
+  textMuted: { opacity: 0.45 },
 
   menuButtonWrap: { position: 'absolute', top: 8, right: 8, zIndex: 5 },
   menuButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
@@ -615,12 +659,12 @@ const styles = StyleSheet.create({
   menuItemText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
   menuItemTextDanger: { color: '#E02D2D' },
 
-  floatingWidget: { position: 'fixed' as any, bottom: 24, right: 24, backgroundColor: '#181818', padding: 16, width: 300, zIndex: 30 },
-  floatingWidgetRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  floatingWidgetIcon: { fontSize: 16 },
-  floatingWidgetText: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 13, lineHeight: 18, color: '#fff' },
-  floatingWidgetButton: { backgroundColor: '#fff', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  floatingWidgetButtonText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#181818' },
+  mobileVideoBar: { backgroundColor: '#181818', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 8, marginBottom: 24 },
+  mobileVideoBarTextRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  mobileVideoBarIcon: { fontSize: 14 },
+  mobileVideoBarText: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#fff' },
+  mobileVideoBarButton: { backgroundColor: '#fff', paddingVertical: 10, paddingHorizontal: 16 },
+  mobileVideoBarButtonText: { fontFamily: 'Inter-Medium', fontSize: 13, color: '#181818' },
 
   overlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   overlayClose: { position: 'absolute', top: 24, right: 24 },
