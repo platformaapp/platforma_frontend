@@ -46,14 +46,6 @@ function formatSlotDateLabel(date: string): string {
   }
 }
 
-function ShareIcon() {
-  return (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <Path d="M16 11.2H19.7V22H5.1V11.2H8.8M12.4 2.7L17 7.3M12.4 2.7L7.8 7.3M12.4 2.7V16" stroke="#181818" strokeWidth="1.2" />
-    </Svg>
-  );
-}
-
 /**
  * Веб-версия личного кабинета. Раздел студента переверстан под макет:
  * карточка профиля + модалки "Изменение данных" / "Новый пароль" /
@@ -310,57 +302,70 @@ export default function ProfileScreenWeb() {
 
   // ─── Student view ──────────────────────────────────────────────────────────
   if (role === 'student') {
+    const studentActions = (
+      <>
+        <Pressable style={isMobile && styles.chipHalf} onPress={() => setEditModalVisible(true)}>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>{isMobile ? 'Личные данные' : 'Изменить личные данные'}</Text>
+        </Pressable>
+        <Pressable style={isMobile && styles.chipHalf} onPress={openPaymentsModal}>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Платежи</Text>
+        </Pressable>
+      </>
+    );
+
     return (
       <SiteShell>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.studentHeaderRow}>
-            <View style={styles.studentIdentity}>
-              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
-              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
-            </View>
-            <View style={[styles.studentActions, isMobile && styles.studentActionsMobile]}>
-              <Pressable style={[styles.stackedButton, isMobile && styles.mobileChip]} onPress={() => setEditModalVisible(true)}>
-                <Text style={[styles.stackedButtonText, isMobile && styles.mobileChipText]}>
-                  {isMobile ? 'Личные данные' : 'Изменить личные данные'}
-                </Text>
-              </Pressable>
-              <Pressable style={[styles.stackedButton, isMobile && styles.mobileChip]} onPress={openPaymentsModal}>
-                <Text style={[styles.stackedButtonText, isMobile && styles.mobileChipText]}>Платежи</Text>
-              </Pressable>
-            </View>
-          </View>
+          <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
+            <Text style={styles.backArrow}>←</Text>
+          </Pressable>
 
-          <View style={styles.inviteBox}>
-            <Text style={styles.inviteText}>Отправьте товарищу ссылку на платформу{'\n'}и ходите на мастер-классы вместе</Text>
-            <Pressable style={styles.inviteShareButton} onPress={() => { setInviteCopied(false); setInviteModalVisible(true); }}>
-              <ShareIcon />
-            </Pressable>
-          </View>
+          {isMobile ? (
+            <View>
+              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
+              <View style={styles.actionsRowMobile}>{studentActions}</View>
+            </View>
+          ) : (
+            <View style={styles.studentDesktopLayout}>
+              <View style={styles.studentLeftCol}>
+                <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+                <View style={styles.actionsRow}>{studentActions}</View>
+              </View>
+              <View style={styles.studentRightCol}>
+                {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />}
+              </View>
+            </View>
+          )}
 
           <SiteFooter />
         </ScrollView>
 
-        {/* ─── Изменение данных ─────────────────────────────────────────── */}
+        {/* ─── Изменить данные ──────────────────────────────────────────── */}
         <Modal transparent animationType="fade" visible={editModalVisible} onRequestClose={() => setEditModalVisible(false)}>
           <Pressable style={styles.overlay} onPress={() => setEditModalVisible(false)}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Text style={styles.modalTitle}>Изменение данных</Text>
+              <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+                <Text style={styles.modalTitle}>Изменить данные</Text>
+                <Pressable onPress={() => setEditModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+              </View>
+              <Text style={styles.fieldLabel}>Имя</Text>
               <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Имя и фамилия" />
-              <TextInput style={styles.input} value={email} editable={false} placeholder="Почта" />
-              <TextInput style={styles.input} value={telegram} onChangeText={setTelegram} placeholder="Телеграм: @username" autoCapitalize="none" />
+              <Text style={styles.fieldLabel}>Почта</Text>
+              <TextInput style={styles.input} value={email} editable={false} />
+              <Text style={styles.fieldLabel}>Телеграм</Text>
+              <TextInput style={styles.input} value={telegram} onChangeText={setTelegram} placeholder="@username" autoCapitalize="none" />
+              <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
-                <View style={styles.avatarRowButton}><Text style={styles.avatarRowButtonText}>Заменить фото</Text></View>
               </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
-                <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
-              </Pressable>
-              <Pressable style={styles.secondaryButton} onPress={() => { setEditModalVisible(false); setTutorEditModalVisible(false); router.push('/(tabs)/profile/delete-account' as any); }}>
-                <Text style={[styles.secondaryButtonText, styles.deleteAccountText]}>Удалить аккаунт</Text>
+              <Text style={styles.fieldLabel}>Пароль</Text>
+              <Pressable onPress={() => { setEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
+                <Text style={styles.passwordDots}>*********</Text>
               </Pressable>
               {editError ? <Text style={styles.errorText}>{editError}</Text> : null}
-              <Pressable style={[styles.primaryButton, editSaving && styles.btnDisabled]} onPress={handleSaveStudentEdit} disabled={editSaving}>
-                <Text style={styles.primaryButtonText}>{editSaving ? 'Сохраняем…' : 'Сохранить изменения'}</Text>
+              <Pressable style={[styles.modalSaveLink, editSaving && styles.btnDisabled]} onPress={handleSaveStudentEdit} disabled={editSaving}>
+                <Text style={styles.modalSaveText}>{editSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </Pressable>
           </Pressable>
@@ -370,19 +375,25 @@ export default function ProfileScreenWeb() {
         <Modal transparent animationType="fade" visible={passwordModalVisible} onRequestClose={() => setPasswordModalVisible(false)}>
           <Pressable style={styles.overlay} onPress={() => setPasswordModalVisible(false)}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
-              <View style={styles.modalHeaderRow}>
-                <Pressable onPress={() => { setPasswordModalVisible(false); setEditModalVisible(true); }} hitSlop={8}>
-                  <Text style={styles.backArrow}>←</Text>
-                </Pressable>
-                <Text style={styles.modalTitle}>Новый пароль</Text>
+              <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+                <View style={styles.modalHeaderLeft}>
+                  <Pressable onPress={() => { setPasswordModalVisible(false); setEditModalVisible(true); }} hitSlop={8}>
+                    <Text style={styles.backArrow}>←</Text>
+                  </Pressable>
+                  <Text style={styles.modalTitle}>Новый пароль</Text>
+                </View>
+                <Pressable onPress={() => setPasswordModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
-              <PasswordField placeholder="Старый пароль" value={oldPassword} onChangeText={setOldPassword} visible={showOld} onToggle={() => setShowOld((v) => !v)} />
-              <PasswordField placeholder="Новый пароль" value={newPassword} onChangeText={setNewPassword} visible={showNew} onToggle={() => setShowNew((v) => !v)} />
-              <PasswordField placeholder="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} visible={showNew2} onToggle={() => setShowNew2((v) => !v)} />
-              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
+              <Text style={styles.fieldLabel}>Старый пароль</Text>
+              <PasswordField value={oldPassword} onChangeText={setOldPassword} visible={showOld} onToggle={() => setShowOld((v) => !v)} />
+              <Text style={styles.fieldLabel}>Новый пароль</Text>
+              <PasswordField value={newPassword} onChangeText={setNewPassword} visible={showNew} onToggle={() => setShowNew((v) => !v)} />
+              <Text style={styles.fieldLabel}>Повторите новый пароль</Text>
+              <PasswordField value={newPassword2} onChangeText={setNewPassword2} visible={showNew2} onToggle={() => setShowNew2((v) => !v)} />
+              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прописных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-              <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
-                <Text style={styles.primaryButtonText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
+                <Text style={styles.modalSaveText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </Pressable>
           </Pressable>
@@ -699,21 +710,22 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // Student view
-  studentHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 24, marginBottom: 24, flexWrap: 'wrap' },
-  studentIdentity: { flexDirection: 'row', alignItems: 'center', gap: 24 },
-  bigAvatar: { width: 160, height: 160, backgroundColor: '#E5E5E5' },
+  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
+  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
   studentName: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818' },
-  studentActions: { gap: 0, alignSelf: 'flex-start' },
-  studentActionsMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  stackedButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 20, minWidth: 220, alignItems: 'center' },
-  stackedButtonText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  studentDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
+  studentLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
+  studentRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16 },
+  actionLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
+  actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  chipHalfText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#68717A' },
   // Filled light-blue button used for action chips on mobile widths (see mobile mockups).
   mobileChip: { backgroundColor: '#F0F5FB', borderWidth: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   mobileChipText: { color: '#68717A', fontSize: 15 },
-  inviteBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#181818', maxWidth: 560 },
-  inviteText: { flex: 1, padding: 16, fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
-  inviteShareButton: { width: 52, height: '100%', minHeight: 52, borderLeftWidth: 1, borderColor: '#181818', alignItems: 'center', justifyContent: 'center' },
 
   // Modals (shared)
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
@@ -721,6 +733,9 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 20 },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   modalHeaderRowSpread: { justifyContent: 'space-between' },
+  modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  passwordDots: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', paddingVertical: 10 },
+  modalSaveLink: { alignSelf: 'flex-end', marginTop: 12 },
   backArrow: { fontSize: 20, color: '#181818' },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
