@@ -149,6 +149,8 @@ export default function ProfileScreenWeb() {
   const [withdrawCard, setWithdrawCard] = useState<Card | null>(null);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawSuccessVisible, setWithdrawSuccessVisible] = useState(false);
+  const [withdrawFailedVisible, setWithdrawFailedVisible] = useState(false);
+  const [withdrawError, setWithdrawError] = useState('');
 
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
@@ -320,14 +322,20 @@ export default function ProfileScreenWeb() {
 
   // "Да, все ок" — реального эндпоинта вывода средств пока нет (см. TODO в
   // tutor-payments.web.tsx), поэтому имитируем успешную отправку так же, как
-  // уже сделано на той странице.
+  // уже сделано на той странице. catch остаётся на будущее, когда появится
+  // реальный запрос — тогда ошибка покажет "Оплата не прошла" (см. макет).
   async function handleWithdrawConfirm() {
     if (isWithdrawing) return;
     setIsWithdrawing(true);
     try {
       await new Promise((r) => setTimeout(r, 300));
       setWithdrawModalVisible(false);
+      setWithdrawFailedVisible(false);
       setWithdrawSuccessVisible(true);
+    } catch (e: any) {
+      setWithdrawModalVisible(false);
+      setWithdrawError(e?.message ?? 'Повторите попытку или попробуйте оплатить с другой карты');
+      setWithdrawFailedVisible(true);
     } finally {
       setIsWithdrawing(false);
     }
@@ -362,19 +370,44 @@ export default function ProfileScreenWeb() {
     );
   }
 
-  // ── "Запрос отправлен" modal — после подтверждения выплаты ─────────────────
+  // ── "Деньги отправлены!" modal — после подтверждения выплаты ───────────────
   function renderWithdrawSuccessModal() {
     return (
       <Modal transparent animationType="fade" visible={withdrawSuccessVisible} onRequestClose={() => setWithdrawSuccessVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setWithdrawSuccessVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Запрос отправлен!</Text>
+              <Text style={styles.modalTitle}>Деньги отправлены!</Text>
               <Pressable onPress={() => setWithdrawSuccessVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <Text style={styles.emptyText}>
-              Мы отправили вам на карту {payoutBalance.toLocaleString('ru-RU')} ₽. {WITHDRAWAL_TOOLTIP}.
-            </Text>
+            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} ₽.</Text>
+            <Text style={styles.withdrawMessage}>{WITHDRAWAL_TOOLTIP}.</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  }
+
+  // ── "Оплата не прошла" modal — ошибка выплаты, переиспользует вид ошибки
+  // оплаты из букинг-флоу (explore/[id]/slots.web.tsx) ───────────────────────
+  function renderWithdrawFailedModal() {
+    return (
+      <Modal transparent animationType="fade" visible={withdrawFailedVisible} onRequestClose={() => setWithdrawFailedVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setWithdrawFailedVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={[styles.modalTitle, styles.modalTitleError]}>Оплата не прошла</Text>
+              <Pressable onPress={() => setWithdrawFailedVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.errorText}>{withdrawError}</Text>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => { setWithdrawFailedVisible(false); if (withdrawCard) openEditCard(withdrawCard); }}>
+                <Text style={styles.modalCancelText}>Сменить карту</Text>
+              </Pressable>
+              <Pressable onPress={handleWithdrawConfirm} disabled={isWithdrawing}>
+                <Text style={styles.modalSaveText}>{isWithdrawing ? '…' : 'Попробовать ещё раз'}</Text>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -745,6 +778,7 @@ export default function ProfileScreenWeb() {
         {renderHistoryModal()}
         {renderWithdrawModal()}
         {renderWithdrawSuccessModal()}
+        {renderWithdrawFailedModal()}
       </SiteShell>
     );
   }
@@ -879,6 +913,7 @@ export default function ProfileScreenWeb() {
       {renderHistoryModal()}
       {renderWithdrawModal()}
       {renderWithdrawSuccessModal()}
+      {renderWithdrawFailedModal()}
 
       {/* ─── Добавить событие ─────────────────────────────────────────── */}
       <Modal transparent animationType="fade" visible={newEventModalVisible} onRequestClose={() => setNewEventModalVisible(false)}>
@@ -1053,6 +1088,8 @@ const styles = StyleSheet.create({
   balanceInfoIcon: { marginTop: 2 },
   balanceTooltipBubble: { position: 'absolute', top: 24, left: 0, width: 180, backgroundColor: '#181818', padding: 8, zIndex: 10 },
   tooltipBubbleText: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#fff' },
+  withdrawMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  modalTitleError: { color: '#E02D2D' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
