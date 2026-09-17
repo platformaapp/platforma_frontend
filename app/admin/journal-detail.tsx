@@ -91,7 +91,7 @@ export default function AdminJournalDetailScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isNew = !id;
 
-  const [loading, setLoading] = useState(!isNew);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
   const [title, setTitle] = useState('');
@@ -111,12 +111,14 @@ export default function AdminJournalDetailScreen() {
   const [saveError, setSaveError] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  // Проверяем токен на входе всегда — и в режиме создания тоже (isNew раньше
+  // пропускал эту проверку целиком, и форма создания открывалась без логина).
   useEffect(() => {
-    if (isNew) return;
     let active = true;
     (async () => {
       const token = await getAdminToken();
       if (!token) { router.replace('/admin/login'); return; }
+      if (isNew) { if (active) setLoading(false); return; }
       try {
         const res = await fetch(`${endpoints.adminArticles}/${id}`, { headers: { Authorization: `Bearer ${token}` } });
         if (res.status === 401) { await clearAdminToken(); router.replace('/admin/login'); return; }
