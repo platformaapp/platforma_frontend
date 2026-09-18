@@ -13,6 +13,7 @@ export default function AdminLayout() {
       <Stack.Screen name="event-detail" />
       <Stack.Screen name="journal" />
       <Stack.Screen name="journal-detail" />
+      <Stack.Screen name="payments" />
     </Stack>
   );
 }

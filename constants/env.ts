@@ -70,4 +70,5 @@ export const endpoints = {
   adminEventsAdmin: `${API_BASE}/api/admin/events`,
   adminSettings: `${API_BASE}/api/admin/settings`,
   adminArticles: `${API_BASE}/api/admin/articles`,
+  adminPaymentsExport: `${API_BASE}/api/admin/payments/export`,
 };

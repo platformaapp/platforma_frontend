@@ -331,6 +331,9 @@ export default function AdminDashboard() {
         <Pressable style={styles.navBtn} onPress={() => router.push('/admin/journal' as any)}>
           <Text style={styles.navBtnText}>Журнал</Text>
         </Pressable>
+        <Pressable style={styles.navBtn} onPress={() => router.push('/admin/payments' as any)}>
+          <Text style={styles.navBtnText}>Платежи</Text>
+        </Pressable>
       </View>
 
       {/* Filter tabs */}
