@@ -1,8 +1,17 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-const STRATEGIC_PARTNERS = ['ПРО:ВЗГЛЯД', 'Еврейский музей и центр толерантности', 'youtalk', 'ДК РАССВЕТ', 'Театр.doc'];
+// Высота логотипов зафиксирована (28px), ширина — под реальные пропорции
+// каждого файла, иначе лого будут либо сплющены, либо с полями.
+const STRATEGIC_PARTNERS = [
+  { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/partner-provzglyad.png'), width: 64 },
+  { name: 'Еврейский музей и центр толерантности', logo: require('@/assets/images/partner-jewish-museum.png'), width: 69 },
+  { name: 'youtalk', logo: require('@/assets/images/partner-youtalk.png'), width: 33 },
+  { name: 'ДК РАССВЕТ', logo: require('@/assets/images/partner-dkrassvet.png'), width: 114 },
+  { name: 'Театр.doc', logo: require('@/assets/images/partner-teatrdoc.png'), width: 125 },
+];
+const PARTNER_LOGO_HEIGHT = 28;
 
 const FRIENDS = [
   'Bubble Studios', 'ЗОТОВ ЦЕНТР', 'BEAT', 'ЗИЛАРТ', 'KION',
@@ -11,9 +20,9 @@ const FRIENDS = [
 ];
 
 /**
- * Футер веб-версии: партнёры и друзья проекта (текстовые логотипы — реальных
- * лого-файлов нет) + копирайт + ссылка на документы. Показывается на страницах
- * с публичным контентом (события, событие, наставник, статья) — см. макеты.
+ * Футер веб-версии: партнёры (реальные лого) и друзья проекта (текстом —
+ * лого-файлов для них нет) + копирайт + ссылка на документы. Показывается
+ * на страницах с публичным контентом (события, событие, наставник, статья).
  */
 export function SiteFooter() {
   const router = useRouter();
@@ -21,8 +30,14 @@ export function SiteFooter() {
     <View style={styles.footer}>
       <Text style={styles.sectionLabel}>Наши стратегические партнеры</Text>
       <View style={styles.logosRow}>
-        {STRATEGIC_PARTNERS.map((name) => (
-          <Text key={name} style={styles.logoText}>{name}</Text>
+        {STRATEGIC_PARTNERS.map((p) => (
+          <Image
+            key={p.name}
+            source={p.logo}
+            accessibilityLabel={p.name}
+            resizeMode="contain"
+            style={{ width: p.width, height: PARTNER_LOGO_HEIGHT }}
+          />
         ))}
       </View>
 
