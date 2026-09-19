@@ -36,8 +36,9 @@ export function SiteFooter() {
       <View style={styles.bottomRow}>
         <Text style={styles.copyright}>©2026, p(34)</Text>
         <View style={styles.bottomLinks}>
-          {/* Нет отдельного экрана контактов — оставляем текстом, без перехода в никуда. */}
-          <Text style={styles.docsLink}>Контакты для связи</Text>
+          <Pressable onPress={() => router.push('/contacts' as any)}>
+            <Text style={styles.docsLink}>Контакты для связи</Text>
+          </Pressable>
           <Pressable onPress={() => router.push('/offer' as any)}>
             <Text style={styles.docsLink}>Официальные документы</Text>
           </Pressable>

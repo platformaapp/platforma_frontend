@@ -1,44 +1,43 @@
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const TELEGRAM_URL = 'https://t.me/p34forma';
+const BANNER_IMAGE = require('@/assets/images/ai-issue-banner.webp');
+// Реальный размер файла — рендерим на всю ширину с этим соотношением сторон,
+// чтобы картинка не обрезалась (заголовок и подпись "вшиты" в саму картинку).
+const BANNER_ASPECT_RATIO = 1244 / 290;
 
 /**
- * Промо-баннер материала "AI ISSUE" — используется на /events и /journal
- * (см. макеты обеих страниц). На /journal рядом с подписью есть ещё красная
- * ссылка "в телеге" на канал — на /events её нет, поэтому это опционально.
+ * Промо-баннер материала "AI ISSUE" — используется на /events и /journal.
+ * На /journal рядом с подписью есть ещё красная ссылка "в телеге" на канал —
+ * на /events её нет, поэтому это опционально; кладём её поверх картинки
+ * рядом с уже вшитым в неё текстом "читайте в нашем материале".
  */
 export function PromoBanner({ withTelegramLink }: { withTelegramLink?: boolean }) {
   const router = useRouter();
   return (
     <Pressable style={styles.promoBanner} onPress={() => router.push('/journal' as any)}>
-      <View style={styles.promoInfoDot}><Text style={styles.promoInfoDotText}>i</Text></View>
-      <View style={styles.promoTextBlock}>
-        <Text style={styles.promoHeadline}>Заменят ли реальных моделей их AI-копиями?</Text>
-        <View style={styles.promoSubRow}>
-          <Text style={styles.promoSub}>читайте в нашем материале</Text>
-          {withTelegramLink ? (
-            <Pressable onPress={(e) => { e.stopPropagation?.(); Linking.openURL(TELEGRAM_URL); }}>
-              <Text style={styles.promoTelegramLink}>в телеге</Text>
-            </Pressable>
-          ) : null}
-        </View>
+      <View style={styles.promoImageWrap}>
+        <Image source={BANNER_IMAGE} style={styles.promoImage} resizeMode="cover" />
       </View>
-      <Text style={styles.promoBrand}>AI ISSUE</Text>
+      {withTelegramLink ? (
+        <Pressable
+          style={styles.telegramLink}
+          onPress={(e) => { e.stopPropagation?.(); Linking.openURL(TELEGRAM_URL); }}
+        >
+          <Text style={styles.promoTelegramLinkText}>в телеге</Text>
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  promoBanner: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#181818', minHeight: 220, marginTop: 24, padding: 24, position: 'relative' },
-  promoInfoDot: { position: 'absolute', top: 16, right: 56, width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  promoInfoDotText: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#fff' },
-  promoTextBlock: { flex: 1, paddingRight: 48 },
-  promoHeadline: { fontSize: 22, lineHeight: 28, fontFamily: 'Inter-Bold', color: '#fff', textTransform: 'uppercase', marginBottom: 12 },
-  promoSubRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  promoSub: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#fff' },
-  promoTelegramLink: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#E02D2D' },
-  promoBrand: { position: 'absolute', top: '50%', right: 16, fontSize: 16, fontFamily: 'Inter-Bold', color: '#fff', letterSpacing: 2, transform: [{ translateY: -10 }, { rotate: '90deg' }] },
+  promoBanner: { marginTop: 24, position: 'relative', backgroundColor: '#181818' },
+  promoImageWrap: { width: '100%', aspectRatio: BANNER_ASPECT_RATIO, position: 'relative', overflow: 'hidden' },
+  promoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  telegramLink: { position: 'absolute', left: '24%', bottom: '7%' },
+  promoTelegramLinkText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#E02D2D' },
 });
