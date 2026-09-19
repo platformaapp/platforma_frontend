@@ -13,10 +13,24 @@ const STRATEGIC_PARTNERS = [
 ];
 const PARTNER_LOGO_HEIGHT = 28;
 
+// Логотипы добавляются по мере получения файлов — до этого запись остаётся
+// текстом (см. рендер ниже: с logo рисуем Image, без — Text как раньше).
 const FRIENDS = [
-  'Bubble Studios', 'ЗОТОВ ЦЕНТР', 'BEAT', 'ЗИЛАРТ', 'KION',
-  'Кинотеатр Художественный', 'B', 'Самокат', 'Чехов и компания', 'twinby',
-  'AZ Museum', 'Перспектива', 'Внутри', 'A24', 'Практика театр',
+  { name: 'Bubble Studios', logo: require('@/assets/images/friend-bubble-studios.png'), width: 69 },
+  { name: 'ЗОТОВ ЦЕНТР', logo: require('@/assets/images/friend-zotov-center.png'), width: 31 },
+  { name: 'BEAT', logo: require('@/assets/images/friend-beat.png'), width: 31 },
+  { name: 'ЗИЛАРТ', logo: require('@/assets/images/friend-zilart.png'), width: 101 },
+  { name: 'KION', logo: require('@/assets/images/friend-kion.png'), width: 78 },
+  { name: 'Кинотеатр Художественный' },
+  { name: 'B' },
+  { name: 'Самокат' },
+  { name: 'Чехов и компания' },
+  { name: 'twinby' },
+  { name: 'AZ Museum' },
+  { name: 'Перспектива' },
+  { name: 'Внутри' },
+  { name: 'A24' },
+  { name: 'Практика театр' },
 ];
 
 /**
@@ -43,9 +57,19 @@ export function SiteFooter() {
 
       <Text style={[styles.sectionLabel, styles.friendsLabel]}>Наши большие друзья</Text>
       <View style={styles.logosRow}>
-        {FRIENDS.map((name) => (
-          <Text key={name} style={styles.logoText}>{name}</Text>
-        ))}
+        {FRIENDS.map((f) =>
+          f.logo ? (
+            <Image
+              key={f.name}
+              source={f.logo}
+              accessibilityLabel={f.name}
+              resizeMode="contain"
+              style={{ width: f.width, height: PARTNER_LOGO_HEIGHT }}
+            />
+          ) : (
+            <Text key={f.name} style={styles.logoText}>{f.name}</Text>
+          )
+        )}
       </View>
 
       <View style={styles.bottomRow}>
