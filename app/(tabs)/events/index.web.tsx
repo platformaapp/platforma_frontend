@@ -178,7 +178,9 @@ export default function EventsScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Ближайшие события</Text>
+          <Pressable onPress={() => setFormat(null)}>
+            <Text style={styles.title}>Ближайшие события</Text>
+          </Pressable>
         </View>
 
         {!isMobile ? (
@@ -187,14 +189,14 @@ export default function EventsScreenWeb() {
               {FORMATS.map((f) => {
                 const active = f === format;
                 return (
-                  <Pressable key={f} style={[styles.filterPill, active && styles.filterPillActive]} onPress={() => setFormat(active ? null : f)}>
+                  <Pressable key={f} style={styles.filterPill} onPress={() => setFormat(active ? null : f)}>
                     <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{f}</Text>
                   </Pressable>
                 );
               })}
             </View>
             <Pressable
-              style={[styles.filterPill, styles.filterPillRight, format === DISCUSSION_FORMAT && styles.filterPillActive]}
+              style={[styles.filterPill, styles.filterPillRight]}
               onPress={() => setFormat(format === DISCUSSION_FORMAT ? null : DISCUSSION_FORMAT)}
             >
               <Text style={[styles.filterPillText, format === DISCUSSION_FORMAT && styles.filterPillTextActive]}>{DISCUSSION_FORMAT}</Text>
@@ -266,7 +268,6 @@ const styles = StyleSheet.create({
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, flexShrink: 1 },
   filterPill: { paddingVertical: 4 },
   filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
-  filterPillActive: { borderBottomWidth: 2, borderColor: '#181818' },
   filterPillText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
   filterPillTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

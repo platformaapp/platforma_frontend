@@ -56,7 +56,9 @@ export default function JournalScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Журнал</Text>
+        <Pressable onPress={() => setCategory(null)}>
+          <Text style={styles.title}>Журнал</Text>
+        </Pressable>
 
         <View style={styles.filtersRow}>
           {ARTICLE_FORMATS.map((f) => {
