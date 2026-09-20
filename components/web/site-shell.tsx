@@ -14,6 +14,11 @@ export { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT };
  * и, если нужно, подключает <SiteFooter /> в конце содержимого.
  * Контент центрируется и ограничен CONTENT_MAX_WIDTH; шапка/футер сами
  * центрируют свою внутреннюю строку так же (см. site-header/site-footer).
+ *
+ * data-site-content на обёртке — хук для глобального CSS-правила в
+ * app/+html.tsx, которое снимает overflow-y:auto с прямого потомка (page's
+ * корневой ScrollView), чтобы страница росла по контенту и скроллилась
+ * через html/body, а не через свой внутренний скроллбар.
  */
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const { width } = useWindowDimensions();
@@ -22,7 +27,8 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.root}>
       {!isMobile && <SiteHeader />}
-      <View style={styles.content}>{children}</View>
+      {/* dataSet is a react-native-web-only DOM prop, not in @types/react-native's ViewProps */}
+      <View style={styles.content} {...({ dataSet: { siteContent: 'true' } } as any)}>{children}</View>
       {isMobile && <MobileBottomNav />}
     </View>
   );

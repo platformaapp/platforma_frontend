@@ -7,11 +7,11 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 const PARTNER_LOGO_HEIGHT = 28;
 
 const STRATEGIC_PARTNERS = [
-  { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/partner-provzglyad.png'), width: 64 },
-  { name: 'Еврейский музей и центр толерантности', logo: require('@/assets/images/partner-jewish-museum.png'), width: 69 },
-  { name: 'youtalk', logo: require('@/assets/images/partner-youtalk.png'), width: 33 },
-  { name: 'ДК РАССВЕТ', logo: require('@/assets/images/partner-dkrassvet.png'), width: 114 },
-  { name: 'Театр.doc', logo: require('@/assets/images/partner-teatrdoc.png'), width: 125 },
+  { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/partner-provzglyad.png'), width: 64, url: 'https://provzglyad.com/' },
+  { name: 'Еврейский музей и центр толерантности', logo: require('@/assets/images/partner-jewish-museum.png'), width: 69, url: 'https://www.jewish-museum.ru/' },
+  { name: 'youtalk', logo: require('@/assets/images/partner-youtalk.png'), width: 33, url: 'https://youtalk.ru/' },
+  { name: 'ДК РАССВЕТ', logo: require('@/assets/images/partner-dkrassvet.png'), width: 114, url: 'https://dkrassvet.space/' },
+  { name: 'Театр.doc', logo: require('@/assets/images/partner-teatrdoc.png'), width: 125, url: 'https://www.teatrdoc.ru/' },
 ];
 
 const FRIENDS = [
@@ -32,18 +32,25 @@ const FRIENDS = [
   { name: 'Практика театр', logo: require('@/assets/images/friend-praktika-teatr.png'), width: 27 },
 ];
 
-function LogoRow({ logos }: { logos: { name: string; logo: number; width: number }[] }) {
+function LogoRow({ logos }: { logos: { name: string; logo: number; width: number; url?: string }[] }) {
   return (
     <View style={styles.logosRow}>
-      {logos.map((l) => (
-        <Image
-          key={l.name}
-          source={l.logo}
-          accessibilityLabel={l.name}
-          resizeMode="contain"
-          style={{ width: l.width, height: PARTNER_LOGO_HEIGHT }}
-        />
-      ))}
+      {logos.map((l) => {
+        const image = (
+          <Image
+            source={l.logo}
+            accessibilityLabel={l.name}
+            resizeMode="contain"
+            style={{ width: l.width, height: PARTNER_LOGO_HEIGHT }}
+          />
+        );
+        if (!l.url) return <React.Fragment key={l.name}>{image}</React.Fragment>;
+        return (
+          <Pressable key={l.name} onPress={() => window.open(l.url, '_blank', 'noopener,noreferrer')}>
+            {image}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
