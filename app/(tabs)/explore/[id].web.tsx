@@ -173,7 +173,7 @@ export default function TutorCardScreenWeb() {
   );
 
   if (loadingProfile) {
-    return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View></SiteShell>;
+    return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
   return (
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 20, color: '#181818' },
+  backArrow: { fontSize: 20, color: '#010101' },
 
   // Desktop: текст слева, большой квадратный аватар — справа.
   desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
@@ -273,32 +273,32 @@ const styles = StyleSheet.create({
   headerText: { flex: 1 },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
 
-  name: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818' },
-  role: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4 },
-  bio: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginVertical: 16 },
+  name: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  role: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
+  bio: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
-  priceLabel: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
-  priceValue: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818' },
+  priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  priceValue: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8 },
-  actionLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  chipHalfText: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#68717A' },
+  chipHalfText: { fontFamily: 'Gramatika-Bold', fontSize: 14, color: '#68717A' },
 
-  instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
+  instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
   eventsSection: { marginTop: 40 },
-  eventsSectionTitle: { fontSize: 18, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
+  eventsSectionTitle: { fontSize: 18, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },
   eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
   eventCardBody: { paddingTop: 10 },
-  eventFormat: { fontSize: 12, fontFamily: 'Inter-Medium', color: '#687076', marginBottom: 4 },
-  eventCardTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
-  eventCardMeta: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076' },
+  eventFormat: { fontSize: 12, fontFamily: 'Gramatika-Bold', color: '#687076', marginBottom: 4 },
+  eventCardTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 4 },
+  eventCardMeta: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },
 });

@@ -212,7 +212,7 @@ export default function TutorSlotsScreenWeb() {
           )}
 
           {loading ? (
-            <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
+            <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : step === 'success' ? (
@@ -309,57 +309,57 @@ const styles = StyleSheet.create({
   closeButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
   closeText: { fontSize: 18, color: '#687076' },
 
-  title: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818' },
-  subtitle: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
-  price: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 24 },
+  title: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  subtitle: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
+  price: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 12, marginBottom: 4 },
-  emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 12, marginBottom: 4 },
+  emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
 
   dateGroup: { marginTop: 20 },
-  dateHeading: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 10 },
+  dateHeading: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 10 },
   timeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timeChip: { paddingVertical: 10, paddingHorizontal: 18, borderWidth: 1, borderColor: '#D6DBE0', borderRadius: 24 },
-  timeChipActive: { backgroundColor: '#181818', borderColor: '#181818' },
-  timeChipText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  timeChipActive: { backgroundColor: '#010101', borderColor: '#010101' },
+  timeChipText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
   timeChipTextActive: { color: '#FAFAFA' },
 
   nextLink: { alignSelf: 'flex-start', marginTop: 28 },
   nextLinkDisabled: { opacity: 0.5 },
-  nextLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  nextLinkText: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
   nextLinkTextDisabled: { color: '#9B9B9B' },
 
   confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  confirmMentorName: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818' },
-  confirmDate: { fontSize: 15, fontFamily: 'Inter-Regular', color: '#181818' },
-  confirmPrice: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginTop: 8 },
+  confirmMentorName: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  confirmDate: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  confirmPrice: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101', marginTop: 8 },
 
-  payLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  payLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
   payLinkDisabled: { color: '#9B9B9B' },
   payLinkSpacing: { alignSelf: 'flex-end', marginTop: 40 },
 
   cardForm: { marginTop: 8 },
-  inputLabel: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
+  inputLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   fieldBlock: { marginBottom: 16 },
   fieldInputWrap: { position: 'relative' },
   // borderWidth:0 обязателен явно — иначе многострочный/нативный инпут может
   // показать браузерную рамку по умолчанию (см. profile/[id].web.tsx); outlineWidth:0
   // убирает нативный фокус-аутлайн браузера (RN Web иначе показывает его поверх).
-  borderlessInput: { borderWidth: 0, outlineWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', minHeight: 20 },
-  plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#181818' },
+  borderlessInput: { borderWidth: 0, outlineWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', minHeight: 20 },
+  plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#010101' },
   cardRow: { flexDirection: 'row', gap: 16 },
   cardRowItem: { flex: 1 },
   cardFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 12 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   checkboxCircle: { width: 18, height: 18, borderRadius: 9, borderWidth: 1, borderColor: '#D6DBE0' },
-  checkboxCircleActive: { backgroundColor: '#181818', borderColor: '#181818' },
-  checkboxLabel: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
+  checkboxCircleActive: { backgroundColor: '#010101', borderColor: '#010101' },
+  checkboxLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
 
   successBody: { marginTop: 8, gap: 8 },
-  successText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#687076' },
+  successText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076' },
 
   titleError: { color: '#E02D2D' },
   failedBody: { marginTop: 8 },
-  failedMessage: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', marginBottom: 40 },
-  changeCardLink: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  failedMessage: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 40 },
+  changeCardLink: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 });

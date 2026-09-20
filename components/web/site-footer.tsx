@@ -90,11 +90,11 @@ export function SiteFooter() {
 
 const styles = StyleSheet.create({
   footer: { paddingHorizontal: 32, paddingVertical: 32, borderTopWidth: 1, borderColor: '#E5E5E5', marginTop: 48 },
-  sectionLabel: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#687076', marginBottom: 16 },
+  sectionLabel: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#687076', marginBottom: 16 },
   friendsLabel: { marginTop: 32 },
   logosRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 40, rowGap: 20 },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
-  copyright: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#687076' },
+  copyright: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#687076' },
   bottomLinks: { flexDirection: 'row', gap: 24 },
-  docsLink: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#687076', textDecorationLine: 'underline' },
+  docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#687076', textDecorationLine: 'underline' },
 });

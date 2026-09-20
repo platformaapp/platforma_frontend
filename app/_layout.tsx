@@ -50,6 +50,11 @@ export default function RootLayout() {
     'Inter-Bold': require('../assets/fonts/Inter/Inter_18pt-Bold.ttf'),
     'Inter-Medium': require('../assets/fonts/Inter/Inter_18pt-Medium.ttf'),
     'Inter-Light': require('../assets/fonts/Inter/Inter-Light-BETA.ttf'),
+    // Фирменный шрифт с vladyakunin.ru — используется на веб-страницах
+    // (components/web/*, *.web.tsx) вместо Inter, см. этот же шрифт и
+    // токены в теме сайта.
+    'Gramatika-Regular': require('../assets/fonts/Gramatika/Gramatika-Regular.ttf'),
+    'Gramatika-Bold': require('../assets/fonts/Gramatika/Gramatika-Bold.ttf'),
   });
 
   useEffect(() => {

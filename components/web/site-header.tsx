@@ -6,7 +6,7 @@ import { CONTENT_MAX_WIDTH } from './layout-constants';
 import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
 const ACTIVE = '#E02D2D';
-const INACTIVE = '#181818';
+const INACTIVE = '#010101';
 
 const NAV_ITEMS = [
   { key: 'events', label: 'События', href: '/events', Icon: SquareIcon, match: ['/events'] },
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navLabel: { fontFamily: 'Inter-Regular', fontSize: 14 },
-  logo: { fontFamily: 'Inter-Bold', fontSize: 20, color: '#181818' },
+  navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14 },
+  logo: { fontFamily: 'Gramatika-Bold', fontSize: 20, color: '#010101' },
 });

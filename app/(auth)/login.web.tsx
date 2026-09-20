@@ -172,8 +172,8 @@ export default function LoginScreenWeb() {
                   />
                   <Pressable onPress={() => setShowPwd((p) => !p)} style={styles.eye}>
                     <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5" />
-                      <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5" />
+                      <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#010101" strokeWidth="1.5" />
+                      <Circle cx="12" cy="12" r="3" stroke="#010101" strokeWidth="1.5" />
                     </Svg>
                   </Pressable>
                 </View>
@@ -212,26 +212,26 @@ const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 420, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  title: { fontFamily: 'Inter-Bold', fontSize: 22, color: '#181818' },
-  close: { fontSize: 20, color: '#181818' },
+  title: { fontFamily: 'Gramatika-Bold', fontSize: 22, color: '#010101' },
+  close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
 
   choiceLinks: { gap: 4, marginBottom: 8 },
   choiceLinkRow: { paddingVertical: 10 },
-  choiceLinkText: { fontFamily: 'Inter-Medium', fontSize: 18, color: '#E02D2D' },
+  choiceLinkText: { fontFamily: 'Gramatika-Bold', fontSize: 18, color: '#E02D2D' },
   switchLink: { marginTop: 16, alignItems: 'center' },
-  switchLinkText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#687076' },
+  switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
 
-  fieldLabel: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  fieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
   eye: { position: 'absolute', right: 10, top: 10 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
-  checkbox: { width: 22, height: 22, borderWidth: 1, borderColor: '#181818', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  checkmark: { fontSize: 14, color: '#181818', fontWeight: 'bold', lineHeight: 18 },
-  checkboxLabel: { fontFamily: 'Inter-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
-  errorText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#E02D2D', marginTop: 8 },
+  checkbox: { width: 22, height: 22, borderWidth: 1, borderColor: '#010101', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  checkmark: { fontSize: 14, color: '#010101', fontWeight: 'bold', lineHeight: 18 },
+  checkboxLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#010101' },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 8 },
 
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginTop: 16 },
-  linkText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#687076' },
-  submitLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  linkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
+  submitLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
 });

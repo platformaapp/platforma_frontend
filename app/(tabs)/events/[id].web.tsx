@@ -229,7 +229,7 @@ export default function EventDetailScreenWeb() {
         </Pressable>
 
         {loading ? (
-          <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
+          <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error || !event ? (
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
         ) : isMobile ? (
@@ -349,9 +349,9 @@ export default function EventDetailScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 20, color: '#181818' },
+  backArrow: { fontSize: 20, color: '#010101' },
 
   // Desktop: текст слева, картинка + карточка наставника — справа.
   desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
@@ -359,21 +359,21 @@ const styles = StyleSheet.create({
   rightCol: { flexBasis: 340, flexShrink: 0, maxWidth: 380 },
   cover: { width: '100%', height: 400, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
-  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
-  description: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 24 },
+  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  description: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
-  metaLabel: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 4 },
-  metaValue: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818' },
+  metaLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 4 },
+  metaValue: { fontSize: 16, fontFamily: 'Gramatika-Bold', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
-  actionLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
   mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   mentorInfo: { flex: 1 },
-  mentorName: { fontSize: 18, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 4 },
-  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076' },
+  mentorName: { fontSize: 18, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 4 },
+  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   mentorAvatar: { width: 64, height: 64, backgroundColor: '#E5E5E5' },
 
   // Mobile: маленькая миниатюра рядом с датой/ценой, кнопки — заливка (см. моб. макеты).
@@ -381,15 +381,15 @@ const styles = StyleSheet.create({
   mobileThumb: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
   mobileMetaCol: { flex: 1, gap: 6 },
   chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  chipButtonText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#68717A' },
+  chipButtonText: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#68717A' },
 
   cancelOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(24,24,24,0.45)', padding: 16 },
   cancelModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24, position: 'relative' },
   cancelCloseButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
   cancelCloseText: { fontSize: 18, color: '#687076' },
-  cancelModalTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 8, paddingRight: 24 },
-  cancelModalText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 20 },
+  cancelModalTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 8, paddingRight: 24 },
+  cancelModalText: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20 },
   cancelModalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cancelModalLeave: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
-  cancelModalConfirm: { fontFamily: 'Inter-Medium', fontSize: 14, color: '#E02D2D' },
+  cancelModalLeave: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
+  cancelModalConfirm: { fontFamily: 'Gramatika-Bold', fontSize: 14, color: '#E02D2D' },
 });

@@ -205,7 +205,7 @@ export default function EventsScreenWeb() {
         ) : null}
 
         {loading ? (
-          <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
+          <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>{error}</Text>
@@ -250,7 +250,7 @@ export default function EventsScreenWeb() {
 
         {!loading && !error && hasMore ? (
           <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
-            {loadingMore ? <ActivityIndicator color="#181818" /> : <Text style={[styles.loadMoreButtonText, isMobile && styles.chipButtonText]}>Показать ещё</Text>}
+            {loadingMore ? <ActivityIndicator color="#010101" /> : <Text style={[styles.loadMoreButtonText, isMobile && styles.chipButtonText]}>Показать ещё</Text>}
           </Pressable>
         ) : null}
 
@@ -263,20 +263,20 @@ export default function EventsScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   titleRow: { marginBottom: 16 },
-  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818' },
+  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Gramatika-Bold', color: '#010101' },
   filtersRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, flexShrink: 1 },
   filterPill: { paddingVertical: 4 },
   filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
-  filterPillText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076' },
-  filterPillTextActive: { color: '#181818', fontFamily: 'Inter-Medium' },
+  filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
+  filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Bold' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
-  emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
-  retryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 32 },
-  retryButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
-  loadMoreButtonText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#181818' },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
+  emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
+  retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
+  loadMoreButtonText: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#010101' },
   // Мобильные экшн-кнопки — заливка вместо обводки, см. мобильные макеты.
   chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
   chipButtonText: { color: '#68717A' },
@@ -287,13 +287,13 @@ const styles = StyleSheet.create({
   imageLarge: { width: '100%', height: 260 },
   imageSmall: { width: '100%', height: 190 },
   cardBody: { paddingTop: 12 },
-  cardAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 6 },
-  cardTitleText: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818' },
-  cardTime: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', textAlign: 'right', marginTop: 12 },
+  cardAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  cardTitleText: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  cardTime: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right', marginTop: 12 },
   // Мобильный список — маленькая обложка слева, текст справа, без сетки карточек.
   mobileList: { gap: 20 },
   mobileRow: { flexDirection: 'row', gap: 12 },
   mobileThumb: { width: 88, height: 64, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'center' },
-  mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 4 },
+  mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
 });

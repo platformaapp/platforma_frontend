@@ -134,7 +134,7 @@ export default function PaymentMethodsIndexScreenWeb() {
       <View style={styles.container}>
         {status === 'loading' && (
           <>
-            <ActivityIndicator size="large" color="#181818" style={styles.spinner} />
+            <ActivityIndicator size="large" color="#010101" style={styles.spinner} />
             <Text style={styles.text}>{message}</Text>
           </>
         )}
@@ -166,9 +166,9 @@ export default function PaymentMethodsIndexScreenWeb() {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 96, paddingHorizontal: 24 },
   spinner: { marginBottom: 16 },
-  text: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center', marginBottom: 16, maxWidth: 420 },
-  successTitle: { fontSize: 24, fontFamily: 'Inter-Bold', color: '#181818', textAlign: 'center', marginBottom: 12 },
-  cardText: { fontSize: 16, fontFamily: 'Inter-Medium', color: '#181818', textAlign: 'center', marginBottom: 8 },
-  button: { marginTop: 4, backgroundColor: '#181818', paddingVertical: 14, paddingHorizontal: 32, minWidth: 200, alignItems: 'center' },
-  buttonText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#fff' },
+  text: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', textAlign: 'center', marginBottom: 16, maxWidth: 420 },
+  successTitle: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101', textAlign: 'center', marginBottom: 12 },
+  cardText: { fontSize: 16, fontFamily: 'Gramatika-Bold', color: '#010101', textAlign: 'center', marginBottom: 8 },
+  button: { marginTop: 4, backgroundColor: '#010101', paddingVertical: 14, paddingHorizontal: 32, minWidth: 200, alignItems: 'center' },
+  buttonText: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#fff' },
 });

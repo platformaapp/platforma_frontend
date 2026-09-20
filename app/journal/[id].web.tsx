@@ -93,7 +93,7 @@ export default function ArticleScreenWeb() {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View></SiteShell>;
+    return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
   if (error || !article) {
@@ -196,39 +196,39 @@ export default function ArticleScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
-  retryButton: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 32 },
-  retryButtonText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
+  retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
+  retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  backArrow: { fontSize: 24, color: '#181818', marginBottom: 24 },
+  backArrow: { fontSize: 24, color: '#010101', marginBottom: 24 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, marginBottom: 40 },
   // flexShrink явно 1 — у RN Web дефолт 0, без этого колонка не сжимается
   // ниже flexBasis и текст вылезает за край на узких экранах.
   colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
   colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240 },
-  title: { fontSize: 26, lineHeight: 32, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
-  subheading: { fontSize: 22, lineHeight: 28, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
+  title: { fontSize: 26, lineHeight: 32, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  subheading: { fontSize: 22, lineHeight: 28, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   authorAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E5E5' },
-  author: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818' },
-  role: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
-  body: { fontSize: 15, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818', marginBottom: 16 },
+  author: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  role: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  body: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5' },
 
   ctaBlock: { marginTop: 8, marginBottom: 24 },
-  actionLinkText: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D', paddingVertical: 8 },
+  actionLinkText: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D', paddingVertical: 8 },
   eventCard: { flexDirection: 'row', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
   eventCardImage: { width: 96, height: 96, backgroundColor: '#E5E5E5' },
   eventCardInfo: { flex: 1, justifyContent: 'center' },
-  eventCardTitle: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 6 },
-  eventCardAuthor: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 2 },
-  eventCardDate: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#687076' },
+  eventCardTitle: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 6 },
+  eventCardAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 2 },
+  eventCardDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
   appCard: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
   appCardIcon: { width: 56, height: 56, backgroundColor: '#E5E5E5' },
   appCardTextBlock: { flex: 1, gap: 8 },
-  appCardText: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#181818' },
+  appCardText: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   appCardStores: { flexDirection: 'row', gap: 12 },
-  storeLinkText: { fontFamily: 'Inter-Medium', fontSize: 13, color: '#E02D2D' },
+  storeLinkText: { fontFamily: 'Gramatika-Bold', fontSize: 13, color: '#E02D2D' },
 });

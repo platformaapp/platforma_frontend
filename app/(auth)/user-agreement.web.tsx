@@ -38,9 +38,9 @@ export default function UserAgreementScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
-  backArrow: { fontSize: 24, color: '#181818', marginBottom: 24 },
+  backArrow: { fontSize: 24, color: '#010101', marginBottom: 24 },
   content: { maxWidth: 720, gap: 16 },
-  title: { fontFamily: 'Inter-Bold', fontSize: 28, lineHeight: 34, color: '#181818', marginBottom: 8 },
-  heading: { fontFamily: 'Inter-Bold', fontSize: 18, lineHeight: 24, color: '#181818', marginTop: 8 },
-  paragraph: { fontFamily: 'Inter-Regular', fontSize: 15, lineHeight: 22, color: '#181818' },
+  title: { fontFamily: 'Gramatika-Bold', fontSize: 28, lineHeight: 34, color: '#010101', marginBottom: 8 },
+  heading: { fontFamily: 'Gramatika-Bold', fontSize: 18, lineHeight: 24, color: '#010101', marginTop: 8 },
+  paragraph: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 22, color: '#010101' },
 });

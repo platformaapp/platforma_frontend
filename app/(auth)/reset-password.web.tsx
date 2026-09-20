@@ -141,8 +141,8 @@ function PasswordField({ visible, onToggle, error, ...props }: any) {
       />
       <Pressable onPress={onToggle} style={styles.eye}>
         <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#181818" strokeWidth="1.5" />
-          <Circle cx="12" cy="12" r="3" stroke="#181818" strokeWidth="1.5" />
+          <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#010101" strokeWidth="1.5" />
+          <Circle cx="12" cy="12" r="3" stroke="#010101" strokeWidth="1.5" />
         </Svg>
       </Pressable>
     </View>
@@ -153,14 +153,14 @@ const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  title: { fontFamily: 'Inter-Bold', fontSize: 22, color: '#181818' },
-  close: { fontSize: 20, color: '#181818' },
-  fieldLabel: { fontFamily: 'Inter-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 12, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  title: { fontFamily: 'Gramatika-Bold', fontSize: 22, color: '#010101' },
+  close: { fontSize: 20, color: '#010101' },
+  fieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
+  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
   inputError: { borderColor: '#E02D2D', color: '#E02D2D' },
   eye: { position: 'absolute', right: 10, top: 10 },
-  errorText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4, marginBottom: 8 },
-  hint: { fontFamily: 'Inter-Regular', fontSize: 12, lineHeight: 16, color: '#9B9B9B', marginTop: 4 },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4, marginBottom: 8 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#9B9B9B', marginTop: 4 },
   footerRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
-  submitLink: { fontFamily: 'Inter-Medium', fontSize: 15, color: '#E02D2D' },
+  submitLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
 });

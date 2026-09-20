@@ -75,7 +75,7 @@ export default function MentorsScreenWeb() {
         )}
 
         {loading ? (
-          <View style={styles.centered}><ActivityIndicator size="large" color="#181818" /></View>
+          <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error ? (
           <View style={styles.centered}><Text style={styles.errorText}>{error}</Text></View>
         ) : tutors.length === 0 ? (
@@ -111,20 +111,20 @@ export default function MentorsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
-  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Inter-Bold', color: '#181818', marginBottom: 16 },
+  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   filtersScroll: { marginBottom: 24 },
   filtersRowMobile: { flexDirection: 'row', gap: 10, paddingRight: 16 },
-  filterPill: { paddingVertical: 6, paddingHorizontal: 16, borderWidth: 1, borderColor: '#181818' },
-  filterPillText: { fontFamily: 'Inter-Regular', fontSize: 13, color: '#181818' },
+  filterPill: { paddingVertical: 6, paddingHorizontal: 16, borderWidth: 1, borderColor: '#010101' },
+  filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center' },
-  emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076' },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
+  emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   card: { flexBasis: 220, flexGrow: 1, minWidth: 200, borderWidth: 1, borderColor: '#1E1E1E', padding: 16 },
   cardMobile: { flexBasis: '100%', minWidth: 0 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 12 },
-  name: { fontSize: 15, fontFamily: 'Inter-Medium', color: '#181818', marginBottom: 4 },
-  shortBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Inter-Regular', color: '#687076' },
+  name: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 4 },
+  shortBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
 });
