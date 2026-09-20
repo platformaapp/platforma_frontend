@@ -14,22 +14,25 @@ const STRATEGIC_PARTNERS = [
   { name: 'Театр.doc', logo: require('@/assets/images/partner-teatrdoc.png'), width: 125, url: 'https://www.teatrdoc.ru/' },
 ];
 
+// url не проставлен там, где среди нескольких организаций с похожим/общим
+// названием не нашлось однозначного совпадения (см. чат) — лого пока кликом
+// никуда не ведёт, чтобы не сослаться на чужой сайт.
 const FRIENDS = [
-  { name: 'Bubble Studios', logo: require('@/assets/images/friend-bubble-studios.png'), width: 69 },
-  { name: 'ЗОТОВ ЦЕНТР', logo: require('@/assets/images/friend-zotov-center.png'), width: 31 },
-  { name: 'BEAT', logo: require('@/assets/images/friend-beat.png'), width: 31 },
-  { name: 'ЗИЛАРТ', logo: require('@/assets/images/friend-zilart.png'), width: 101 },
-  { name: 'KION', logo: require('@/assets/images/friend-kion.png'), width: 78 },
-  { name: 'Кинотеатр Художественный', logo: require('@/assets/images/friend-hudozhestvenny.png'), width: 101 },
+  { name: 'Bubble Studios', logo: require('@/assets/images/friend-bubble-studios.png'), width: 69, url: 'https://bubblestudios.com/' },
+  { name: 'ЗОТОВ ЦЕНТР', logo: require('@/assets/images/friend-zotov-center.png'), width: 31, url: 'https://centrezotov.ru/' },
+  { name: 'BEAT', logo: require('@/assets/images/friend-beat.png'), width: 31, url: 'https://beatfilmfestival.ru/' },
+  { name: 'ЗИЛАРТ', logo: require('@/assets/images/friend-zilart.png'), width: 101, url: 'https://zilart.ru/' },
+  { name: 'KION', logo: require('@/assets/images/friend-kion.png'), width: 78, url: 'https://kion.ru/' },
+  { name: 'Кинотеатр Художественный', logo: require('@/assets/images/friend-hudozhestvenny.png'), width: 101, url: 'https://cinema1909.ru/' },
   { name: 'B', logo: require('@/assets/images/friend-b.png'), width: 21 },
-  { name: 'Самокат', logo: require('@/assets/images/friend-samokat.png'), width: 101 },
+  { name: 'Самокат', logo: require('@/assets/images/friend-samokat.png'), width: 101, url: 'https://samokatbook.ru/' },
   { name: 'Чехов и компания', logo: require('@/assets/images/friend-chekhov-i-kompania.png'), width: 56 },
-  { name: 'twinby', logo: require('@/assets/images/friend-twinby.png'), width: 101 },
-  { name: 'AZ Museum', logo: require('@/assets/images/friend-az-museum.png'), width: 38 },
+  { name: 'twinby', logo: require('@/assets/images/friend-twinby.png'), width: 101, url: 'https://twinby.ru/' },
+  { name: 'AZ Museum', logo: require('@/assets/images/friend-az-museum.png'), width: 38, url: 'https://museum-az.com/' },
   { name: 'Перспектива', logo: require('@/assets/images/friend-perspektiva.png'), width: 100 },
-  { name: 'Внутри', logo: require('@/assets/images/friend-vnutri.png'), width: 31 },
-  { name: 'A24', logo: require('@/assets/images/friend-a24.png'), width: 38 },
-  { name: 'Практика театр', logo: require('@/assets/images/friend-praktika-teatr.png'), width: 27 },
+  { name: 'Внутри', logo: require('@/assets/images/friend-vnutri.png'), width: 31, url: 'https://www.vnutri.art/' },
+  { name: 'A24', logo: require('@/assets/images/friend-a24.png'), width: 38, url: 'https://a24films.com/' },
+  { name: 'Практика театр', logo: require('@/assets/images/friend-praktika-teatr.png'), width: 27, url: 'https://praktikatheatre.ru/' },
 ];
 
 function LogoRow({ logos }: { logos: { name: string; logo: number; width: number; url?: string }[] }) {
