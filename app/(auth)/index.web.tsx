@@ -1,6 +1,6 @@
 import { Link, Stack, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 
@@ -8,15 +8,19 @@ import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 export default function AuthChoiceScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/events' as any));
 
   return (
     <SiteShell>
       <Stack.Screen options={{ headerShown: false }} />
+      {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
+          страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={styles.page}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Регистрация</Text>
-            <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/events' as any))}>
+            <Pressable onPress={handleClose}>
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
@@ -42,6 +46,7 @@ export default function AuthChoiceScreenWeb() {
           </View>
         </View>
       </View>
+      </Modal>
     </SiteShell>
   );
 }

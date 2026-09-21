@@ -63,15 +63,11 @@ export default function MentorsScreenWeb() {
 
         {isMobile ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
-            {CATEGORIES.map((c) => (
-              <View key={c} style={styles.filterPill}><Text style={styles.filterPillText}>{c}</Text></View>
-            ))}
+            {CATEGORIES.map((c) => <Text key={c} style={styles.filterPillText}>{c}</Text>)}
           </ScrollView>
         ) : (
           <View style={styles.filtersRow}>
-            {CATEGORIES.map((c) => (
-              <View key={c} style={styles.filterPill}><Text style={styles.filterPillText}>{c}</Text></View>
-            ))}
+            {CATEGORIES.map((c) => <Text key={c} style={styles.filterPillText}>{c}</Text>)}
           </View>
         )}
 
@@ -95,9 +91,10 @@ export default function MentorsScreenWeb() {
                   <Image
                     source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
                     style={styles.avatar}
+                    resizeMode="cover"
                   />
-                  <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
                   {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
+                  <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
                 </Pressable>
               );
             })}
@@ -116,18 +113,22 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  filtersScroll: { marginBottom: 24 },
-  filtersRowMobile: { flexDirection: 'row', gap: 10, paddingRight: 16 },
-  filterPill: { paddingVertical: 6, paddingHorizontal: 16, borderWidth: 1, borderColor: '#010101' },
+  // Пильки — просто текст без рамки/фона (см. референс), не интерактивны.
+  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, marginBottom: 32 },
+  filtersScroll: { marginBottom: 32 },
+  filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  card: { flexBasis: 220, flexGrow: 1, minWidth: 200, borderWidth: 1, borderColor: '#1E1E1E', padding: 16 },
-  cardMobile: { flexBasis: '100%', minWidth: 0 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 12 },
-  name: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
-  shortBio: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 24, rowGap: 48 },
+  // Без рамки, крупное фото на всю ширину карточки (~0.83 портретный кадр
+  // вместо круглого аватара) — см. референс.
+  card: { flexBasis: 230, flexGrow: 1, minWidth: 200 },
+  // flexGrow:0 — иначе унаследованный от card рост распирает карточку и в
+  // ряд помещается только одна вместо двух.
+  cardMobile: { flexBasis: '46%', flexGrow: 0, minWidth: 0 },
+  avatar: { width: '100%', aspectRatio: 0.83, backgroundColor: '#E5E5E5', marginBottom: 14 },
+  name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  shortBio: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
 });

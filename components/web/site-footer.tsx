@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { CONTENT_MAX_WIDTH } from './layout-constants';
+import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
 // Горизонтальный паддинг контента страниц, использующих SiteFooter (см. их
 // scrollContent) — используем то же значение для внутреннего отступа футера,
@@ -21,6 +21,10 @@ const PARTNER_LOGO_HEIGHT = 56;
 // значения в пикселях один в один.
 const FOOTER_LABEL_WIDTH = 363;
 const FOOTER_LOGOS_WIDTH = 833;
+// На мобильном подпись+сетка не влезают рядом (363+833) — лого переносятся
+// в обычный flexWrap-ряд под подписью, по аналогии с карточками событий.
+const MOBILE_LOGO_WIDTH = 96;
+const MOBILE_LOGO_HEIGHT = 36;
 
 const STRATEGIC_PARTNERS = [
   { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/partner-provzglyad.png'), url: 'https://provzglyad.com/' },
@@ -53,14 +57,14 @@ const FRIENDS = [
 
 // .partners__logo img { max-width:100%; max-height:100%; object-fit:contain }
 // — картинка вписывается в ячейку сетки любых пропорций без ручных ширин;
-// resizeMode="contain" в бокс 100%×56 делает то же самое.
-function Logo(l: { name: string; logo: number; url?: string }) {
+// resizeMode="contain" в бокс любого размера делает то же самое.
+function Logo({ isMobile, ...l }: { name: string; logo: number; url?: string; isMobile: boolean }) {
   const image = (
     <Image
       source={l.logo}
       accessibilityLabel={l.name}
       resizeMode="contain"
-      style={styles.logoImage}
+      style={isMobile ? styles.logoImageMobile : styles.logoImage}
     />
   );
   if (!l.url) return image;
@@ -71,13 +75,14 @@ function Logo(l: { name: string; logo: number; url?: string }) {
   );
 }
 
-// .partners__grid: display:grid; grid-template-columns:repeat(5,1fr);
-// gap:50px 24px; align-items:center — настоящая CSS-сетка (веб-онли), не
-// имитация через flexWrap.
-function LogoGrid({ logos }: { logos: { name: string; logo: number; url?: string }[] }) {
+// Десктоп — .partners__grid: display:grid; grid-template-columns:repeat(5,1fr);
+// gap:50px 24px; align-items:center — настоящая CSS-сетка (веб-онли).
+// Мобильный — обычный flexWrap-ряд фиксированных ячеек, сетка 363+833 шире
+// любого мобильного экрана и не может тут работать.
+function LogoGrid({ logos, isMobile }: { logos: { name: string; logo: number; url?: string }[]; isMobile: boolean }) {
   return (
-    <View style={styles.logosGrid}>
-      {logos.map((l) => <Logo key={l.name} {...l} />)}
+    <View style={isMobile ? styles.logosWrapMobile : styles.logosGrid}>
+      {logos.map((l) => <Logo key={l.name} {...l} isMobile={isMobile} />)}
     </View>
   );
 }
@@ -90,6 +95,7 @@ function LogoGrid({ logos }: { logos: { name: string; logo: number; url?: string
 export function SiteFooter() {
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
+  const isMobile = windowWidth < MOBILE_BREAKPOINT;
   // Full-bleed: футер лежит внутри ScrollView (без него снова ломается
   // прокрутка — см. коммит про схлопывание ScrollView), но должен визуально
   // тянуться на всю ширину окна, а не только на центрированную колонку
@@ -100,14 +106,14 @@ export function SiteFooter() {
 
   return (
     <View style={[styles.footer, { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL }]}>
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Наши стратегические партнеры</Text>
-        <LogoGrid logos={STRATEGIC_PARTNERS} />
+      <View style={[styles.section, isMobile && styles.sectionMobile]}>
+        <Text style={[styles.sectionLabel, isMobile && styles.sectionLabelMobile]}>Наши стратегические партнеры</Text>
+        <LogoGrid logos={STRATEGIC_PARTNERS} isMobile={isMobile} />
       </View>
 
-      <View style={[styles.section, styles.friendsSection]}>
-        <Text style={styles.sectionLabel}>Наши большие друзья</Text>
-        <LogoGrid logos={FRIENDS} />
+      <View style={[styles.section, isMobile ? styles.friendsSectionMobile : styles.friendsSection, isMobile && styles.sectionMobile]}>
+        <Text style={[styles.sectionLabel, isMobile && styles.sectionLabelMobile]}>Наши большие друзья</Text>
+        <LogoGrid logos={FRIENDS} isMobile={isMobile} />
       </View>
 
       <View style={styles.bottomRow}>
@@ -129,9 +135,13 @@ const styles = StyleSheet.create({
   footer: { paddingVertical: 30, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
+  // На мобильном подпись не влезает рядом с сеткой — подпись сверху, лого снизу.
+  sectionMobile: { flexDirection: 'column', alignItems: 'flex-start' },
   // .partners__block + .partners__block { margin-top: 120px }
   friendsSection: { marginTop: 120 },
+  friendsSectionMobile: { marginTop: 40 },
   sectionLabel: { width: FOOTER_LABEL_WIDTH, flexShrink: 0, fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
+  sectionLabelMobile: { width: 'auto', marginBottom: 16 },
   // display/gridTemplateColumns — веб-онли CSS-свойства, их нет в типах
   // ViewStyle, поэтому приводим объект через as any (сам компонент — только
   // для веба, см. использование SiteFooter только в *.web.tsx).
@@ -144,6 +154,9 @@ const styles = StyleSheet.create({
     gridTemplateColumns: 'repeat(5, 1fr)',
   } as any,
   logoImage: { width: '100%', height: PARTNER_LOGO_HEIGHT },
+  // Мобильный — простой перенос по ширине экрана, а не жёсткая 5-колоночная сетка.
+  logosWrapMobile: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 20, columnGap: 20 },
+  logoImageMobile: { width: MOBILE_LOGO_WIDTH, height: MOBILE_LOGO_HEIGHT },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
   copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
   bottomLinks: { flexDirection: 'row', gap: 24 },
