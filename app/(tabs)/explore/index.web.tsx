@@ -103,9 +103,8 @@ export default function MentorsScreenWeb() {
           </View>
         )}
 
-        
+        <SiteFooter />
       </ScrollView>
-      <SiteFooter />
     </SiteShell>
   );
 }

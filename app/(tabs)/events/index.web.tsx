@@ -302,9 +302,8 @@ export default function EventsScreenWeb() {
           </Pressable>
         ) : null}
 
-        
+        <SiteFooter />
       </ScrollView>
-      <SiteFooter />
     </SiteShell>
   );
 }
