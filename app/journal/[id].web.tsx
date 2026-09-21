@@ -200,19 +200,19 @@ const styles = StyleSheet.create({
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  backArrow: { fontSize: 24, color: '#010101', marginBottom: 24 },
+  backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, marginBottom: 40 },
   // flexShrink явно 1 — у RN Web дефолт 0, без этого колонка не сжимается
   // ниже flexBasis и текст вылезает за край на узких экранах.
   colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
   colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240 },
-  title: { fontSize: 26, lineHeight: 32, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
-  subheading: { fontSize: 22, lineHeight: 28, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   authorAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E5E5' },
   author: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101' },
   role: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  body: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
+  body: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5' },
