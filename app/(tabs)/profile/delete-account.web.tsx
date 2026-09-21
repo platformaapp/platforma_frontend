@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
@@ -47,6 +47,9 @@ export default function DeleteAccountScreenWeb() {
 
   return (
     <SiteShell>
+      {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
+          страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={styles.page}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
@@ -76,6 +79,7 @@ export default function DeleteAccountScreenWeb() {
           </View>
         </View>
       </View>
+      </Modal>
     </SiteShell>
   );
 }

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
@@ -71,6 +71,9 @@ export default function ForgotPasswordScreenWeb() {
 
   return (
     <SiteShell>
+      {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
+          страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
+      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
       <View style={styles.page}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
@@ -101,6 +104,7 @@ export default function ForgotPasswordScreenWeb() {
           </View>
         </View>
       </View>
+      </Modal>
     </SiteShell>
   );
 }

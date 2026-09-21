@@ -121,13 +121,14 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 24, rowGap: 48 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 24, rowGap: 48 },
   // Без рамки, крупное фото на всю ширину карточки (~0.83 портретный кадр
-  // вместо круглого аватара) — см. референс.
-  card: { flexBasis: 230, flexGrow: 1, minWidth: 200 },
-  // flexGrow:0 — иначе унаследованный от card рост распирает карточку и в
-  // ряд помещается только одна вместо двух.
-  cardMobile: { flexBasis: '46%', flexGrow: 0, minWidth: 0 },
+  // вместо круглого аватара) — см. референс. Ровно 4 колонки на десктопе
+  // (не auto-fit — flexGrow:1 при полной ширине CONTENT_MAX_WIDTH давал 5),
+  // высота каждой карточки своя (alignItems:'flex-start' на grid — без
+  // растяжения по строке), 2 колонки на мобильном.
+  card: { flexBasis: '23.5%', flexGrow: 0, minWidth: 0 },
+  cardMobile: { flexBasis: '46%' },
   avatar: { width: '100%', aspectRatio: 0.83, backgroundColor: '#E5E5E5', marginBottom: 14 },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   shortBio: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },

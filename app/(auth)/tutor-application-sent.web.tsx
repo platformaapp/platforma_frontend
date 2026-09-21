@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SiteShell } from '@/components/web/site-shell';
 
@@ -14,6 +14,9 @@ export default function TutorApplicationSentScreenWeb() {
 
   return (
     <SiteShell>
+      {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
+          страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={styles.page}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
@@ -30,6 +33,7 @@ export default function TutorApplicationSentScreenWeb() {
           </Pressable>
         </View>
       </View>
+      </Modal>
     </SiteShell>
   );
 }

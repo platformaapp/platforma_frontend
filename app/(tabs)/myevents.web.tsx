@@ -479,18 +479,22 @@ export default function MyEventsScreenWeb() {
         ) : error && activeTab === 'events' && isEmpty ? (
           <Text style={styles.errorText}>Не удалось загрузить события: {error}</Text>
         ) : isEmpty ? (
-          <View style={styles.emptyOverlay}>
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyHeaderRow}>
-                <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
-                <Text style={styles.emptyClose}>✕</Text>
+          // Modal (не обычный View с flex:1) — гарантированно перекрывает всю
+          // страницу независимо от окружающего flex-контекста, см. cookie-banner.
+          <Modal transparent animationType="fade" visible onRequestClose={() => router.push('/events' as any)}>
+            <View style={styles.emptyOverlay}>
+              <View style={styles.emptyCard}>
+                <View style={styles.emptyHeaderRow}>
+                  <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
+                  <Pressable onPress={() => router.push('/events' as any)}><Text style={styles.emptyClose}>✕</Text></Pressable>
+                </View>
+                <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
+                <Pressable onPress={() => router.push('/events' as any)}>
+                  <Text style={styles.emptyLink}>Посмотреть события</Text>
+                </Pressable>
               </View>
-              <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
-              <Pressable onPress={() => router.push('/events' as any)}>
-                <Text style={styles.emptyLink}>Посмотреть события</Text>
-              </Pressable>
             </View>
-          </View>
+          </Modal>
         ) : (
           <>
             {activeTab === 'events' ? (
@@ -661,7 +665,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  emptyOverlay: { backgroundColor: '#BEBEBE', paddingVertical: 64, paddingHorizontal: 24, alignItems: 'flex-start' },
+  emptyOverlay: { flex: 1, backgroundColor: '#BEBEBE', alignItems: 'center', justifyContent: 'center', padding: 16 },
   emptyCard: { backgroundColor: '#fff', padding: 24, width: '100%', maxWidth: 680 },
   emptyHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', flex: 1 },

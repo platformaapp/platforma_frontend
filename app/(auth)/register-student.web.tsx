@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { SiteShell } from '@/components/web/site-shell';
@@ -177,6 +177,9 @@ export default function RegisterStudentScreenWeb() {
   return (
     <SiteShell>
       <Stack.Screen options={{ headerShown: false }} />
+      {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
+          страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
+      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
       <View style={styles.page}>
       <View style={styles.card}>
         <View style={styles.headerRow}>
@@ -234,6 +237,7 @@ export default function RegisterStudentScreenWeb() {
         </View>
       </View>
       </View>
+      </Modal>
     </SiteShell>
   );
 }
