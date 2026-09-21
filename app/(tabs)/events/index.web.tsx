@@ -41,6 +41,15 @@ const PER_PAGE = 20;
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
+// Точные пропорции блоков и отступы — с vladyakunin.ru/projects/ (.proj-featured,
+// .proj-row): 2 крупные карточки сверху (649:84:716, у второй картинка+текст
+// уже, 72.8% от своей колонки — 716*0.728≈521), дальше строки по 3 карточки
+// (403:75:365:76:340, последняя колонка 191 остаётся пустой). Первая строка
+// из тройки отбита от блока крупных карточек на 254, следующие — на 120.
+const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
+const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const ROW_WIDTHS: [number, number, number] = [403, 365, 340];
+
 function formatEventTime(iso?: string): string {
   if (!iso) return '';
   try {
@@ -174,6 +183,48 @@ export default function EventsScreenWeb() {
 
   const filtered = format ? events.filter((e) => e.format === format) : events;
 
+  function renderFeaturedCard(item: EventFeedItem, index: 0 | 1) {
+    const isSecond = index === 1;
+    return (
+      <Pressable
+        key={item.id}
+        style={isSecond ? styles.featuredCardTwo : styles.featuredCardOne}
+        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+      >
+        <View style={isSecond ? styles.featuredInnerTwo : undefined}>
+          {item.coverUrl ? (
+            <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
+          ) : (
+            <View style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} />
+          )}
+          <Text style={[styles.cardAuthor, isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne]} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]} numberOfLines={3}>{item.title}</Text>
+          <Text style={[styles.cardTime, isSecond ? styles.featuredMetaTwo : styles.featuredMetaOne]}>{formatEventTime(item.datetimeStart)}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderRowCard(item: EventFeedItem, posInRow: 0 | 1 | 2) {
+    return (
+      <Pressable key={item.id} style={{ width: ROW_WIDTHS[posInRow] }} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} />
+        )}
+        <Text style={[styles.cardAuthor, styles.rowLabel]} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+        <Text style={[styles.cardTitleText, styles.rowTitle]} numberOfLines={3}>{item.title}</Text>
+        <Text style={[styles.cardTime, styles.rowMeta]}>{formatEventTime(item.datetimeStart)}</Text>
+      </Pressable>
+    );
+  }
+
+  const featured = filtered.slice(0, 2);
+  const rest = filtered.slice(2);
+  const rows: EventFeedItem[][] = [];
+  for (let i = 0; i < rest.length; i += 3) rows.push(rest.slice(i, i + 3));
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -229,20 +280,17 @@ export default function EventsScreenWeb() {
             ))}
           </View>
         ) : (
-          <View style={styles.grid}>
-            {filtered.map((item, idx) => {
-              const large = idx < 2;
-              return (
-                <Pressable key={item.id} style={large ? styles.cardLarge : styles.cardSmall} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-                  {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={large ? styles.imageLarge : styles.imageSmall} resizeMode="cover" /> : null}
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
-                    <Text style={styles.cardTitleText} numberOfLines={3}>{item.title}</Text>
-                    <Text style={styles.cardTime}>{formatEventTime(item.datetimeStart)}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+          <View>
+            {featured.length > 0 ? (
+              <View style={styles.featuredRow}>
+                {featured.map((item, idx) => renderFeaturedCard(item, idx as 0 | 1))}
+              </View>
+            ) : null}
+            {rows.map((row, rowIdx) => (
+              <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx === 0 ? styles.rowThreeFirst : styles.rowThreeNext]}>
+                {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
+              </View>
+            ))}
           </View>
         )}
 
@@ -261,11 +309,14 @@ export default function EventsScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
-  titleRow: { marginBottom: 16 },
+  // Отступы страницы — как .container/.page-head на vladyakunin.ru/projects/
+  // (--pad:31px, заголовок 106px от шапки).
+  scrollContent: { paddingHorizontal: 31, paddingTop: 106, paddingBottom: 24 },
+  titleRow: {},
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101' },
-  filtersRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, flexShrink: 1 },
+  // .proj-tabs: margin-top:68, gap:46 от заголовка.
+  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 68 },
+  filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },
   filterPill: { paddingVertical: 4 },
   filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
@@ -280,16 +331,35 @@ const styles = StyleSheet.create({
   // Мобильные экшн-кнопки — заливка вместо обводки, см. мобильные макеты.
   chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
   chipButtonText: { color: '#68717A' },
-  // Первые 2 события — крупные карточки в 2 колонки, остальные — мельче, по 3 в ряд (см. макет).
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
-  cardLarge: { flexBasis: 460, flexGrow: 1, minWidth: 340 },
-  cardSmall: { flexBasis: 280, flexGrow: 1, minWidth: 240 },
-  imageLarge: { width: '100%', height: 260 },
-  imageSmall: { width: '100%', height: 190 },
-  cardBody: { paddingTop: 12 },
-  cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+
+  cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardTime: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right', marginTop: 12 },
+  cardTime: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right' },
+
+  // .proj-featured: 2 крупные карточки, 649:84:716. У второй картинка и текст
+  // занимают только 72.8% её колонки (716*0.728≈521) — .card--p2 .card__img/.card__body.
+  featuredRow: { flexDirection: 'row', gap: 84, marginTop: 80 },
+  featuredCardOne: { width: 649 },
+  featuredCardTwo: { width: 716 },
+  featuredInnerTwo: { width: 521 },
+  featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  featuredLabelOne: { marginTop: 20 },
+  featuredLabelTwo: { marginTop: 23 },
+  featuredTitleOne: { marginTop: 13 },
+  featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
+  featuredMetaOne: { marginTop: 13 },
+  featuredMetaTwo: { marginTop: 46 },
+
+  // .proj-row: тройки карточек 403:75:365:76:340 (последняя колонка 191 — пустая
+  // правая граница, специально не занята). Первая тройка после крупных карточек
+  // отбита на 254, следующие — на 120 (.proj-row--2 / .proj-row--3).
+  rowThree: { flexDirection: 'row', gap: 76 },
+  rowThreeFirst: { marginTop: 254 },
+  rowThreeNext: { marginTop: 120 },
+  rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  rowLabel: { marginTop: 18 },
+  rowTitle: { marginTop: 12 },
+  rowMeta: { marginTop: 50 },
   // Мобильный список — маленькая обложка слева, текст справа, без сетки карточек.
   mobileList: { gap: 20 },
   mobileRow: { flexDirection: 'row', gap: 12 },

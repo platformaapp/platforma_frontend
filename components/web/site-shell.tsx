@@ -16,9 +16,13 @@ export { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT };
  * центрируют свою внутреннюю строку так же (см. site-header/site-footer).
  *
  * data-site-content на обёртке — хук для глобального CSS-правила в
- * app/+html.tsx, которое снимает overflow-y:auto с прямого потомка (page's
- * корневой ScrollView), чтобы страница росла по контенту и скроллилась
- * через html/body, а не через свой внутренний скроллбар.
+ * app/+html.tsx, которое прячет полосу прокрутки у прямого потомка
+ * (корневого ScrollView страницы), не трогая сам overflow-y:auto — скролл
+ * (колесо/клавиши/тач) остаётся полностью рабочим, просто без видимого
+ * скроллбара. Прокрутку самого html/body не используем: expo-router
+ * оборачивает каждый экран в контейнер с overflow:hidden для анимации
+ * перехода, и всё, что не влезает в него, будет обрезано вне зависимости
+ * от html/body — скроллить обязан именно ScrollView внутри этого контейнера.
  */
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const { width } = useWindowDimensions();

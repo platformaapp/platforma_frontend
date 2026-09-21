@@ -11,20 +11,22 @@ export default function Root({ children }: { children: React.ReactNode }) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
         {/*
-          Не используем expo-router's ScrollViewStyleReset как есть: она ставит
-          body{overflow:hidden}, из-за чего скроллит не документ, а внутренний
-          ScrollView страницы (свой скроллбар внутри вьюпорта). html/body/#root
-          по-прежнему height:100% (это нужно самому RN-флекс-дереву — без
-          конкретной высоты оно схлопывается), просто не обрезаем их overflow,
-          а у самих корневых ScrollView'ов страниц выключаем overflow-y (см.
-          site-shell.tsx) — тогда их контент выходит за пределы вьюпорта и
-          скроллит его сам html.
+          html/body не могут быть the scrolling element здесь: expo-router
+          оборачивает каждый экран Stack'а в свой контейнер с overflow:hidden
+          (нужен для анимации перехода между экранами), который стоит ВЫШЕ
+          контента страницы в DOM — что бы мы ни делали с html/body/#root,
+          всё, что не влезает в этот контейнер, просто обрезается и никаким
+          скроллом не достаётся. Поэтому скроллит именно ScrollView страницы
+          (как и задумано RN), а не документ — просто прячем его скроллбар
+          визуально (scrollbar-width/::-webkit-scrollbar), сам скролл при
+          этом остаётся полностью рабочим (колесо, клавиши, тач, драг).
         */}
         <style dangerouslySetInnerHTML={{
           __html: `
-            html, body, #root { height: 100%; background-color: #ffffff; margin: 0; padding: 0; }
+            html, body, #root { height: 100%; background-color: #ffffff; margin: 0; padding: 0; overflow: hidden; }
             #root { display: flex; }
-            [data-site-content="true"] > div { overflow: visible !important; }
+            [data-site-content="true"] > div { scrollbar-width: none; -ms-overflow-style: none; }
+            [data-site-content="true"] > div::-webkit-scrollbar { display: none; width: 0; height: 0; }
           `
         }} />
       </head>
