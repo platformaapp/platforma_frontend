@@ -152,7 +152,7 @@ export default function PaymentMethodCallbackPageWeb() {
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 96, paddingHorizontal: 24 },
   spinner: { marginBottom: 20 },
-  text: { fontSize: 16, lineHeight: 24, fontFamily: 'Gramatika-Regular', color: '#010101', textAlign: 'center', marginBottom: 16, maxWidth: 420 },
+  text: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', textAlign: 'center', marginBottom: 16, maxWidth: 420 },
   hint: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textAlign: 'center' },
   button: { marginTop: 4, backgroundColor: '#010101', paddingVertical: 14, paddingHorizontal: 24, alignItems: 'center' },
   buttonText: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#fff' },

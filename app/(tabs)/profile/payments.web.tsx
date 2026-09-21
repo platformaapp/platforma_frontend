@@ -365,8 +365,8 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
-  backArrow: { fontSize: 20, color: '#010101' },
-  title: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  backArrow: { fontSize: 25, color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101' },
 
   sectionTitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 12 },
   sectionTitleHistory: { marginTop: 32 },
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
 
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 380, padding: 24 },
-  modalTitle: { fontSize: 18, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 20, textTransform: 'uppercase', lineHeight: 24 },
+  modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 20, textTransform: 'uppercase', lineHeight: 28 },
   modalOutlineButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
   modalOutlineButtonText: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#010101' },
   modalDangerButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },

@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 480, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  title: { fontFamily: 'Gramatika-Bold', fontSize: 22, color: '#010101' },
+  title: { fontFamily: 'Gramatika-Bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
   input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },

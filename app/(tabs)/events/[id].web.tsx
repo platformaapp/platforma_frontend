@@ -359,8 +359,8 @@ const styles = StyleSheet.create({
   rightCol: { flexBasis: 340, flexShrink: 0, maxWidth: 380 },
   cover: { width: '100%', height: 400, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
-  title: { fontSize: 28, lineHeight: 34, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
-  description: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Bold', color: '#010101' },

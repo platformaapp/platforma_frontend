@@ -309,8 +309,8 @@ const styles = StyleSheet.create({
   closeButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
   closeText: { fontSize: 18, color: '#687076' },
 
-  title: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101' },
-  subtitle: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  subtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
   price: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 12, marginBottom: 4 },

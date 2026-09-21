@@ -481,8 +481,8 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
-  backArrow: { fontSize: 20, color: '#010101' },
-  title: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  backArrow: { fontSize: 25, color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101' },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 12 },
 
   balanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#010101', paddingHorizontal: 16, paddingVertical: 16, marginBottom: 4 },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
 
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 400, padding: 24 },
-  modalTitle: { fontSize: 18, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 12, textTransform: 'uppercase', lineHeight: 24 },
+  modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 12, textTransform: 'uppercase', lineHeight: 28 },
   modalTitleDanger: { color: '#E02D2D' },
   modalMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
   modalMessageDanger: { color: '#E02D2D' },

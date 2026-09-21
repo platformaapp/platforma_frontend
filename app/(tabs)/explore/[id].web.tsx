@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 20, color: '#010101' },
+  backArrow: { fontSize: 25, color: '#010101' },
 
   // Desktop: текст слева, большой квадратный аватар — справа.
   desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
@@ -273,9 +273,9 @@ const styles = StyleSheet.create({
   headerText: { flex: 1 },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
 
-  name: { fontSize: 24, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101' },
   role: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
-  bio: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
+  bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
   priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   priceValue: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#010101' },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
   eventsSection: { marginTop: 40 },
-  eventsSectionTitle: { fontSize: 18, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  eventsSectionTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },
