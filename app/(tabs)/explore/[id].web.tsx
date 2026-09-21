@@ -149,6 +149,24 @@ export default function TutorCardScreenWeb() {
     );
   }
 
+  const eventsSections = (
+    <>
+      {upcomingEvents.length > 0 ? (
+        <View style={styles.eventsSection}>
+          <Text style={styles.eventsSectionTitle}>События наставника</Text>
+          <View style={styles.eventsGrid}>{upcomingEvents.map(renderEventCard)}</View>
+        </View>
+      ) : null}
+
+      {pastEvents.length > 0 ? (
+        <View style={styles.eventsSection}>
+          <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
+          <View style={styles.eventsGrid}>{pastEvents.map(renderEventCard)}</View>
+        </View>
+      ) : null}
+    </>
+  );
+
   const actions = (
     <>
       {!isOwnProfile && isMentorVerified ? (
@@ -209,8 +227,15 @@ export default function TutorCardScreenWeb() {
                 Социальная сеть Instagram, деятельность которой запрещена на территории РФ.
               </Text>
             ) : null}
+
+            {eventsSections}
           </View>
         ) : (
+          // Правая колонка — только фото, без содержимого ниже неё. Левая
+          // колонка (текст + оба блока событий) уже фиксированной ширины
+          // (не на всю доступную ширину ряда), поэтому между ней и фото
+          // остаётся пустая полоса, которая тянется через всю страницу —
+          // это сделано по референсу, а не баг.
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
               <Text style={styles.name}>{displayName || 'Наставник'}</Text>
@@ -230,26 +255,14 @@ export default function TutorCardScreenWeb() {
                   Социальная сеть Instagram, деятельность которой запрещена на территории РФ.
                 </Text>
               ) : null}
+
+              {eventsSections}
             </View>
             <View style={styles.rightCol}>
               <Image source={imageSource} style={styles.avatarLarge} />
             </View>
           </View>
         )}
-
-        {upcomingEvents.length > 0 ? (
-          <View style={styles.eventsSection}>
-            <Text style={styles.eventsSectionTitle}>События наставника</Text>
-            <View style={styles.eventsGrid}>{upcomingEvents.map(renderEventCard)}</View>
-          </View>
-        ) : null}
-
-        {pastEvents.length > 0 ? (
-          <View style={styles.eventsSection}>
-            <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
-            <View style={styles.eventsGrid}>{pastEvents.map(renderEventCard)}</View>
-          </View>
-        ) : null}
       </View>
 
         <SiteFooter />
@@ -265,13 +278,14 @@ const styles = StyleSheet.create({
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backArrow: { fontSize: 25, color: '#010101' },
 
-  // Desktop: текст слева, большой квадратный аватар — справа. У leftCol
-  // обязательно maxWidth — без него flexGrow:1 растягивает текстовую
-  // колонку на всю оставшуюся ширину контейнера (до ~1000px), а сам текст
-  // (имя/био/цена/ссылки) её не заполняет, из-за чего между текстом и
-  // аватаром появляется пустая полоса на всю высоту блока.
-  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
-  leftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 640 },
+  // Desktop: текст+события слева (в колонке ограниченной ширины — НЕ на
+  // всю доступную ширину), большое фото справа сверху. justifyContent:
+  // 'space-between' без flexGrow разводит обе колонки по краям ряда, а
+  // пустая полоса между ними — по референсу, тянется через весь блок
+  // (включая секции событий, они теперь внутри leftCol, а не отдельным
+  // полноширинным блоком ниже).
+  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  leftCol: { width: 820, maxWidth: 820 },
   rightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
   avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
 
