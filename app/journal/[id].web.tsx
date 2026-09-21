@@ -113,6 +113,7 @@ export default function ArticleScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/journal' as any))}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -186,6 +187,7 @@ export default function ArticleScreenWeb() {
             </View>
           </View>
         </View>
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -194,7 +196,8 @@ export default function ArticleScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  pageContent: { paddingHorizontal: 32 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },

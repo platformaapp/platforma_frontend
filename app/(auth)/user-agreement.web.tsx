@@ -12,6 +12,7 @@ export default function UserAgreementScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any))}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -29,6 +30,7 @@ export default function UserAgreementScreenWeb() {
             It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using &apos;Content here, content here&apos;, making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for &apos;lorem ipsum&apos; will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).
           </Text>
         </View>
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -37,7 +39,8 @@ export default function UserAgreementScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  pageContent: { paddingHorizontal: 32 },
   backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
   content: { maxWidth: 720, gap: 16 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },

@@ -454,6 +454,7 @@ export default function MyEventsScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Мои записи</Text>
           {nextBooking && !isMobile ? (
@@ -522,6 +523,7 @@ export default function MyEventsScreenWeb() {
             )}
           </>
         )}
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -646,7 +648,8 @@ export default function MyEventsScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48 },
+  scrollContent: { paddingTop: 24, paddingBottom: 48 },
+  pageContent: { paddingHorizontal: 32 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   headerVideoBlock: { alignItems: 'flex-end' },

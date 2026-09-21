@@ -58,6 +58,7 @@ export default function MentorsScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
 
         {isMobile ? (
@@ -102,6 +103,7 @@ export default function MentorsScreenWeb() {
             })}
           </View>
         )}
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -110,7 +112,8 @@ export default function MentorsScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },

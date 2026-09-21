@@ -693,6 +693,7 @@ export default function ProfileScreenWeb() {
     return (
       <SiteShell>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.pageContent}>
           <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
             <Text style={styles.backArrow}>←</Text>
           </Pressable>
@@ -714,6 +715,7 @@ export default function ProfileScreenWeb() {
               </View>
             </View>
           )}
+        </View>
 
           <SiteFooter />
         </ScrollView>
@@ -795,6 +797,7 @@ export default function ProfileScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -846,6 +849,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsModalVisible(true); }}>
           <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
         </Pressable>
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -1023,7 +1027,8 @@ function FieldWithPlus({ label, value, style, ...props }: { label: string; value
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48 },
+  scrollContent: { paddingTop: 24, paddingBottom: 48 },
+  pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // Student view

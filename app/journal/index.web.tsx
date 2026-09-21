@@ -56,6 +56,7 @@ export default function JournalScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <Pressable onPress={() => setCategory(null)}>
           <Text style={styles.title}>Журнал</Text>
         </Pressable>
@@ -109,6 +110,7 @@ export default function JournalScreenWeb() {
         )}
 
         {isMobile && !loading && !error && filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -117,7 +119,8 @@ export default function JournalScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 24 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },

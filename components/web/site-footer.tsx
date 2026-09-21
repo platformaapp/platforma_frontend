@@ -1,6 +1,13 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+
+import { CONTENT_MAX_WIDTH } from './layout-constants';
+
+// Горизонтальный паддинг контента страниц, использующих SiteFooter (см. их
+// scrollContent) — используем то же значение для внутреннего отступа футера,
+// чтобы подпись/лого остались на той же линии, что и остальной контент.
+const PAGE_PADDING_HORIZONTAL = 32;
 
 // Высота логотипов (56px) и размер подписей разделов — как в блоке "партнёры"
 // на vladyakunin.ru (--partners__logo height:56px, подпись 18px). Ширина —
@@ -91,8 +98,17 @@ function LogoGrid({ logos }: { logos: { name: string; logo: number; width: numbe
  */
 export function SiteFooter() {
   const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
+  // Full-bleed: футер лежит внутри ScrollView (без него снова ломается
+  // прокрутка — см. коммит про схлопывание ScrollView), но должен визуально
+  // тянуться на всю ширину окна, а не только на центрированную колонку
+  // CONTENT_MAX_WIDTH. Отрицательный marginHorizontal выводит фон/рамку до
+  // самых краёв окна, а такой же paddingHorizontal возвращает внутренний
+  // контент на прежнее место — на линию остального контента страницы.
+  const centerGap = Math.max(0, (windowWidth - CONTENT_MAX_WIDTH) / 2);
+
   return (
-    <View style={styles.footer}>
+    <View style={[styles.footer, { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL }]}>
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Наши стратегические партнеры</Text>
         <LogoGrid logos={STRATEGIC_PARTNERS} />
@@ -119,7 +135,7 @@ export function SiteFooter() {
 }
 
 const styles = StyleSheet.create({
-  footer: { paddingHorizontal: 30, paddingVertical: 30, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
+  footer: { paddingVertical: 30, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
   // .partners__block + .partners__block { margin-top: 120px }

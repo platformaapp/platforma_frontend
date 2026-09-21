@@ -179,6 +179,7 @@ export default function TutorCardScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/explore' as any))} hitSlop={8}>
           <Text style={styles.backArrow}>←</Text>
         </Pressable>
@@ -249,6 +250,7 @@ export default function TutorCardScreenWeb() {
             <View style={styles.eventsGrid}>{pastEvents.map(renderEventCard)}</View>
           </View>
         ) : null}
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -257,7 +259,8 @@ export default function TutorCardScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backArrow: { fontSize: 25, color: '#010101' },

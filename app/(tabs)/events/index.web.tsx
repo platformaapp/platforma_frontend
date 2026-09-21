@@ -228,6 +228,7 @@ export default function EventsScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.pageContent}>
         <View style={styles.titleRow}>
           <Pressable onPress={() => setFormat(null)}>
             <Text style={styles.title}>Ближайшие события</Text>
@@ -301,6 +302,7 @@ export default function EventsScreenWeb() {
             {loadingMore ? <ActivityIndicator color="#010101" /> : <Text style={[styles.loadMoreButtonText, isMobile && styles.chipButtonText]}>Показать ещё</Text>}
           </Pressable>
         ) : null}
+      </View>
 
         <SiteFooter />
       </ScrollView>
@@ -311,7 +313,8 @@ export default function EventsScreenWeb() {
 const styles = StyleSheet.create({
   // Отступы страницы — как .container/.page-head на vladyakunin.ru/projects/
   // (--pad:31px, заголовок 106px от шапки).
-  scrollContent: { paddingHorizontal: 31, paddingTop: 63, paddingBottom: 24, paddingRight: 240 },
+  scrollContent: { paddingTop: 63, paddingBottom: 24 },
+  pageContent: { paddingHorizontal: 31, paddingRight: 240 },
   titleRow: {},
   title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
