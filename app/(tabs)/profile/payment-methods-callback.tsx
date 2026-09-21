@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     textAlign: 'center',
     lineHeight: 24,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 28,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontWeight: '700',
     color: '#181818',
     textAlign: 'center',
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
   cardText: {
     fontSize: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     textAlign: 'center',
     marginBottom: 8,
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
 });

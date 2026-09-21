@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 20,
     lineHeight: 26,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   loader: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 16,
   },
@@ -174,13 +174,13 @@ const styles = StyleSheet.create({
   emailLabel: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   emailValue: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     flexShrink: 1,
     textAlign: 'right',
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   successBlock: {
@@ -199,18 +199,18 @@ const styles = StyleSheet.create({
   successText: {
     fontSize: 16,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 12,
   },
   successEmail: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   successHint: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   saveButton: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
 });

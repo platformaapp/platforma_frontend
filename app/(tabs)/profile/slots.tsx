@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   content: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   slotText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   primaryButton: {
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
   secondaryButton: {
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   deleteModeButton: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   deleteModeButtonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#E02D2D',
   },
 });

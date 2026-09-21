@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 28,
     fontWeight: '400',
     fontStyle: 'normal',
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   description: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     lineHeight: 20,
     color: '#181818',
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bottomLinkText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     lineHeight: 20,
     color: '#181818',

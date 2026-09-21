@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 16,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 28,
     fontWeight: "400",
     lineHeight: 36,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   description: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     lineHeight: 20,
     color: "#181818",
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   btnPrimaryTextCustom: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     fontWeight: "400",
     lineHeight: 20,

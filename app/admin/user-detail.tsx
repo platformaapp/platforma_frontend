@@ -249,31 +249,31 @@ export default function AdminUserDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errorText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   retryBackBtn: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 20 },
-  retryBackText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  retryBackText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
 
   content: { paddingBottom: 48 },
 
   heroRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5', gap: 16 },
   avatar: { width: 72, height: 72, backgroundColor: '#E5E5E5' },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { fontSize: 26, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  avatarInitial: { fontSize: 26, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   heroText: { flex: 1 },
-  heroName: { fontSize: 18, fontFamily: 'Inter-Regular', fontWeight: '600', color: '#181818', marginBottom: 2 },
-  heroRoles: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 6 },
+  heroName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: '600', color: '#181818', marginBottom: 2 },
+  heroRoles: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6 },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 12, fontFamily: 'Inter-Regular', fontWeight: '600' },
+  statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: '600' },
 
   section: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, borderBottomWidth: 1, borderColor: '#E5E5E5' },
-  sectionTitle: { fontSize: 11, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
 
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
-  rowLabel: { width: 160, fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
-  rowValue: { flex: 1, fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  rowValue: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
 });

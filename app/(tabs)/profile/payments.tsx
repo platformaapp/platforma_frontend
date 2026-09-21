@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 20,
     lineHeight: 26,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   content: {
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginBottom: 12,
   },
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   },
   linkTextDisabled: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   plusBox: {
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   plusText: {
     fontSize: 20,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
   linkTextBox: {
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   card: {
@@ -522,14 +522,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   cardActions: {
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
   cardActionText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   cardActionDelete: {
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   cardActionDeleteText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#E02D2D',
   },
   // New history card design (matches screenshot)
@@ -572,13 +572,13 @@ const styles = StyleSheet.create({
   historyNumber: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   historyStatusLabel: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   historyStatusSuccess: { color: '#181818' },
@@ -587,14 +587,14 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 2,
   },
   historySubtitle: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 6,
   },
@@ -607,13 +607,13 @@ const styles = StyleSheet.create({
   historyDate: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   historyAmount: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   historyEmpty: {
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
   },
   historyEmptyText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   deleteModalOverlay: {
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   deleteModalTitle: {
     marginTop: 0,
     marginBottom: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontWeight: '700',
     fontSize: 28,
     textTransform: 'uppercase',
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   },
   deleteModalKeepText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   deleteModalDeleteButton: {
@@ -670,10 +670,10 @@ const styles = StyleSheet.create({
   },
   deleteModalDeleteText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
-  legalText: { marginTop: 4, marginHorizontal: 16, fontSize: 11, lineHeight: 16, fontFamily: 'Inter-Regular', color: '#9B9B9B', textAlign: 'center' },
-  verificationNote: { marginTop: 8, marginHorizontal: 16, fontSize: 12, lineHeight: 17, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
+  legalText: { marginTop: 4, marginHorizontal: 16, fontSize: 11, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textAlign: 'center' },
+  verificationNote: { marginTop: 8, marginHorizontal: 16, fontSize: 12, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#181818', textAlign: 'center' },
   legalLink: { color: '#181818', textDecorationLine: 'underline' },
 });

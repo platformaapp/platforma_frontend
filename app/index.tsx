@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   line: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 52,
     lineHeight: 60,
     letterSpacing: -2,

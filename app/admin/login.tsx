@@ -106,21 +106,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   inner: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
   title: {
-    fontSize: 32, lineHeight: 36, fontFamily: 'Inter-Regular',
+    fontSize: 32, lineHeight: 36, fontFamily: 'Gramatika-Regular',
     fontWeight: '700', color: '#181818', marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular',
+    fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B', marginBottom: 40,
   },
   input: {
     borderWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 14, paddingVertical: 14,
-    fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818',
+    fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818',
     marginBottom: 12,
   },
   errorText: {
-    fontSize: 13, fontFamily: 'Inter-Regular',
+    fontSize: 13, fontFamily: 'Gramatika-Regular',
     color: '#E02D2D', marginBottom: 12,
   },
   button: {
@@ -128,5 +128,5 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginTop: 8,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#fff' },
+  buttonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#fff' },
 });

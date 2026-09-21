@@ -444,11 +444,11 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 16, paddingBottom: 24 },
   header: { paddingTop: 16 },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { marginTop: 8, marginBottom: 16, fontSize: 20, lineHeight: 26, fontFamily: 'Inter-Regular', color: '#181818' },
+  title: { marginTop: 8, marginBottom: 16, fontSize: 20, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#181818' },
   input: {
     borderWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 12, paddingVertical: 12,
-    fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular',
+    fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular',
     color: '#181818', marginBottom: 12,
     justifyContent: 'center',
     position: 'relative',
@@ -456,26 +456,26 @@ const styles = StyleSheet.create({
   titleInputWrap: { position: 'relative', marginBottom: 12 },
   titleInput: { marginBottom: 0, paddingRight: 50 },
   titleCounter: { position: 'absolute', top: 8, right: 8, backgroundColor: '#181818', paddingHorizontal: 7, paddingVertical: 3, minWidth: 32, alignItems: 'center' },
-  titleCounterText: { fontFamily: 'Inter-Regular', fontSize: 11, color: '#fff' },
+  titleCounterText: { fontFamily: 'Gramatika-Regular', fontSize: 11, color: '#fff' },
   titleCounterError: { color: '#E02D2D' },
-  dateText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
-  placeholderText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  dateText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  placeholderText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   textArea: { minHeight: 96, paddingTop: 12 },
 
   // Picker modal
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   pickerSheet: { backgroundColor: '#fff', borderTopLeftRadius: 12, borderTopRightRadius: 12 },
   pickerHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#E5E5E5' },
-  pickerDone: { fontSize: 16, fontFamily: 'Inter-Regular', color: '#E02D2D' },
+  pickerDone: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
 
   // Price
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 12, minHeight: 52 },
-  priceInput: { flex: 1, fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', padding: 0, margin: 0, minHeight: 24, borderWidth: 0 },
+  priceInput: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#181818', padding: 0, margin: 0, minHeight: 24, borderWidth: 0 },
   priceDisplayWrap: { flex: 1, flexShrink: 1 },
-  priceDisplay: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818', minHeight: 24, paddingVertical: 4 },
+  priceDisplay: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#181818', minHeight: 24, paddingVertical: 4 },
   commissionInfo: { alignItems: 'flex-end', marginLeft: 12 },
-  commissionText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#9B9B9B', marginBottom: 4 },
-  finalAmountText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  commissionText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#9B9B9B', marginBottom: 4 },
+  finalAmountText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#181818' },
 
   // Cover
   uploadButton: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 16, alignItems: 'center', height: 52, marginBottom: 24 },
@@ -483,12 +483,12 @@ const styles = StyleSheet.create({
   uploadWithPhoto: { flexDirection: 'row', width: '100%', alignItems: 'center' },
   coverImage: { width: 96, height: 54, backgroundColor: '#E5E5E5' },
   replacePhotoContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingLeft: 16, height: 52 },
-  replacePhotoText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
-  uploadButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  replacePhotoText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  uploadButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   // Status / Submit
-  statusMessage: { marginTop: 12, marginBottom: 8, fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', textAlign: 'center' },
+  statusMessage: { marginTop: 12, marginBottom: 8, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', textAlign: 'center' },
   createButton: { marginTop: 12, marginBottom: 24, backgroundColor: '#111', borderWidth: 1, borderColor: '#111', paddingVertical: 16, alignItems: 'center', height: 52 },
   createButtonDisabled: { opacity: 0.6 },
-  createButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FAFAFA' },
+  createButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
 });

@@ -388,40 +388,40 @@ export default function AdminJournalDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errorText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 12 },
+  errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 12 },
   backBtnOutline: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 20, marginTop: 16 },
-  backBtnOutlineText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  backBtnOutlineText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Inter-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
 
   content: { paddingHorizontal: 16, paddingBottom: 48 },
-  label: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
-  hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Inter-Regular', color: '#9B9B9B', marginBottom: 8 },
+  label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
+  hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
   input: {
     borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818', backgroundColor: '#FAFAFA',
+    fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
   },
   inputMultiline: { minHeight: 200, textAlignVertical: 'top' },
-  removeLink: { fontSize: 12, fontFamily: 'Inter-Regular', color: '#E02D2D', marginTop: 6 },
+  removeLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },
 
   coverBtn: { borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', height: 160, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   coverPreview: { width: '100%', height: 160 },
-  coverBtnText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  coverBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
   formatRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   formatChip: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 8, paddingHorizontal: 14 },
   formatChipActive: { backgroundColor: '#181818' },
-  formatChipText: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
+  formatChipText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   formatChipTextActive: { color: '#fff' },
 
   authorSelected: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#E5E5E5', padding: 12, backgroundColor: '#FAFAFA' },
-  authorSelectedText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#181818' },
+  authorSelectedText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   authorOption: { borderWidth: 1, borderColor: '#E5E5E5', borderTopWidth: 0, padding: 10 },
-  authorOptionName: { fontSize: 13, fontFamily: 'Inter-Regular', color: '#181818' },
-  authorOptionEmail: { fontSize: 11, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  authorOptionName: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  authorOptionEmail: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
   galleryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   galleryItem: { width: 96, height: 96, position: 'relative' },
@@ -432,8 +432,8 @@ const styles = StyleSheet.create({
   galleryAddText: { fontSize: 24, color: '#9B9B9B' },
 
   saveBtn: { marginTop: 24, backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },
-  saveBtnText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#fff', fontWeight: '600' },
+  saveBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff', fontWeight: '600' },
   deleteBtn: { marginTop: 12, borderWidth: 1, borderColor: '#721c24', paddingVertical: 14, alignItems: 'center' },
-  deleteBtnText: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#721c24' },
+  deleteBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#721c24' },
   btnDisabled: { opacity: 0.6 },
 });

@@ -19,8 +19,8 @@ export default function JournalScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', padding: 24 },
-  title: { fontFamily: 'Inter-Bold', fontSize: 24, color: '#181818', marginBottom: 8 },
-  text: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#687076', marginBottom: 24 },
+  title: { fontFamily: 'Gramatika-Bold', fontSize: 24, color: '#181818', marginBottom: 8 },
+  text: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076', marginBottom: 24 },
   link: { paddingVertical: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: '#181818' },
-  linkText: { fontFamily: 'Inter-Regular', fontSize: 14, color: '#181818' },
+  linkText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#181818' },
 });

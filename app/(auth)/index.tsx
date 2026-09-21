@@ -39,7 +39,7 @@ export default function AuthChoiceScreen() {
 
       <Link href="/login" asChild>
         <Pressable style={{ marginTop: 'auto', paddingVertical: 24 }}>
-          <ThemedText style={{ textAlign: 'center', fontFamily: "Inter-Regular",
+          <ThemedText style={{ textAlign: 'center', fontFamily: "Gramatika-Regular",
 fontSize: 14,
 fontWeight: "400",
 fontStyle: "normal",
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 48,
     marginBottom: 24,
-    fontFamily: "Inter-Regular", // Имя должно совпадать с ключом в useFonts
+    fontFamily: "Gramatika-Regular", // Имя должно совпадать с ключом в useFonts
     fontSize: 28,
     fontWeight: "400",
     fontStyle: "normal",
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   btnOutlineTextCustom: {
     // Уникальные стили только для "Хочу учить"
     // Примеры стилей, которые можно добавить:
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     fontWeight: "400",
     fontStyle: "normal",
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     color: "#181818",
   },
   btnPrimaryTextCustom: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     fontWeight: "400",
     fontStyle: "normal",

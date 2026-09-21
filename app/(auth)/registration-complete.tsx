@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 48,
     marginBottom: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 28,
     fontWeight: '400',
     lineHeight: 36,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   description: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     lineHeight: 20,
     color: '#181818',
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   },
   btnPrimaryText: { color: '#FFF' },
   btnPrimaryTextCustom: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 20,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   },
   btnOutlineText: { color: '#111' },
   btnOutlineTextCustom: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 20,

@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   content: {
@@ -354,15 +354,15 @@ const styles = StyleSheet.create({
     borderColor: '#1E1E1E',
   },
   slotCellTime: { flex: 1, justifyContent: 'center', paddingHorizontal: 12 },
-  slotText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  slotText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   draftRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   draftFields: { flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', minHeight: 52 },
   pickerBtn: { justifyContent: 'center', paddingHorizontal: 12 },
   pickerBtnDate: { flex: 1.6 },
   pickerBtnTime: { flex: 1 },
-  pickerBtnText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
-  pickerBtnPlaceholder: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#9B9B9B' },
+  pickerBtnText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  pickerBtnPlaceholder: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   draftDayCell: {
     width: 40,
     justifyContent: 'center',
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 4,
   },
-  addMoreText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  addMoreText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   primaryButton: {
     marginTop: 16,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     height: 52,
   },
   buttonDisabled: { opacity: 0.6 },
-  primaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#FAFAFA' },
+  primaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
   secondaryButton: {
     marginTop: 12,
     borderWidth: 1,
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 52,
   },
-  secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Inter-Regular', color: '#181818' },
+  secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   pickerSheet: { backgroundColor: '#fff', paddingBottom: 32 },
@@ -412,5 +412,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: '#E5E5E5',
   },
-  pickerDone: { fontSize: 16, lineHeight: 22, fontFamily: 'Inter-Regular', color: '#181818' },
+  pickerDone: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#181818' },
 });

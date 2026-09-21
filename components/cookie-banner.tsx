@@ -39,9 +39,9 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   card: { backgroundColor: '#fff', width: '100%', maxWidth: 420, padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  title: { fontSize: 20, fontFamily: 'Inter-Bold', color: '#181818' },
+  title: { fontSize: 20, fontFamily: 'Gramatika-Bold', color: '#181818' },
   close: { fontSize: 20, color: '#181818' },
-  text: { fontSize: 14, fontFamily: 'Inter-Regular', color: '#687076', marginBottom: 24 },
+  text: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 24 },
   okButton: { alignSelf: 'flex-end' },
-  okText: { fontSize: 14, fontFamily: 'Inter-Medium', color: '#E02D2D' },
+  okText: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#E02D2D' },
 });

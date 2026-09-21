@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 20,
     lineHeight: 26,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   content: {
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
   balanceLabel: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   balanceRight: {
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   infoIcon: {
@@ -661,14 +661,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
   },
   cardAction: {
@@ -684,13 +684,13 @@ const styles = StyleSheet.create({
   cardActionPrimaryText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
   cardActionText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   cardActionDelete: {
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
   cardActionDeleteText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#E02D2D',
   },
   linkCardRow: {
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   plusText: {
     fontSize: 20,
     lineHeight: 24,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
   linkTextBox: {
@@ -730,13 +730,13 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   sectionTitle: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginBottom: 12,
   },
@@ -756,20 +756,20 @@ const styles = StyleSheet.create({
   historyId: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   historyDesc: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginTop: 4,
   },
   historyDate: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginTop: 4,
   },
@@ -784,19 +784,19 @@ const styles = StyleSheet.create({
   historyStatus: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   historyAmount: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginTop: 4,
   },
   emptyText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginTop: 8,
   },
@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     marginTop: 0,
     marginBottom: 8,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontWeight: '700',
     fontSize: 28,
     textTransform: 'uppercase',
@@ -833,13 +833,13 @@ const styles = StyleSheet.create({
   modalEventTitle: {
     fontSize: 16,
     lineHeight: 22,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#1E1E1E',
   },
   modalEventSubtitle: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginTop: 4,
   },
@@ -855,21 +855,21 @@ const styles = StyleSheet.create({
   moneySentMessage: {
     fontSize: 16,
     lineHeight: 22,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginTop: 12,
   },
   moneySentSubtext: {
     fontSize: 16,
     lineHeight: 22,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginTop: 8,
   },
   paymentFailedTitle: {
     marginTop: 0,
     marginBottom: 12,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontWeight: '700',
     fontSize: 28,
     textTransform: 'uppercase',
@@ -881,12 +881,12 @@ const styles = StyleSheet.create({
   paymentFailedMessage: {
     fontSize: 16,
     lineHeight: 22,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#E2372A',
   },
   modalPayButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
   modalSecondaryButton: {
@@ -899,7 +899,7 @@ const styles = StyleSheet.create({
   },
   modalSecondaryButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   deleteModalKeepButton: {
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
   },
   deleteModalKeepText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   deleteModalDeleteButton: {
@@ -925,7 +925,7 @@ const styles = StyleSheet.create({
   },
   deleteModalDeleteText: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
   editModalSheet: {
@@ -935,7 +935,7 @@ const styles = StyleSheet.create({
   editModalTitle: {
     marginTop: 0,
     marginBottom: 8,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 28,
     fontWeight: '400',
     lineHeight: 36,
@@ -952,20 +952,20 @@ const styles = StyleSheet.create({
   editCardLabel: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginBottom: 4,
   },
   editCardMasked: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   editCardProvider: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginTop: 4,
   },
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     color: '#181818',
     marginBottom: 12,
@@ -996,27 +996,27 @@ const styles = StyleSheet.create({
   },
   editModalBtnText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
   vpnWarning: {
     fontSize: 12,
     lineHeight: 17,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginBottom: 8,
   },
   verificationNote: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 12,
   },
   bindErrorText: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#E02D2D',
     marginBottom: 10,
   },
@@ -1024,7 +1024,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 11,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     textAlign: 'center',
   },

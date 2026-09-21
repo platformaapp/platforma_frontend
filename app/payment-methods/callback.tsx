@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 18,
     lineHeight: 26,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     textAlign: 'center',
     marginBottom: 16,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     textAlign: 'center',
   },
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
 });

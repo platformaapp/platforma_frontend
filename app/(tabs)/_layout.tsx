@@ -37,7 +37,7 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: 'Inter-Regular',
+          fontFamily: 'Gramatika-Regular',
         },
       }}>
         <Tabs.Screen

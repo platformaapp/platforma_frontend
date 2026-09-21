@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
   button: {
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FFFFFF',
   },
 });

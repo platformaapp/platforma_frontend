@@ -485,14 +485,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     lineHeight: 26,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 16,
   },
   label: {
     fontSize: 12,
     lineHeight: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#9B9B9B',
     marginBottom: 4,
   },
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
     marginBottom: 12,
   },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   counterText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 12,
     color: '#FFFFFF',
   },
@@ -566,12 +566,12 @@ const styles = StyleSheet.create({
     height: 64,
   },
   replacePhotoText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     color: '#181818',
   },
   uploadPlaceholder: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     color: '#181818',
   },
@@ -584,27 +584,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   commissionPanelTitle: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 13,
     fontWeight: '600',
     color: '#181818',
     marginBottom: 4,
   },
   commissionPanelText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 13,
     color: '#555',
     lineHeight: 18,
   },
   avatarHint: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 12,
     color: '#9B9B9B',
     marginTop: 4,
     marginBottom: 12,
   },
   avatarErrorText: {
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     fontSize: 12,
     color: '#E02D2D',
     marginTop: 4,
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   deleteAccountText: {
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'Gramatika-Regular',
     color: '#FAFAFA',
   },
 });

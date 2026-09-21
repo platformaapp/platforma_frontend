@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 48,
     marginBottom: 24,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 28,
     fontWeight: "400",
     fontStyle: "normal",
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginBottom: 12,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
   },
   inputWithCounter: {
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   counterText: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 12,
     color: "#FFFFFF",
     fontWeight: "400",
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   },
   rateInput: {
     flex: 1,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#181818",
     padding: 0,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     outlineWidth: 0,
   },
   rateDisplay: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#181818",
     flex: 1,
@@ -291,13 +291,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   commissionText: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#888",
     marginBottom: 4,
   },
   finalAmountText: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#181818",
   },
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     height: 52,
   },
   replacePhotoText: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#181818",
     textAlign: 'center',
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   btnPrimaryTextCustom: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     fontWeight: "400",
     fontStyle: "normal",

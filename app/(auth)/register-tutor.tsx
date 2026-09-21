@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   title: {
     marginTop: 0,
     marginBottom: 24,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 28,
     fontWeight: "400",
     fontStyle: "normal",
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginBottom: 4,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#181818",
   },
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     color: "#E02D2D",
   },
   errorText: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     color: "#E02D2D",
     marginBottom: 8,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   btnPrimaryTextCustom: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     fontWeight: "400",
     fontStyle: "normal",

@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
   },
   title: {
     marginBottom: 24,
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 28,
     fontWeight: "400",
     fontStyle: "normal",
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   heading: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 18,
     fontWeight: "600",
     lineHeight: 24,
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   paragraph: {
-    fontFamily: "Inter-Regular",
+    fontFamily: "Gramatika-Regular",
     fontSize: 14,
     lineHeight: 20,
     color: "#181818",
