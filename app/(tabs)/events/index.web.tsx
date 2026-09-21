@@ -228,10 +228,10 @@ export default function EventsScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.titleRow}>
           <Pressable onPress={() => setFormat(null)}>
-            <Text style={styles.title}>Ближайшие события</Text>
+            <Text style={[styles.title, isMobile && styles.titleMobile]}>Ближайшие события</Text>
           </Pressable>
         </View>
 
@@ -273,9 +273,11 @@ export default function EventsScreenWeb() {
               <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
-                  <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
-                  <Text style={styles.mobileTitleText} numberOfLines={3}>{item.title}</Text>
-                  <Text style={styles.cardTime}>{formatEventTime(item.datetimeStart)}</Text>
+                  <View>
+                    <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+                    <Text style={styles.mobileTitleText} numberOfLines={4}>{item.title}</Text>
+                  </View>
+                  <Text style={styles.mobileTime}>{formatEventTime(item.datetimeStart)}</Text>
                 </View>
               </Pressable>
             ))}
@@ -315,8 +317,12 @@ const styles = StyleSheet.create({
   // (--pad:31px, заголовок 106px от шапки).
   scrollContent: { paddingTop: 63, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 31, paddingRight: 240 },
+  // paddingRight:240 у десктопной версии — оставляет поле под decor справа
+  // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
+  pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
   titleRow: {},
   title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
+  titleMobile: { fontSize: 28, lineHeight: 32 },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 59 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },
@@ -363,10 +369,14 @@ const styles = StyleSheet.create({
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
   rowMeta: { marginTop: 50 },
-  // Мобильный список — маленькая обложка слева, текст справа, без сетки карточек.
-  mobileList: { gap: 20 },
-  mobileRow: { flexDirection: 'row', gap: 12 },
-  mobileThumb: { width: 88, height: 64, backgroundColor: '#E5E5E5' },
-  mobileInfo: { flex: 1, justifyContent: 'center' },
-  mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
+  // Мобильный список — обложка слева (166×149, см. моб. макет), текст
+  // справа: автор+заголовок сверху, время прижато к низу колонки (высота
+  // которой равна высоте обложки) — space-between вместо центрирования.
+  mobileList: { gap: 28 },
+  mobileRow: { flexDirection: 'row', gap: 14 },
+  mobileThumb: { width: 166, height: 149, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, height: 149, justifyContent: 'space-between' },
+  mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  mobileTime: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right' },
 });

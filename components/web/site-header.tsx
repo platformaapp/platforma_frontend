@@ -1,8 +1,8 @@
 import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { CONTENT_MAX_WIDTH } from './layout-constants';
+import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
 const ACTIVE = '#E02D2D';
@@ -20,10 +20,27 @@ function isActive(pathname: string, match: readonly string[]) {
   return match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 }
 
-/** Шапка веб-версии (десктоп) — иконка+подпись слева, типографический логотип "p(34)" справа. */
+/**
+ * Шапка. На десктопе — иконка+подпись слева, типографический логотип "p(34)"
+ * справа. На узких экранах навигация уходит в нижнюю иконочную панель
+ * (MobileBottomNav), здесь остаётся только логотип-ссылка на /events сверху
+ * справа (см. моб. макеты).
+ */
 export function SiteHeader() {
   const router = useRouter();
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
+  const isMobile = width < MOBILE_BREAKPOINT;
+
+  if (isMobile) {
+    return (
+      <View style={styles.mobileHeader}>
+        <Pressable onPress={() => router.push('/events' as any)}>
+          <Text style={styles.logo}>p(34)</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.header}>
@@ -67,4 +84,5 @@ const styles = StyleSheet.create({
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15 },
   logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 20, color: '#010101' },
+  mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
 });

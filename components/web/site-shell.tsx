@@ -30,7 +30,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
 
   return (
     <View style={styles.root}>
-      {!isMobile && <SiteHeader />}
+      {/* SiteHeader сам решает, что показывать на мобильной ширине (только
+          логотип) — навигация на мобильном в MobileBottomNav снизу. */}
+      <SiteHeader />
       {/* dataSet is a react-native-web-only DOM prop, not in @types/react-native's ViewProps */}
       <View style={styles.content} {...({ dataSet: { siteContent: 'true' } } as any)}>{children}</View>
       {isMobile && <MobileBottomNav />}
