@@ -259,10 +259,10 @@ const styles = StyleSheet.create({
   },
   webChooser: { flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', padding: 24 },
   webChooserCard: { width: '100%', maxWidth: 360, alignItems: 'stretch' },
-  webChooserTitle: { fontSize: 20, fontFamily: 'Gramatika-Bold', color: '#181818', textAlign: 'center', marginBottom: 8 },
+  webChooserTitle: { fontSize: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#181818', textAlign: 'center', marginBottom: 8 },
   webChooserSubtitle: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'center', marginBottom: 24 },
   webChooserButtonPrimary: { backgroundColor: '#E02D2D', paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  webChooserButtonPrimaryText: { color: '#fff', fontSize: 16, fontFamily: 'Gramatika-Bold' },
+  webChooserButtonPrimaryText: { color: '#fff', fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
   webChooserButtonSecondary: { borderWidth: 1, borderColor: '#CFCFCF', paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
-  webChooserButtonSecondaryText: { color: '#181818', fontSize: 16, fontFamily: 'Gramatika-Bold' },
+  webChooserButtonSecondaryText: { color: '#181818', fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
 });

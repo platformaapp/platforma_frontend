@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
   content: { maxWidth: 720, gap: 16 },
-  title: { fontFamily: 'Gramatika-Bold', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
-  heading: { fontFamily: 'Gramatika-Bold', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
+  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
+  heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
   paragraph: { fontFamily: 'Gramatika-Regular', fontSize: 19, lineHeight: 26, color: '#010101' },
 });

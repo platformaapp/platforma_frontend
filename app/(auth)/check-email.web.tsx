@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 },
-  title: { flex: 1, fontFamily: 'Gramatika-Bold', fontSize: 40, lineHeight: 36, color: '#010101' },
+  title: { flex: 1, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   description: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#010101' },
   bottomLink: { marginTop: 32 },

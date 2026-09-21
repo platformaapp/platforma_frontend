@@ -118,10 +118,10 @@ export default function JournalScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 24 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
-  filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Bold' },
+  filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
@@ -136,11 +136,11 @@ const styles = StyleSheet.create({
   imageSmall: { width: '100%', height: 190, backgroundColor: '#E5E5E5' },
   cardBody: { paddingTop: 12 },
   cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
-  cardTitleText: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  cardTitleText: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
 
   mobileList: { gap: 20 },
   mobileRow: { flexDirection: 'row', gap: 12 },
   mobileThumb: { width: 88, height: 64, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'center' },
-  mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
 });

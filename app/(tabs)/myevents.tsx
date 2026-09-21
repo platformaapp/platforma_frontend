@@ -1034,7 +1034,7 @@ const styles = StyleSheet.create({
   cancelSuccessCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
   bookingsErrorBox: { marginHorizontal: 16, marginTop: 24, padding: 16, borderWidth: 1, borderColor: '#E5E5E5' },
   bookingsErrorText: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  roleGroupHeader: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Bold', color: '#181818', marginHorizontal: 16, marginTop: 16, marginBottom: 8 },
+  roleGroupHeader: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#181818', marginHorizontal: 16, marginTop: 16, marginBottom: 8 },
   pastSeparator: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16 },
   pastSeparatorLine: { flex: 1, height: 1, backgroundColor: '#E5E5E5' },
   pastSeparatorLabel: { fontFamily: 'Gramatika-Regular', fontSize: 11, color: '#9B9B9B', letterSpacing: 1, marginHorizontal: 12 },

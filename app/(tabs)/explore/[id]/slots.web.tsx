@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   closeButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
   closeText: { fontSize: 18, color: '#687076' },
 
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   subtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
   price: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
 
   dateGroup: { marginTop: 20 },
-  dateHeading: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 10 },
+  dateHeading: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 10 },
   timeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   timeChip: { paddingVertical: 10, paddingHorizontal: 18, borderWidth: 1, borderColor: '#D6DBE0', borderRadius: 24 },
   timeChipActive: { backgroundColor: '#010101', borderColor: '#010101' },
@@ -326,15 +326,15 @@ const styles = StyleSheet.create({
 
   nextLink: { alignSelf: 'flex-start', marginTop: 28 },
   nextLinkDisabled: { opacity: 0.5 },
-  nextLinkText: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
+  nextLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
   nextLinkTextDisabled: { color: '#9B9B9B' },
 
   confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginTop: 8 },
-  confirmMentorName: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101' },
+  confirmMentorName: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   confirmDate: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  confirmPrice: { fontSize: 15, fontFamily: 'Gramatika-Bold', color: '#010101', marginTop: 8 },
+  confirmPrice: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginTop: 8 },
 
-  payLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
+  payLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
   payLinkDisabled: { color: '#9B9B9B' },
   payLinkSpacing: { alignSelf: 'flex-end', marginTop: 40 },
 

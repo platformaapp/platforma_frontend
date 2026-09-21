@@ -212,13 +212,13 @@ const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 420, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  title: { fontFamily: 'Gramatika-Bold', fontSize: 40, lineHeight: 36, color: '#010101' },
+  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
 
   choiceLinks: { gap: 4, marginBottom: 8 },
   choiceLinkRow: { paddingVertical: 10 },
-  choiceLinkText: { fontFamily: 'Gramatika-Bold', fontSize: 18, color: '#E02D2D' },
+  choiceLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 18, color: '#E02D2D' },
   switchLink: { marginTop: 16, alignItems: 'center' },
   switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
 
@@ -233,5 +233,5 @@ const styles = StyleSheet.create({
 
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginTop: 16 },
   linkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
-  submitLink: { fontFamily: 'Gramatika-Bold', fontSize: 15, color: '#E02D2D' },
+  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
 });

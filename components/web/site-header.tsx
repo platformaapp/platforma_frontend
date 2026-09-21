@@ -66,5 +66,5 @@ const styles = StyleSheet.create({
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15 },
-  logo: { fontFamily: 'Gramatika-Bold', fontSize: 20, color: '#010101' },
+  logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 20, color: '#010101' },
 });

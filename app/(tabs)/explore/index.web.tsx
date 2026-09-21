@@ -111,7 +111,7 @@ export default function MentorsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 24 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   filtersScroll: { marginBottom: 24 },
@@ -125,6 +125,6 @@ const styles = StyleSheet.create({
   card: { flexBasis: 220, flexGrow: 1, minWidth: 200, borderWidth: 1, borderColor: '#1E1E1E', padding: 16 },
   cardMobile: { flexBasis: '100%', minWidth: 0 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 12 },
-  name: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Bold', color: '#010101', marginBottom: 4 },
+  name: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
   shortBio: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#687076' },
 });

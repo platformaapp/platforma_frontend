@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 12 },
   backText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
   content: { paddingHorizontal: 16, paddingBottom: 48, maxWidth: 480, width: '100%', alignSelf: 'center' },
-  title: { fontFamily: 'Gramatika-Bold', fontSize: 24, color: '#181818', marginTop: 24, marginBottom: 16 },
+  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 24, color: '#181818', marginTop: 24, marginBottom: 16 },
   description: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 22, color: '#181818', marginBottom: 12 },
   hint: { fontFamily: 'Gramatika-Regular', fontSize: 13, lineHeight: 19, color: '#687076', marginBottom: 24 },
   input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 14, paddingHorizontal: 12, marginBottom: 8, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#181818' },
@@ -169,5 +169,5 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginBottom: 12 },
   btnDanger: { backgroundColor: '#E02D2D', paddingVertical: 16, alignItems: 'center', justifyContent: 'center', height: 52, marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
-  btnDangerText: { fontFamily: 'Gramatika-Bold', fontSize: 14, color: '#fff' },
+  btnDangerText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 14, color: '#fff' },
 });

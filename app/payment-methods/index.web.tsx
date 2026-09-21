@@ -167,8 +167,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 96, paddingHorizontal: 24 },
   spinner: { marginBottom: 16 },
   text: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', textAlign: 'center', marginBottom: 16, maxWidth: 420 },
-  successTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Bold', color: '#010101', textAlign: 'center', marginBottom: 12 },
-  cardText: { fontSize: 16, fontFamily: 'Gramatika-Bold', color: '#010101', textAlign: 'center', marginBottom: 8 },
+  successTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', textAlign: 'center', marginBottom: 12 },
+  cardText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', textAlign: 'center', marginBottom: 8 },
   button: { marginTop: 4, backgroundColor: '#010101', paddingVertical: 14, paddingHorizontal: 32, minWidth: 200, alignItems: 'center' },
-  buttonText: { fontSize: 14, fontFamily: 'Gramatika-Bold', color: '#fff' },
+  buttonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#fff' },
 });
