@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { acceptCookieConsent, isCookieConsentAccepted } from '@/lib/cookie-consent';
 
+const TITLE_COMPACT_BREAKPOINT = 475;
+
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const { width } = useWindowDimensions();
+  const isCompact = width < TITLE_COMPACT_BREAKPOINT;
 
   useEffect(() => {
     isCookieConsentAccepted().then((accepted) => {
@@ -22,7 +26,7 @@ export function CookieBanner() {
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Мы используем куки</Text>
+            <Text style={[styles.title, isCompact && styles.titleCompact]}>Мы используем куки</Text>
             <Pressable onPress={handleOk}><Text style={styles.close}>✕</Text></Pressable>
           </View>
           <Text style={styles.text}>Все так делают</Text>
@@ -40,6 +44,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', width: '100%', maxWidth: 420, padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   title: { fontSize: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#181818' },
+  titleCompact: { fontSize: 25 },
   close: { fontSize: 20, color: '#181818' },
   text: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 24 },
   okButton: { alignSelf: 'flex-end' },
