@@ -265,9 +265,13 @@ const styles = StyleSheet.create({
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backArrow: { fontSize: 25, color: '#010101' },
 
-  // Desktop: текст слева, большой квадратный аватар — справа.
+  // Desktop: текст слева, большой квадратный аватар — справа. У leftCol
+  // обязательно maxWidth — без него flexGrow:1 растягивает текстовую
+  // колонку на всю оставшуюся ширину контейнера (до ~1000px), а сам текст
+  // (имя/био/цена/ссылки) её не заполняет, из-за чего между текстом и
+  // аватаром появляется пустая полоса на всю высоту блока.
   desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
-  leftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
+  leftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 640 },
   rightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
   avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
 
