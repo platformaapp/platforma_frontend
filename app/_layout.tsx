@@ -51,10 +51,15 @@ export default function RootLayout() {
     'Inter-Medium': require('../assets/fonts/Inter/Inter_18pt-Medium.ttf'),
     'Inter-Light': require('../assets/fonts/Inter/Inter-Light-BETA.ttf'),
     // Фирменный шрифт с vladyakunin.ru — используется на веб-страницах
-    // (components/web/*, *.web.tsx) вместо Inter, см. этот же шрифт и
-    // токены в теме сайта.
+    // (components/web/*, *.web.tsx) вместо Inter как основной. Slanted/
+    // Shifted — доп. начертания той же гарнитуры для акцентов (сам
+    // vladyakunin.ru их в CSS не подключает, у него только Regular/Bold).
     'Gramatika-Regular': require('../assets/fonts/Gramatika/Gramatika-Regular.ttf'),
     'Gramatika-Bold': require('../assets/fonts/Gramatika/Gramatika-Bold.ttf'),
+    'Gramatika-Slanted': require('../assets/fonts/Gramatika/Gramatika-Slanted.ttf'),
+    'Gramatika-Shifted': require('../assets/fonts/Gramatika/Gramatika-Shifted.ttf'),
+    'Gramatika-BoldSlanted': require('../assets/fonts/Gramatika/Gramatika-BoldSlanted.ttf'),
+    'Gramatika-BoldShifted': require('../assets/fonts/Gramatika/Gramatika-BoldShifted.ttf'),
   });
 
   useEffect(() => {
