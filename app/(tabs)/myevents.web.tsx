@@ -482,7 +482,7 @@ export default function MyEventsScreenWeb() {
           // Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           // страницу независимо от окружающего flex-контекста, см. cookie-banner.
           <Modal transparent animationType="fade" visible onRequestClose={() => router.push('/events' as any)}>
-            <View style={styles.emptyOverlay}>
+            <View style={[styles.emptyOverlay, { pointerEvents: 'box-none' }]}>
               <View style={styles.emptyCard}>
                 <View style={styles.emptyHeaderRow}>
                   <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
@@ -534,7 +534,7 @@ export default function MyEventsScreenWeb() {
 
       {/* ─── Подтверждение отмены записи ───────────────────────────────── */}
       <Modal transparent animationType="fade" visible={!!cancelTarget} onRequestClose={closeCancelModal}>
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, { pointerEvents: 'box-none' }]}>
           <Pressable style={styles.overlayClose} onPress={closeCancelModal}><Text style={styles.overlayCloseText}>✕</Text></Pressable>
           <View style={styles.confirmCard}>
             {cancelPhase === 'confirm' ? (
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  emptyOverlay: { flex: 1, backgroundColor: '#BEBEBE', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  emptyOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   emptyCard: { backgroundColor: '#fff', padding: 24, width: '100%', maxWidth: 680 },
   emptyHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', flex: 1 },

@@ -81,7 +81,7 @@ export default function ResetPasswordScreenWeb() {
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
       <Modal transparent animationType="fade" visible onRequestClose={() => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/events' as any); }}>
-      <View style={styles.page}>
+      <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Новый пароль</Text>

@@ -38,7 +38,7 @@ export default function RegistrationCompleteScreenWeb() {
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
       <Modal transparent animationType="fade" visible onRequestClose={handleLinkLater}>
-      <View style={styles.page}>
+      <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Регистрация завершена</Text>

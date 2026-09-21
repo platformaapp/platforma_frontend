@@ -317,7 +317,7 @@ export default function EventDetailScreenWeb() {
       </ScrollView>
 
       <Modal transparent animationType="fade" visible={cancelStep !== 'none'} onRequestClose={() => setCancelStep('none')}>
-        <View style={styles.cancelOverlay}>
+        <View style={[styles.cancelOverlay, { pointerEvents: 'box-none' }]}>
           <View style={styles.cancelModalCard}>
             <Pressable style={styles.cancelCloseButton} onPress={() => setCancelStep('none')} hitSlop={8}>
               <Text style={styles.cancelCloseText}>✕</Text>

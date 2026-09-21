@@ -50,7 +50,7 @@ export default function DeleteAccountScreenWeb() {
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
       <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
-      <View style={styles.page}>
+      <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Удаление аккаунта</Text>

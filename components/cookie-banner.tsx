@@ -23,7 +23,12 @@ export function CookieBanner() {
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={handleOk}>
-      <View style={styles.overlay}>
+      {/* pointerEvents:'box-none' — иначе фон этого попапа перехватывает клики
+          у ЛЮБОГО другого одновременно открытого Modal (баннер показывается
+          на каждой странице, пока согласие не принято, и может совпасть по
+          времени с любым другим попапом приложения) — см. коммит про баг с
+          "Посмотреть события" в пустом состоянии "Мои записи". */}
+      <View style={[styles.overlay, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={[styles.title, isCompact && styles.titleCompact]}>Мы используем куки</Text>

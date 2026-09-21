@@ -25,6 +25,10 @@ export default function MentorsScreenWeb() {
   const [myRole, setMyRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Как на /events: клик подсвечивает пилюлю (активная — чёрная и жирная,
+  // остальные — серые). У наставника в бэкенде нет поля категории, поэтому
+  // сам список пока не фильтруется — см. комментарий у CATEGORIES.
+  const [category, setCategory] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -63,11 +67,25 @@ export default function MentorsScreenWeb() {
 
         {isMobile ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
-            {CATEGORIES.map((c) => <Text key={c} style={styles.filterPillText}>{c}</Text>)}
+            {CATEGORIES.map((c) => {
+              const active = c === category;
+              return (
+                <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
+                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{c}</Text>
+                </Pressable>
+              );
+            })}
           </ScrollView>
         ) : (
           <View style={styles.filtersRow}>
-            {CATEGORIES.map((c) => <Text key={c} style={styles.filterPillText}>{c}</Text>)}
+            {CATEGORIES.map((c) => {
+              const active = c === category;
+              return (
+                <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
+                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{c}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
@@ -88,11 +106,13 @@ export default function MentorsScreenWeb() {
                   style={[styles.card, isMobile && styles.cardMobile]}
                   onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
                 >
-                  <Image
-                    source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
-                    style={styles.avatar}
-                    resizeMode="cover"
-                  />
+                  <View style={styles.avatarBox}>
+                    <Image
+                      source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
+                      style={styles.avatar}
+                      resizeMode="cover"
+                    />
+                  </View>
                   {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
                   <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
                 </Pressable>
@@ -113,11 +133,13 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
-  // Пильки — просто текст без рамки/фона (см. референс), не интерактивны.
+  // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
+  // кликабельны, активная — чёрная и жирная, остальные — серые.
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, marginBottom: 32 },
   filtersScroll: { marginBottom: 32 },
   filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
-  filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
+  filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
@@ -128,8 +150,16 @@ const styles = StyleSheet.create({
   // высота каждой карточки своя (alignItems:'flex-start' на grid — без
   // растяжения по строке), 2 колонки на мобильном.
   card: { flexBasis: '23.5%', flexGrow: 0, minWidth: 0 },
-  cardMobile: { flexBasis: '46%' },
-  avatar: { width: '100%', aspectRatio: 0.83, backgroundColor: '#E5E5E5', marginBottom: 14 },
+  // Мобильная карточка — на всю ширину экрана (одна колонка), не 2×2.
+  cardMobile: { flexBasis: '100%' },
+  // paddingBottom-в-процентах вместо aspectRatio: последний ломается для
+  // "портретных" (height>width) картинок внутри column-flex контейнера —
+  // aspect-ratio там игнорируется браузером и картинка схлопывается по
+  // высоте (проверено: воспроизводится стабильно для этого случая, но не
+  // для featuredImage на /events — там aspect-ratio >1, альбомный кадр).
+  // paddingBottom % всегда считается от ширины элемента, поэтому надёжен.
+  avatarBox: { width: '100%', paddingBottom: '120.48%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
+  avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   shortBio: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
 });
