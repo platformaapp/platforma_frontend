@@ -50,7 +50,7 @@ export function SiteHeader() {
 
 const styles = StyleSheet.create({
   header: {
-    borderBottomWidth: 1,
+    // borderBottomWidth: 1,
     borderColor: '#E5E5E5',
     alignItems: 'center',
   },

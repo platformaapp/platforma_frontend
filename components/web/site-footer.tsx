@@ -91,12 +91,12 @@ export function SiteFooter() {
 }
 
 const styles = StyleSheet.create({
-  footer: { paddingHorizontal: 32, paddingVertical: 32, borderTopWidth: 1, borderColor: '#E5E5E5', marginTop: 48 },
-  sectionLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076', marginBottom: 16 },
+  footer: { paddingHorizontal: 30, paddingVertical: 30, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
+  sectionLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', marginBottom: 16 },
   friendsLabel: { marginTop: 32 },
   logosRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 24, rowGap: 32 },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
-  copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
+  copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
   bottomLinks: { flexDirection: 'row', gap: 24 },
-  docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076', textDecorationLine: 'underline' },
+  docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', textDecorationLine: 'none' },
 });

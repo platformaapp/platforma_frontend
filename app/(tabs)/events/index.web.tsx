@@ -302,8 +302,9 @@ export default function EventsScreenWeb() {
           </Pressable>
         ) : null}
 
-        <SiteFooter />
+        
       </ScrollView>
+      <SiteFooter />
     </SiteShell>
   );
 }
@@ -311,11 +312,11 @@ export default function EventsScreenWeb() {
 const styles = StyleSheet.create({
   // Отступы страницы — как .container/.page-head на vladyakunin.ru/projects/
   // (--pad:31px, заголовок 106px от шапки).
-  scrollContent: { paddingHorizontal: 31, paddingTop: 106, paddingBottom: 24 },
+  scrollContent: { paddingHorizontal: 31, paddingTop: 63, paddingBottom: 24, paddingRight: 240 },
   titleRow: {},
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
-  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 68 },
+  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 59 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },
   filterPill: { paddingVertical: 4 },
   filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
@@ -333,8 +334,8 @@ const styles = StyleSheet.create({
   chipButtonText: { color: '#68717A' },
 
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  cardTitleText: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardTime: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right' },
+  cardTitleText: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  cardTime: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right' },
 
   // .proj-featured: 2 крупные карточки, 649:84:716. У второй картинка и текст
   // занимают только 72.8% её колонки (716*0.728≈521) — .card--p2 .card__img/.card__body.
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
   // правая граница, специально не занята). Первая тройка после крупных карточек
   // отбита на 254, следующие — на 120 (.proj-row--2 / .proj-row--3).
   rowThree: { flexDirection: 'row', gap: 76 },
-  rowThreeFirst: { marginTop: 254 },
+  rowThreeFirst: { marginTop: 165 },
   rowThreeNext: { marginTop: 120 },
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
