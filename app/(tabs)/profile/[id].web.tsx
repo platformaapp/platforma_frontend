@@ -1,9 +1,9 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
 import { SiteFooter } from '@/components/web/site-footer';
 import { uploadEventImage } from '@/lib/api/events';
@@ -14,15 +14,6 @@ import {
   getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
-
-function EyeIcon() {
-  return (
-    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#010101" strokeWidth="1.5" />
-      <Circle cx="12" cy="12" r="3" stroke="#010101" strokeWidth="1.5" />
-    </Svg>
-  );
-}
 
 /** Группирует слоты по дате (для отображения "13 мая: 14:00 15:00 20:00"), сортируя даты и время. */
 function groupSlotsByDate(slots: Slot[]): { date: string; slots: Slot[] }[] {
@@ -158,9 +149,6 @@ export default function ProfileScreenWeb() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
-  const [showOld, setShowOld] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showNew2, setShowNew2] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
@@ -760,12 +748,9 @@ export default function ProfileScreenWeb() {
                 </View>
                 <Pressable onPress={() => setPasswordModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
-              <Text style={styles.fieldLabel}>Старый пароль</Text>
-              <PasswordField value={oldPassword} onChangeText={setOldPassword} visible={showOld} onToggle={() => setShowOld((v) => !v)} />
-              <Text style={styles.fieldLabel}>Новый пароль</Text>
-              <PasswordField value={newPassword} onChangeText={setNewPassword} visible={showNew} onToggle={() => setShowNew((v) => !v)} />
-              <Text style={styles.fieldLabel}>Повторите новый пароль</Text>
-              <PasswordField value={newPassword2} onChangeText={setNewPassword2} visible={showNew2} onToggle={() => setShowNew2((v) => !v)} />
+              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
+              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
               <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прописных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
@@ -864,7 +849,7 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
               <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
-              <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline style={styles.inputMultiline} />
+              <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline />
               <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
                 <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
@@ -900,9 +885,9 @@ export default function ProfileScreenWeb() {
               </Pressable>
               <Text style={styles.modalTitle}>Новый пароль</Text>
             </View>
-            <PasswordField placeholder="Старый пароль" value={oldPassword} onChangeText={setOldPassword} visible={showOld} onToggle={() => setShowOld((v) => !v)} />
-            <PasswordField placeholder="Новый пароль" value={newPassword} onChangeText={setNewPassword} visible={showNew} onToggle={() => setShowNew((v) => !v)} />
-            <PasswordField placeholder="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} visible={showNew2} onToggle={() => setShowNew2((v) => !v)} />
+            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
+            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
             <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
@@ -930,7 +915,7 @@ export default function ProfileScreenWeb() {
             <ScrollView style={styles.slotsModalScroll}>
               {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
               <FieldWithPlus label="Название" value={eventTitle} onChangeText={setEventTitle} />
-              <FieldWithPlus label="Описание" value={eventDescription} onChangeText={setEventDescription} multiline style={styles.inputMultiline} />
+              <FieldWithPlus label="Описание" value={eventDescription} onChangeText={setEventDescription} multiline />
               <FieldWithPlus label="Дата" value={eventDate} onChangeText={setEventDate} />
               <FieldWithPlus label="Время" value={eventTime} onChangeText={setEventTime} />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
@@ -1000,29 +985,31 @@ export default function ProfileScreenWeb() {
   );
 }
 
-function PasswordField({ visible, onToggle, ...props }: any) {
-  return (
-    <View style={styles.passwordFieldWrap}>
-      <TextInput style={styles.input} secureTextEntry={!visible} {...props} />
-      <Pressable style={styles.eyeButton} onPress={onToggle}><EyeIcon /></Pressable>
-    </View>
-  );
-}
-
 /**
- * Поле без рамки: пустое значение показывает "⊕" вместо пустого поля ввода
- * (см. "Добавить событие"/"Изменение данных" в макете) — сам TextInput
- * всегда под курсором, "⊕" — просто декоративная подсказка поверх него.
+ * Тонкая обёртка над общим PlusField (см. components/web/plus-field.tsx),
+ * чтобы не переписывать все места использования по всему файлу: подпись +
+ * кружок с плюсом вместо рамки, клик по плюсу открывает настоящий инпут с
+ * курсором (см. ту же логику на страницах авторизации/регистрации).
  */
-function FieldWithPlus({ label, value, style, ...props }: { label: string; value: string; style?: any } & Omit<React.ComponentProps<typeof TextInput>, 'style' | 'value'>) {
+function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline }: {
+  label: string;
+  value: string;
+  onChangeText?: (text: string) => void;
+  editable?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  multiline?: boolean;
+}) {
   return (
-    <>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.fieldInputWrap}>
-        <TextInput style={[styles.borderlessInput, style]} value={value} {...props} />
-        {!value ? <Text style={styles.plusIcon} pointerEvents="none">⊕</Text> : null}
-      </View>
-    </>
+    <PlusField
+      label={label}
+      value={value}
+      onChangeText={onChangeText ?? (() => {})}
+      editable={editable}
+      keyboardType={keyboardType}
+      autoCapitalize={autoCapitalize}
+      multiline={multiline}
+    />
   );
 }
 
@@ -1062,8 +1049,6 @@ const styles = StyleSheet.create({
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
-  eyeButton: { position: 'absolute', right: 10 },
   hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
@@ -1131,13 +1116,7 @@ const styles = StyleSheet.create({
   addSlotLink: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 12, marginTop: 4, marginBottom: 8, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  inputMultiline: { minHeight: 80, textAlignVertical: 'top' },
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
-  // borderWidth:0 обязателен явно — иначе <textarea> (многострочный TextInput
-  // в RN Web) показывает браузерную рамку по умолчанию; outlineWidth:0 убирает
-  // нативный фокус-аутлайн браузера (иначе виден на однострочных полях при фокусе).
-  borderlessInput: { borderWidth: 0, outlineWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', minHeight: 20 },
   plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#010101' },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
   successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },

@@ -13,6 +13,7 @@ type PlusFieldProps = {
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   maxLength?: number;
+  editable?: boolean;
 };
 
 /**
@@ -22,11 +23,11 @@ type PlusFieldProps = {
  * Поле с уже введённым значением (например, при возврате на шаг назад)
  * сразу открыто.
  */
-export function PlusField({ label, hint, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength }: PlusFieldProps) {
+export function PlusField({ label, hint, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true }: PlusFieldProps) {
   const [active, setActive] = useState(false);
   const [secureVisible, setSecureVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
-  const expanded = active || value.length > 0;
+  const expanded = active || value.length > 0 || !editable;
 
   return (
     <View style={styles.wrap}>
@@ -48,6 +49,7 @@ export function PlusField({ label, hint, value, onChangeText, secureTextEntry, m
             keyboardType={keyboardType}
             autoCapitalize={autoCapitalize}
             maxLength={maxLength}
+            editable={editable}
           />
           {secureTextEntry ? (
             <Pressable onPress={() => setSecureVisible((v) => !v)} style={styles.eye} hitSlop={8}>
