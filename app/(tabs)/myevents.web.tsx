@@ -110,6 +110,13 @@ export default function MyEventsScreenWeb() {
   const [role, setRole] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // router.push() не размонтирует этот экран — expo-router (React
+  // Navigation) держит предыдущий экран стека смонтированным, поэтому
+  // Modal с visible={true} по условию isEmpty продолжал бы висеть поверх
+  // /events даже после смены адреса. Явное состояние закрытия решает это
+  // независимо от того, размонтируется экран или нет; сбрасывается при
+  // каждом новом фокусе на страницу (см. useFocusEffect ниже).
+  const [emptyModalDismissed, setEmptyModalDismissed] = useState(false);
 
   const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
   const [cancelPhase, setCancelPhase] = useState<'confirm' | 'success'>('confirm');
@@ -194,7 +201,7 @@ export default function MyEventsScreenWeb() {
     }
   }, [router]);
 
-  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
+  useFocusEffect(useCallback(() => { setLoading(true); setEmptyModalDismissed(false); load(); }, [load]));
 
   async function performCancelEvent(id: string): Promise<boolean> {
     const attempts = role === 'tutor'
@@ -481,15 +488,20 @@ export default function MyEventsScreenWeb() {
         ) : isEmpty ? (
           // Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           // страницу независимо от окружающего flex-контекста, см. cookie-banner.
-          <Modal transparent animationType="fade" visible onRequestClose={() => router.push('/events' as any)}>
+          // visible={!emptyModalDismissed}, а не жёстко true — router.push не
+          // размонтирует этот экран (expo-router держит предыдущие экраны
+          // стека смонтированными), поэтому одной навигации недостаточно:
+          // без явного dismissed-состояния попап продолжал бы висеть поверх
+          // /events и после перехода.
+          <Modal transparent animationType="fade" visible={!emptyModalDismissed} onRequestClose={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
             <View style={[styles.emptyOverlay, { pointerEvents: 'box-none' }]}>
               <View style={styles.emptyCard}>
                 <View style={styles.emptyHeaderRow}>
                   <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
-                  <Pressable onPress={() => router.push('/events' as any)}><Text style={styles.emptyClose}>✕</Text></Pressable>
+                  <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}><Text style={styles.emptyClose}>✕</Text></Pressable>
                 </View>
                 <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
-                <Pressable onPress={() => router.push('/events' as any)}>
+                <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
                   <Text style={styles.emptyLink}>Посмотреть события</Text>
                 </Pressable>
               </View>

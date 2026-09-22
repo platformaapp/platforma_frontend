@@ -10,6 +10,8 @@ import { getAuthToken } from '@/lib/auth';
 import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 
+const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
+
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -35,7 +37,7 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const mentor = mentorRaw ? {
     id: String(mentorRaw.id ?? mentorRaw.userId ?? mentorRaw.user_id ?? ''),
     name: String(mentorRaw.name ?? mentorRaw.fullName ?? mentorRaw.full_name ?? ''),
-    avatarUrl: resolveUrl(mentorRaw.avatarUrl ?? mentorRaw.avatar_url ?? mentorRaw.photo),
+    avatarUrl: resolveUrl(mentorRaw.avatarUrl ?? mentorRaw.avatar_url ?? mentorRaw.avatar ?? mentorRaw.photo),
     bio: (mentorRaw.bio ?? mentorRaw.description ?? '') as string,
     shortBio: (mentorRaw.shortBio ?? mentorRaw.short_bio ?? '') as string,
   } : undefined;
@@ -217,7 +219,11 @@ export default function EventDetailScreenWeb() {
         <Text style={styles.mentorName}>{event.mentor.name}</Text>
         {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
       </View>
-      {event.mentor.avatarUrl ? <Image source={{ uri: event.mentor.avatarUrl }} style={styles.mentorAvatar} resizeMode="cover" /> : null}
+      <Image
+        source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
+        style={styles.mentorAvatar}
+        resizeMode="cover"
+      />
     </View>
   ) : null;
 
