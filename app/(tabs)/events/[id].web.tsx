@@ -217,7 +217,7 @@ export default function EventDetailScreenWeb() {
         <Text style={styles.mentorName}>{event.mentor.name}</Text>
         {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
       </View>
-      {event.mentor.avatarUrl ? <Image source={{ uri: event.mentor.avatarUrl }} style={styles.mentorAvatar} /> : null}
+      {event.mentor.avatarUrl ? <Image source={{ uri: event.mentor.avatarUrl }} style={styles.mentorAvatar} resizeMode="cover" /> : null}
     </View>
   ) : null;
 
@@ -304,7 +304,7 @@ export default function EventDetailScreenWeb() {
                 <View>
                   {mentorRow}
                   <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                    <Text style={styles.actionLink}>Написать</Text>
+                    <Text style={styles.actionLink}>Перейти в профиль</Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -356,11 +356,13 @@ const styles = StyleSheet.create({
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backArrow: { fontSize: 20, color: '#010101' },
 
-  // Desktop: текст слева, картинка + карточка наставника — справа.
+  // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
+  // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)
+  // + карточка наставника — в широкой колонке справа.
   desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
-  leftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
-  rightCol: { flexBasis: 340, flexShrink: 0, maxWidth: 380 },
-  cover: { width: '100%', height: 400, marginBottom: 24, backgroundColor: '#E5E5E5' },
+  leftCol: { flexBasis: 420, maxWidth: 420, flexShrink: 1 },
+  rightCol: { flex: 1, minWidth: 0 },
+  cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
@@ -375,9 +377,11 @@ const styles = StyleSheet.create({
 
   mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   mentorInfo: { flex: 1 },
-  mentorName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
+  mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
   mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  mentorAvatar: { width: 64, height: 64, backgroundColor: '#E5E5E5' },
+  // Крупный портретный кадр (как на /explore), а не маленький квадратный
+  // значок — см. референс страницы события.
+  mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
 
   // Mobile: маленькая миниатюра рядом с датой/ценой, кнопки — заливка (см. моб. макеты).
   mobileHeaderRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 16 },
