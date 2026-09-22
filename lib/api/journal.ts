@@ -17,6 +17,9 @@ export interface ArticleAuthor {
   name: string;
   avatarUrl: string | null;
   roleTitle: string | null;
+  // Бэкенд не отдаёт короткое био в объекте author статьи — заполняется на
+  // странице статьи через кросс-референс со списком наставников (см. lib/api/tutor.ts).
+  shortBio?: string;
 }
 
 export interface Article {
