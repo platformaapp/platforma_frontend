@@ -6,9 +6,9 @@ import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Tex
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
+import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 import { getAuthToken } from '@/lib/auth';
 import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
-import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
@@ -75,7 +75,7 @@ function formatDatetime(iso?: string): string {
 
 function formatPrice(price?: number): string {
   if (price == null) return 'Бесплатно';
-  return `${price.toLocaleString('ru-RU')} ₽`;
+  return `${price.toLocaleString('ru-RU')} Р`;
 }
 
 /**
@@ -365,25 +365,25 @@ const styles = StyleSheet.create({
   // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
   // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)
   // + карточка наставника — в широкой колонке справа.
-  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
+  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between' },
   leftCol: { flexBasis: 420, maxWidth: 420, flexShrink: 1 },
-  rightCol: { flex: 1, minWidth: 0 },
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 709 },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
-  metaLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 4 },
+  metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 18, color: '#E02D2D' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
   mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   mentorInfo: { flex: 1 },
-  mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
+  mentorName: { fontSize: 40, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.

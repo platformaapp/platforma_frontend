@@ -155,7 +155,8 @@ const styles = StyleSheet.create({
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
   // кликабельны, активная — чёрная и жирная, остальные — серые.
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, marginBottom: 32 },
+  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, marginBottom: 86, marginTop: 50
+   },
   filtersScroll: { marginBottom: 32 },
   filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
@@ -185,5 +186,5 @@ const styles = StyleSheet.create({
   avatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
-  shortBio: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  shortBio: { fontSize: 18, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
 });
