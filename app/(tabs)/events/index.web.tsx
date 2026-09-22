@@ -27,15 +27,32 @@ type EventFeedItem = {
   [key: string]: unknown;
 };
 
-/**
- * Формат события — пока читаем из поля type/format, если бэкенд его отдаёт.
- * Нужно бэкенду: подтвердить/добавить поле формата события с этими значениями
- * (или прислать маппинг) — иначе фильтры кроме "Трансляция" будут пустыми.
- */
 const FORMATS = ['Трансляция', 'Лекция', 'Практика', 'Встреча'];
 // "Обсуждение" визуально отделён от остальных фильтров (см. макет — большой
 // отступ, пилюля прижата к правому краю), но работает как обычный фильтр.
 const DISCUSSION_FORMAT = 'Обсуждение';
+
+/**
+ * Событие хранит формат в поле category (enum EventCategory на бэкенде —
+ * см. backend/src/events/entities/event.entity.ts), не format/type — фид
+ * отдаёт английский слаг ('lecture', 'practices', ...), переводим в те же
+ * подписи, что в фильтрах выше. r.format/r.type — старый фолбэк на случай,
+ * если где-то на бэкенде эти поля всё же присылаются вместо category.
+ */
+const CATEGORY_LABELS: Record<string, string> = {
+  broadcast: 'Трансляция',
+  lecture: 'Лекция',
+  mediation: 'Медиация',
+  practices: 'Практика',
+  meeting: 'Встреча',
+  discussion: 'Обсуждение',
+};
+function resolveFormat(raw: Record<string, unknown>): string | undefined {
+  const category = raw.category as string | null | undefined;
+  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
+  const legacy = (raw.format as string) ?? (raw.type as string) ?? undefined;
+  return legacy;
+}
 
 const PER_PAGE = 20;
 
@@ -114,7 +131,7 @@ export default function EventsScreenWeb() {
       description: (r.description as string) ?? undefined,
       datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
       coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url),
-      format: (r.format as string) ?? (r.type as string) ?? undefined,
+      format: resolveFormat(r),
       mentor: r.mentor ? {
         id: String((r.mentor as any).id ?? ''),
         name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? (r.mentor as any).full_name ?? ''),
