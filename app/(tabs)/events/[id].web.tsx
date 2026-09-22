@@ -9,6 +9,7 @@ import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
+import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
@@ -113,7 +114,23 @@ export default function EventDetailScreenWeb() {
           return;
         }
         const data = await res.json();
-        if (active) setEvent(normalizeEvent(data));
+        const normalized = normalizeEvent(data);
+        if (active) setEvent(normalized);
+
+        // API события отдаёт для наставника только bio (полный текст) и не
+        // отдаёт shortBio (короткую подпись-роль вроде "Куратор, исследователь
+        // культуры") — подтягиваем её из общего публичного списка наставников
+        // (там это поле есть, см. explore/[id].web.tsx — тот же приём).
+        if (normalized.mentor && !normalized.mentor.shortBio) {
+          try {
+            const [authList, publicList] = await Promise.all([getPublicTutorList(), getPublicTutors()]);
+            const tutor = authList.find((t) => t.id === normalized.mentor!.id) ?? publicList.find((t) => t.id === normalized.mentor!.id);
+            const shortBio = (tutor as any)?.shortBio ?? (tutor as any)?.short_bio;
+            if (active && shortBio) {
+              setEvent((prev) => prev && prev.mentor ? { ...prev, mentor: { ...prev.mentor, shortBio } } : prev);
+            }
+          } catch { /* блок наставника остаётся без короткой подписи */ }
+        }
       } catch (e: any) {
         if (active) setError(e?.message ?? 'Не удалось загрузить событие');
       } finally {
@@ -217,11 +234,7 @@ export default function EventDetailScreenWeb() {
     <View style={styles.mentorRow}>
       <View style={styles.mentorInfo}>
         <Text style={styles.mentorName}>{event.mentor.name}</Text>
-        {event.mentor.shortBio ? <Text style={styles.mentorRole}>{event.mentor.shortBio}</Text> : null}
-        {/* API отдаёт для наставника события только bio (полный текст), shortBio
-            там обычно нет — поэтому показываем bio отдельной строкой, усечённой
-            до 2 строк ("короткое био"), а не полагаемся только на shortBio. */}
-        {event.mentor.bio ? <Text style={styles.mentorBio} numberOfLines={2}>{event.mentor.bio}</Text> : null}
+        {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
       </View>
       <Image
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
@@ -391,8 +404,7 @@ const styles = StyleSheet.create({
   // всю ширину колонки вместо компактной подписи рядом с аватаром.
   mentorInfo: { flex: 1, maxWidth: 360 },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
-  mentorRole: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
+  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
