@@ -1,30 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { bindPaymentMethod, getPaymentMethods } from '@/lib/api/student-payments';
 import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
-
-/**
- * Поле без рамки: пустое значение показывает "⊕" вместо плейсхолдера (см.
- * "Новая карта" в макете) — дублирует FieldWithPlus из profile/[id].web.tsx,
- * общего компонента для этого пока нет.
- */
-function FieldWithPlus({ label, value, style, ...props }: { label: string; value: string; style?: any } & Omit<React.ComponentProps<typeof TextInput>, 'style' | 'value'>) {
-  return (
-    <View style={styles.fieldBlock}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <View style={styles.fieldInputWrap}>
-        <TextInput style={[styles.borderlessInput, style]} value={value} {...props} />
-        {!value ? <Text style={styles.plusIcon} pointerEvents="none">⊕</Text> : null}
-      </View>
-    </View>
-  );
-}
 
 type SlotItem = { id: string; rawDate: string; time: string; price?: number };
 
@@ -234,13 +218,13 @@ export default function TutorSlotsScreenWeb() {
             </View>
           ) : step === 'addCard' ? (
             <View style={styles.cardForm}>
-              <FieldWithPlus label="Номер карты" value={cardNumber} onChangeText={setCardNumber} keyboardType="number-pad" />
+              <PlusField label="Номер карты" value={cardNumber} onChangeText={setCardNumber} keyboardType="numeric" />
               <View style={styles.cardRow}>
                 <View style={styles.cardRowItem}>
-                  <FieldWithPlus label="ММ/ГГ" value={cardExpiry} onChangeText={setCardExpiry} />
+                  <PlusField label="ММ/ГГ" value={cardExpiry} onChangeText={setCardExpiry} />
                 </View>
                 <View style={styles.cardRowItem}>
-                  <FieldWithPlus label="CVV" value={cardCvv} onChangeText={setCardCvv} keyboardType="number-pad" />
+                  <PlusField label="CVV" value={cardCvv} onChangeText={setCardCvv} keyboardType="numeric" />
                 </View>
               </View>
 
@@ -339,14 +323,6 @@ const styles = StyleSheet.create({
   payLinkSpacing: { alignSelf: 'flex-end', marginTop: 40 },
 
   cardForm: { marginTop: 8 },
-  inputLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
-  fieldBlock: { marginBottom: 16 },
-  fieldInputWrap: { position: 'relative' },
-  // borderWidth:0 обязателен явно — иначе многострочный/нативный инпут может
-  // показать браузерную рамку по умолчанию (см. profile/[id].web.tsx); outlineWidth:0
-  // убирает нативный фокус-аутлайн браузера (RN Web иначе показывает его поверх).
-  borderlessInput: { borderWidth: 0, outlineWidth: 0, padding: 0, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', minHeight: 20 },
-  plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#010101' },
   cardRow: { flexDirection: 'row', gap: 16 },
   cardRowItem: { flex: 1 },
   cardFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, flexWrap: 'wrap', gap: 12 },

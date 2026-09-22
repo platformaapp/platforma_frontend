@@ -2,8 +2,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
@@ -582,21 +583,13 @@ export default function MyEventsScreenWeb() {
               <Pressable onPress={() => setEditEventItem(null)}><Text style={styles.modalClose}>✕</Text></Pressable>
             </View>
             <ScrollView style={styles.modalScroll}>
-              <Text style={styles.fieldLabel}>Название</Text>
-              <TextInput style={styles.input} value={editTitle} onChangeText={setEditTitle} />
-              <Text style={styles.fieldLabel}>Описание</Text>
-              <TextInput style={[styles.input, styles.inputMultiline]} value={editDescription} onChangeText={setEditDescription} multiline placeholder="Оставьте пустым, чтобы не менять" />
-              <Text style={styles.fieldLabel}>Дата</Text>
-              <TextInput style={styles.input} value={editDate} onChangeText={setEditDate} placeholder="ГГГГ-ММ-ДД" placeholderTextColor="#9B9B9B" />
-              <Text style={styles.fieldLabel}>Время</Text>
-              <TextInput style={styles.input} value={editTime} onChangeText={setEditTime} placeholder="ЧЧ:ММ" placeholderTextColor="#9B9B9B" />
-              <View style={styles.priceLabelRow}>
-                <Text style={styles.fieldLabel}>Стоимость</Text>
-                {Number(editPrice) > 0 ? <Text style={styles.commissionHint}>Комиссия 10% — вы получите {Math.round(Number(editPrice) * 0.9)} ₽</Text> : null}
-              </View>
-              <TextInput style={styles.input} value={editPrice} onChangeText={setEditPrice} keyboardType="numeric" />
-              <Text style={styles.fieldLabel}>Максимальное количество участников</Text>
-              <TextInput style={styles.input} value={editMax} onChangeText={setEditMax} keyboardType="numeric" placeholder="Оставьте пустым, чтобы не менять" />
+              <PlusField label="Название" value={editTitle} onChangeText={setEditTitle} />
+              <PlusField label="Описание" hint="(оставьте пустым, чтобы не менять)" value={editDescription} onChangeText={setEditDescription} multiline />
+              <PlusField label="Дата" hint="(ГГГГ-ММ-ДД)" value={editDate} onChangeText={setEditDate} />
+              <PlusField label="Время" hint="(ЧЧ:ММ)" value={editTime} onChangeText={setEditTime} />
+              <PlusField label="Стоимость" value={editPrice} onChangeText={setEditPrice} keyboardType="numeric" />
+              {Number(editPrice) > 0 ? <Text style={styles.commissionHint}>Комиссия 10% — вы получите {Math.round(Number(editPrice) * 0.9)} ₽</Text> : null}
+              <PlusField label="Максимальное количество участников" hint="(оставьте пустым, чтобы не менять)" value={editMax} onChangeText={setEditMax} keyboardType="numeric" />
               <Pressable style={styles.uploadRow} onPress={handlePickEditCover}>
                 {(editCoverUri || editEventItem?.coverUrl) ? (
                   <Image source={{ uri: editCoverUri ?? editEventItem?.coverUrl ?? '' }} style={styles.uploadThumb} />
@@ -749,11 +742,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 25, lineHeight: 23, color: '#010101' },
   modalClose: { fontSize: 20, color: '#010101' },
   modalScroll: { flexGrow: 0 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 6 },
-  priceLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  commissionHint: { fontFamily: 'Gramatika-Regular', fontSize: 11, lineHeight: 14, color: '#687076', textAlign: 'right', maxWidth: 180 },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 16, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  inputMultiline: { minHeight: 72, textAlignVertical: 'top' },
+  commissionHint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -16, marginBottom: 16 },
   uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12 },
   uploadThumb: { width: 32, height: 32, backgroundColor: '#f0f0f0' },
   uploadButtonText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
