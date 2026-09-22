@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   // flexShrink явно 1 — у RN Web дефолт 0, без этого колонка не сжимается
   // ниже flexBasis и текст вылезает за край на узких экранах.
   colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
-  colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240 },
+  colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240, maxHeight: 494 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   // Имя+роль+био — текстом сверху, квадратное (не круглое) фото под ним;
@@ -265,13 +265,13 @@ const styles = StyleSheet.create({
   authorRow: { marginBottom: 240 },
   authorRowMobile: { marginBottom: 32 },
   authorAvatar: { width: 48, height: 48, marginTop: 12, backgroundColor: '#E5E5E5' },
-  author: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  role: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  authorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, maxWidth: 280 },
-  body: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
+  author: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  authorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, maxWidth: 280 },
+  body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16, marginTop: 16 },
-  galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5' },
+  galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
