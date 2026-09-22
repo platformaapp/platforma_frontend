@@ -27,6 +27,22 @@ export default function Root({ children }: { children: React.ReactNode }) {
             #root { display: flex; }
             [data-site-content="true"] > div { scrollbar-width: none; -ms-overflow-style: none; }
             [data-site-content="true"] > div::-webkit-scrollbar { display: none; width: 0; height: 0; }
+            /*
+              Hover-затемнение для ЛЮБОГО кликабельного блока (Pressable)
+              сайта разом, без правки каждого использования по отдельности.
+              r-cursor-1loqt21 — не смысловой класс, а атомарный CSS-класс,
+              который react-native-web детерминированно генерирует для
+              cursor:'pointer' (см. styles.active в
+              node_modules/react-native-web/.../Pressable/index.js) — этот
+              стиль применяется КО ВСЕМ не-disabled Pressable, поэтому класс
+              общий для них всех. Если версия react-native-web изменится и
+              хеш класса станет другим — проверить этот селектор заново.
+              @media(hover:hover) — чтобы не залипало на touch-устройствах.
+            */
+            @media (hover: hover) and (pointer: fine) {
+              .r-cursor-1loqt21 { transition: opacity 0.18s ease; }
+              .r-cursor-1loqt21:hover { opacity: 0.5; }
+            }
           `
         }} />
       </head>
