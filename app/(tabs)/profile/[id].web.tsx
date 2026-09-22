@@ -4,13 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { PlusField } from '@/components/web/plus-field';
-import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
 import { SiteFooter } from '@/components/web/site-footer';
+import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
 import { uploadEventImage } from '@/lib/api/events';
-import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
+import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import {
-  createTutorEventFull, createTutorSlot, deleteTutorSlot, getTutorPayoutsBalance, getTutorPayouts,
+  createTutorEventFull, createTutorSlot, deleteTutorSlot,
+  getTutorPayouts,
+  getTutorPayoutsBalance,
   getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
@@ -554,7 +556,7 @@ export default function ProfileScreenWeb() {
 
                   {role === 'tutor' ? (
                     <View style={styles.balanceRow}>
-                      <Text style={styles.balanceLabel}>Баланс: {payoutBalance.toLocaleString('ru-RU')} ₽</Text>
+                      <Text style={styles.balanceLabel}>Баланс: {payoutBalance.toLocaleString('ru-RU')} Р</Text>
                       <View style={styles.tooltipAnchor}>
                         <Pressable style={styles.balanceInfoIcon} onPress={() => setBalanceTooltipVisible((v) => !v)}>
                           <Text style={styles.infoIconText}>ⓘ</Text>
@@ -1023,11 +1025,11 @@ const styles = StyleSheet.create({
   bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
-  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start' },
-  profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1 },
+  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative'},
+  profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
   profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0 },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 18, color: '#E02D2D' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
@@ -1038,8 +1040,8 @@ const styles = StyleSheet.create({
 
   // Modals (shared)
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 420, padding: 24 },
-  modalTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 20 },
+  modalCard: { backgroundColor: '#fff', width: '100%', maxWidth:1021, padding: 24 },
+  modalTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', marginBottom: 20 },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   modalHeaderRowSpread: { justifyContent: 'space-between' },
   modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -1050,10 +1052,10 @@ const styles = StyleSheet.create({
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
   hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
-  paymentCardBlock: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
-  paymentCardLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  paymentCardNumber: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginTop: 2 },
-  paymentCardBank: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 2 },
+  paymentCardBlock: { paddingVertical: 16, borderTopWidth: 0, borderColor: '#E5E5E5' },
+  paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
+  paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginTop: 2 },
+  paymentCardBank: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 2 },
   editCardNumberBlock: { marginBottom: 16 },
   editCardRow: { flexDirection: 'row', gap: 16 },
   editCardRowItem: { flex: 1 },
@@ -1068,7 +1070,7 @@ const styles = StyleSheet.create({
   historyDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
   historyAmount: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   infoIconText: { fontSize: 14, color: '#9B9B9B' },
-  historyAmountRight: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', textAlign: 'right', marginTop: 8 },
+  historyAmountRight: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', textAlign: 'right', marginTop: 8 },
   // Обёртка вокруг значка ⓘ — точка отсчёта для абсолютно спозиционированного
   // всплывающего пузыря с подсказкой (см. "Баланс"/строки истории выплат в макете).
   tooltipAnchor: { position: 'relative' },
@@ -1081,10 +1083,10 @@ const styles = StyleSheet.create({
   withdrawMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },
   modalTitleError: { color: '#E02D2D' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
-  paymentHistoryLink: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  paymentHistoryLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
-  paymentCardDelete: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  paymentCardEdit: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  paymentCardDelete: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  paymentCardEdit: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
   // Slots modal ("Редактировать слоты для записи")
   slotsModalCard: { maxWidth: 640 },
@@ -1101,19 +1103,19 @@ const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
   fieldLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  bioText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 16 },
-  tutorShortBio: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 6 },
-  sectionTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginTop: 24, marginBottom: 8 },
-  emptyText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
+  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
+  sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 8 },
+  emptyText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076',  marginTop: 24, marginBottom: 8 },
   slotDateGroup: { marginBottom: 12 },
-  slotDateLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
+  slotDateLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   slotTimesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'center' },
   slotTimeWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   slotTimeText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
   slotTimeTextSelected: { color: '#E02D2D' },
   slotRemoveIcon: { fontSize: 15, color: '#E02D2D' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
-  addSlotLink: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#010101' },
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
