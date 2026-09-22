@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
@@ -17,8 +17,24 @@ const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
  */
 const CATEGORIES = ['Кино', 'Музыка', 'Искусство', 'Литература', 'Театр', 'Танец', 'Новые увлечения'];
 
-/** Запасное отношение высоты к ширине фото, пока оно не загрузилось. */
-const DEFAULT_AVATAR_RATIO = 1.2048;
+/**
+ * Высота фото у карточки — не унифицированный кроп и не реальная пропорция
+ * самого фото (та у наставников почти всегда ~квадратная, разницы не видно),
+ * а заданный по позиции в сетке паттерн — ровно как на референсе (карточки
+ * 410/340/341/358 в первом ряду, 358/341/410/340 — во втором, значения даны
+ * пользователем при базовой ширине карточки 340). Ratio = height/width.
+ * Чётные и нечётные ряды (по 4 колонки) используют разный порядок, на
+ * мобильной 1-колоночной сетке паттерн просто повторяется построчно.
+ */
+const AVATAR_HEIGHT_RATIO_ROWS: number[][] = [
+  [410 / 340, 340 / 340, 341 / 340, 358 / 340],
+  [358 / 340, 341 / 340, 410 / 340, 340 / 340],
+];
+function avatarHeightRatio(index: number, columns: number): number {
+  const row = Math.floor(index / columns) % 2;
+  const col = index % columns % AVATAR_HEIGHT_RATIO_ROWS[row].length;
+  return AVATAR_HEIGHT_RATIO_ROWS[row][col];
+}
 
 export default function MentorsScreenWeb() {
   const router = useRouter();
@@ -32,11 +48,6 @@ export default function MentorsScreenWeb() {
   // остальные — серые). У наставника в бэкенде нет поля категории, поэтому
   // сам список пока не фильтруется — см. комментарий у CATEGORIES.
   const [category, setCategory] = useState<string | null>(null);
-  // Высота фото у карточек — не унифицированный кроп, а естественная
-  // пропорция самого фото (как на референсе: карточки в ряду разной
-  // высоты). До загрузки фото используется запасное значение, после
-  // загрузки — реальное отношение сторон, взятое из самой картинки.
-  const [imgRatios, setImgRatios] = useState<Record<string, number>>({});
 
   const load = useCallback(async () => {
     try {
@@ -66,24 +77,6 @@ export default function MentorsScreenWeb() {
   }, []);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
-
-  // Реальная пропорция фото карточки (для разной высоты в ряду, как на
-  // референсе) — берём напрямую через window.Image, а не через onLoad у
-  // RN Image: у него nativeEvent.target на вебе ненадёжен (иногда null).
-  useEffect(() => {
-    let cancelled = false;
-    tutors.forEach((tutor) => {
-      if (!tutor.avatarUrl || tutor.avatarUrl.startsWith('blob:') || imgRatios[tutor.id]) return;
-      const img = new (globalThis as any).Image();
-      img.onload = () => {
-        if (cancelled || !img.naturalWidth || !img.naturalHeight) return;
-        setImgRatios((prev) => ({ ...prev, [tutor.id]: img.naturalHeight / img.naturalWidth }));
-      };
-      img.src = tutor.avatarUrl;
-    });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutors]);
 
   return (
     <SiteShell>
@@ -123,16 +116,17 @@ export default function MentorsScreenWeb() {
           <View style={styles.centered}><Text style={styles.emptyText}>Наставники не найдены</Text></View>
         ) : (
           <View style={styles.grid}>
-            {tutors.map((tutor) => {
+            {tutors.map((tutor, index) => {
               const isOwn = tutor.id === myId && myRole === 'tutor';
               const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
+              const ratio = avatarHeightRatio(index, isMobile ? 1 : 4);
               return (
                 <Pressable
                   key={tutor.id}
                   style={[styles.card, isMobile && styles.cardMobile]}
                   onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
                 >
-                  <View style={[styles.avatarBox, { paddingBottom: `${(imgRatios[tutor.id] ?? DEFAULT_AVATAR_RATIO) * 100}%` }]}>
+                  <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
                     <Image
                       source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
                       style={styles.avatar}
@@ -184,9 +178,10 @@ const styles = StyleSheet.create({
   // высоте (проверено: воспроизводится стабильно для этого случая, но не
   // для featuredImage на /events — там aspect-ratio >1, альбомный кадр).
   // paddingBottom % всегда считается от ширины элемента, поэтому надёжен.
-  // Само значение paddingBottom задаётся динамически (см. imgRatios) —
-  // по реальной пропорции загруженного фото, поэтому карточки в ряду
-  // осознанно разной высоты, как на референсе.
+  // Само значение paddingBottom задаётся динамически (см.
+  // avatarHeightRatio) — по позиции карточки в сетке, а не по реальному
+  // фото (у наставников оно почти всегда квадратное), поэтому карточки в
+  // ряду осознанно разной высоты, как на референсе.
   avatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
