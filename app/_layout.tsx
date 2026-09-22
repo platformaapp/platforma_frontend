@@ -4,9 +4,37 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { enableScreens } from 'react-native-screens';
 import 'react-native-reanimated';
+
+// Hover-затемнение для любого кликабельного блока (Pressable) — та же CSS-
+// строка уже лежит в app/+html.tsx (статический шелл при экспорте), но тот
+// файл — не обычный компонент и Metro не обязан подхватывать его правки
+// hot-reload'ом на уже запущенном dev-сервере (нужен полный рестарт). Этот
+// же блок, вставленный из обычного компонента через useEffect, гарантированно
+// живёт в актуальном виде при любой пересборке. Дублирование с +html.tsx
+// безвредно — оба применяют одно и то же правило.
+const HOVER_DIM_STYLE_ID = 'hover-dim-style';
+const HOVER_DIM_CSS = `
+  @media (hover: hover) and (pointer: fine) {
+    .r-cursor-1loqt21 { transition: opacity 0.18s ease; }
+    .r-cursor-1loqt21:hover { opacity: 0.5; }
+  }
+`;
+
+function useHoverDimStyle() {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    let styleEl = document.getElementById(HOVER_DIM_STYLE_ID) as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = HOVER_DIM_STYLE_ID;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = HOVER_DIM_CSS;
+  }, []);
+}
 
 // react-native-screens ~4.16 крашит на iOS 26 в RNSTabBarController.updateTabBarAppearance
 // (https://github.com/software-mansion/react-native-screens/issues/3940), а RN 0.81.x не
@@ -42,6 +70,8 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  useHoverDimStyle();
+
   // Загружаем шрифты
   // ВАЖНО: React Native поддерживает только .ttf и .otf форматы
   // Если у вас .woff файлы, их нужно конвертировать в .ttf
