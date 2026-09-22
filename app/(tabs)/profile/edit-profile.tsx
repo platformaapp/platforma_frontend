@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   commissionPanelTitle: {
     fontFamily: 'Gramatika-Regular',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'normal',
     color: '#181818',
     marginBottom: 4,
   },

@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   inner: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
   title: {
     fontSize: 32, lineHeight: 36, fontFamily: 'Gramatika-Regular',
-    fontWeight: '700', color: '#181818', marginBottom: 8,
+    fontWeight: 'normal', color: '#181818', marginBottom: 8,
   },
   subtitle: {
     fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular',

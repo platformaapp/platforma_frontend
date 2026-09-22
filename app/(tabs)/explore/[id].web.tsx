@@ -328,22 +328,22 @@ const styles = StyleSheet.create({
   headerText: { flex: 1 },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
 
-  name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   role: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
   bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
   priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  priceValue: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  priceValue: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
     bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
   actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 14, color: '#68717A' },
+  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
 
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 

@@ -151,7 +151,7 @@ export default function MentorsScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   titleMobile: { fontSize: 22, lineHeight: 28, marginBottom: 12 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
   // кликабельны, активная — чёрная и жирная, остальные — серые.
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   filtersScroll: { marginBottom: 32 },
   filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
-  filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'bold' },
+  filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
@@ -185,6 +185,6 @@ const styles = StyleSheet.create({
   // ряду осознанно разной высоты, как на референсе.
   avatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   shortBio: { fontSize: 18, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
 });

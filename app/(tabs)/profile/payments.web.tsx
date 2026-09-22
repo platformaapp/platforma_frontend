@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   sectionTitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 12 },
   sectionTitleHistory: { marginTop: 32 },
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
 
   card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#010101', marginBottom: 12, flexWrap: 'wrap', gap: 8, padding: 12 },
   cardInfo: {},
-  cardTitle: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
+  cardTitle: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   cardSubtitle: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   cardActions: { flexDirection: 'row', gap: 20 },
   cardActionsMobile: { gap: 8 },
@@ -392,12 +392,12 @@ const styles = StyleSheet.create({
   cardActionDelete: {},
   cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
-  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#68717A' },
-  chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#E02D2D' },
+  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
+  chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   historyCard: { borderWidth: 1, borderColor: '#E5E5E5', marginBottom: 8, padding: 12 },
   historyCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  historyNumber: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  historyNumber: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   historyStatusLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   historyStatusSuccess: { color: '#010101' },
   historyStatusFailed: { color: '#E02D2D' },
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   historySubtitle: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   historyCardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   historyDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  historyAmount: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  historyAmount: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   historyEmpty: { paddingVertical: 24, alignItems: 'flex-start' },
   historyEmptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
@@ -414,10 +414,10 @@ const styles = StyleSheet.create({
 
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 380, padding: 24 },
-  modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 20, textTransform: 'uppercase', lineHeight: 28 },
+  modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 20, textTransform: 'uppercase', lineHeight: 28 },
   modalOutlineButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
-  modalOutlineButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  modalOutlineButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   modalDangerButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
-  modalDangerButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#fff' },
+  modalDangerButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
 });

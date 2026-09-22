@@ -83,6 +83,6 @@ const styles = StyleSheet.create({
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15 },
-  logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 20, color: '#010101' },
+  logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 20, color: '#010101' },
   mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
 });

@@ -43,20 +43,20 @@ const styles = StyleSheet.create({
   defaultSemiBold: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
+    fontWeight: 'normal',
     fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     lineHeight: 32,
     fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: 'normal',
     fontFamily: 'Gramatika-Regular',
     color: '#181818',
   },

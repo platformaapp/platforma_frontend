@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
   content: { padding: 16 },
   description: { fontSize: 13, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20 },
@@ -120,6 +120,6 @@ const styles = StyleSheet.create({
   },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 12 },
   downloadBtn: { backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },
-  downloadBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff', fontWeight: '600' },
+  downloadBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff', fontWeight: 'normal' },
   btnDisabled: { opacity: 0.6 },
 });

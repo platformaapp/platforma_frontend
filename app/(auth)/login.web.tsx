@@ -189,23 +189,23 @@ const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 420, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
+  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
 
   choiceLinks: { gap: 4, marginBottom: 8 },
   choiceLinkRow: { paddingVertical: 10 },
-  choiceLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 18, color: '#E02D2D' },
+  choiceLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   switchLink: { marginTop: 16, alignItems: 'center' },
   switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
 
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
   checkbox: { width: 22, height: 22, borderWidth: 1, borderColor: '#010101', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  checkmark: { fontSize: 14, color: '#010101', fontWeight: 'bold', lineHeight: 18 },
+  checkmark: { fontSize: 14, color: '#010101', fontWeight: 'normal', lineHeight: 18 },
   checkboxLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#010101' },
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 8 },
 
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginTop: 16 },
   linkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
-  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
+  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
 });

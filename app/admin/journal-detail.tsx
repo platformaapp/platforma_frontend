@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
   content: { paddingHorizontal: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
   galleryAddText: { fontSize: 24, color: '#9B9B9B' },
 
   saveBtn: { marginTop: 24, backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },
-  saveBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff', fontWeight: '600' },
+  saveBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff', fontWeight: 'normal' },
   deleteBtn: { marginTop: 12, borderWidth: 1, borderColor: '#721c24', paddingVertical: 14, alignItems: 'center' },
   deleteBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#721c24' },
   btnDisabled: { opacity: 0.6 },

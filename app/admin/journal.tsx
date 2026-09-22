@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
   createBtn: { paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#181818' },
   createBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#fff' },
 
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   cover: { width: 72, height: 72 },
   coverPlaceholder: { backgroundColor: '#E5E5E5' },
   cardBody: { flex: 1, paddingVertical: 8, paddingHorizontal: 10 },
-  cardTitle: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: '600', color: '#181818', marginBottom: 2 },
+  cardTitle: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
   cardMeta: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categoryBadge: { backgroundColor: '#E5E5E5', paddingHorizontal: 7, paddingVertical: 2 },

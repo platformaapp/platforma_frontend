@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontFamily: "Gramatika-Regular",
     fontSize: 28,
-    fontWeight: "400",
+    fontWeight: "normal",
     fontStyle: "normal",
     lineHeight: 36,
     letterSpacing: -2,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   heading: {
     fontFamily: "Gramatika-Regular",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "normal",
     lineHeight: 24,
     color: "#181818",
     marginTop: 8,

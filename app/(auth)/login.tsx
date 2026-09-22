@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkmark: { fontSize: 16, color: '#181818', fontWeight: 'bold', lineHeight: 20 },
+  checkmark: { fontSize: 16, color: '#181818', fontWeight: 'normal', lineHeight: 20 },
   checkboxLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
   errorText: { marginTop: 4, fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#E02D2D' },
   btn: { height: 52, alignItems: 'center', justifyContent: 'center', borderWidth: 1, marginTop: 4 },

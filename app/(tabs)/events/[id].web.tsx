@@ -387,14 +387,14 @@ const styles = StyleSheet.create({
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709 },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
-  metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 18, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   // текстовый блок (особенно с добавленным bio) растягивался бы почти на
   // всю ширину колонки вместо компактной подписи рядом с аватаром.
   mentorInfo: { flex: 1, maxWidth: 360 },
-  mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
+  mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.
@@ -414,15 +414,15 @@ const styles = StyleSheet.create({
   mobileThumb: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
   mobileMetaCol: { flex: 1, gap: 6 },
   chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#68717A' },
+  chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#68717A' },
 
   cancelOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(24,24,24,0.45)', padding: 16 },
   cancelModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24, position: 'relative' },
   cancelCloseButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
   cancelCloseText: { fontSize: 18, color: '#687076' },
-  cancelModalTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 8, paddingRight: 24 },
+  cancelModalTitle: { fontSize: 18, lineHeight: 24, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 8, paddingRight: 24 },
   cancelModalText: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20 },
   cancelModalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cancelModalLeave: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  cancelModalConfirm: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 14, color: '#E02D2D' },
+  cancelModalConfirm: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D' },
 });

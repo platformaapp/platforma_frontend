@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
   content: { maxWidth: 720, gap: 16 },
-  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
-  heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
+  title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
+  heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
   paragraph: { fontFamily: 'Gramatika-Regular', fontSize: 19, lineHeight: 26, color: '#010101' },
 });

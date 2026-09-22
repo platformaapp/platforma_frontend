@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 28,
     fontFamily: 'Gramatika-Regular',
-    fontWeight: '700',
+    fontWeight: 'normal',
     color: '#181818',
     textAlign: 'center',
     letterSpacing: -1,

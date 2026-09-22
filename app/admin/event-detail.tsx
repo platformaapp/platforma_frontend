@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
   content: { paddingBottom: 48 },
 
@@ -546,12 +546,12 @@ const styles = StyleSheet.create({
 
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#E5E5E5' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4 },
-  statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: '600' },
+  statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   typeBadge: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#E5E5E5' },
   typeBadgeText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   section: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, borderBottomWidth: 1, borderColor: '#E5E5E5' },
-  sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
 
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
   rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
@@ -565,13 +565,13 @@ const styles = StyleSheet.create({
   mentorAvatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   mentorAvatarInitial: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   mentorInfo: { flex: 1 },
-  mentorName: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: '600', color: '#181818' },
+  mentorName: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
   mentorEmail: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 1 },
   mentorLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#555', marginTop: 3 },
 
   modSection: { borderTopWidth: 1, borderColor: '#E5E5E5', marginTop: 8 },
   modToggle: { paddingHorizontal: 16, paddingVertical: 14 },
-  modToggleText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: '600', color: '#181818' },
+  modToggleText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
   modForm: { paddingHorizontal: 16, paddingBottom: 24 },
   modLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4, marginTop: 12 },
   modTeamCommentBox: { backgroundColor: '#F5F5F5', borderLeftWidth: 3, borderLeftColor: '#BDBDBD', padding: 12, marginTop: 12 },
@@ -604,5 +604,5 @@ const styles = StyleSheet.create({
   modSuccessText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#155724', backgroundColor: '#D4EDDA', padding: 10, marginTop: 12 },
   modSubmitBtn: { marginTop: 16, backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },
   modSubmitBtnDisabled: { opacity: 0.6 },
-  modSubmitText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA', fontWeight: '600' },
+  modSubmitText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA', fontWeight: 'normal' },
 });

@@ -625,12 +625,12 @@ const styles = StyleSheet.create({
   secondaryButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
 
   eventsSection: { marginTop: 20, marginHorizontal: 16, marginBottom: 4 },
-  eventsSectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },
+  eventsSectionTitle: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 8 },
   eventCard: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
   eventCover: { width: 80, alignSelf: 'stretch' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
   eventBody: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center' },
-  eventTitle: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: '600', color: '#181818', marginBottom: 4 },
+  eventTitle: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 4 },
   eventDate: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#555', marginBottom: 2 },
   eventPrice: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   // Bottom sheet shared
   overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24 },
-  sheetTitle: { marginTop: 0, marginBottom: 8, fontFamily: 'Gramatika-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818', textAlign: 'left' },
+  sheetTitle: { marginTop: 0, marginBottom: 8, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818', textAlign: 'left' },
   sheetPrimaryButton: { marginTop: 16, backgroundColor: '#1E1E1E', height: 52, alignItems: 'center', justifyContent: 'center' },
   sheetPrimaryButtonDisabled: { opacity: 0.6 },
   sheetPrimaryButtonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#FFFFFF' },

@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   inviteIconBox: { width: 64, borderLeftWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
   shareModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   shareModalSheet: { backgroundColor: '#fff', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24 },
-  shareModalTitle: { marginTop: 0, marginBottom: 8, fontFamily: 'Gramatika-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818' },
+  shareModalTitle: { marginTop: 0, marginBottom: 8, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818' },
   shareModalCard: { borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#fff' },
   shareModalUrl: { paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#1E1E1E' },
   shareModalButton: { marginTop: 16, backgroundColor: '#1E1E1E', paddingVertical: 14, alignItems: 'center' },

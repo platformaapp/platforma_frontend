@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: 24,
     fontFamily: 'Gramatika-Regular',
-    fontWeight: '700',
+    fontWeight: 'normal',
     fontSize: 28,
     textTransform: 'uppercase',
     lineHeight: 36,

@@ -1269,7 +1269,7 @@ const styles = StyleSheet.create({
   mainImage: { width: '100%', height: 250, borderBottomWidth: 1, borderColor: '#1E1E1E' },
   mainImagePlaceholder: { backgroundColor: '#E5E5E5' },
   mainCardBody: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, backgroundColor: '#fff' },
-  mainTitle: { marginBottom: 14, fontSize: 20, lineHeight: 24, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#1E1E1E' },
+  mainTitle: { marginBottom: 14, fontSize: 20, lineHeight: 24, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#1E1E1E' },
   mainDescription: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#1E1E1E' },
   mainFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 46 },
   mainFooterTime: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#1E1E1E', borderColor: '#1E1E1E', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderBottomWidth: 0, borderLeftWidth: 0 },
@@ -1279,12 +1279,12 @@ const styles = StyleSheet.create({
   // Join conference / recording button (prominent, dark red)
   joinButton: { backgroundColor: '#E02D2D', paddingVertical: 16, alignItems: 'center', marginBottom: 8, minHeight: 52, justifyContent: 'center' },
   joinButtonDisabled: { opacity: 0.6 },
-  joinButtonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '500', color: '#FFFFFF' },
+  joinButtonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FFFFFF' },
 
   // Register button
   registerButton: { backgroundColor: '#181818', paddingVertical: 16, alignItems: 'center', marginBottom: 0 },
   registerButtonDisabled: { backgroundColor: '#9B9B9B' },
-  registerButtonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '500', color: '#FFFFFF', paddingHorizontal: 16, textAlign: 'center' },
+  registerButtonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FFFFFF', paddingHorizontal: 16, textAlign: 'center' },
   iosPaymentBlock: { paddingHorizontal: 16, alignItems: 'center' },
   iosPaymentNote: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textAlign: 'center', marginTop: 6, marginBottom: 8 },
 
@@ -1299,16 +1299,16 @@ const styles = StyleSheet.create({
   curatorAvatar: { width: 96, alignSelf: 'stretch', borderRightWidth: 1, borderColor: '#1E1E1E' },
   curatorAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
   curatorNameWrapper: { flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  curatorName: { fontSize: 18, fontWeight: 'bold', fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 4 },
+  curatorName: { fontSize: 18, fontWeight: 'normal', fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 4 },
   curatorRole: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', textAlign: 'center' },
   writeToCuratorButton: { backgroundColor: '#181818', paddingVertical: 16, width: '100%', justifyContent: 'center', alignItems: 'center' },
-  writeToCuratorText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '500', color: '#FFFFFF' },
+  writeToCuratorText: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FFFFFF' },
 
   shareButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 32 },
   shareButtonIcon: { width: 80, height: 80, justifyContent: 'center', alignItems: 'center', borderLeftWidth: 1, borderColor: '#1E1E1E' },
   shareButtonText: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#181818', flex: 1, textAlign: 'center' },
 
-  otherEventsTitle: { fontSize: 24, fontWeight: 'bold', fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 16 },
+  otherEventsTitle: { fontSize: 24, fontWeight: 'normal', fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 16 },
   otherCard: { backgroundColor: '#fff', marginBottom: 12, borderWidth: 1, borderColor: '#1E1E1E' },
   otherImage: { width: '100%', height: 200, borderBottomWidth: 1, borderColor: '#1E1E1E' },
   otherImagePlaceholder: { backgroundColor: '#E5E5E5' },
@@ -1323,7 +1323,7 @@ const styles = StyleSheet.create({
   // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 24 },
-  modalTitle: { marginBottom: 8, fontFamily: 'Gramatika-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818' },
+  modalTitle: { marginBottom: 8, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#181818' },
   modalEventCard: { borderWidth: 1, borderColor: '#1E1E1E', backgroundColor: '#FFFFFF' },
   modalEventTitle: { paddingHorizontal: 16, paddingVertical: 16, fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#1E1E1E' },
   modalEventFooter: { flexDirection: 'row', borderTopWidth: 1, borderColor: '#1E1E1E' },
@@ -1336,7 +1336,7 @@ const styles = StyleSheet.create({
   modalSecondaryButton: { marginTop: 12, borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 14, alignItems: 'center', backgroundColor: '#fff' },
   modalSecondaryButtonText: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#181818' },
   payErrorText: { marginTop: 8, fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  paymentFailedTitle: { marginBottom: 12, fontFamily: 'Gramatika-Regular', fontWeight: '700', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#E2372A' },
+  paymentFailedTitle: { marginBottom: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 28, textTransform: 'uppercase', lineHeight: 36, letterSpacing: -1, color: '#E2372A' },
   paymentFailedMessage: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#E2372A', marginBottom: 4 },
   shareCopiedText: { marginTop: 4, fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
   legalText: { marginTop: 10, fontSize: 11, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textAlign: 'center' },

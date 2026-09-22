@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
-  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#181818' },
+  headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
   content: { paddingBottom: 48 },
 
@@ -265,13 +265,13 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { fontSize: 26, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   heroText: { flex: 1 },
-  heroName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: '600', color: '#181818', marginBottom: 2 },
+  heroName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
   heroRoles: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6 },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: '600' },
+  statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
 
   section: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, borderBottomWidth: 1, borderColor: '#E5E5E5' },
-  sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: '700', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
 
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
   rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
