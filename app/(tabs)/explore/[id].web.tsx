@@ -70,8 +70,11 @@ export default function TutorCardScreenWeb() {
           setDisplayBio((tutor as any).bio ?? '');
           setAvatarUrl(tutor.avatarUrl ?? '');
           setInstagramUrl((tutor as any).instagramUrl ?? (tutor as any).instagram_url ?? '');
-          const rate = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
-          if (typeof rate === 'number' && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
+          const rateRaw = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
+          // decimal-колонки в TypeORM/pg нередко приходят строкой ("2500.00"),
+          // а не числом — принимаем оба варианта.
+          const rate = typeof rateRaw === 'number' ? rateRaw : typeof rateRaw === 'string' ? parseFloat(rateRaw) : NaN;
+          if (!isNaN(rate) && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
           setTelegramHandle(((tutor as any).telegram ?? (tutor as any).telegramUsername ?? '').replace(/^@/, ''));
           setIsMentorVerified((tutor as any).isVerified !== false);
         }
@@ -185,37 +188,23 @@ export default function TutorCardScreenWeb() {
     </>
   );
 
-  // Desktop: заголовки секций и бОльшая часть карточек — в leftCol (2 в
-  // ряд), остаток — в rightCol под фото (1 в ряд), см. splitForColumns выше.
-  const eventsSectionsLeft = (
-    <>
-      {upcomingSplit.left.length > 0 ? (
-        <View style={styles.eventsSection}>
-          <Text style={styles.eventsSectionTitle}>События наставника</Text>
-          <View style={styles.eventsGridLeft}>{upcomingSplit.left.map((e) => renderEventCard(e, 'half'))}</View>
-        </View>
-      ) : null}
-
-      {pastSplit.left.length > 0 ? (
-        <View style={styles.eventsSection}>
-          <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
-          <View style={styles.eventsGridLeft}>{pastSplit.left.map((e) => renderEventCard(e, 'half'))}</View>
-        </View>
-      ) : null}
-    </>
-  );
-
-  const eventsSectionsRight = (
-    <>
-      {upcomingSplit.right.length > 0 ? (
-        <View style={[styles.eventsSection, styles.eventsGridRight]}>{upcomingSplit.right.map((e) => renderEventCard(e, 'full'))}</View>
-      ) : null}
-
-      {pastSplit.right.length > 0 ? (
-        <View style={[styles.eventsSection, styles.eventsGridRight]}>{pastSplit.right.map((e) => renderEventCard(e, 'full'))}</View>
-      ) : null}
-    </>
-  );
+  // Desktop: настоящий CSS Grid (не два независимых flex-столбца) — иначе
+  // строка карточек справа (под фото) не может ровно совпасть по высоте со
+  // строкой карточек слева: у каждой "логической строки" (герой/фото,
+  // заголовок/пусто, карточки-слева/карточки-справа) обе ячейки — прямые
+  // дети грида в одном и том же порядке, поэтому высота строки — это
+  // максимум из двух ячеек, и содержимое всегда стартует на одном уровне.
+  function eventsGridRow(title: string, left: MentorEvent[], right: MentorEvent[]) {
+    if (left.length === 0 && right.length === 0) return null;
+    return (
+      <>
+        <Text style={[styles.eventsSectionTitle, styles.eventsSectionTitleGrid]}>{title}</Text>
+        <View />
+        <View style={styles.eventsGridLeft}>{left.map((e) => renderEventCard(e, 'half'))}</View>
+        <View style={styles.eventsGridRight}>{right.map((e) => renderEventCard(e, 'full'))}</View>
+      </>
+    );
+  }
 
   const actions = (
     <>
@@ -281,13 +270,11 @@ export default function TutorCardScreenWeb() {
             {eventsSections}
           </View>
         ) : (
-          // Правая колонка — только фото, без содержимого ниже неё. Левая
-          // колонка (текст + оба блока событий) уже фиксированной ширины
-          // (не на всю доступную ширину ряда), поэтому между ней и фото
-          // остаётся пустая полоса, которая тянется через всю страницу —
-          // это сделано по референсу, а не баг.
-          <View style={styles.desktopLayout}>
-            <View style={styles.leftCol}>
+          // Пустая полоса между текстом и фото (по референсу, не баг) — это
+          // columnGap между двумя колонками грида. Каждая "строка" — пара
+          // прямых детей (лево/право), см. eventsGridRow.
+          <View style={styles.desktopGrid}>
+            <View>
               <Text style={styles.name}>{displayName || 'Наставник'}</Text>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
@@ -305,13 +292,11 @@ export default function TutorCardScreenWeb() {
                   Социальная сеть Instagram, деятельность которой запрещена на территории РФ.
                 </Text>
               ) : null}
+            </View>
+            <Image source={imageSource} style={styles.avatarLarge} />
 
-              {eventsSectionsLeft}
-            </View>
-            <View style={styles.rightCol}>
-              <Image source={imageSource} style={styles.avatarLarge} />
-              {eventsSectionsRight}
-            </View>
+            {eventsGridRow('События наставника', upcomingSplit.left, upcomingSplit.right)}
+            {eventsGridRow('Прошедшие события', pastSplit.left, pastSplit.right)}
           </View>
         )}
       </View>
@@ -329,15 +314,13 @@ const styles = StyleSheet.create({
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backArrow: { fontSize: 25, color: '#010101' },
 
-  // Desktop: текст+события слева (в колонке ограниченной ширины — НЕ на
-  // всю доступную ширину), большое фото справа сверху. justifyContent:
-  // 'space-between' без flexGrow разводит обе колонки по краям ряда, а
-  // пустая полоса между ними — по референсу, тянется через весь блок
-  // (включая секции событий, они теперь внутри leftCol, а не отдельным
-  // полноширинным блоком ниже).
-  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  leftCol: { width: 820, maxWidth: 820 },
-  rightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
+  // Desktop: настоящий CSS Grid, а не два независимых flex-столбца — нужно,
+  // чтобы строка карточек справа (под фото) совпадала по высоте со строкой
+  // карточек слева (см. eventsGridRow). columnGap — та самая пустая полоса
+  // между текстом/фото по референсу (не баг). display:'grid' — не входит в
+  // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
+  // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
+  desktopGrid: { display: 'grid', gridTemplateColumns: '780px 360px', columnGap: 308, alignItems: 'start' } as any,
   avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
@@ -364,11 +347,15 @@ const styles = StyleSheet.create({
 
   eventsSection: { marginTop: 40 },
   eventsSectionTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
+  // Доп. отступ сверху для заголовка-строки грида (сама eventsSectionTitle
+  // без него — используется и в мобильной eventsSection, где отступ уже
+  // на обёртке).
+  eventsSectionTitleGrid: { marginTop: 40 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
-  // leftCol — 2 карточки в ряд; rightCol (под фото) — 1 карточка в столбик,
-  // см. splitForColumns/renderEventCard(widthVariant) выше — по референсу
-  // карточки событий распределены между обеими колонками страницы, а не
-  // все сразу в одной.
+  // Левая колонка грида — 2 карточки в ряд; правая (под фото) — 1 карточка
+  // в столбик, см. splitForColumns/renderEventCard(widthVariant) выше — по
+  // референсу карточки событий распределены между обеими колонками
+  // страницы, а не все сразу в одной.
   eventsGridLeft: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   eventsGridRight: { gap: 32 },
   eventCard: { width: '31%' },
