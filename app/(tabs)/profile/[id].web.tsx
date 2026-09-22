@@ -1,7 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
@@ -918,8 +919,8 @@ export default function ProfileScreenWeb() {
               {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
               <FieldWithPlus label="Название" value={eventTitle} onChangeText={setEventTitle} />
               <FieldWithPlus label="Описание" value={eventDescription} onChangeText={setEventDescription} multiline />
-              <FieldWithPlus label="Дата" value={eventDate} onChangeText={setEventDate} />
-              <FieldWithPlus label="Время" value={eventTime} onChangeText={setEventTime} />
+              <DateFieldWithPicker label="Дата" value={eventDate} onChangeValue={setEventDate} />
+              <TimeFieldWithPicker label="Время" value={eventTime} onChangeValue={setEventTime} />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
               <Text style={styles.fieldLabel}>Обложка</Text>
@@ -973,8 +974,8 @@ export default function ProfileScreenWeb() {
               ))}
             </ScrollView>
 
-            <FieldWithPlus label="Дата" value={newSlotDate} onChangeText={setNewSlotDate} />
-            <FieldWithPlus label="Время" value={newSlotTime} onChangeText={setNewSlotTime} />
+            <DateFieldWithPicker label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate} />
+            <TimeFieldWithPicker label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} />
 
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setSlotsModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
@@ -1015,10 +1016,95 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
   );
 }
 
+/**
+ * Дата/время в том же визуальном стиле, что PlusField (подпись + кружок с
+ * плюсом), но вместо текстового инпута — настоящий нативный date/time picker
+ * браузера (невидимый <input> поверх кликабельного значения, тот же приём,
+ * что в new-event.tsx). Этот файл — веб-онли (.web.tsx), поэтому без
+ * iOS/Android-веток.
+ */
+function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
+  const [active, setActive] = useState(false);
+  const webRef = useRef<any>(null);
+  const expanded = active || value.length > 0;
+  const dateObj = value ? new Date(`${value}T00:00:00`) : null;
+  const display = dateObj && !isNaN(dateObj.getTime())
+    ? `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`
+    : '';
+
+  return (
+    <View style={styles.plusFieldWrap}>
+      <Text style={styles.plusFieldLabel}>{label}</Text>
+      {expanded ? (
+        <Pressable
+          style={styles.plusFieldValueRow}
+          onPress={() => { try { webRef.current?.showPicker?.(); } catch { webRef.current?.click?.(); } }}
+        >
+          <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
+          <input
+            ref={webRef}
+            type="date"
+            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+            onChange={(e: any) => { if (e.target.value) onChangeValue(e.target.value); }}
+          />
+        </Pressable>
+      ) : (
+        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusFieldButton}>
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
+            <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
+          </Svg>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function TimeFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
+  const [active, setActive] = useState(false);
+  const webRef = useRef<any>(null);
+  const expanded = active || value.length > 0;
+
+  return (
+    <View style={styles.plusFieldWrap}>
+      <Text style={styles.plusFieldLabel}>{label}</Text>
+      {expanded ? (
+        <Pressable
+          style={styles.plusFieldValueRow}
+          onPress={() => { try { webRef.current?.showPicker?.(); } catch { webRef.current?.click?.(); } }}
+        >
+          <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
+          <input
+            ref={webRef}
+            type="time"
+            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+            onChange={(e: any) => { if (e.target.value) onChangeValue(e.target.value); }}
+          />
+        </Pressable>
+      ) : (
+        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusFieldButton}>
+          <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
+            <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
+          </Svg>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
+
+  // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
+  // (components/web/plus-field.tsx), для визуальной согласованности.
+  plusFieldWrap: { marginBottom: 24 },
+  plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101', marginBottom: 8 },
+  plusFieldButton: { paddingVertical: 2, alignSelf: 'flex-start' },
+  plusFieldValueRow: { position: 'relative', paddingVertical: 4 },
+  plusFieldValueText: { fontFamily: 'Gramatika-Regular', fontSize: 15, color: '#010101' },
 
   // Student view
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },

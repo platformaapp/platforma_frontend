@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ActivityIndicator,
@@ -70,9 +70,13 @@ export default function AddSlotScreen() {
   const [saving, setSaving] = useState(false);
   const [drafts, setDrafts] = useState<DraftSlot[]>([mkDraft()]);
 
-  // Picker state — one shared picker for all draft slots
+  // Picker state — one shared picker for all draft slots (iOS/Android modal)
   const [pickerTarget, setPickerTarget] = useState<{ slotId: number; mode: 'date' | 'time' } | null>(null);
   const [pickerTempDate, setPickerTempDate] = useState<Date>(new Date());
+  // Web — каждая строка открывает свой скрытый нативный <input type="date"/"time">
+  // (тот же приём, что в new-event.tsx), поэтому ref храним по id черновика.
+  const webDateRefs = useRef<Map<number, any>>(new Map());
+  const webTimeRefs = useRef<Map<number, any>>(new Map());
 
   useFocusEffect(
     useCallback(() => {
@@ -214,14 +218,38 @@ export default function AddSlotScreen() {
           <View key={draft.id} style={styles.draftRow}>
             <View style={styles.draftFields}>
               {/* Date button */}
-              <Pressable
-                style={[styles.pickerBtn, styles.pickerBtnDate]}
-                onPress={() => openPicker(draft.id, 'date')}
-              >
-                <Text style={draft.date ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
-                  {draft.date ? formatSlotDate(draft.date) : 'Выберите дату'}
-                </Text>
-              </Pressable>
+              {Platform.OS === 'web' ? (
+                <Pressable
+                  style={[styles.pickerBtn, styles.pickerBtnDate]}
+                  onPress={() => { try { webDateRefs.current.get(draft.id)?.showPicker?.(); } catch { webDateRefs.current.get(draft.id)?.click?.(); } }}
+                >
+                  <Text style={draft.date ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                    {draft.date ? formatSlotDate(draft.date) : 'Выберите дату'}
+                  </Text>
+                  <input
+                    ref={(el: any) => { if (el) webDateRefs.current.set(draft.id, el); }}
+                    type="date"
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e: any) => {
+                      const v = e.target.value;
+                      if (!v) return;
+                      const [y, mo, d] = v.split('-').map(Number);
+                      const newDate = new Date(y, mo - 1, d);
+                      setDrafts((prev: DraftSlot[]) => prev.map((x) => (x.id === draft.id ? { ...x, date: newDate } : x)));
+                    }}
+                  />
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={[styles.pickerBtn, styles.pickerBtnDate]}
+                  onPress={() => openPicker(draft.id, 'date')}
+                >
+                  <Text style={draft.date ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                    {draft.date ? formatSlotDate(draft.date) : 'Выберите дату'}
+                  </Text>
+                </Pressable>
+              )}
 
               {/* Day label */}
               <View style={styles.draftDayCell}>
@@ -229,14 +257,38 @@ export default function AddSlotScreen() {
               </View>
 
               {/* Time button */}
-              <Pressable
-                style={[styles.pickerBtn, styles.pickerBtnTime]}
-                onPress={() => openPicker(draft.id, 'time')}
-              >
-                <Text style={draft.time ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
-                  {draft.time ? toTimeStr(draft.time) : 'Время'}
-                </Text>
-              </Pressable>
+              {Platform.OS === 'web' ? (
+                <Pressable
+                  style={[styles.pickerBtn, styles.pickerBtnTime]}
+                  onPress={() => { try { webTimeRefs.current.get(draft.id)?.showPicker?.(); } catch { webTimeRefs.current.get(draft.id)?.click?.(); } }}
+                >
+                  <Text style={draft.time ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                    {draft.time ? toTimeStr(draft.time) : 'Время'}
+                  </Text>
+                  <input
+                    ref={(el: any) => { if (el) webTimeRefs.current.set(draft.id, el); }}
+                    type="time"
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+                    onChange={(e: any) => {
+                      const v = e.target.value; // "HH:mm"
+                      if (!v) return;
+                      const [hh, mm] = v.split(':').map(Number);
+                      const base = draft.date ?? new Date();
+                      const newTime = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh, mm, 0);
+                      setDrafts((prev: DraftSlot[]) => prev.map((x) => (x.id === draft.id ? { ...x, time: newTime } : x)));
+                    }}
+                  />
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={[styles.pickerBtn, styles.pickerBtnTime]}
+                  onPress={() => openPicker(draft.id, 'time')}
+                >
+                  <Text style={draft.time ? styles.pickerBtnText : styles.pickerBtnPlaceholder}>
+                    {draft.time ? toTimeStr(draft.time) : 'Время'}
+                  </Text>
+                </Pressable>
+              )}
             </View>
 
             {/* Remove button (only when more than one draft) */}
@@ -358,7 +410,7 @@ const styles = StyleSheet.create({
 
   draftRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   draftFields: { flex: 1, flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', minHeight: 52 },
-  pickerBtn: { justifyContent: 'center', paddingHorizontal: 12 },
+  pickerBtn: { justifyContent: 'center', paddingHorizontal: 12, position: 'relative' },
   pickerBtnDate: { flex: 1.6 },
   pickerBtnTime: { flex: 1 },
   pickerBtnText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
