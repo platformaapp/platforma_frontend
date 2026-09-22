@@ -198,7 +198,8 @@ export default function ArticleScreenWeb() {
 
         <PromoBanner withTelegramLink />
 
-        {relatedEvent ? (
+        {/* На десктопе блоки "Записаться на событие" и "Скачать приложение" убраны */}
+        {isMobile && relatedEvent ? (
           <View style={styles.ctaBlock}>
             <Pressable onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
               <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
@@ -212,21 +213,23 @@ export default function ArticleScreenWeb() {
           </View>
         ) : null}
 
-        <View style={styles.ctaBlock}>
-          <Text style={styles.actionLinkText}>Скачать приложение</Text>
-          <View style={styles.ctaCard}>
-            <View style={styles.ctaCardImage} />
-            <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
-            <View style={styles.appCardStores}>
-              <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
-                <Text style={styles.storeLinkText}>app store</Text>
-              </Pressable>
-              <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
-                <Text style={styles.storeLinkText}>google play</Text>
-              </Pressable>
+        {isMobile ? (
+          <View style={styles.ctaBlock}>
+            <Text style={styles.actionLinkText}>Скачать приложение</Text>
+            <View style={styles.ctaCard}>
+              <View style={styles.ctaCardImage} />
+              <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
+              <View style={styles.appCardStores}>
+                <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
+                  <Text style={styles.storeLinkText}>app store</Text>
+                </Pressable>
+                <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
+                  <Text style={styles.storeLinkText}>google play</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
+        ) : null}
       </View>
 
         <SiteFooter />

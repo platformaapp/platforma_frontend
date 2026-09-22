@@ -26,33 +26,38 @@ const FOOTER_LOGOS_WIDTH = 833;
 const MOBILE_LOGO_WIDTH = 96;
 const MOBILE_LOGO_HEIGHT = 36;
 
+// "Кого консультировал" — по референсу это отдельные 3 клиентских лого, не
+// пересекающиеся с сеткой "друзей" ниже (старые 5 логотипов страт.
+// партнёров либо переехали в FRIENDS, либо убраны — см. FRIENDS).
 const STRATEGIC_PARTNERS = [
-  { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/partner-provzglyad.png'), url: 'https://provzglyad.com/' },
-  { name: 'Еврейский музей и центр толерантности', logo: require('@/assets/images/partner-jewish-museum.png'), url: 'https://www.jewish-museum.ru/' },
-  { name: 'youtalk', logo: require('@/assets/images/partner-youtalk.png'), url: 'https://youtalk.ru/' },
-  { name: 'ДК РАССВЕТ', logo: require('@/assets/images/partner-dkrassvet.png'), url: 'https://dkrassvet.space/' },
-  { name: 'Театр.doc', logo: require('@/assets/images/partner-teatrdoc.png'), url: 'https://www.teatrdoc.ru/' },
+  { name: 'X5 Group', logo: require('@/assets/images/partner-x5.png'), url: 'https://www.x5.ru/' },
+  { name: 'Яндекс Директ', logo: require('@/assets/images/partner-yandex-direct.png'), url: 'https://direct.yandex.ru/' },
+  { name: 'VK Билеты', logo: require('@/assets/images/partner-vk-tickets.png'), url: 'https://vk.com/tickets' },
 ];
 
 // url не проставлен там, где среди нескольких организаций с похожим/общим
 // названием не нашлось однозначного совпадения (см. чат) — лого пока кликом
 // никуда не ведёт, чтобы не сослаться на чужой сайт.
 const FRIENDS = [
-  { name: 'Bubble Studios', logo: require('@/assets/images/friend-bubble-studios.png'), url: 'https://bubblestudios.com/' },
-  { name: 'ЗОТОВ ЦЕНТР', logo: require('@/assets/images/friend-zotov-center.png'), url: 'https://centrezotov.ru/' },
-  { name: 'BEAT', logo: require('@/assets/images/friend-beat.png'), url: 'https://beatfilmfestival.ru/' },
-  { name: 'ЗИЛАРТ', logo: require('@/assets/images/friend-zilart.png'), url: 'https://zilart.ru/' },
-  { name: 'KION', logo: require('@/assets/images/friend-kion.png'), url: 'https://kion.ru/' },
+  { name: 'Никола-Ленивец', logo: require('@/assets/images/friend-nikola-lenivets.png'), url: 'https://nikola-lenivets.com/' },
+  { name: 'Random Coffee', logo: require('@/assets/images/friend-random-coffee.png') },
   { name: 'Кинотеатр Художественный', logo: require('@/assets/images/friend-hudozhestvenny.png'), url: 'https://cinema1909.ru/' },
-  { name: 'B', logo: require('@/assets/images/friend-b.png') },
-  { name: 'Самокат', logo: require('@/assets/images/friend-samokat.png'), url: 'https://samokatbook.ru/' },
-  { name: 'Чехов и компания', logo: require('@/assets/images/friend-chekhov-i-kompania.png') },
-  { name: 'twinby', logo: require('@/assets/images/friend-twinby.png'), url: 'https://twinby.ru/' },
-  { name: 'AZ Museum', logo: require('@/assets/images/friend-az-museum.png'), url: 'https://museum-az.com/' },
-  { name: 'Перспектива', logo: require('@/assets/images/friend-perspektiva.png') },
-  { name: 'Внутри', logo: require('@/assets/images/friend-vnutri.png'), url: 'https://www.vnutri.art/' },
-  { name: 'A24', logo: require('@/assets/images/friend-a24.png'), url: 'https://a24films.com/' },
+  { name: 'ЗОТОВ ЦЕНТР', logo: require('@/assets/images/friend-zotov-center.png'), url: 'https://centrezotov.ru/' },
+  { name: 'KION', logo: require('@/assets/images/friend-kion.png'), url: 'https://kion.ru/' },
+  { name: 'Bubble Studios', logo: require('@/assets/images/friend-bubble-studios.png'), url: 'https://bubblestudios.com/' },
+  { name: 'youtalk', logo: require('@/assets/images/friend-youtalk.png'), url: 'https://youtalk.ru/' },
+  { name: 'BEAT', logo: require('@/assets/images/friend-beat.png'), url: 'https://beatfilmfestival.ru/' },
+  { name: 'Skyeng', logo: require('@/assets/images/friend-skyeng.png'), url: 'https://skyeng.ru/' },
+  { name: 'ЗИЛАРТ', logo: require('@/assets/images/friend-zilart.png'), url: 'https://zilart.ru/' },
+  { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/friend-provzglyad.png'), url: 'https://provzglyad.com/' },
+  { name: 'КАРО/АРТ', logo: require('@/assets/images/friend-karo-art.png') },
   { name: 'Практика театр', logo: require('@/assets/images/friend-praktika-teatr.png'), url: 'https://praktikatheatre.ru/' },
+  { name: 'twinby', logo: require('@/assets/images/friend-twinby.png'), url: 'https://twinby.ru/' },
+  { name: 'Еврейский музей и центр толерантности', logo: require('@/assets/images/friend-jewish-museum.png'), url: 'https://www.jewish-museum.ru/' },
+  { name: 'Ad Marginem', logo: require('@/assets/images/friend-ad-marginem.jpg'), url: 'https://admarginem.ru/' },
+  { name: 'AZ Museum', logo: require('@/assets/images/friend-az-museum.png'), url: 'https://museum-az.com/' },
+  { name: 'ДК РАССВЕТ', logo: require('@/assets/images/friend-dkrassvet.png'), url: 'https://dkrassvet.space/' },
+  { name: 'ЭЙЧ', logo: require('@/assets/images/friend-eich.png') },
 ];
 
 // .partners__logo img { max-width:100%; max-height:100%; object-fit:contain }
