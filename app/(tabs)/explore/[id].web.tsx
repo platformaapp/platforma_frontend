@@ -274,7 +274,7 @@ export default function TutorCardScreenWeb() {
           // columnGap между двумя колонками грида. Каждая "строка" — пара
           // прямых детей (лево/право), см. eventsGridRow.
           <View style={styles.desktopGrid}>
-            <View>
+            <View style={styles.actionsRowContainer}>
               <Text style={styles.name}>{displayName || 'Наставник'}</Text>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   // между текстом/фото по референсу (не баг). display:'grid' — не входит в
   // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
   // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
-  desktopGrid: { display: 'grid', gridTemplateColumns: '780px 360px', columnGap: 308, alignItems: 'start' } as any,
+  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 360px', columnGap: 308, alignItems: 'start', position: 'relative' } as any,
   avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
@@ -329,14 +329,16 @@ const styles = StyleSheet.create({
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
-  role: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
+  role: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
   bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
   priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   priceValue: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
+    bottom: 0 },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
+  actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
@@ -346,11 +348,11 @@ const styles = StyleSheet.create({
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
   eventsSection: { marginTop: 40 },
-  eventsSectionTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
+  eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // Доп. отступ сверху для заголовка-строки грида (сама eventsSectionTitle
   // без него — используется и в мобильной eventsSection, где отступ уже
   // на обёртке).
-  eventsSectionTitleGrid: { marginTop: 40 },
+  eventsSectionTitleGrid: { marginTop: 300 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   // Левая колонка грида — 2 карточки в ряд; правая (под фото) — 1 карточка
   // в столбик, см. splitForColumns/renderEventCard(widthVariant) выше — по
@@ -365,7 +367,7 @@ const styles = StyleSheet.create({
   eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
   eventCardBody: { paddingTop: 10 },
-  eventFormat: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#687076', marginBottom: 4 },
-  eventCardTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
-  eventCardMeta: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4 },
+  eventCardTitle: { fontSize: 25, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4 },
+  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
 });
