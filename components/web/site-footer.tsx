@@ -50,6 +50,7 @@ const FRIENDS = [
   { name: 'Skyeng', logo: require('@/assets/images/friend-skyeng.png'), url: 'https://skyeng.ru/' },
   { name: 'ЗИЛАРТ', logo: require('@/assets/images/friend-zilart.png'), url: 'https://zilart.ru/' },
   { name: 'ПРО:ВЗГЛЯД', logo: require('@/assets/images/friend-provzglyad.png'), url: 'https://provzglyad.com/' },
+  { name: 'ИНОЕКИНО', logo: require('@/assets/images/friend-inoekino.png') },
   { name: 'КАРО/АРТ', logo: require('@/assets/images/friend-karo-art.png') },
   { name: 'Практика театр', logo: require('@/assets/images/friend-praktika-teatr.png'), url: 'https://praktikatheatre.ru/' },
   { name: 'twinby', logo: require('@/assets/images/friend-twinby.png'), url: 'https://twinby.ru/' },
