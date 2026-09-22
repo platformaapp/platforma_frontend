@@ -217,7 +217,11 @@ export default function EventDetailScreenWeb() {
     <View style={styles.mentorRow}>
       <View style={styles.mentorInfo}>
         <Text style={styles.mentorName}>{event.mentor.name}</Text>
-        {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+        {event.mentor.shortBio ? <Text style={styles.mentorRole}>{event.mentor.shortBio}</Text> : null}
+        {/* API отдаёт для наставника события только bio (полный текст), shortBio
+            там обычно нет — поэтому показываем bio отдельной строкой, усечённой
+            до 2 строк ("короткое био"), а не полагаемся только на shortBio. */}
+        {event.mentor.bio ? <Text style={styles.mentorBio} numberOfLines={2}>{event.mentor.bio}</Text> : null}
       </View>
       <Image
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
@@ -382,9 +386,13 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
 
   mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
-  mentorInfo: { flex: 1 },
+  // maxWidth обязателен: rightCol — flex:1 (под широкое фото), без него
+  // текстовый блок (особенно с добавленным bio) растягивался бы почти на
+  // всю ширину колонки вместо компактной подписи рядом с аватаром.
+  mentorInfo: { flex: 1, maxWidth: 360 },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 4 },
-  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  mentorRole: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  mentorBio: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
