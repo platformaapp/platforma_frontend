@@ -4,7 +4,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, T
 
 import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { getArticle, type Article } from '@/lib/api/journal';
 
@@ -49,6 +49,7 @@ function parseContent(content: string | null): { intro: string[]; section: { hea
 
 export default function ArticleScreenWeb() {
   const router = useRouter();
+  const isMobile = useIsMobileWeb();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [article, setArticle] = useState<Article | null>(null);
@@ -121,12 +122,12 @@ export default function ArticleScreenWeb() {
         <View style={styles.row}>
           <View style={styles.colText}>
             <Text style={styles.title}>{article.title}</Text>
-            <View style={styles.authorRow}>
-              {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
+            <View style={[styles.authorRow, isMobile && styles.authorRowMobile]}>
               <View>
                 {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
                 {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
               </View>
+              {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
             </View>
             {intro.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
           </View>
@@ -214,11 +215,16 @@ const styles = StyleSheet.create({
   // ниже flexBasis и текст вылезает за край на узких экранах.
   colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
   colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
-  subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  authorAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E5E5' },
-  author: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  // Имя+роль — текстом сверху, квадратное (не круглое) фото под ним; большой
+  // отступ снизу перед первым абзацем — см. референс (десктоп-макет). На
+  // мобильном тот же отступ выглядит пустым провалом без картинки рядом —
+  // сокращаем его.
+  authorRow: { marginBottom: 240 },
+  authorRowMobile: { marginBottom: 32 },
+  authorAvatar: { width: 48, height: 48, marginTop: 12, backgroundColor: '#E5E5E5' },
+  author: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   role: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
   body: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
@@ -228,18 +234,18 @@ const styles = StyleSheet.create({
   galleryImageStandalone: { flexBasis: 340, flexGrow: 1, aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
-  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
+  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
-  // ней подпись и жирный заголовок, а не мелкая горизонтальная мини-карточка.
+  // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
   ctaCard: {},
   ctaCardImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   ctaCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 20 },
-  ctaCardTitle: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginTop: 13 },
+  ctaCardTitle: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 13 },
   // У блока "Скачать приложение" нет строки-подписи над заголовком — сдвигаем
   // заголовок так же, как если бы подпись была (20 её marginTop + 13 обычный).
   ctaCardTitleNoLabel: { marginTop: 33 },
   ctaCardMeta: { width: '100%', fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right', marginTop: 20 },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
-  storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 13, color: '#E02D2D' },
+  storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
 });
