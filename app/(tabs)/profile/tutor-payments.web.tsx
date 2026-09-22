@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 12 },
 
-  balanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 0, borderColor: '#010101', paddingHorizontal: 16, paddingVertical: 16, marginBottom: 4 },
+  balanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#010101', paddingHorizontal: 16, paddingVertical: 16, marginBottom: 4 },
   balanceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
   balanceRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   balanceAmount: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101' },
