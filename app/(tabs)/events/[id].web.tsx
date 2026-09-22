@@ -8,7 +8,7 @@ import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
-import { getAuthToken } from '@/lib/auth';
+import { getAuthToken, getUserProfile } from '@/lib/auth';
 import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
@@ -100,6 +100,16 @@ export default function EventDetailScreenWeb() {
   const [cancelStep, setCancelStep] = useState<'none' | 'confirm' | 'success'>('none');
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [deleteStep, setDeleteStep] = useState<'none' | 'confirm'>('none');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    getUserProfile().then((profile) => { if (active && profile?.id) setCurrentUserId(profile.id); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -217,6 +227,28 @@ export default function EventDetailScreenWeb() {
     setTimeout(() => setShareCopied(false), 2000);
   }
 
+  async function handleDeleteEvent() {
+    if (!event || isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      const token = await getAuthToken();
+      if (!token) { router.push(`/login?redirect=/events/${event.id}` as any); return; }
+      const res = await fetch(`${endpoints.events}/${event.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok && res.status !== 404) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message ?? `Не удалось отменить событие (${res.status})`);
+      }
+      router.replace('/(tabs)/myevents' as any);
+    } catch (e: any) {
+      setDeleteError(e?.message ?? 'Не удалось отменить событие');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  const isOwnEvent = currentUserId != null && event?.mentor?.id === currentUserId;
+
   const metaBlock = (
     <View style={styles.metaRow}>
       <View>
@@ -274,18 +306,31 @@ export default function EventDetailScreenWeb() {
 
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
-            {event.isRegistered ? (
-              <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
-                <Text style={styles.chipButtonText}>Отменить запись</Text>
-              </Pressable>
+            {isOwnEvent ? (
+              <>
+                <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/profile/edit-event?id=${event.id}` as any)}>
+                  <Text style={styles.chipButtonText}>Редактировать событие</Text>
+                </Pressable>
+                <Pressable style={styles.chipButton} onPress={() => setDeleteStep('confirm')}>
+                  <Text style={styles.chipButtonText}>Отменить событие</Text>
+                </Pressable>
+              </>
             ) : (
-              <Pressable style={[styles.chipButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
-                <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
-              </Pressable>
+              <>
+                {event.isRegistered ? (
+                  <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
+                    <Text style={styles.chipButtonText}>Отменить запись</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={[styles.chipButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
+                    <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
+                  </Pressable>
+                )}
+                <Pressable style={styles.chipButton} onPress={handleShare}>
+                  <Text style={styles.chipButtonText}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+                </Pressable>
+              </>
             )}
-            <Pressable style={styles.chipButton} onPress={handleShare}>
-              <Text style={styles.chipButtonText}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
-            </Pressable>
 
             {event.mentor ? (
               <>
@@ -306,18 +351,31 @@ export default function EventDetailScreenWeb() {
               {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
               <View style={styles.actionsRow}>
-                {event.isRegistered ? (
-                  <Pressable onPress={() => setCancelStep('confirm')}>
-                    <Text style={styles.actionLink}>Отменить запись</Text>
-                  </Pressable>
+                {isOwnEvent ? (
+                  <>
+                    <Pressable onPress={() => router.push(`/(tabs)/profile/edit-event?id=${event.id}` as any)}>
+                      <Text style={styles.actionLink}>Редактировать событие</Text>
+                    </Pressable>
+                    <Pressable onPress={() => setDeleteStep('confirm')}>
+                      <Text style={styles.actionLink}>Отменить событие</Text>
+                    </Pressable>
+                  </>
                 ) : (
-                  <Pressable onPress={handleRegister} disabled={isRegistering}>
-                    <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
-                  </Pressable>
+                  <>
+                    {event.isRegistered ? (
+                      <Pressable onPress={() => setCancelStep('confirm')}>
+                        <Text style={styles.actionLink}>Отменить запись</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable onPress={handleRegister} disabled={isRegistering}>
+                        <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
+                      </Pressable>
+                    )}
+                    <Pressable onPress={handleShare}>
+                      <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+                    </Pressable>
+                  </>
                 )}
-                <Pressable onPress={handleShare}>
-                  <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
-                </Pressable>
               </View>
             </View>
 
@@ -364,6 +422,29 @@ export default function EventDetailScreenWeb() {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal transparent animationType="fade" visible={deleteStep !== 'none'} onRequestClose={() => setDeleteStep('none')}>
+        <View style={[styles.cancelOverlay, { pointerEvents: 'box-none' }]}>
+          <View style={styles.cancelModalCard}>
+            <Pressable style={styles.cancelCloseButton} onPress={() => setDeleteStep('none')} hitSlop={8}>
+              <Text style={styles.cancelCloseText}>✕</Text>
+            </Pressable>
+            <Text style={styles.cancelModalTitle}>Вы действительно хотите отменить событие?</Text>
+            <Text style={styles.cancelModalText}>Все зарегистрированные участники будут уведомлены об отмене. Действие необратимо.</Text>
+            {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
+            <View style={styles.cancelModalActions}>
+              <Pressable onPress={() => setDeleteStep('none')}>
+                <Text style={styles.cancelModalLeave}>Оставить</Text>
+              </Pressable>
+              <Pressable onPress={handleDeleteEvent} disabled={isDeleting}>
+                <Text style={[styles.cancelModalConfirm, isDeleting && styles.actionLinkDisabled]}>
+                  {isDeleting ? 'Отменяем…' : 'Отменить событие'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
