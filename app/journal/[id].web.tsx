@@ -150,6 +150,15 @@ export default function ArticleScreenWeb() {
               </View>
             ) : null}
           </View>
+        ) : galleryLeft || galleryRight ? (
+          // Галерея не привязана к "## "-подзаголовку — у реальных статей его
+          // нет ни у одной, поэтому раньше загруженные в админке фото галереи
+          // никогда не показывались. Без второго текстового блока показываем
+          // галерею отдельной строкой на всю ширину.
+          <View style={styles.galleryStandaloneRow}>
+            {galleryLeft ? <Image source={{ uri: galleryLeft }} style={styles.galleryImageStandalone} resizeMode="cover" /> : null}
+            {galleryRight ? <Image source={{ uri: galleryRight }} style={styles.galleryImageStandalone} resizeMode="cover" /> : null}
+          </View>
         ) : null}
 
         <PromoBanner withTelegramLink />
@@ -159,31 +168,27 @@ export default function ArticleScreenWeb() {
             <Pressable onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
               <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
             </Pressable>
-            <Pressable style={styles.eventCard} onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
-              {relatedEvent.coverUrl ? <Image source={{ uri: relatedEvent.coverUrl }} style={styles.eventCardImage} /> : <View style={styles.eventCardImage} />}
-              <View style={styles.eventCardInfo}>
-                <Text style={styles.eventCardTitle} numberOfLines={2}>{relatedEvent.title}</Text>
-                <Text style={styles.eventCardAuthor}>{article.author.name}</Text>
-                <Text style={styles.eventCardDate}>{formatEventTime(relatedEvent.datetimeStart)}</Text>
-              </View>
+            <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
+              {relatedEvent.coverUrl ? <Image source={{ uri: relatedEvent.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
+              <Text style={styles.ctaCardLabel} numberOfLines={1}>{article.author.name}</Text>
+              <Text style={styles.ctaCardTitle} numberOfLines={2}>{relatedEvent.title}</Text>
+              <Text style={styles.ctaCardMeta}>{formatEventTime(relatedEvent.datetimeStart)}</Text>
             </Pressable>
           </View>
         ) : null}
 
         <View style={styles.ctaBlock}>
           <Text style={styles.actionLinkText}>Скачать приложение</Text>
-          <View style={styles.appCard}>
-            <View style={styles.appCardIcon} />
-            <View style={styles.appCardTextBlock}>
-              <Text style={styles.appCardText}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
-              <View style={styles.appCardStores}>
-                <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
-                  <Text style={styles.storeLinkText}>app store</Text>
-                </Pressable>
-                <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
-                  <Text style={styles.storeLinkText}>google play</Text>
-                </Pressable>
-              </View>
+          <View style={styles.ctaCard}>
+            <View style={styles.ctaCardImage} />
+            <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
+            <View style={styles.appCardStores}>
+              <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
+                <Text style={styles.storeLinkText}>app store</Text>
+              </Pressable>
+              <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
+                <Text style={styles.storeLinkText}>google play</Text>
+              </Pressable>
             </View>
           </View>
         </View>
@@ -219,19 +224,22 @@ const styles = StyleSheet.create({
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5' },
+  galleryStandaloneRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 40 },
+  galleryImageStandalone: { flexBasis: 340, flexGrow: 1, aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
-  ctaBlock: { marginTop: 8, marginBottom: 24 },
-  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D', paddingVertical: 8 },
-  eventCard: { flexDirection: 'row', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
-  eventCardImage: { width: 96, height: 96, backgroundColor: '#E5E5E5' },
-  eventCardInfo: { flex: 1, justifyContent: 'center' },
-  eventCardTitle: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 6 },
-  eventCardAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 2 },
-  eventCardDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  appCard: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12, maxWidth: 480, backgroundColor: '#F5F5F5', padding: 12 },
-  appCardIcon: { width: 56, height: 56, backgroundColor: '#E5E5E5' },
-  appCardTextBlock: { flex: 1, gap: 8 },
-  appCardText: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  appCardStores: { flexDirection: 'row', gap: 12 },
+  ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
+  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
+  // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
+  // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
+  // ней подпись и жирный заголовок, а не мелкая горизонтальная мини-карточка.
+  ctaCard: {},
+  ctaCardImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
+  ctaCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 20 },
+  ctaCardTitle: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginTop: 13 },
+  // У блока "Скачать приложение" нет строки-подписи над заголовком — сдвигаем
+  // заголовок так же, как если бы подпись была (20 её marginTop + 13 обычный).
+  ctaCardTitleNoLabel: { marginTop: 33 },
+  ctaCardMeta: { width: '100%', fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right', marginTop: 20 },
+  appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
   storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 13, color: '#E02D2D' },
 });
