@@ -129,11 +129,29 @@ export default function TutorCardScreenWeb() {
   const upcomingEvents = mentorEvents.filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now);
   const pastEvents = mentorEvents.filter((e) => e.datetimeStart && new Date(e.datetimeStart).getTime() <= now);
 
-  function renderEventCard(ev: MentorEvent) {
+  // Как на референсе: карточки событий распределены между обеими колонками
+  // страницы — 2 в узкой левой колонке (под текстом) и 1 в правой (под
+  // фото), затем повтор — а не всё в одной колонке. slice/every 3rd matches
+  // that 2-left/1-right rhythm.
+  function splitForColumns(events: MentorEvent[]): { left: MentorEvent[]; right: MentorEvent[] } {
+    const left: MentorEvent[] = [];
+    const right: MentorEvent[] = [];
+    events.forEach((e, i) => (i % 3 === 2 ? right : left).push(e));
+    return { left, right };
+  }
+  const upcomingSplit = splitForColumns(upcomingEvents);
+  const pastSplit = splitForColumns(pastEvents);
+
+  function renderEventCard(ev: MentorEvent, widthVariant: 'grid3' | 'half' | 'full' = 'grid3') {
     return (
       <Pressable
         key={ev.id}
-        style={[styles.eventCard, isMobile && styles.eventCardMobile]}
+        style={[
+          styles.eventCard,
+          isMobile && styles.eventCardMobile,
+          !isMobile && widthVariant === 'half' && styles.eventCardHalf,
+          !isMobile && widthVariant === 'full' && styles.eventCardFull,
+        ]}
         onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
@@ -154,15 +172,47 @@ export default function TutorCardScreenWeb() {
       {upcomingEvents.length > 0 ? (
         <View style={styles.eventsSection}>
           <Text style={styles.eventsSectionTitle}>События наставника</Text>
-          <View style={styles.eventsGrid}>{upcomingEvents.map(renderEventCard)}</View>
+          <View style={styles.eventsGrid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
         </View>
       ) : null}
 
       {pastEvents.length > 0 ? (
         <View style={styles.eventsSection}>
           <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
-          <View style={styles.eventsGrid}>{pastEvents.map(renderEventCard)}</View>
+          <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e))}</View>
         </View>
+      ) : null}
+    </>
+  );
+
+  // Desktop: заголовки секций и бОльшая часть карточек — в leftCol (2 в
+  // ряд), остаток — в rightCol под фото (1 в ряд), см. splitForColumns выше.
+  const eventsSectionsLeft = (
+    <>
+      {upcomingSplit.left.length > 0 ? (
+        <View style={styles.eventsSection}>
+          <Text style={styles.eventsSectionTitle}>События наставника</Text>
+          <View style={styles.eventsGridLeft}>{upcomingSplit.left.map((e) => renderEventCard(e, 'half'))}</View>
+        </View>
+      ) : null}
+
+      {pastSplit.left.length > 0 ? (
+        <View style={styles.eventsSection}>
+          <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
+          <View style={styles.eventsGridLeft}>{pastSplit.left.map((e) => renderEventCard(e, 'half'))}</View>
+        </View>
+      ) : null}
+    </>
+  );
+
+  const eventsSectionsRight = (
+    <>
+      {upcomingSplit.right.length > 0 ? (
+        <View style={[styles.eventsSection, styles.eventsGridRight]}>{upcomingSplit.right.map((e) => renderEventCard(e, 'full'))}</View>
+      ) : null}
+
+      {pastSplit.right.length > 0 ? (
+        <View style={[styles.eventsSection, styles.eventsGridRight]}>{pastSplit.right.map((e) => renderEventCard(e, 'full'))}</View>
       ) : null}
     </>
   );
@@ -256,10 +306,11 @@ export default function TutorCardScreenWeb() {
                 </Text>
               ) : null}
 
-              {eventsSections}
+              {eventsSectionsLeft}
             </View>
             <View style={styles.rightCol}>
               <Image source={imageSource} style={styles.avatarLarge} />
+              {eventsSectionsRight}
             </View>
           </View>
         )}
@@ -314,8 +365,16 @@ const styles = StyleSheet.create({
   eventsSection: { marginTop: 40 },
   eventsSectionTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'bold', color: '#010101', marginBottom: 16 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  // leftCol — 2 карточки в ряд; rightCol (под фото) — 1 карточка в столбик,
+  // см. splitForColumns/renderEventCard(widthVariant) выше — по референсу
+  // карточки событий распределены между обеими колонками страницы, а не
+  // все сразу в одной.
+  eventsGridLeft: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  eventsGridRight: { gap: 32 },
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },
+  eventCardHalf: { width: '47%' },
+  eventCardFull: { width: '100%' },
   eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
   eventCardBody: { paddingTop: 10 },
