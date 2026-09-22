@@ -20,6 +20,9 @@ const HOVER_DIM_CSS = `
   @media (hover: hover) and (pointer: fine) {
     .r-cursor-1loqt21 { transition: opacity 0.18s ease; }
     .r-cursor-1loqt21:hover { opacity: 0.5; }
+    /* Внутри попапов (aria-modal="true" на корневом div любого <Modal>)
+       затемнение при наведении не нужно. */
+    [aria-modal="true"] .r-cursor-1loqt21:hover { opacity: 1; }
   }
 `;
 

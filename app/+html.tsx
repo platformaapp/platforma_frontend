@@ -42,6 +42,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
             @media (hover: hover) and (pointer: fine) {
               .r-cursor-1loqt21 { transition: opacity 0.18s ease; }
               .r-cursor-1loqt21:hover { opacity: 0.5; }
+              /*
+                Внутри попапов (react-native-web ставит aria-modal="true" на
+                корневой div любого <Modal>, независимо от конкретного попапа)
+                затемнение при наведении не нужно — селектор с более высокой
+                специфичностью (attribute+class+pseudo) всегда перебивает
+                правило выше без !important.
+              */
+              [aria-modal="true"] .r-cursor-1loqt21:hover { opacity: 1; }
             }
           `
         }} />
