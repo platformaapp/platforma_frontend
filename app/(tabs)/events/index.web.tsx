@@ -197,7 +197,10 @@ export default function EventsScreenWeb() {
           ) : (
             <View style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
-          <Text style={[styles.cardAuthor, isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne]} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+          <View style={isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne}>
+            {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
+            {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
+          </View>
           <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]} numberOfLines={3}>{item.title}</Text>
           <Text style={[styles.cardTime, isSecond ? styles.featuredMetaTwo : styles.featuredMetaOne]}>{formatEventTime(item.datetimeStart)}</Text>
         </View>
@@ -213,7 +216,10 @@ export default function EventsScreenWeb() {
         ) : (
           <View style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} />
         )}
-        <Text style={[styles.cardAuthor, styles.rowLabel]} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+        <View style={styles.rowLabel}>
+          {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
+          {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
+        </View>
         <Text style={[styles.cardTitleText, styles.rowTitle]} numberOfLines={3}>{item.title}</Text>
         <Text style={[styles.cardTime, styles.rowMeta]}>{formatEventTime(item.datetimeStart)}</Text>
       </Pressable>
@@ -274,7 +280,8 @@ export default function EventsScreenWeb() {
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   <View>
-                    <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor?.name ?? ''}</Text>
+                    {item.format ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.format}</Text> : null}
+                    {item.mentor?.name ? <Text style={[styles.mobileAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
                     <Text style={styles.mobileTitleText} numberOfLines={4}>{item.title}</Text>
                   </View>
                   <Text style={styles.mobileTime}>{formatEventTime(item.datetimeStart)}</Text>
@@ -341,9 +348,15 @@ const styles = StyleSheet.create({
   chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
   chipButtonText: { color: '#68717A' },
 
+  // Тип события (формат) — над именем наставника, тот же стиль (cardAuthor/
+  // mobileAuthor); если показаны оба — небольшой отступ между строками.
+  cardLabelSecondLine: { marginTop: 4 },
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardTime: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right' },
+  // width:'100%' обязателен — без него Text-бокс сжимается по содержимому,
+  // и textAlign:'right' визуально ничего не делает (нечего выравнивать
+  // внутри бокса размером с сам текст).
+  cardTime: { width: '100%', fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right' },
 
   // .proj-featured: 2 крупные карточки, 649:84:716. У второй картинка и текст
   // занимают только 72.8% её колонки (716*0.728≈521) — .card--p2 .card__img/.card__body.
@@ -378,5 +391,5 @@ const styles = StyleSheet.create({
   mobileInfo: { flex: 1, height: 149, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  mobileTime: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right' },
+  mobileTime: { width: '100%', fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right' },
 });
