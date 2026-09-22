@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { clearAuth } from '@/lib/auth';
@@ -62,14 +63,13 @@ export default function DeleteAccountScreenWeb() {
             удалены. Записи о прошедших событиях и платежах сохранятся обезличенными для истории и бухгалтерии.
           </Text>
 
-          <Text style={styles.fieldLabel}>Подтвердите паролем</Text>
-          <TextInput
-            style={[styles.input, error && styles.inputError]}
+          <PlusField
+            label="Подтвердите паролем"
             value={password}
-            onChangeText={(t) => { setPassword(t); if (error) setError(''); }}
             secureTextEntry
+            error={error || undefined}
+            onChangeText={(t) => { setPassword(t); if (error) setError(''); }}
           />
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.footerRow}>
             <Pressable onPress={handleClose}><Text style={styles.cancelLink}>Отменить</Text></Pressable>
@@ -91,10 +91,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   description: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#687076', marginBottom: 20 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  inputError: { borderColor: '#E02D2D' },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 6 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 },
   cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
   deleteLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },

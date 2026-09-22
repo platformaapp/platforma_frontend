@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { getStudentProfile } from '@/lib/api/student';
@@ -28,7 +28,6 @@ export default function LoginScreenWeb() {
   const [showLogin, setShowLogin] = useState(showLoginParam === '1');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
   const [isMentor, setIsMentor] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -152,34 +151,8 @@ export default function LoginScreenWeb() {
               </View>
 
               <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-                <Text style={styles.fieldLabel}>Логин</Text>
-                <TextInput
-                  placeholder="Почта"
-                  placeholderTextColor="#888"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                />
-
-                <Text style={styles.fieldLabel}>Пароль</Text>
-                <View style={{ position: 'relative' }}>
-                  <TextInput
-                    placeholder="Пароль"
-                    placeholderTextColor="#888"
-                    secureTextEntry={!showPwd}
-                    style={styles.input}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <Pressable onPress={() => setShowPwd((p) => !p)} style={styles.eye}>
-                    <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#010101" strokeWidth="1.5" />
-                      <Circle cx="12" cy="12" r="3" stroke="#010101" strokeWidth="1.5" />
-                    </Svg>
-                  </Pressable>
-                </View>
+                <PlusField label="Логин" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                <PlusField label="Пароль" value={password} onChangeText={setPassword} secureTextEntry />
 
                 <Pressable style={styles.checkboxRow} onPress={() => { setIsMentor((p) => !p); setLoginError(''); }}>
                   <View style={styles.checkbox}>
@@ -226,9 +199,6 @@ const styles = StyleSheet.create({
   switchLink: { marginTop: 16, alignItems: 'center' },
   switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
 
-  fieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  eye: { position: 'absolute', right: 10, top: 10 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
   checkbox: { width: 22, height: 22, borderWidth: 1, borderColor: '#010101', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   checkmark: { fontSize: 14, color: '#010101', fontWeight: 'bold', lineHeight: 18 },

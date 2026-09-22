@@ -1,8 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Circle, Path, Svg } from 'react-native-svg';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
@@ -72,40 +74,42 @@ export default function RegisterTutorStep2ScreenWeb() {
           </View>
 
           <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>Короткое био <Text style={styles.fieldHintInline}>(например, фотограф The Blueprint)</Text></Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
+            <PlusField
+              label="Короткое био"
+              hint="(например, фотограф The Blueprint)"
               value={shortBio}
               onChangeText={(t) => t.length <= SHORT_BIO_LIMIT && setShortBio(t)}
               multiline
             />
 
-            <Text style={styles.fieldLabel}>О себе в свободной форме</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
+            <PlusField
+              label="О себе в свободной форме"
               value={about}
               onChangeText={(t) => t.length <= ABOUT_LIMIT && setAbout(t)}
               multiline
             />
 
-            <Text style={styles.fieldLabel}>Стоимость часа</Text>
-            <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
+            <PlusField label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
             {rateValue > 0 ? <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(rateValue * 0.9)} ₽</Text> : null}
 
-            <Text style={styles.fieldLabel}>Собираете ли вы групповые встречи? Как часто?</Text>
-            <TextInput style={[styles.input, styles.textArea]} value={groupMeetings} onChangeText={setGroupMeetings} multiline />
+            <PlusField label="Собираете ли вы групповые встречи? Как часто?" value={groupMeetings} onChangeText={setGroupMeetings} multiline />
 
-            <Text style={styles.fieldLabel}>Фото</Text>
-            <Pressable style={[styles.upload, avatarUri && styles.uploadWithPhotoContainer]} onPress={pickImage}>
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Фото</Text>
               {avatarUri ? (
-                <View style={styles.uploadWithPhoto}>
+                <Pressable style={styles.uploadWithPhoto} onPress={pickImage}>
                   <Image source={{ uri: avatarUri }} style={styles.avatar} />
                   <Text style={styles.replacePhotoText}>Заменить фото</Text>
-                </View>
+                </Pressable>
               ) : (
-                <Text style={styles.uploadButtonText}>Загрузить фото</Text>
+                <Pressable onPress={pickImage} hitSlop={8} style={styles.plusButton}>
+                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
+                    <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
+                  </Svg>
+                </Pressable>
               )}
-            </Pressable>
+            </View>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
@@ -130,16 +134,12 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 6 },
-  fieldHintInline: { color: '#9B9B9B' },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 16, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  textArea: { minHeight: 72, textAlignVertical: 'top' },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -12, marginBottom: 16 },
-  upload: { borderWidth: 1, borderColor: '#010101', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12, minHeight: 48 },
-  uploadWithPhotoContainer: { paddingVertical: 0, paddingHorizontal: 0 },
-  uploadWithPhoto: { flexDirection: 'row', width: '100%', alignItems: 'center', paddingHorizontal: 12, gap: 12 },
-  uploadButtonText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  avatar: { width: 40, height: 40, backgroundColor: '#f0f0f0' },
+  fieldWrap: { marginBottom: 24 },
+  fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -16, marginBottom: 16 },
+  plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
+  uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
   replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },

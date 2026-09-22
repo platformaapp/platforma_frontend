@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
@@ -31,8 +31,6 @@ export default function RegisterTutorScreenWeb() {
   const [telegram, setTelegram] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
-  const [show1, setShow1] = useState(false);
-  const [show2, setShow2] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string; password2?: string }>({});
@@ -119,24 +117,20 @@ export default function RegisterTutorScreenWeb() {
           </View>
 
           <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-            <LabeledInput placeholder="Имя и фамилия" value={fullName} error={errors.fullName}
-              onChangeText={(t: string) => { setFullName(t); if (errors.fullName) setErrors((e) => ({ ...e, fullName: undefined })); }} />
-            {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
+            <PlusField label="Имя" value={fullName} error={errors.fullName}
+              onChangeText={(t) => { setFullName(t); if (errors.fullName) setErrors((e) => ({ ...e, fullName: undefined })); }} />
 
-            <LabeledInput placeholder="Почта" value={email} error={errors.email} autoCapitalize="none" keyboardType="email-address"
-              onChangeText={(t: string) => { setEmail(t); if (errors.email) setErrors((e) => ({ ...e, email: undefined })); }} />
-            {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+            <PlusField label="Почта" value={email} error={errors.email} autoCapitalize="none" keyboardType="email-address"
+              onChangeText={(t) => { setEmail(t); if (errors.email) setErrors((e) => ({ ...e, email: undefined })); }} />
 
-            <LabeledInput placeholder="Телеграм" value={telegram} autoCapitalize="none"
-              onChangeText={(t: string) => setTelegram(t.replace(/^@/, ''))} />
+            <PlusField label="Телеграм" value={telegram} autoCapitalize="none"
+              onChangeText={(t) => setTelegram(t.replace(/^@/, ''))} />
 
-            <PasswordInput placeholder="Пароль" value={password} visible={show1} onToggle={() => setShow1(!show1)} error={errors.password}
-              onChangeText={(t: string) => { setPassword(t); if (errors.password) setErrors((e) => ({ ...e, password: undefined })); }} />
-            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+            <PlusField label="Пароль" value={password} error={errors.password} secureTextEntry
+              onChangeText={(t) => { setPassword(t); if (errors.password) setErrors((e) => ({ ...e, password: undefined })); }} />
 
-            <PasswordInput placeholder="Ещё раз пароль" value={password2} visible={show2} onToggle={() => setShow2(!show2)} error={errors.password2}
-              onChangeText={(t: string) => { setPassword2(t); if (errors.password2) setErrors((e) => ({ ...e, password2: undefined })); }} />
-            {errors.password2 ? <Text style={styles.errorText}>{errors.password2}</Text> : null}
+            <PlusField label="Еще раз пароль" value={password2} error={errors.password2} secureTextEntry
+              onChangeText={(t) => { setPassword2(t); if (errors.password2) setErrors((e) => ({ ...e, password2: undefined })); }} />
 
             <Text style={styles.hint}>Пароль должен быть не менее 7 символов и содержать буквы, цифры и спецсимволы</Text>
 
@@ -161,24 +155,6 @@ export default function RegisterTutorScreenWeb() {
   );
 }
 
-function LabeledInput({ error, ...props }: any) {
-  return <TextInput placeholderTextColor={error ? '#E02D2D' : '#888'} style={[styles.input, error && styles.inputError]} {...props} />;
-}
-
-function PasswordInput({ visible, onToggle, error, ...props }: any) {
-  return (
-    <View style={{ position: 'relative' }}>
-      <TextInput placeholderTextColor={error ? '#E02D2D' : '#888'} style={[styles.input, error && styles.inputError]} secureTextEntry={!visible} {...props} />
-      <Pressable onPress={onToggle} style={styles.eye}>
-        <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#010101" strokeWidth="1.5" />
-          <Circle cx="12" cy="12" r="3" stroke="#010101" strokeWidth="1.5" />
-        </Svg>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 520, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
@@ -186,11 +162,8 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  inputError: { borderColor: '#E02D2D', color: '#E02D2D' },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: -8, marginBottom: 12 },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginBottom: 12 },
   hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginBottom: 4 },
-  eye: { position: 'absolute', right: 10, top: 10 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginTop: 16 },
   terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#010101' },
   termsLink: { textDecorationLine: 'underline' },

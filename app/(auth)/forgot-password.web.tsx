@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 
@@ -85,17 +86,14 @@ export default function ForgotPasswordScreenWeb() {
             Мы пришлем ссылку для восстановления на почту, указанную при регистрации
           </Text>
 
-          <Text style={styles.fieldLabel}>Почта</Text>
-          <TextInput
-            placeholder="Почта"
-            placeholderTextColor={error ? '#E02D2D' : '#888'}
+          <PlusField
+            label="Почта"
             autoCapitalize="none"
             keyboardType="email-address"
-            style={[styles.input, error && styles.inputError]}
             value={email}
+            error={error ?? undefined}
             onChangeText={(text) => { setEmail(text); if (error) setError(null); }}
           />
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.footerRow}>
             <Pressable onPress={onSubmit} disabled={isSubmitting}>
@@ -116,10 +114,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   description: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#010101', marginBottom: 20 },
-  fieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  inputError: { borderColor: '#E02D2D', color: '#E02D2D' },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 8 },
   footerRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 },
   submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
 });

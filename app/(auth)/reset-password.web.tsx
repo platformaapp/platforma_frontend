@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 
@@ -26,8 +26,6 @@ export default function ResetPasswordScreenWeb() {
 
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
-  const [show1, setShow1] = useState(false);
-  const [show2, setShow2] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error1, setError1] = useState<string | null>(null);
   const [error2, setError2] = useState<string | null>(null);
@@ -90,35 +88,31 @@ export default function ResetPasswordScreenWeb() {
             </Pressable>
           </View>
 
-          <Text style={styles.fieldLabel}>Новый пароль</Text>
-          <PasswordField
+          <PlusField
+            label="Новый пароль"
             value={password}
-            visible={show1}
-            onToggle={() => setShow1((v) => !v)}
-            error={error1}
-            onChangeText={(text: string) => {
+            secureTextEntry
+            error={error1 ?? undefined}
+            onChangeText={(text) => {
               setPassword(text);
               if (error1) setError1(null);
               if (password2 && text !== password2) setError2('Пароли не совпадают!');
               else if (password2 && text === password2 && error2 === 'Пароли не совпадают!') setError2(null);
             }}
           />
-          {error1 ? <Text style={styles.errorText}>{error1}</Text> : null}
 
-          <Text style={styles.fieldLabel}>Повторите новый пароль</Text>
-          <PasswordField
+          <PlusField
+            label="Повторите новый пароль"
             value={password2}
-            visible={show2}
-            onToggle={() => setShow2((v) => !v)}
-            error={error2}
-            onChangeText={(text: string) => {
+            secureTextEntry
+            error={error2 ?? undefined}
+            onChangeText={(text) => {
               setPassword2(text);
               if (error2) setError2(null);
               if (password && text !== password) setError2('Пароли не совпадают!');
               else if (password && text === password && error2 === 'Пароли не совпадают!') setError2(null);
             }}
           />
-          {error2 ? <Text style={styles.errorText}>{error2}</Text> : null}
 
           <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
 
@@ -134,37 +128,13 @@ export default function ResetPasswordScreenWeb() {
   );
 }
 
-function PasswordField({ visible, onToggle, error, ...props }: any) {
-  return (
-    <View style={{ position: 'relative', marginBottom: 4 }}>
-      <TextInput
-        placeholderTextColor={error ? '#E02D2D' : '#888'}
-        style={[styles.input, error && styles.inputError]}
-        secureTextEntry={!visible}
-        {...props}
-      />
-      <Pressable onPress={onToggle} style={styles.eye}>
-        <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <Path d="M2 12C3.7 7.6 7.5 5 12 5C16.5 5 20.3 7.6 22 12C20.3 16.4 16.5 19 12 19C7.5 19 3.7 16.4 2 12Z" stroke="#010101" strokeWidth="1.5" />
-          <Circle cx="12" cy="12" r="3" stroke="#010101" strokeWidth="1.5" />
-        </Svg>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
   card: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
-  fieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B', marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  inputError: { borderColor: '#E02D2D', color: '#E02D2D' },
-  eye: { position: 'absolute', right: 10, top: 10 },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4, marginBottom: 8 },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#9B9B9B', marginTop: 4 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#9B9B9B', marginTop: -12 },
   footerRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
   submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'bold', fontSize: 15, color: '#E02D2D' },
 });
