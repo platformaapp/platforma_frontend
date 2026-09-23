@@ -135,6 +135,10 @@ export default function EventDetailScreenWeb() {
   const [editExistingCoverUrl, setEditExistingCoverUrl] = useState<string | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editStatus, setEditStatus] = useState<string | null>(null);
+  // Автовысота вместо скролла внутри поля — весь текст (в т.ч. с переносом
+  // строк на мобильных) должен быть виден целиком, без внутреннего скроллбара.
+  const [editTitleHeight, setEditTitleHeight] = useState(24);
+  const [editDescriptionHeight, setEditDescriptionHeight] = useState(60);
   const editFileRef = useRef<HTMLInputElement>(null);
   const editDateRef = useRef<any>(null);
   const editTimeRef = useRef<any>(null);
@@ -293,6 +297,8 @@ export default function EventDetailScreenWeb() {
     setEditCoverUri(null);
     setEditExistingCoverUrl(event.coverUrl ?? null);
     setEditStatus(null);
+    setEditTitleHeight(24);
+    setEditDescriptionHeight(60);
     setEditOpen(true);
   }
 
@@ -577,7 +583,7 @@ export default function EventDetailScreenWeb() {
         <View style={[styles.editOverlay, { pointerEvents: 'box-none' }]}>
           <View style={styles.editModalCard}>
             <View style={styles.editHeaderRow}>
-              <Text style={styles.editTitle}>Изменение события</Text>
+              <Text style={[styles.editTitle, isMobile && styles.editTitleMobile]}>Изменение события</Text>
               <Pressable onPress={() => setEditOpen(false)} hitSlop={8}>
                 <Text style={styles.editCloseText}>✕</Text>
               </Pressable>
@@ -593,7 +599,10 @@ export default function EventDetailScreenWeb() {
                 <TextInput
                   value={editTitle}
                   onChangeText={setEditTitle}
-                  style={styles.editFieldInput}
+                  style={[styles.editFieldInput, { height: editTitleHeight }]}
+                  multiline
+                  scrollEnabled={false}
+                  onContentSizeChange={(e) => setEditTitleHeight(Math.max(24, Math.ceil(e.nativeEvent.contentSize.height)))}
                   editable={!event?.hasPaidRegistrations}
                 />
               </View>
@@ -603,8 +612,10 @@ export default function EventDetailScreenWeb() {
                 <TextInput
                   value={editDescription}
                   onChangeText={setEditDescription}
-                  style={[styles.editFieldInput, styles.editFieldMultiline]}
+                  style={[styles.editFieldInput, { height: editDescriptionHeight }]}
                   multiline
+                  scrollEnabled={false}
+                  onContentSizeChange={(e) => setEditDescriptionHeight(Math.max(60, Math.ceil(e.nativeEvent.contentSize.height)))}
                   editable={!event?.hasPaidRegistrations}
                 />
               </View>
@@ -775,15 +786,15 @@ const styles = StyleSheet.create({
   editOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(24,24,24,0.45)', padding: 16 },
   editModalCard: { width: '100%', maxWidth: 640, maxHeight: '85%', backgroundColor: '#fff', padding: 32 },
   editHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 16 },
-  editTitle: { flex: 1, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 32, lineHeight: 36, color: '#010101' },
+  editTitle: { flex: 1, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
+  editTitleMobile: { fontSize: 25, lineHeight: 28 },
   editCloseText: { fontSize: 22, color: '#010101', marginTop: 4 },
   editScroll: { flexGrow: 0 },
   editScrollContent: { paddingBottom: 8 },
   editLockedNote: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
   editFieldWrap: { marginBottom: 28 },
   editFieldLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
-  editFieldInput: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none' } as any,
-  editFieldMultiline: { minHeight: 60, textAlignVertical: 'top' },
+  editFieldInput: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none', textAlignVertical: 'top' } as any,
   editFieldValueRow: { position: 'relative' },
   editFieldValue: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
   editCommissionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 6 },
