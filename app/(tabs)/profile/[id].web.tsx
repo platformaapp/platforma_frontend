@@ -109,11 +109,13 @@ export default function ProfileScreenWeb() {
   const slotHoverOutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [slotsSaveError, setSlotsSaveError] = useState('');
   // "+" у конкретной даты — дата уже известна (это дата группы), поэтому
-  // нужно спросить только время: программно открываем нативный time-picker
-  // через этот скрытый <input>, а какую дату к нему привязать, хранит
-  // timePickerDate. Слот создаётся на бэкенде сразу по выбору времени.
-  const timePickerRef = useRef<HTMLInputElement>(null);
-  const [timePickerDate, setTimePickerDate] = useState<string | null>(null);
+  // открываем видимый мини-пикер только для времени, привязанный к этой
+  // дате. Слот создаётся не по первому же onChange нативного <input type=
+  // "time"> (браузер там нередко шлёт onChange уже после того, как выбраны
+  // только часы или только минуты — второй сегмент выбрать не успеваешь),
+  // а по явному нажатию "Выбрать".
+  const [timePickerOpenDate, setTimePickerOpenDate] = useState<string | null>(null);
+  const [timePickerDraft, setTimePickerDraft] = useState('');
 
   // ── Tutor-only modals ───────────────────────────────────────────────────────
   const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
@@ -666,13 +668,19 @@ export default function ProfileScreenWeb() {
     }
   }
 
-  /** "+" у даты — дата уже известна, спрашиваем только время нативным
-   * пикером браузера (невидимый <input type="time"> триггерится программно). */
-  function openTimePickerForDate(date: string) {
-    setTimePickerDate(date);
-    requestAnimationFrame(() => {
-      try { timePickerRef.current?.showPicker?.(); } catch { timePickerRef.current?.click?.(); }
-    });
+  /** "+" у даты — дата уже известна, открываем мини-пикер только для времени;
+   * повторный клик по "+" той же даты закрывает его. */
+  function toggleTimePickerForDate(date: string) {
+    setTimePickerOpenDate((cur) => (cur === date ? null : date));
+    setTimePickerDraft('');
+  }
+
+  function confirmTimePickerSlot() {
+    if (timePickerOpenDate && timePickerDraft) {
+      createAndAddSlot(timePickerOpenDate, timePickerDraft);
+    }
+    setTimePickerOpenDate(null);
+    setTimePickerDraft('');
   }
 
   async function handleCreateEvent() {
@@ -963,7 +971,12 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
               <Text style={styles.fieldLabel}>Обложка</Text>
               <Pressable style={styles.fieldInputWrap} onPress={handlePickCover}>
-                {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : <Text style={styles.plusIcon}>⊕</Text>}
+                {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : (
+                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
+                    <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
+                  </Svg>
+                )}
               </Pressable>
               {eventError ? <Text style={styles.errorText}>{eventError}</Text> : null}
             </ScrollView>
@@ -1022,44 +1035,43 @@ export default function ProfileScreenWeb() {
                         </Pressable>
                       );
                     })}
-                    <Pressable style={styles.slotAddChip} onPress={() => openTimePickerForDate(group.date)}>
+                    <Pressable style={styles.slotAddChip} onPress={() => toggleTimePickerForDate(group.date)}>
                       <Text style={styles.slotAddChipText}>+</Text>
                     </Pressable>
                   </View>
+
+                  {timePickerOpenDate === group.date ? (
+                    <View style={styles.slotTimePickerRow}>
+                      <input
+                        type="time"
+                        value={timePickerDraft}
+                        autoFocus
+                        style={styles.slotTimePickerInput as any}
+                        onChange={(e: any) => setTimePickerDraft(e.target.value)}
+                      />
+                      <Pressable
+                        style={[styles.slotTimePickerConfirmInline, !timePickerDraft && styles.btnDisabled]}
+                        onPress={confirmTimePickerSlot}
+                        disabled={!timePickerDraft}
+                      >
+                        <Text style={styles.slotTimePickerConfirmText}>Выбрать</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </ScrollView>
 
-            {/* Скрытый time-picker для "+" — дата уже известна (группа), спрашиваем
-                только время; выбранное значение сразу создаёт слот на бэкенде. */}
-            <input
-              ref={timePickerRef}
-              type="time"
-              style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' } as any}
-              onChange={(e: any) => {
-                const v = e.target.value;
-                const date = timePickerDate;
-                setTimePickerDate(null);
-                if (v && date) createAndAddSlot(date, v);
-              }}
-            />
-
-            <DateFieldWithPicker
-              label="Дата"
-              value={newSlotDate}
-              onChangeValue={(d) => {
-                if (newSlotTime) { createAndAddSlot(d, newSlotTime); setNewSlotDate(''); setNewSlotTime(''); }
-                else setNewSlotDate(d);
-              }}
-            />
-            <TimeFieldWithPicker
-              label="Время"
-              value={newSlotTime}
-              onChangeValue={(t) => {
-                if (newSlotDate) { createAndAddSlot(newSlotDate, t); setNewSlotDate(''); setNewSlotTime(''); }
-                else setNewSlotTime(t);
-              }}
-            />
+            <DateFieldWithPicker label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate} />
+            <TimeFieldWithPicker label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} />
+            {newSlotDate && newSlotTime ? (
+              <Pressable
+                style={styles.slotTimePickerConfirm}
+                onPress={() => { createAndAddSlot(newSlotDate, newSlotTime); setNewSlotDate(''); setNewSlotTime(''); }}
+              >
+                <Text style={styles.slotTimePickerConfirmText}>Выбрать</Text>
+              </Pressable>
+            ) : null}
 
             {slotsSaveError ? <Text style={styles.errorText}>{slotsSaveError}</Text> : null}
 
@@ -1299,8 +1311,15 @@ const styles = StyleSheet.create({
   addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  // Мини-пикер времени под группой даты — виден целиком (не спрятанный
+  // <input>), с явной кнопкой "Выбрать", чтобы можно было покликать по часам
+  // и минутам сколько нужно, не создавая слот раньше времени.
+  slotTimePickerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
+  slotTimePickerInput: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101', borderWidth: 1, borderColor: '#010101', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'transparent' },
+  slotTimePickerConfirmInline: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16 },
+  slotTimePickerConfirm: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
+  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
-  plusIcon: { position: 'absolute', top: 0, left: 0, fontSize: 18, color: '#010101' },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
   successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
   primaryButton: { backgroundColor: '#010101', paddingVertical: 14, alignItems: 'center', marginTop: 8 },
