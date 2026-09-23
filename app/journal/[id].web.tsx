@@ -17,7 +17,7 @@ function formatEventTime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch {
     return '';
   }

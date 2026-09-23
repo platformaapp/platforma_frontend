@@ -71,9 +71,9 @@ function formatEventTime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    const day = String(d.getDate()).padStart(2, '0');
+    const day = d.getDate();
     const month = MONTHS_GEN[d.getMonth()];
-    const hh = String(d.getHours()).padStart(2, '0');
+    const hh = d.getHours();
     const mm = String(d.getMinutes()).padStart(2, '0');
     return `${day} ${month} ${hh}:${mm}`;
   } catch {

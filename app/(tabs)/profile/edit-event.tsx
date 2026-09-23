@@ -25,14 +25,14 @@ import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/ev
 import { getAuthToken } from '@/lib/auth';
 
 function formatDate(d: Date): string {
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
   const year = d.getFullYear();
   return `${day}.${month}.${year}`;
 }
 
 function formatTime(d: Date): string {
-  const hh = String(d.getHours()).padStart(2, '0');
+  const hh = d.getHours();
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
 }

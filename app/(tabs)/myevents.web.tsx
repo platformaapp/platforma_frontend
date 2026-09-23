@@ -43,20 +43,21 @@ function formatDatetime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return `${String(d.getDate()).padStart(2, '0')} ${MONTHS_GEN[d.getMonth()]} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
   } catch {
     return iso ?? '';
   }
 }
 
 function formatBookingDate(date?: string, time?: string): string {
-  if (!date) return time ? time.slice(0, 5) : '';
   const timeClean = time ? time.slice(0, 5) : '00:00';
+  const timeNoLeadingZero = timeClean.replace(/^0(\d:)/, '$1');
+  if (!date) return time ? timeNoLeadingZero : '';
   try {
     const d = new Date(`${date}T${timeClean}:00`);
-    if (!isNaN(d.getTime())) return `${String(d.getDate()).padStart(2, '0')} ${MONTHS_GEN[d.getMonth()]} ${timeClean}`;
+    if (!isNaN(d.getTime())) return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${timeNoLeadingZero}`;
   } catch { /* fallback below */ }
-  return `${date} ${timeClean}`;
+  return `${date} ${timeNoLeadingZero}`;
 }
 
 /** "2 дня 3 часа и 15 минут" — для виджета "До ближайшего события" в шапке страницы. */

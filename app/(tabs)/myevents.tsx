@@ -77,10 +77,10 @@ function formatDatetime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    const day = String(d.getDate()).padStart(2, '0');
+    const day = d.getDate();
     const month = MONTHS_GEN[d.getMonth()];
     const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
-    const hh = String(d.getHours()).padStart(2, '0');
+    const hh = d.getHours();
     const mm = String(d.getMinutes()).padStart(2, '0');
     return `${day} ${month} ${weekday} ${hh}:${mm}`;
   } catch {
@@ -92,10 +92,10 @@ function formatMenuDatetime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = d.getDate();
+    const month = d.getMonth() + 1;
     const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
-    const hh = String(d.getHours()).padStart(2, '0');
+    const hh = d.getHours();
     const mm = String(d.getMinutes()).padStart(2, '0');
     return `${day}.${month}  ${weekday}  ${hh}:${mm}`;
   } catch {
@@ -111,10 +111,10 @@ function formatBookingDate(date?: string, time?: string): string {
       const timeClean = time ? time.slice(0, 5) : '00:00';
       const d = new Date(`${date}T${timeClean}:00`);
       if (!isNaN(d.getTime())) {
-        const day = String(d.getDate()).padStart(2, '0');
+        const day = d.getDate();
         const month = MONTHS_GEN[d.getMonth()];
         const weekday = d.toLocaleString('ru-RU', { weekday: 'short' }).toUpperCase();
-        const hh = String(d.getHours()).padStart(2, '0');
+        const hh = d.getHours();
         const mm = String(d.getMinutes()).padStart(2, '0');
         return time ? `${day} ${month} ${weekday} ${hh}:${mm}` : `${day} ${month} ${weekday}`;
       }
