@@ -145,6 +145,27 @@ export default function TutorCardScreenWeb() {
   const upcomingSplit = splitForColumns(upcomingEvents);
   const pastSplit = splitForColumns(pastEvents);
 
+  // Mobile: одно событие — одна полноширинная строка (миниатюра слева,
+  // текст справа, дата/цена прижаты к низу справа) — не карточка в сетке
+  // 2 в ряд, см. референс мобильной страницы наставника.
+  function renderEventCardMobile(ev: MentorEvent) {
+    return (
+      <Pressable key={ev.id} style={styles.eventRowMobile} onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}>
+        {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
+        <View style={styles.eventRowBodyMobile}>
+          <View>
+            {ev.format ? <Text style={styles.eventFormatMobile}>{ev.format}</Text> : null}
+            <Text style={styles.eventCardTitleMobile} numberOfLines={3}>{ev.title}</Text>
+          </View>
+          <Text style={styles.eventRowMetaMobile}>
+            {formatEventDate(ev.datetimeStart)}
+            {ev.price != null ? `    ${ev.price.toLocaleString('ru-RU')} Р` : ''}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  }
+
   function renderEventCard(ev: MentorEvent, widthVariant: 'grid3' | 'half' | 'full' = 'grid3') {
     return (
       <Pressable
@@ -174,15 +195,23 @@ export default function TutorCardScreenWeb() {
     <>
       {upcomingEvents.length > 0 ? (
         <View style={styles.eventsSection}>
-          <Text style={styles.eventsSectionTitle}>События наставника</Text>
-          <View style={styles.eventsGrid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
+          <Text style={[styles.eventsSectionTitle, isMobile && styles.eventsSectionTitleMobile]}>События наставника</Text>
+          {isMobile ? (
+            <View style={styles.eventsListMobile}>{upcomingEvents.map((e) => renderEventCardMobile(e))}</View>
+          ) : (
+            <View style={styles.eventsGrid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
+          )}
         </View>
       ) : null}
 
       {pastEvents.length > 0 ? (
         <View style={styles.eventsSection}>
-          <Text style={styles.eventsSectionTitle}>Прошедшие события</Text>
-          <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e))}</View>
+          <Text style={[styles.eventsSectionTitle, isMobile && styles.eventsSectionTitleMobile]}>Прошедшие события</Text>
+          {isMobile ? (
+            <View style={styles.eventsListMobile}>{pastEvents.map((e) => renderEventCardMobile(e))}</View>
+          ) : (
+            <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e))}</View>
+          )}
         </View>
       ) : null}
     </>
@@ -243,22 +272,19 @@ export default function TutorCardScreenWeb() {
 
         {isMobile ? (
           <View>
-            <View style={styles.headerRow}>
-              <View style={styles.headerText}>
-                <Text style={styles.name}>{displayName || 'Наставник'}</Text>
-                {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
-              </View>
+            <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
+
+            <View style={styles.headerRowMobile}>
               <Image source={imageSource} style={styles.avatarMobile} />
+              <View style={styles.headerInfoMobile}>
+                {displayRole ? <Text style={[styles.role, styles.roleMobile]}>{displayRole}</Text> : null}
+                {displayPrice ? (
+                  <Text style={styles.priceTextMobile}>Стоимость консультации {displayPrice}</Text>
+                ) : null}
+              </View>
             </View>
 
             {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
-
-            {displayPrice ? (
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Стоимость консультации:</Text>
-                <Text style={styles.priceValue}>{displayPrice}</Text>
-              </View>
-            ) : null}
 
             <View style={styles.actionsRowMobile}>{actions}</View>
             {instagramUrl ? (
@@ -324,12 +350,17 @@ const styles = StyleSheet.create({
   avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
-  headerText: { flex: 1 },
-  avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
+  // Mobile: имя отдельной строкой сверху, ниже — портретное фото слева и
+  // роль/цена справа от него (см. референс мобильной страницы наставника).
+  headerRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
+  headerInfoMobile: { flex: 1, gap: 16 },
+  avatarMobile: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
+  priceTextMobile: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  nameMobile: { fontSize: 25, lineHeight: 28 },
   role: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
+  roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
   bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
   priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
@@ -349,6 +380,7 @@ const styles = StyleSheet.create({
 
   eventsSection: { marginTop: 40 },
   eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   // Доп. отступ сверху для заголовка-строки грида (сама eventsSectionTitle
   // без него — используется и в мобильной eventsSection, где отступ уже
   // на обёртке).
@@ -370,4 +402,14 @@ const styles = StyleSheet.create({
   eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4 },
   eventCardTitle: { fontSize: 25, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4 },
   eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+
+  // Mobile: полноширинная строка на событие (миниатюра + текст), а не
+  // карточки в сетке — см. renderEventCardMobile / референс.
+  eventsListMobile: { gap: 24 },
+  eventRowMobile: { flexDirection: 'row', gap: 16 },
+  eventThumbMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', flexShrink: 0 },
+  eventRowBodyMobile: { flex: 1, minHeight: 90, justifyContent: 'space-between' },
+  eventFormatMobile: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4 },
+  eventCardTitleMobile: { fontSize: 16, lineHeight: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  eventRowMetaMobile: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
 });
