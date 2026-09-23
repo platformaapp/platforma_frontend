@@ -296,8 +296,8 @@ export default function EventDetailScreenWeb() {
               <View style={styles.mobileHeaderRow}>
                 <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" />
                 <View style={styles.mobileMetaCol}>
-                  <Text style={styles.metaValue}>{formatDatetime(event.datetimeStart)}</Text>
-                  <Text style={styles.metaValue}>{formatPrice(event.price)}</Text>
+                  <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
+                  <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
                 </View>
               </View>
             ) : metaBlock}
@@ -326,9 +326,6 @@ export default function EventDetailScreenWeb() {
                     <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
                   </Pressable>
                 )}
-                <Pressable style={styles.chipButton} onPress={handleShare}>
-                  <Text style={styles.chipButtonText}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
-                </Pressable>
               </>
             )}
 
@@ -336,7 +333,7 @@ export default function EventDetailScreenWeb() {
               <>
                 {mentorRow}
                 <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                  <Text style={styles.chipButtonText}>Написать</Text>
+                  <Text style={styles.chipButtonText}>Перейти в профиль</Text>
                 </Pressable>
               </>
             ) : null}
@@ -494,6 +491,7 @@ const styles = StyleSheet.create({
   mobileHeaderRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 16 },
   mobileThumb: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
   mobileMetaCol: { flex: 1, gap: 6 },
+  mobileMetaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
   chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#68717A' },
 
