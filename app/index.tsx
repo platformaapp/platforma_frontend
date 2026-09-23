@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Platform,
   StyleSheet,
   View,
 } from 'react-native';
@@ -29,7 +30,10 @@ export default function IntroScreen() {
     // On web: if the user opened a deep link (e.g. /reset-password?token=…),
     // skip the intro and navigate straight to that path so the browser URL is
     // honoured and nothing is cancelled.
-    if (typeof window !== 'undefined') {
+    // Только web: в нативном релизном билде `window` существует, а
+    // `window.location` — нет (Expo полифилит его только в dev), и
+    // деструктуризация undefined роняла приложение сразу после splash.
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
       const { pathname, search } = window.location;
       if (pathname && pathname !== '/' && pathname !== '/index.html') {
         router.replace((pathname + search) as any);

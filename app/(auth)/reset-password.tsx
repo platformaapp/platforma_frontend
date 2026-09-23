@@ -17,7 +17,7 @@ export default function ResetPasswordScreen() {
   // hydrated search params yet (static-export SPA fallback via nginx).
   const [token, setToken] = useState<string | undefined>(tokenParam || undefined);
   React.useEffect(() => {
-    if (!token && typeof window !== 'undefined') {
+    if (!token && typeof window !== 'undefined' && window.location) {
       const t = new URLSearchParams(window.location.search).get('token');
       if (t) setToken(t);
     }
