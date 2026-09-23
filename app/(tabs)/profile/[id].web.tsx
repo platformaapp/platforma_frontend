@@ -1101,10 +1101,10 @@ const styles = StyleSheet.create({
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
   plusFieldWrap: { marginBottom: 24 },
-  plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101', marginBottom: 8 },
+  plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', marginBottom: 8 },
   plusFieldButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   plusFieldValueRow: { position: 'relative', paddingVertical: 4 },
-  plusFieldValueText: { fontFamily: 'Gramatika-Regular', fontSize: 15, color: '#010101' },
+  plusFieldValueText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
 
   // Student view
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
