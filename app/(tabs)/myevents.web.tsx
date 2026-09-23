@@ -1,15 +1,12 @@
 import { useFocusEffect } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
-import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
@@ -31,8 +28,6 @@ type BookingItem = {
 };
 
 type Tab = 'events' | 'meetings';
-type CancelTarget = { kind: 'event'; item: EventItem } | { kind: 'booking'; item: BookingItem };
-type MenuOption = { label: string; danger?: boolean; onPress: () => void };
 
 const MONTHS_GEN = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
@@ -80,14 +75,6 @@ function formatCountdown(targetMs: number): string {
   return `${parts.slice(0, -1).join(' ')} и ${parts[parts.length - 1]}`;
 }
 
-function combineDatetime(date: string, time: string): string | undefined {
-  if (!date) return undefined;
-  const t = time || '00:00';
-  const d = new Date(`${date}T${t}:00`);
-  if (isNaN(d.getTime())) return undefined;
-  return d.toISOString();
-}
-
 function isAuthError(e: unknown): boolean {
   if (!e) return false;
   if (e instanceof AuthError) return true;
@@ -96,10 +83,10 @@ function isAuthError(e: unknown): boolean {
 }
 
 /**
- * Веб-версия "Мои записи" — вкладки "События" / "Личные встречи", меню "•••"
- * на карточке (настройки/написать/отменить вместо отдельных ссылок),
- * двухшаговое модальное подтверждение отмены и виджет "До ближайшего
- * события" внизу справа с кнопкой подключения к видео.
+ * Веб-версия "Мои записи" — вкладки "События" / "Личные встречи". Действия
+ * над своим событием (редактирование/отмена) — на странице самого события,
+ * а не в меню на карточке списка; здесь карточка только ведёт на неё.
+ * Личные встречи открываются в модалке с "написать"/"отменить".
  */
 export default function MyEventsScreenWeb() {
   const router = useRouter();
@@ -110,7 +97,6 @@ export default function MyEventsScreenWeb() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   // router.push() не размонтирует этот экран — expo-router (React
   // Navigation) держит предыдущий экран стека смонтированным, поэтому
   // Modal с visible={true} по условию isEmpty продолжал бы висеть поверх
@@ -119,21 +105,10 @@ export default function MyEventsScreenWeb() {
   // каждом новом фокусе на страницу (см. useFocusEffect ниже).
   const [emptyModalDismissed, setEmptyModalDismissed] = useState(false);
 
-  const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<BookingItem | null>(null);
   const [cancelPhase, setCancelPhase] = useState<'confirm' | 'success'>('confirm');
   const [cancelling, setCancelling] = useState(false);
   const [viewingBooking, setViewingBooking] = useState<BookingItem | null>(null);
-
-  const [editEventItem, setEditEventItem] = useState<EventItem | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editDate, setEditDate] = useState('');
-  const [editTime, setEditTime] = useState('');
-  const [editPrice, setEditPrice] = useState('');
-  const [editMax, setEditMax] = useState('');
-  const [editCoverUri, setEditCoverUri] = useState<string | null>(null);
-  const [editSaving, setEditSaving] = useState(false);
-  const [editError, setEditError] = useState('');
 
   const [, forceTick] = useState(0);
   useEffect(() => {
@@ -204,19 +179,6 @@ export default function MyEventsScreenWeb() {
 
   useFocusEffect(useCallback(() => { setLoading(true); setEmptyModalDismissed(false); load(); }, [load]));
 
-  async function performCancelEvent(id: string): Promise<boolean> {
-    const attempts = role === 'tutor'
-      ? [() => authedFetch(`${endpoints.events}/${id}`, { method: 'DELETE' })]
-      : [() => authedFetch(`${endpoints.events}/${id}/registration`, { method: 'DELETE' }), () => authedFetch(`${endpoints.events}/${id}/unregister`, { method: 'POST' })];
-    let res = await attempts[0]();
-    for (const attempt of attempts.slice(1)) {
-      if (res.status !== 404 && res.status !== 405) break;
-      res = await attempt();
-    }
-    if (res.ok || res.status === 404) { setEvents((prev) => prev.filter((e) => e.id !== id)); return true; }
-    return false;
-  }
-
   async function performCancelBooking(booking: BookingItem): Promise<boolean> {
     const viewerRole = booking._viewerRole ?? role;
     const url = viewerRole === 'tutor' ? `${endpoints.tutorBookings}/${booking.id}` : `${endpoints.studentBookings}/${booking.id}`;
@@ -225,9 +187,8 @@ export default function MyEventsScreenWeb() {
     return false;
   }
 
-  function openCancelModal(target: CancelTarget) {
-    setOpenMenuId(null);
-    setCancelTarget(target);
+  function openCancelModal(booking: BookingItem) {
+    setCancelTarget(booking);
     setCancelPhase('confirm');
   }
 
@@ -239,7 +200,7 @@ export default function MyEventsScreenWeb() {
     if (!cancelTarget) return;
     setCancelling(true);
     try {
-      const ok = cancelTarget.kind === 'event' ? await performCancelEvent(cancelTarget.item.id) : await performCancelBooking(cancelTarget.item);
+      const ok = await performCancelBooking(cancelTarget);
       if (ok) setCancelPhase('success');
     } catch { /* ignore — modal stays on confirm step, user can retry */ }
     finally { setCancelling(false); }
@@ -251,66 +212,6 @@ export default function MyEventsScreenWeb() {
     const res = await authedFetch(`${API_BASE}/api/${viewerRole}/bookings/${booking.id}/join`).catch(() => null);
     const url = res?.ok ? (await res.json().catch(() => ({}))).join_url ?? null : null;
     openJitsi(url ?? buildJitsiUrl('booking', booking.id), { title });
-  }
-
-  async function openEditEvent(item: EventItem) {
-    setOpenMenuId(null);
-    setEditEventItem(item);
-    setEditTitle(item.title ?? '');
-    setEditDescription('');
-    const dt = item.datetimeStart ? new Date(item.datetimeStart) : null;
-    setEditDate(dt && !isNaN(dt.getTime()) ? `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}` : '');
-    setEditTime(dt && !isNaN(dt.getTime()) ? `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}` : '');
-    setEditPrice(item.price != null ? String(item.price) : '');
-    setEditMax('');
-    setEditCoverUri(null);
-    setEditError('');
-
-    // /api/events/my не отдаёт description/max_participants — подгружаем
-    // полную карточку события, чтобы поля модалки были предзаполнены (см. макет).
-    try {
-      const token = await getAuthToken();
-      const res = await fetch(`${endpoints.events}/${item.id}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
-      if (res.ok) {
-        const data = await res.json();
-        const r = (data?.data ?? data) as Record<string, unknown>;
-        if (typeof r.description === 'string') setEditDescription(r.description);
-        const maxParticipants = r.max_participants ?? r.maxParticipants;
-        if (typeof maxParticipants === 'number') setEditMax(String(maxParticipants));
-      }
-    } catch { /* модалка остаётся с уже заполненными название/датой/ценой */ }
-  }
-
-  async function handlePickEditCover() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.8 });
-    if (!result.canceled && result.assets[0]) setEditCoverUri(result.assets[0].uri);
-  }
-
-  async function handleSaveEditEvent() {
-    if (!editEventItem) return;
-    setEditSaving(true);
-    setEditError('');
-    try {
-      let coverUrl: string | undefined;
-      if (editCoverUri) coverUrl = await uploadEventImage(editCoverUri);
-      const body: EventPatchBody = {};
-      if (editTitle.trim()) body.title = editTitle.trim();
-      if (editDescription.trim()) body.description = editDescription.trim();
-      const dt = combineDatetime(editDate, editTime);
-      if (dt) body.datetime_start = dt;
-      if (editPrice) body.price = Number(editPrice);
-      if (editMax) body.max_participants = Number(editMax);
-      if (coverUrl) body.coverUrl = coverUrl;
-      await updateEvent(editEventItem.id, body);
-      setEditEventItem(null);
-      load();
-    } catch (e: any) {
-      setEditError(e?.message ?? 'Не удалось сохранить изменения');
-    } finally {
-      setEditSaving(false);
-    }
   }
 
   const now = Date.now();
@@ -355,76 +256,38 @@ export default function MyEventsScreenWeb() {
     return other.isViewerTutor ? `/(tabs)/profile/student/${other.id}` : `/(tabs)/explore/${other.id}`;
   }
 
-  function CardMenu({ id, options }: { id: string; options: MenuOption[] }) {
-    return (
-      <View style={styles.menuButtonWrap}>
-        <Pressable style={styles.menuButton} onPress={() => setOpenMenuId((cur) => (cur === id ? null : id))}>
-          <Text style={styles.menuButtonText}>•••</Text>
-        </Pressable>
-        {openMenuId === id ? (
-          <View style={styles.menuDropdown}>
-            {options.map((opt, i) => (
-              <Pressable
-                key={opt.label}
-                style={[styles.menuItem, i > 0 && styles.menuItemBordered]}
-                onPress={() => { setOpenMenuId(null); opt.onPress(); }}
-              >
-                <Text style={[styles.menuItemText, opt.danger && styles.menuItemTextDanger]}>{opt.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </View>
-    );
-  }
-
   function renderEventCard(item: EventItem, muted = false) {
-    const isOwner = role === 'tutor';
-    const options: MenuOption[] = isOwner
-      ? [
-          { label: 'Настройки', onPress: () => openEditEvent(item) },
-          { label: 'Отменить событие', danger: true, onPress: () => openCancelModal({ kind: 'event', item }) },
-        ]
-      : [
-          { label: 'Отменить запись', danger: true, onPress: () => openCancelModal({ kind: 'event', item }) },
-        ];
     const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
 
     if (isMobile) {
       return (
-        <View key={item.id} style={styles.listRow}>
-          <Pressable style={styles.listRowMain} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-            {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
-            <View style={styles.listBody}>
-              <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
-              <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{item.title}</Text>
-              {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
-            </View>
-          </Pressable>
-          <CardMenu id={`e-${item.id}`} options={options} />
-        </View>
+        <Pressable key={item.id} style={styles.listRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
+          <View style={styles.listBody}>
+            <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
+            <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{item.title}</Text>
+            {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+          </View>
+        </Pressable>
       );
     }
 
     return (
-      <View key={item.id} style={[styles.card, muted && styles.cardMuted]}>
-        <Pressable onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-          {item.coverUrl ? (
-            <Image source={{ uri: item.coverUrl }} style={styles.cardImage} resizeMode="cover" />
-          ) : (
-            <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
-          )}
-          <View style={styles.cardBody}>
-            {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
-            <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
-            <View style={styles.cardMetaRow}>
-              <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
-              {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
-            </View>
+      <Pressable key={item.id} style={[styles.card, muted && styles.cardMuted]} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={styles.cardImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
+        )}
+        <View style={styles.cardBody}>
+          {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
+          <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+          <View style={styles.cardMetaRow}>
+            <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
+            {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
           </View>
-        </Pressable>
-        <CardMenu id={`e-${item.id}`} options={options} />
-      </View>
+        </View>
+      </Pressable>
     );
   }
 
@@ -574,40 +437,6 @@ export default function MyEventsScreenWeb() {
         </View>
       </Modal>
 
-      {/* ─── Изменение события (только для наставника, его карточки) ──────── */}
-      <Modal transparent animationType="fade" visible={!!editEventItem} onRequestClose={() => setEditEventItem(null)}>
-        <Pressable style={styles.overlay} onPress={() => setEditEventItem(null)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>Изменение события</Text>
-              <Pressable onPress={() => setEditEventItem(null)}><Text style={styles.modalClose}>✕</Text></Pressable>
-            </View>
-            <ScrollView style={styles.modalScroll}>
-              <PlusField label="Название" value={editTitle} onChangeText={setEditTitle} />
-              <PlusField label="Описание" hint="(оставьте пустым, чтобы не менять)" value={editDescription} onChangeText={setEditDescription} multiline />
-              <PlusField label="Дата" hint="(ГГГГ-ММ-ДД)" value={editDate} onChangeText={setEditDate} />
-              <PlusField label="Время" hint="(ЧЧ:ММ)" value={editTime} onChangeText={setEditTime} />
-              <PlusField label="Стоимость" value={editPrice} onChangeText={setEditPrice} keyboardType="numeric" />
-              {Number(editPrice) > 0 ? <Text style={styles.commissionHint}>Комиссия 10% — вы получите {Math.round(Number(editPrice) * 0.9)} ₽</Text> : null}
-              <PlusField label="Максимальное количество участников" hint="(оставьте пустым, чтобы не менять)" value={editMax} onChangeText={setEditMax} keyboardType="numeric" />
-              <Pressable style={styles.uploadRow} onPress={handlePickEditCover}>
-                {(editCoverUri || editEventItem?.coverUrl) ? (
-                  <Image source={{ uri: editCoverUri ?? editEventItem?.coverUrl ?? '' }} style={styles.uploadThumb} />
-                ) : null}
-                <Text style={styles.uploadButtonText}>Заменить обложку</Text>
-              </Pressable>
-              {editError ? <Text style={styles.errorText}>{editError}</Text> : null}
-            </ScrollView>
-            <View style={styles.modalFooterRow}>
-              <Pressable onPress={() => setEditEventItem(null)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleSaveEditEvent} disabled={editSaving}>
-                <Text style={styles.modalSaveText}>{editSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {/* ─── Карточка личной встречи (по клику на карточку) ────────────────── */}
       <Modal transparent animationType="fade" visible={!!viewingBooking} onRequestClose={() => setViewingBooking(null)}>
         <Pressable style={styles.overlay} onPress={() => setViewingBooking(null)}>
@@ -640,7 +469,7 @@ export default function MyEventsScreenWeb() {
                       onPress={() => {
                         const b = viewingBooking;
                         setViewingBooking(null);
-                        openCancelModal({ kind: 'booking', item: b });
+                        openCancelModal(b);
                       }}
                     >
                       <Text style={styles.modalSaveText}>{other.isViewerTutor ? 'Отменить встречу' : 'Отменить запись'}</Text>
@@ -704,15 +533,6 @@ const styles = StyleSheet.create({
   listDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   textMuted: { opacity: 0.45 },
 
-  menuButtonWrap: { position: 'absolute', top: 8, right: 8, zIndex: 5 },
-  menuButton: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
-  menuButtonText: { fontSize: 16, color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal', letterSpacing: 1, marginTop: -8 },
-  menuDropdown: { position: 'absolute', top: 32, right: 0, backgroundColor: '#fff', borderWidth: 1, borderColor: '#1E1E1E', minWidth: 190, zIndex: 6 },
-  menuItem: { paddingVertical: 12, paddingHorizontal: 14 },
-  menuItemBordered: { borderTopWidth: 1, borderTopColor: '#1E1E1E' },
-  menuItemText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  menuItemTextDanger: { color: '#E02D2D' },
-
   mobileVideoBar: { backgroundColor: '#010101', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 8, marginBottom: 24 },
   mobileVideoBarTextRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   mobileVideoBarIcon: { fontSize: 14 },
@@ -734,18 +554,12 @@ const styles = StyleSheet.create({
   confirmBtnDark: { backgroundColor: '#010101', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
   confirmBtnDarkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
 
-  modalCard: { width: '100%', maxWidth: 520, maxHeight: '85%', backgroundColor: '#fff', padding: 24 },
   bookingModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24 },
   bookingModalMeta: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
   bookingModalDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   modalTitle: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 23, color: '#010101' },
   modalClose: { fontSize: 20, color: '#010101' },
-  modalScroll: { flexGrow: 0 },
-  commissionHint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -16, marginBottom: 16 },
-  uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 12, marginBottom: 12 },
-  uploadThumb: { width: 32, height: 32, backgroundColor: '#f0f0f0' },
-  uploadButtonText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   modalCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
   modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
