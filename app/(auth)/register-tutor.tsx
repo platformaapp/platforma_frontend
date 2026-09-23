@@ -8,7 +8,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { endpoints } from '@/constants/env';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken, type UserProfile } from '@/lib/auth';
+import { getTutorProfile } from '@/lib/api/tutor';
 
 const REGISTER_URL = endpoints.register;
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
@@ -157,10 +158,27 @@ export default function RegisterTutorScreen() {
 
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
-      
+      const user = extractUserFromResponse(data);
+
       if (token) {
         try {
-          await saveAuthToken(token, 'tutor', refreshToken);
+          // Сохраняем профиль сразу же, как при регистрации студента и логине —
+          // без этого auth_user_profile остаётся пустым, currentUserId на
+          // страницах событий не определяется, и наставник может
+          // "зарегистрироваться" на собственное мероприятие.
+          await saveAuthToken(token, 'tutor', refreshToken, user ? { ...user, role: 'tutor' } : undefined);
+
+          try {
+            const tp = await getTutorProfile();
+            const fresh: UserProfile = {
+              id: String((tp as any).id ?? user?.id ?? ''),
+              email: tp.email ?? user?.email ?? email.trim(),
+              full_name: tp.full_name ?? (tp as any).fullName ?? user?.full_name ?? fullName.trim(),
+              avatar_url: (tp as any).avatar_url ?? (tp as any).avatarUrl ?? user?.avatar_url,
+              role: 'tutor',
+            };
+            if (fresh.id) await saveAuthToken(token, 'tutor', refreshToken, fresh);
+          } catch { /* исходного сохранения выше достаточно, чтобы продолжить */ }
         } catch (saveError) {
           console.error('Ошибка сохранения токена:', saveError);
         }

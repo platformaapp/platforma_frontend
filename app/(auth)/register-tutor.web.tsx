@@ -5,7 +5,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
-import { extractRefreshTokenFromResponse, extractTokenFromResponse, saveAuthToken } from '@/lib/auth';
+import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken, type UserProfile } from '@/lib/auth';
+import { getTutorProfile } from '@/lib/api/tutor';
 
 const REGISTER_URL = endpoints.register;
 
@@ -94,7 +95,27 @@ export default function RegisterTutorScreenWeb() {
 
       const token = extractTokenFromResponse(data);
       const refreshToken = extractRefreshTokenFromResponse(data);
-      if (token) await saveAuthToken(token, 'tutor', refreshToken);
+      const user = extractUserFromResponse(data);
+
+      if (token) {
+        // Сохраняем профиль сразу же, как при регистрации студента и логине —
+        // без этого auth_user_profile остаётся пустым, currentUserId на
+        // страницах событий не определяется, и наставник может
+        // "зарегистрироваться" на собственное мероприятие (isOwnEvent всегда false).
+        await saveAuthToken(token, 'tutor', refreshToken, user ? { ...user, role: 'tutor' } : undefined);
+
+        try {
+          const tp = await getTutorProfile();
+          const fresh: UserProfile = {
+            id: String((tp as any).id ?? user?.id ?? ''),
+            email: tp.email ?? user?.email ?? email.trim(),
+            full_name: tp.full_name ?? (tp as any).fullName ?? user?.full_name ?? fullName.trim(),
+            avatar_url: (tp as any).avatar_url ?? (tp as any).avatarUrl ?? user?.avatar_url,
+            role: 'tutor',
+          };
+          if (fresh.id) await saveAuthToken(token, 'tutor', refreshToken, fresh);
+        } catch { /* исходного сохранения выше достаточно, чтобы продолжить */ }
+      }
 
       router.push('/register-tutor-step2');
     } catch (e: any) {
