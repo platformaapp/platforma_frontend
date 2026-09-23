@@ -1092,8 +1092,8 @@ const styles = StyleSheet.create({
   slotsModalCard: { maxWidth: 640 },
   slotsModalScroll: { maxHeight: 320, marginBottom: 12 },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
-  modalCancelText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  modalSaveText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
+  modalCancelText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  modalSaveText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   // Tutor tabbed view (unchanged)
   tabsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
