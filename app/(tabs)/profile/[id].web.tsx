@@ -19,8 +19,8 @@ import {
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 /** Группирует слоты по дате (для отображения "13 мая: 14:00 15:00 20:00"), сортируя даты и время. */
-function groupSlotsByDate(slots: Slot[]): { date: string; slots: Slot[] }[] {
-  const map = new Map<string, Slot[]>();
+function groupSlotsByDate<T extends { date: string; time: string }>(slots: T[]): { date: string; slots: T[] }[] {
+  const map = new Map<string, T[]>();
   for (const s of slots) {
     const arr = map.get(s.date) ?? [];
     arr.push(s);
@@ -101,6 +101,20 @@ export default function ProfileScreenWeb() {
   const [newSlotTime, setNewSlotTime] = useState('');
   const [slotsModalVisible, setSlotsModalVisible] = useState(false);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [hoveredSlotId, setHoveredSlotId] = useState<string | null>(null);
+  // Небольшая задержка перед скрытием — курсор идёт от времени слота до
+  // круглой кнопки-минуса рядом, и по пути пересекает границу вложенного
+  // Pressable; без задержки onHoverOut успевает погасить кнопку (opacity/
+  // pointerEvents) до того, как курсор до неё доедет, и клик проваливается.
+  const slotHoverOutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Слоты, добавленные через "+" в попапе, но ещё не отправленные на бэкенд —
+  // показываются красным в списке; реально создаются все разом по "Сохранить"
+  // (см. handleSaveAllSlots). Раньше "Сохранить" сохранял только одну запись
+  // из полей Дата/Время внизу, а слоты, добавленные через "+", никуда не
+  // отправлялись вообще.
+  const [pendingSlots, setPendingSlots] = useState<{ localId: string; date: string; time: string }[]>([]);
+  const [savingSlots, setSavingSlots] = useState(false);
+  const [slotsSaveError, setSlotsSaveError] = useState('');
 
   // ── Tutor-only modals ───────────────────────────────────────────────────────
   const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
@@ -560,7 +574,10 @@ export default function ProfileScreenWeb() {
                       <Text style={styles.balanceLabel}>Баланс: {payoutBalance.toLocaleString('ru-RU')} Р</Text>
                       <View style={styles.tooltipAnchor}>
                         <Pressable style={styles.balanceInfoIcon} onPress={() => setBalanceTooltipVisible((v) => !v)}>
-                          <Text style={styles.infoIconText}>ⓘ</Text>
+                          <Svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+                            <Circle cx="8.5" cy="8.5" r="8" stroke="black" />
+                            <Path d="M8.62 10.9H7.78L7.598 8.73C8.718 8.73 10.552 8.31 10.552 6.56C10.552 5.3 9.67 4.53 8.2 4.53C6.702 4.53 5.778 5.3 5.778 6.56V6.91H4.588V6.56C4.588 4.6 6.352 3.69 8.2 3.69C10.16 3.69 11.812 4.6 11.812 6.56C11.812 8.94 8.802 9.22 8.802 9.22L8.62 10.9ZM8.802 11.67H7.598V13H8.802V11.67Z" fill="black" />
+                          </Svg>
                         </Pressable>
                         {balanceTooltipVisible ? (
                           <View style={styles.balanceTooltipBubble}>
@@ -621,21 +638,65 @@ export default function ProfileScreenWeb() {
     }
   }
 
-  async function handleAddSlot() {
-    if (!newSlotDate || !newSlotTime) return;
-    try {
-      const slot = await createTutorSlot({ date: newSlotDate, time: newSlotTime });
-      setSlots((prev) => [...prev, slot]);
-      setNewSlotDate('');
-      setNewSlotTime('');
-    } catch { /* keep form values so the user can retry */ }
-  }
-
   async function handleRemoveSlot(id: string) {
     try {
       await deleteTutorSlot(id);
       setSlots((prev) => prev.filter((s) => s.id !== id));
     } catch { /* ignore — slot stays in list, user can retry */ }
+  }
+
+  /** Добавляет слот локально (красным, до нажатия "Сохранить") — не бьёт по API. */
+  function stageSlot(date: string, time: string) {
+    if (!date || !time) return;
+    setPendingSlots((prev) => [...prev, { localId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`, date, time }]);
+  }
+
+  function removePendingSlot(localId: string) {
+    setPendingSlots((prev) => prev.filter((p) => p.localId !== localId));
+  }
+
+  function closeSlotsModal() {
+    setSlotsModalVisible(false);
+    setPendingSlots([]);
+    setNewSlotDate('');
+    setNewSlotTime('');
+    setSlotsSaveError('');
+    setSelectedSlotId(null);
+    setHoveredSlotId(null);
+  }
+
+  /** Создаёт на бэкенде все слоты, добавленные через "+" (плюс те, что введены
+   * в нижних полях Дата/Время, если заполнены), одним махом — а не только
+   * последнюю введённую запись. Слоты, которые не удалось создать, остаются
+   * в списке красными, чтобы можно было повторить попытку. */
+  async function handleSaveAllSlots() {
+    setSlotsSaveError('');
+    let toSave = pendingSlots;
+    if (newSlotDate && newSlotTime) {
+      toSave = [...pendingSlots, { localId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`, date: newSlotDate, time: newSlotTime }];
+      setPendingSlots(toSave);
+    }
+    if (toSave.length === 0) { closeSlotsModal(); return; }
+
+    setSavingSlots(true);
+    const results = await Promise.allSettled(toSave.map((p) => createTutorSlot({ date: p.date, time: p.time })));
+    const createdSlots: Slot[] = [];
+    const stillPending: typeof toSave = [];
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') createdSlots.push(r.value);
+      else stillPending.push(toSave[i]);
+    });
+    if (createdSlots.length) setSlots((prev) => [...prev, ...createdSlots]);
+    setPendingSlots(stillPending);
+    setSavingSlots(false);
+
+    if (stillPending.length === 0) {
+      setNewSlotDate('');
+      setNewSlotTime('');
+      setSlotsModalVisible(false);
+    } else {
+      setSlotsSaveError('Не удалось сохранить некоторые слоты — попробуйте ещё раз');
+    }
   }
 
   async function handleCreateEvent() {
@@ -782,6 +843,18 @@ export default function ProfileScreenWeb() {
   );
   const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />;
 
+  // Уже сохранённые слоты (чёрные) + добавленные через "+", но ещё не
+  // отправленные на бэкенд (красные, до "Сохранить") — единый список для
+  // попапа "Редактировать слоты для записи".
+  const combinedSlotsForModal: { id: string; date: string; time: string; pending: boolean }[] = [
+    ...slots.map((s) => ({ id: s.id, date: s.date, time: s.time, pending: false })),
+    ...pendingSlots.map((p) => ({ id: p.localId, date: p.date, time: p.time, pending: true })),
+  ];
+  function handleRemoveDisplaySlot(s: { id: string; pending: boolean }) {
+    if (s.pending) removePendingSlot(s.id);
+    else handleRemoveSlot(s.id);
+  }
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -834,7 +907,7 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ))}
-        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsModalVisible(true); }}>
+        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setPendingSlots([]); setSlotsSaveError(''); setSlotsModalVisible(true); }}>
           <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
         </Pressable>
       </View>
@@ -939,34 +1012,53 @@ export default function ProfileScreenWeb() {
         </Pressable>
       </Modal>
 
-      <Modal transparent animationType="fade" visible={slotsModalVisible} onRequestClose={() => setSlotsModalVisible(false)}>
-        <Pressable style={styles.overlay} onPress={() => setSlotsModalVisible(false)}>
+      <Modal transparent animationType="fade" visible={slotsModalVisible} onRequestClose={closeSlotsModal}>
+        <Pressable style={styles.overlay} onPress={closeSlotsModal}>
           <Pressable style={[styles.modalCard, styles.slotsModalCard]} onPress={() => {}}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>{isMobile ? 'Редактировать слоты' : 'Редактировать слоты для записи'}</Text>
             </View>
 
             <ScrollView style={styles.slotsModalScroll}>
-              {groupSlotsByDate(slots).map((group) => (
+              {groupSlotsByDate(combinedSlotsForModal).map((group) => (
                 <View key={group.date} style={styles.slotDateGroup}>
                   <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
                   <View style={styles.slotTimesRow}>
                     {group.slots.map((s) => {
-                      const selected = selectedSlotId === s.id;
+                      const active = selectedSlotId === s.id || hoveredSlotId === s.id;
+                      const isRed = s.pending || active;
                       return (
-                        <View key={s.id} style={styles.slotTimeWrap}>
-                          <Pressable onPress={() => setSelectedSlotId(selected ? null : s.id)}>
-                            <Text style={[styles.slotTimeText, selected && styles.slotTimeTextSelected]}>{s.time.slice(0, 5)}</Text>
+                        <Pressable
+                          key={s.id}
+                          style={styles.slotTimeWrap}
+                          onHoverIn={() => {
+                            if (slotHoverOutTimer.current) clearTimeout(slotHoverOutTimer.current);
+                            setHoveredSlotId(s.id);
+                          }}
+                          onHoverOut={() => {
+                            if (slotHoverOutTimer.current) clearTimeout(slotHoverOutTimer.current);
+                            slotHoverOutTimer.current = setTimeout(() => {
+                              setHoveredSlotId((cur) => (cur === s.id ? null : cur));
+                            }, 200);
+                          }}
+                          onPress={() => setSelectedSlotId((cur) => (cur === s.id ? null : s.id))}
+                        >
+                          <Text style={[styles.slotTimeText, isRed && styles.slotTimeTextSelected]}>{s.time.slice(0, 5)}</Text>
+                          {/* Всегда в разметке (не condition-render) — иначе появление
+                              иконки сдвигает соседние слоты/чип "+" вправо прямо под
+                              курсором и наведение "убегает". Скрываем через opacity. */}
+                          <Pressable
+                            style={[styles.slotRemoveChip, !active && styles.slotRemoveChipHidden]}
+                            onHoverIn={() => { if (slotHoverOutTimer.current) clearTimeout(slotHoverOutTimer.current); setHoveredSlotId(s.id); }}
+                            onPress={(e) => { e.stopPropagation?.(); handleRemoveDisplaySlot(s); setSelectedSlotId(null); }}
+                            hitSlop={6}
+                          >
+                            <Text style={styles.slotRemoveChipText}>−</Text>
                           </Pressable>
-                          {selected ? (
-                            <Pressable onPress={() => { handleRemoveSlot(s.id); setSelectedSlotId(null); }} hitSlop={6}>
-                              <Text style={styles.slotRemoveIcon}>⊖</Text>
-                            </Pressable>
-                          ) : null}
-                        </View>
+                        </Pressable>
                       );
                     })}
-                    <Pressable style={styles.slotAddChip} onPress={() => setNewSlotDate(group.date)}>
+                    <Pressable style={styles.slotAddChip} onPress={() => { stageSlot(group.date, newSlotTime); setNewSlotTime(''); }}>
                       <Text style={styles.slotAddChipText}>+</Text>
                     </Pressable>
                   </View>
@@ -977,9 +1069,13 @@ export default function ProfileScreenWeb() {
             <DateFieldWithPicker label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate} />
             <TimeFieldWithPicker label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} />
 
+            {slotsSaveError ? <Text style={styles.errorText}>{slotsSaveError}</Text> : null}
+
             <View style={styles.modalFooterRow}>
-              <Pressable onPress={() => setSlotsModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleAddSlot}><Text style={styles.modalSaveText}>Сохранить</Text></Pressable>
+              <Pressable onPress={closeSlotsModal}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleSaveAllSlots} disabled={savingSlots}>
+                <Text style={styles.modalSaveText}>{savingSlots ? 'Сохраняем…' : 'Сохранить'}</Text>
+              </Pressable>
             </View>
           </Pressable>
         </Pressable>
@@ -1199,7 +1295,12 @@ const styles = StyleSheet.create({
   slotTimeWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   slotTimeText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   slotTimeTextSelected: { color: '#E02D2D' },
-  slotRemoveIcon: { fontSize: 15, color: '#E02D2D' },
+  // Красный минус в кружочке — появляется при наведении/выборе слота (см.
+  // handleRemoveDisplaySlot), тот же стиль кружка, что у slotAddChip, только
+  // красный и с минусом вместо плюса.
+  slotRemoveChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#E02D2D', alignItems: 'center', justifyContent: 'center' },
+  slotRemoveChipHidden: { opacity: 0, pointerEvents: 'none' },
+  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
   addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
