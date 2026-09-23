@@ -107,7 +107,7 @@ export default function JournalScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         <Pressable onPress={() => setCategory(null)}>
-          <Text style={styles.title}>Журнал</Text>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
 
         <View style={styles.filtersRow}>
@@ -178,6 +178,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 24 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },

@@ -182,12 +182,12 @@ export default function TutorSlotsScreenWeb() {
 
           {step === 'pick' ? (
             <>
-              <Text style={styles.title}>{mentorName || 'Наставник'}</Text>
+              <Text style={[styles.title, isMobile && styles.titleMobile]}>{mentorName || 'Наставник'}</Text>
               <Text style={styles.subtitle}>Запись на встречу</Text>
               {mentorPrice ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
             </>
           ) : (
-            <Text style={[styles.title, step === 'failed' && styles.titleError]}>
+            <Text style={[styles.title, isMobile && styles.titleMobile, step === 'failed' && styles.titleError]}>
               {step === 'confirm' ? 'Подтверждение записи'
                 : step === 'addCard' ? 'Новая карта'
                 : step === 'failed' ? 'Оплата не прошла'
@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
   closeText: { fontSize: 18, color: '#687076' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   subtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
   price: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },

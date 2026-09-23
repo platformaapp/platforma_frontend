@@ -19,7 +19,7 @@ export default function AuthChoiceScreenWeb() {
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
-            <Text style={styles.title}>Регистрация</Text>
+            <Text style={[styles.title, isMobile && styles.titleMobile]}>Регистрация</Text>
             <Pressable onPress={handleClose}>
               <Text style={styles.close}>✕</Text>
             </Pressable>
@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
   card: { width: '100%', maxWidth: 480, backgroundColor: '#fff', padding: 24 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   close: { fontSize: 20, color: '#010101' },
   linksRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 32 },
   linksRowMobile: { flexDirection: 'column', alignItems: 'flex-start', gap: 4 },

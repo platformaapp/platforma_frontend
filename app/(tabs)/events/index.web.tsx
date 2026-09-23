@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
   titleRow: {},
   title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
-  titleMobile: { fontSize: 28, lineHeight: 32 },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 59 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },

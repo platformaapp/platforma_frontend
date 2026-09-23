@@ -290,7 +290,7 @@ export default function EventDetailScreenWeb() {
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
         ) : isMobile ? (
           <View>
-            <Text style={styles.title}>{event.title}</Text>
+            <Text style={[styles.title, styles.titleMobile]}>{event.title}</Text>
 
             {event.coverUrl ? (
               <View style={styles.mobileHeaderRow}>
@@ -466,6 +466,7 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },

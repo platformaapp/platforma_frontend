@@ -292,7 +292,7 @@ export default function TutorPaymentsScreenWeb() {
           <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any))}>
             <Text style={styles.backArrow}>←</Text>
           </Pressable>
-          <Text style={styles.title}>Платежи</Text>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
 
         {loadError ? <Text style={styles.errorText}>{loadError}</Text> : null}
@@ -483,6 +483,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 12 },
 
   balanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#010101', paddingHorizontal: 16, paddingVertical: 16, marginBottom: 4 },

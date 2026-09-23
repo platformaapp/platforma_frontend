@@ -327,7 +327,7 @@ export default function MyEventsScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>Мои записи</Text>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Мои записи</Text>
           {nextBooking && !isMobile ? (
             <View style={styles.headerVideoBlock}>
               <Pressable style={styles.headerVideoButton} onPress={() => joinBooking(nextBooking, `Личная встреча с ${otherPartyOf(nextBooking).name}`)}>
@@ -490,6 +490,7 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   headerVideoBlock: { alignItems: 'flex-end' },
   headerVideoButton: { backgroundColor: '#010101', paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   headerVideoButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },

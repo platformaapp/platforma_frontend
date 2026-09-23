@@ -125,7 +125,7 @@ export default function ArticleScreenWeb() {
   const { intro, section } = parseContent(article.content);
   const [galleryLeft, galleryRight] = article.gallery;
 
-  const titleElement = <Text style={styles.title}>{article.title}</Text>;
+  const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{article.title}</Text>;
 
   // На десктопе идёт сразу под заголовком (см. колонку текста); на мобильном
   // — после обложки, а не перед ней (см. референс: заголовок → обложка →
@@ -262,6 +262,7 @@ const styles = StyleSheet.create({
   colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
   colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240, maxHeight: 494 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   // Имя+роль+био — текстом сверху, квадратное (не круглое) фото под ним;
   // большой отступ снизу перед первым абзацем — см. референс (десктоп-макет).

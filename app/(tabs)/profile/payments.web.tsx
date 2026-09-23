@@ -237,7 +237,7 @@ export default function PaymentsScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleRow}>
           <Pressable onPress={() => router.replace('/(tabs)/profile' as any)}><Text style={styles.backArrow}>←</Text></Pressable>
-          <Text style={styles.title}>Платежи</Text>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
 
         {loadError ? <Text style={styles.errorText}>{loadError}</Text> : null}
@@ -367,6 +367,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
 
   sectionTitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 12 },
   sectionTitleHistory: { marginTop: 32 },
