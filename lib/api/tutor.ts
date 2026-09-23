@@ -69,6 +69,7 @@ export interface Slot {
   tutor_id?: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
+  price?: number;
   status: SlotStatus;
   created_at?: string;
   updated_at?: string;
@@ -77,6 +78,9 @@ export interface Slot {
 export interface SlotCreate {
   date: string;
   time: string;
+  // Обязательное поле у бэкенда (CreateSlotDto) — без него POST /tutor/slots
+  // отклоняется валидацией, и слот не создаётся.
+  price: number;
 }
 
 export interface SlotUpdate {

@@ -17,7 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthError } from '@/lib/api/auth-error';
-import { createTutorSlot, getTutorSlots, type Slot } from '@/lib/api/tutor';
+import { createTutorSlot, getTutorProfile, getTutorSlots, type Slot } from '@/lib/api/tutor';
 import { toDisplayDate, dayFromDate } from '@/lib/slots-utils';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -69,6 +69,9 @@ export default function AddSlotScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [drafts, setDrafts] = useState<DraftSlot[]>([mkDraft()]);
+  // Бэкенд требует price в CreateSlotDto — берём "Стоимость часа" из профиля,
+  // отдельного поля цены на этом экране нет.
+  const [hourlyRate, setHourlyRate] = useState<number | null>(null);
 
   // Picker state — one shared picker for all draft slots (iOS/Android modal)
   const [pickerTarget, setPickerTarget] = useState<{ slotId: number; mode: 'date' | 'time' } | null>(null);
@@ -81,6 +84,13 @@ export default function AddSlotScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      getTutorProfile()
+        .then((tp: any) => {
+          if (cancelled) return;
+          const rate = tp.hourlyRate ?? tp.hourly_rate ?? tp.pricePerHour;
+          if (typeof rate === 'number') setHourlyRate(rate);
+        })
+        .catch(() => {});
       getTutorSlots()
         .then((data) => {
           if (!cancelled) {
@@ -143,6 +153,10 @@ export default function AddSlotScreen() {
       Alert.alert('Внимание', 'Выберите дату и время хотя бы для одного слота');
       return;
     }
+    if (!hourlyRate || hourlyRate <= 0) {
+      Alert.alert('Внимание', 'Укажите стоимость часа в личных данных, чтобы создавать слоты');
+      return;
+    }
 
     const normalizeTime = (t: string) => t.slice(0, 5);
     const allSlots = existingSlots.map((s: Slot) => ({ date: s.date, time: normalizeTime(s.time) }));
@@ -164,7 +178,7 @@ export default function AddSlotScreen() {
     setSaving(true);
     try {
       for (const item of items) {
-        await createTutorSlot(item);
+        await createTutorSlot({ ...item, price: hourlyRate! });
       }
       const data = await getTutorSlots();
       setExistingSlots(data);

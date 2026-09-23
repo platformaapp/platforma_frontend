@@ -656,15 +656,22 @@ export default function ProfileScreenWeb() {
   }
 
   /** Создаёт слот сразу на бэкенде (не откладывает до "Сохранить" — та кнопка
-   * теперь просто закрывает попап, см. запрос пользователя). */
+   * теперь просто закрывает попап, см. запрос пользователя). Бэкенд требует
+   * price в CreateSlotDto — берём его из "Стоимость часа" профиля, отдельного
+   * поля цены в этом попапе нет. */
   async function createAndAddSlot(date: string, time: string) {
     if (!date || !time) return;
+    const price = Number(hourlyRate);
+    if (!price || price <= 0) {
+      setSlotsSaveError('Укажите стоимость часа в личных данных, чтобы создавать слоты');
+      return;
+    }
     setSlotsSaveError('');
     try {
-      const slot = await createTutorSlot({ date, time });
+      const slot = await createTutorSlot({ date, time, price });
       setSlots((prev) => [...prev, slot]);
-    } catch {
-      setSlotsSaveError('Не удалось создать слот — попробуйте ещё раз');
+    } catch (e: any) {
+      setSlotsSaveError(e?.message ?? 'Не удалось создать слот — попробуйте ещё раз');
     }
   }
 
