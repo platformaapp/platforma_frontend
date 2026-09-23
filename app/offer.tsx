@@ -3,21 +3,14 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function OfferScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-
+/**
+ * Содержимое без обвязки (шапка/ScrollView/заголовок) — переиспользуется и
+ * полноэкранным маршрутом /offer (ниже), и всплывающим попапом на вебе
+ * (см. components/web/document-modal.tsx, используется в SiteFooter).
+ */
+export function OfferContent() {
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Назад</Text>
-        </Pressable>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.mainTitle}>ПУБЛИЧНАЯ ОФЕРТА И ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ СЕРВИСА p34</Text>
-
+    <>
         <Section heading="1. Общие положения">
           <P>1.1. Настоящий документ является публичной офертой в соответствии со ст. 437 Гражданского кодекса Российской Федерации.</P>
           <P>1.2. Сервис p34 (далее — «Сервис») предлагает любому дееспособному лицу (далее — «Пользователь») заключить договор на условиях, изложенных в настоящем документе.</P>
@@ -272,6 +265,25 @@ export default function OfferScreen() {
           <Row label="Корр. счёт банка" value="30101810145250000974" />
           <Row label="Адрес банка" value="127287, г. Москва, ул. Хуторская 2-я, д. 38А, стр. 26" />
         </Section>
+    </>
+  );
+}
+
+export default function OfferScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Pressable style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backText}>← Назад</Text>
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.mainTitle}>ПУБЛИЧНАЯ ОФЕРТА И ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ СЕРВИСА p34</Text>
+        <OfferContent />
       </ScrollView>
     </View>
   );

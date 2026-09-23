@@ -1,7 +1,9 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { ContactsContent } from '@/app/contacts';
+import { OfferContent } from '@/app/offer';
+import { DocumentModal } from './document-modal';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
 // Горизонтальный паддинг контента страниц, использующих SiteFooter (см. их
@@ -99,7 +101,7 @@ function LogoGrid({ logos, isMobile }: { logos: { name: string; logo: number; ur
  * (события, событие, наставник, статья).
  */
 export function SiteFooter() {
-  const router = useRouter();
+  const [openDoc, setOpenDoc] = useState<'none' | 'contacts' | 'offer'>('none');
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
   // Full-bleed: футер лежит внутри ScrollView (без него снова ломается
@@ -125,14 +127,21 @@ export function SiteFooter() {
       <View style={styles.bottomRow}>
         <Text style={styles.copyright}>©2026, p(34)</Text>
         <View style={styles.bottomLinks}>
-          <Pressable onPress={() => router.push('/contacts' as any)}>
+          <Pressable onPress={() => setOpenDoc('contacts')}>
             <Text style={styles.docsLink}>Контакты для связи</Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/offer' as any)}>
+          <Pressable onPress={() => setOpenDoc('offer')}>
             <Text style={styles.docsLink}>Официальные документы</Text>
           </Pressable>
         </View>
       </View>
+
+      <DocumentModal visible={openDoc === 'contacts'} onClose={() => setOpenDoc('none')} title="Контакты для связи">
+        <ContactsContent />
+      </DocumentModal>
+      <DocumentModal visible={openDoc === 'offer'} onClose={() => setOpenDoc('none')} title="Официальные документы">
+        <OfferContent />
+      </DocumentModal>
     </View>
   );
 }

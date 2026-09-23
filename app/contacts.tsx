@@ -6,6 +6,35 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const EMAIL = 'v.yakunin2011@yandex.ru';
 
+/**
+ * Содержимое страницы без обвязки (шапка/ScrollView) — переиспользуется и
+ * полноэкранным маршрутом /contacts (ниже), и всплывающим попапом на вебе
+ * (см. components/web/document-modal.tsx, используется в SiteFooter).
+ */
+export function ContactsContent() {
+  return (
+    <>
+      <Pressable onPress={() => Linking.openURL(`mailto:${EMAIL}`)}>
+        <Text style={styles.email}>{EMAIL}</Text>
+      </Pressable>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeading}>Реквизиты сервиса</Text>
+        <Row label="Наименование" value="Индивидуальный предприниматель Якунин Владислав Александрович" />
+        <Row label="ИНН" value="344214640369" />
+        <Row label="ОГРНИП" value="326344300061998" />
+        <Row label="Юридический адрес" value="400007, Россия, Волгоградская обл., г. Волгоград, ул. Таращанцев, д. 8, кв. 1" />
+        <Row label="Расчётный счёт" value="40802810000009675691" />
+        <Row label="Банк" value="АО «ТБанк»" />
+        <Row label="ИНН банка" value="7710140679" />
+        <Row label="БИК банка" value="044525974" />
+        <Row label="Корр. счёт банка" value="30101810145250000974" />
+        <Row label="Адрес банка" value="127287, г. Москва, ул. Хуторская 2-я, д. 38А, стр. 26" />
+      </View>
+    </>
+  );
+}
+
 export default function ContactsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -20,24 +49,7 @@ export default function ContactsScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.mainTitle}>Контакты для связи</Text>
-
-        <Pressable onPress={() => Linking.openURL(`mailto:${EMAIL}`)}>
-          <Text style={styles.email}>{EMAIL}</Text>
-        </Pressable>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionHeading}>Реквизиты сервиса</Text>
-          <Row label="Наименование" value="Индивидуальный предприниматель Якунин Владислав Александрович" />
-          <Row label="ИНН" value="344214640369" />
-          <Row label="ОГРНИП" value="326344300061998" />
-          <Row label="Юридический адрес" value="400007, Россия, Волгоградская обл., г. Волгоград, ул. Таращанцев, д. 8, кв. 1" />
-          <Row label="Расчётный счёт" value="40802810000009675691" />
-          <Row label="Банк" value="АО «ТБанк»" />
-          <Row label="ИНН банка" value="7710140679" />
-          <Row label="БИК банка" value="044525974" />
-          <Row label="Корр. счёт банка" value="30101810145250000974" />
-          <Row label="Адрес банка" value="127287, г. Москва, ул. Хуторская 2-я, д. 38А, стр. 26" />
-        </View>
+        <ContactsContent />
       </ScrollView>
     </View>
   );
