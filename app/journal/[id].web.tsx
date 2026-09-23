@@ -125,20 +125,20 @@ export default function ArticleScreenWeb() {
   const { intro, section } = parseContent(article.content);
   const [galleryLeft, galleryRight] = article.gallery;
 
-  // Заголовок статьи + блок автора — общий "хедер", не зависящий от того,
-  // мобильная это раскладка или десктопная.
-  const headerBlock = (
-    <>
-      <Text style={styles.title}>{article.title}</Text>
-      <View style={[styles.authorRow, isMobile && styles.authorRowMobile]}>
-        <View>
-          {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
-          {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
-          {article.author.shortBio ? <Text style={styles.authorBio}>{article.author.shortBio}</Text> : null}
-        </View>
-        {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
+  const titleElement = <Text style={styles.title}>{article.title}</Text>;
+
+  // На десктопе идёт сразу под заголовком (см. колонку текста); на мобильном
+  // — после обложки, а не перед ней (см. референс: заголовок → обложка →
+  // автор → текст).
+  const authorBlock = (
+    <View style={[styles.authorRow, isMobile && styles.authorRowMobile]}>
+      <View>
+        {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
+        {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
+        {article.author.shortBio ? <Text style={styles.authorBio}>{article.author.shortBio}</Text> : null}
       </View>
-    </>
+      {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
+    </View>
   );
 
   // Обложка и галерея — единый медиа-блок: текст статьи начинается под
@@ -177,17 +177,19 @@ export default function ArticleScreenWeb() {
         </Pressable>
 
         {isMobile ? (
-          // Мобильная раскладка — один столбец: заголовок и автор сверху,
-          // затем обложка и галерея, и только после них текст статьи.
+          // Мобильная раскладка — один столбец: заголовок, затем обложка (+
+          // галерея), затем автор, и только после них текст статьи.
           <View style={styles.mobileStack}>
-            {headerBlock}
+            {titleElement}
             <View style={styles.mobileMediaBlock}>{mediaBlock}</View>
+            {authorBlock}
             {textBlock}
           </View>
         ) : (
           <View style={styles.row}>
             <View style={styles.colText}>
-              {headerBlock}
+              {titleElement}
+              {authorBlock}
               {textBlock}
             </View>
             <View style={styles.colImage}>
