@@ -1,11 +1,12 @@
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
+import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthToken, getUserProfile } from '@/lib/auth';
@@ -28,6 +29,8 @@ type EventDetail = {
   coverUrl?: string | null;
   mentor?: { id: string; name: string; avatarUrl?: string | null; bio?: string; shortBio?: string };
   isRegistered?: boolean;
+  maxParticipants?: number;
+  hasPaidRegistrations?: boolean;
 };
 
 function normalizeEvent(raw: Record<string, unknown>): EventDetail {
@@ -46,6 +49,10 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const cupStatus = (cupRaw?.status as string | undefined)?.toLowerCase();
   const registeredFromCup = cupStatus ? ['registered', 'confirmed', 'active', 'paid', 'attended', 'completed', 'pending'].includes(cupStatus) : false;
 
+  const maxParticipantsRaw = r.maxParticipants ?? r.max_participants;
+  const maxParticipants = typeof maxParticipantsRaw === 'number' ? maxParticipantsRaw : typeof maxParticipantsRaw === 'string' ? parseInt(maxParticipantsRaw, 10) : undefined;
+  const hasPaidRegistrations = Boolean(r.hasPaidRegistrations ?? r.has_paid_registrations);
+
   return {
     id: String(r.id ?? ''),
     title: String(r.title ?? ''),
@@ -55,6 +62,8 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
     coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
     mentor,
     isRegistered: isRegisteredOnEventItem(r) || registeredFromCup,
+    maxParticipants: Number.isFinite(maxParticipants) ? maxParticipants : undefined,
+    hasPaidRegistrations,
   };
 }
 
@@ -64,9 +73,9 @@ function formatDatetime(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    const day = String(d.getDate()).padStart(2, '0');
+    const day = d.getDate();
     const month = MONTHS_GEN[d.getMonth()];
-    const hh = String(d.getHours()).padStart(2, '0');
+    const hh = d.getHours();
     const mm = String(d.getMinutes()).padStart(2, '0');
     return `${day} ${month} ${hh}:${mm}`;
   } catch {
@@ -77,6 +86,16 @@ function formatDatetime(iso?: string): string {
 function formatPrice(price?: number): string {
   if (price == null) return 'Бесплатно';
   return `${price.toLocaleString('ru-RU')} Р`;
+}
+
+function formatEditDate(d: Date): string {
+  return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+}
+
+function stripLeadingZeroTime(t: string): string {
+  const m = t.match(/^0?(\d{1,2}):(\d{2})/);
+  if (!m) return t;
+  return `${m[1]}:${m[2]}`;
 }
 
 /**
@@ -104,6 +123,21 @@ export default function EventDetailScreenWeb() {
   const [deleteStep, setDeleteStep] = useState<'none' | 'confirm'>('none');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDate, setEditDate] = useState<Date | null>(null);
+  const [editTimeStr, setEditTimeStr] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editMaxParticipants, setEditMaxParticipants] = useState('');
+  const [editCoverUri, setEditCoverUri] = useState<string | null>(null);
+  const [editExistingCoverUrl, setEditExistingCoverUrl] = useState<string | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const editFileRef = useRef<HTMLInputElement>(null);
+  const editDateRef = useRef<any>(null);
+  const editTimeRef = useRef<any>(null);
 
   useEffect(() => {
     let active = true;
@@ -247,6 +281,99 @@ export default function EventDetailScreenWeb() {
     }
   }
 
+  function openEditModal() {
+    if (!event) return;
+    setEditTitle(event.title ?? '');
+    setEditDescription(event.description ?? '');
+    const dtStart = event.datetimeStart ? new Date(event.datetimeStart) : null;
+    setEditDate(dtStart);
+    setEditTimeStr(dtStart ? `${String(dtStart.getHours()).padStart(2, '0')}:${String(dtStart.getMinutes()).padStart(2, '0')}` : '');
+    setEditPrice(event.price != null ? String(event.price) : '');
+    setEditMaxParticipants(event.maxParticipants != null ? String(event.maxParticipants) : '');
+    setEditCoverUri(null);
+    setEditExistingCoverUrl(event.coverUrl ?? null);
+    setEditStatus(null);
+    setEditOpen(true);
+  }
+
+  function pickEditCover() {
+    editFileRef.current?.click();
+  }
+
+  async function onEditCoverFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUri = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    setEditCoverUri(dataUri);
+    e.target.value = '';
+  }
+
+  async function handleSaveEdit() {
+    if (!event || isSavingEdit) return;
+    setEditStatus(null);
+    if (!event.hasPaidRegistrations && !editTitle.trim()) { setEditStatus('Введите название'); return; }
+
+    const patch: EventPatchBody = {};
+    if (!event.hasPaidRegistrations) {
+      if (editTitle.trim()) patch.title = editTitle.trim();
+      if (editDescription.trim()) patch.description = editDescription.trim();
+      patch.price = editPrice ? parseInt(editPrice, 10) || 0 : 0;
+      if (editMaxParticipants) patch.max_participants = Math.max(1, parseInt(editMaxParticipants, 10) || 30);
+      if (editDate && editTimeStr) {
+        const m = editTimeStr.trim().match(/^(\d{1,2}):(\d{2})/);
+        if (!m) { setEditStatus('Неверный формат времени'); return; }
+        const h = parseInt(m[1], 10);
+        const min = parseInt(m[2], 10);
+        if (h < 0 || h > 23 || min < 0 || min > 59) { setEditStatus('Неверный формат времени'); return; }
+        const start = new Date(editDate.getFullYear(), editDate.getMonth(), editDate.getDate(), h, min, 0);
+        patch.datetime_start = start.toISOString();
+      }
+    }
+
+    setIsSavingEdit(true);
+
+    if (editCoverUri) {
+      try {
+        setEditStatus('Загрузка обложки...');
+        patch.coverUrl = await uploadEventImage(editCoverUri);
+      } catch (uploadErr: any) {
+        setEditStatus(uploadErr?.message ?? 'Не удалось загрузить обложку');
+        setIsSavingEdit(false);
+        return;
+      }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      setEditStatus('Нет изменений для сохранения');
+      setIsSavingEdit(false);
+      return;
+    }
+
+    try {
+      setEditStatus('Сохранение...');
+      await updateEvent(event.id, patch);
+      setEvent((prev) => prev ? {
+        ...prev,
+        title: patch.title ?? prev.title,
+        description: patch.description ?? prev.description,
+        price: patch.price ?? prev.price,
+        maxParticipants: editMaxParticipants ? (Math.max(1, parseInt(editMaxParticipants, 10) || 30)) : prev.maxParticipants,
+        datetimeStart: patch.datetime_start ?? prev.datetimeStart,
+        coverUrl: patch.coverUrl ?? prev.coverUrl,
+      } : prev);
+      setEditOpen(false);
+    } catch (e: any) {
+      setEditStatus(e?.message ?? 'Не удалось сохранить изменения');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
   const isOwnEvent = currentUserId != null && event?.mentor?.id === currentUserId;
 
   const metaBlock = (
@@ -308,7 +435,7 @@ export default function EventDetailScreenWeb() {
 
             {isOwnEvent ? (
               <>
-                <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/profile/edit-event?id=${event.id}` as any)}>
+                <Pressable style={styles.chipButton} onPress={openEditModal}>
                   <Text style={styles.chipButtonText}>Редактировать событие</Text>
                 </Pressable>
                 <Pressable style={styles.chipButton} onPress={() => setDeleteStep('confirm')}>
@@ -350,7 +477,7 @@ export default function EventDetailScreenWeb() {
               <View style={styles.actionsRow}>
                 {isOwnEvent ? (
                   <>
-                    <Pressable onPress={() => router.push(`/(tabs)/profile/edit-event?id=${event.id}` as any)}>
+                    <Pressable onPress={openEditModal}>
                       <Text style={styles.actionLink}>Редактировать событие</Text>
                     </Pressable>
                     <Pressable onPress={() => setDeleteStep('confirm')}>
@@ -445,6 +572,138 @@ export default function EventDetailScreenWeb() {
           </View>
         </View>
       </Modal>
+
+      <Modal transparent animationType="fade" visible={editOpen} onRequestClose={() => setEditOpen(false)}>
+        <View style={[styles.editOverlay, { pointerEvents: 'box-none' }]}>
+          <View style={styles.editModalCard}>
+            <View style={styles.editHeaderRow}>
+              <Text style={styles.editTitle}>Изменение события</Text>
+              <Pressable onPress={() => setEditOpen(false)} hitSlop={8}>
+                <Text style={styles.editCloseText}>✕</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.editScroll} contentContainerStyle={styles.editScrollContent}>
+              {event?.hasPaidRegistrations ? (
+                <Text style={styles.editLockedNote}>Есть оплаченные регистрации — изменить можно только обложку</Text>
+              ) : null}
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Название</Text>
+                <TextInput
+                  value={editTitle}
+                  onChangeText={setEditTitle}
+                  style={styles.editFieldInput}
+                  editable={!event?.hasPaidRegistrations}
+                />
+              </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Описание</Text>
+                <TextInput
+                  value={editDescription}
+                  onChangeText={setEditDescription}
+                  style={[styles.editFieldInput, styles.editFieldMultiline]}
+                  multiline
+                  editable={!event?.hasPaidRegistrations}
+                />
+              </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Дата</Text>
+                <Pressable
+                  style={styles.editFieldValueRow}
+                  onPress={event?.hasPaidRegistrations ? undefined : () => { try { editDateRef.current?.showPicker?.(); } catch { editDateRef.current?.click?.(); } }}
+                >
+                  <Text style={styles.editFieldValue}>{editDate ? formatEditDate(editDate) : 'Дата'}</Text>
+                  <input
+                    ref={editDateRef}
+                    type="date"
+                    value={editDate ? `${editDate.getFullYear()}-${String(editDate.getMonth() + 1).padStart(2, '0')}-${String(editDate.getDate()).padStart(2, '0')}` : ''}
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+                    onChange={(e: any) => { const v = e.target.value; if (v) { const [y, mo, d] = v.split('-').map(Number); setEditDate(new Date(y, mo - 1, d)); } }}
+                    disabled={event?.hasPaidRegistrations}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Время</Text>
+                <Pressable
+                  style={styles.editFieldValueRow}
+                  onPress={event?.hasPaidRegistrations ? undefined : () => { try { editTimeRef.current?.showPicker?.(); } catch { editTimeRef.current?.click?.(); } }}
+                >
+                  <Text style={styles.editFieldValue}>{editTimeStr ? stripLeadingZeroTime(editTimeStr) : 'Время'}</Text>
+                  <input
+                    ref={editTimeRef}
+                    type="time"
+                    value={editTimeStr}
+                    style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
+                    onChange={(e: any) => { const v = e.target.value; if (v) setEditTimeStr(v); }}
+                    disabled={event?.hasPaidRegistrations}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Стоимость</Text>
+                {event?.hasPaidRegistrations ? (
+                  <Text style={styles.editFieldValue}>{editPrice ? `${editPrice} Р` : 'Бесплатно'}</Text>
+                ) : (
+                  <TextInput
+                    value={editPrice}
+                    onChangeText={(t) => setEditPrice(t.replace(/\D/g, ''))}
+                    style={styles.editFieldInput}
+                    keyboardType="numeric"
+                    placeholder="0 — бесплатно"
+                  />
+                )}
+                {editPrice && parseInt(editPrice, 10) > 0 ? (
+                  <Text style={styles.editCommissionText}>
+                    Комиссия 10% — вы получите {Math.round(parseInt(editPrice, 10) * 0.9)} Р
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Обложка</Text>
+                <Pressable onPress={event?.hasPaidRegistrations ? undefined : pickEditCover} style={styles.editCoverThumbWrap}>
+                  {(editCoverUri || editExistingCoverUrl) ? (
+                    <Image source={{ uri: editCoverUri ?? editExistingCoverUrl! }} style={styles.editCoverThumb} resizeMode="cover" />
+                  ) : (
+                    <View style={[styles.editCoverThumb, styles.editCoverThumbEmpty]} />
+                  )}
+                </Pressable>
+                <input ref={editFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onEditCoverFileChange} />
+              </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Максимальное количество участников</Text>
+                <TextInput
+                  value={editMaxParticipants}
+                  onChangeText={(t) => setEditMaxParticipants(t.replace(/\D/g, ''))}
+                  style={styles.editFieldInput}
+                  keyboardType="numeric"
+                  editable={!event?.hasPaidRegistrations}
+                />
+              </View>
+
+              {editStatus ? <Text style={styles.editStatusText}>{editStatus}</Text> : null}
+            </ScrollView>
+
+            <View style={styles.editFooterRow}>
+              <Pressable onPress={() => setEditOpen(false)}>
+                <Text style={styles.editCancelText}>Отменить</Text>
+              </Pressable>
+              <Pressable onPress={handleSaveEdit} disabled={isSavingEdit}>
+                <Text style={[styles.editSaveText, isSavingEdit && styles.actionLinkDisabled]}>
+                  {isSavingEdit ? 'Сохранение…' : 'Сохранить'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SiteShell>
   );
 }
@@ -508,4 +767,31 @@ const styles = StyleSheet.create({
   cancelModalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cancelModalLeave: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
   cancelModalConfirm: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D' },
+
+  // "Изменение события" — попап поверх текущей (дименой) страницы события,
+  // а не отдельный полноэкранный маршрут (см. референс) — та же механика
+  // overlay/карточки, что и у cancelOverlay выше, просто крупнее и со своим
+  // скроллом/шапкой/подвалом.
+  editOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(24,24,24,0.45)', padding: 16 },
+  editModalCard: { width: '100%', maxWidth: 640, maxHeight: '85%', backgroundColor: '#fff', padding: 32 },
+  editHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, gap: 16 },
+  editTitle: { flex: 1, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 32, lineHeight: 36, color: '#010101' },
+  editCloseText: { fontSize: 22, color: '#010101', marginTop: 4 },
+  editScroll: { flexGrow: 0 },
+  editScrollContent: { paddingBottom: 8 },
+  editLockedNote: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
+  editFieldWrap: { marginBottom: 28 },
+  editFieldLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  editFieldInput: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none' } as any,
+  editFieldMultiline: { minHeight: 60, textAlignVertical: 'top' },
+  editFieldValueRow: { position: 'relative' },
+  editFieldValue: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  editCommissionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 6 },
+  editCoverThumbWrap: { alignSelf: 'flex-start' },
+  editCoverThumb: { width: 72, height: 48, backgroundColor: '#E5E5E5' },
+  editCoverThumbEmpty: {},
+  editStatusText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 8 },
+  editFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
+  editCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
+  editSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D' },
 });
