@@ -330,12 +330,12 @@ export default function EventDetailScreenWeb() {
             )}
 
             {event.mentor ? (
-              <>
+              <View style={styles.mobileMentorBlock}>
                 {mentorRow}
                 <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
                   <Text style={styles.chipButtonText}>Перейти в профиль</Text>
                 </Pressable>
-              </>
+              </View>
             ) : null}
           </View>
         ) : (
@@ -487,11 +487,14 @@ const styles = StyleSheet.create({
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
 
-  // Mobile: маленькая миниатюра рядом с датой/ценой, кнопки — заливка (см. моб. макеты).
-  mobileHeaderRow: { flexDirection: 'row', gap: 12, alignItems: 'center', marginBottom: 16 },
-  mobileThumb: { width: 90, height: 90, backgroundColor: '#E5E5E5' },
-  mobileMetaCol: { flex: 1, gap: 6 },
+  // Mobile: широкая обложка (не квадратная миниатюра) слева, дата/цена
+  // справа по верхнему краю — см. референс мобильной карточки события.
+  mobileHeaderRow: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginBottom: 16 },
+  mobileThumb: { flex: 1, height: 160, backgroundColor: '#E5E5E5' },
+  mobileMetaCol: { gap: 6, paddingTop: 4 },
   mobileMetaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
+  // Заметный отступ перед блоком наставника — см. референс.
+  mobileMentorBlock: { marginTop: 56 },
   chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#68717A' },
 
