@@ -147,7 +147,7 @@ export function SiteFooter() {
 }
 
 const styles = StyleSheet.create({
-  footer: { paddingVertical: 30, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
+  footer: { paddingVertical: 0, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
   // На мобильном подпись не влезает рядом с сеткой — подпись сверху, лого снизу.
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   // Мобильный — простой перенос по ширине экрана, а не жёсткая 5-колоночная сетка.
   logosWrapMobile: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 20, columnGap: 20 },
   logoImageMobile: { width: MOBILE_LOGO_WIDTH, height: MOBILE_LOGO_HEIGHT },
-  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 258 },
   copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
   bottomLinks: { flexDirection: 'row', gap: 24 },
   docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', textDecorationLine: 'none' },
