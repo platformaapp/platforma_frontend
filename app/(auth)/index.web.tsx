@@ -53,7 +53,10 @@ export default function AuthChoiceScreenWeb() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', padding: 16 },
-  card: { width: '100%', maxWidth: 480, backgroundColor: '#fff', padding: 24 },
+  // minHeight + justifyContent:'space-between' — шапка сверху, ссылки снизу,
+  // с большим воздухом между ними (см. референс), а не компактная карточка
+  // впритык под контент.
+  card: { width: '100%', maxWidth: 640, minHeight: 280, backgroundColor: '#fff', padding: 32, justifyContent: 'space-between' },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
   titleMobile: { fontSize: 25, lineHeight: 28 },

@@ -107,14 +107,13 @@ export default function ProfileScreenWeb() {
   // Pressable; без задержки onHoverOut успевает погасить кнопку (opacity/
   // pointerEvents) до того, как курсор до неё доедет, и клик проваливается.
   const slotHoverOutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Слоты, добавленные через "+" в попапе, но ещё не отправленные на бэкенд —
-  // показываются красным в списке; реально создаются все разом по "Сохранить"
-  // (см. handleSaveAllSlots). Раньше "Сохранить" сохранял только одну запись
-  // из полей Дата/Время внизу, а слоты, добавленные через "+", никуда не
-  // отправлялись вообще.
-  const [pendingSlots, setPendingSlots] = useState<{ localId: string; date: string; time: string }[]>([]);
-  const [savingSlots, setSavingSlots] = useState(false);
   const [slotsSaveError, setSlotsSaveError] = useState('');
+  // "+" у конкретной даты — дата уже известна (это дата группы), поэтому
+  // нужно спросить только время: программно открываем нативный time-picker
+  // через этот скрытый <input>, а какую дату к нему привязать, хранит
+  // timePickerDate. Слот создаётся на бэкенде сразу по выбору времени.
+  const timePickerRef = useRef<HTMLInputElement>(null);
+  const [timePickerDate, setTimePickerDate] = useState<string | null>(null);
 
   // ── Tutor-only modals ───────────────────────────────────────────────────────
   const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
@@ -645,19 +644,8 @@ export default function ProfileScreenWeb() {
     } catch { /* ignore — slot stays in list, user can retry */ }
   }
 
-  /** Добавляет слот локально (красным, до нажатия "Сохранить") — не бьёт по API. */
-  function stageSlot(date: string, time: string) {
-    if (!date || !time) return;
-    setPendingSlots((prev) => [...prev, { localId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`, date, time }]);
-  }
-
-  function removePendingSlot(localId: string) {
-    setPendingSlots((prev) => prev.filter((p) => p.localId !== localId));
-  }
-
   function closeSlotsModal() {
     setSlotsModalVisible(false);
-    setPendingSlots([]);
     setNewSlotDate('');
     setNewSlotTime('');
     setSlotsSaveError('');
@@ -665,38 +653,26 @@ export default function ProfileScreenWeb() {
     setHoveredSlotId(null);
   }
 
-  /** Создаёт на бэкенде все слоты, добавленные через "+" (плюс те, что введены
-   * в нижних полях Дата/Время, если заполнены), одним махом — а не только
-   * последнюю введённую запись. Слоты, которые не удалось создать, остаются
-   * в списке красными, чтобы можно было повторить попытку. */
-  async function handleSaveAllSlots() {
+  /** Создаёт слот сразу на бэкенде (не откладывает до "Сохранить" — та кнопка
+   * теперь просто закрывает попап, см. запрос пользователя). */
+  async function createAndAddSlot(date: string, time: string) {
+    if (!date || !time) return;
     setSlotsSaveError('');
-    let toSave = pendingSlots;
-    if (newSlotDate && newSlotTime) {
-      toSave = [...pendingSlots, { localId: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`, date: newSlotDate, time: newSlotTime }];
-      setPendingSlots(toSave);
+    try {
+      const slot = await createTutorSlot({ date, time });
+      setSlots((prev) => [...prev, slot]);
+    } catch {
+      setSlotsSaveError('Не удалось создать слот — попробуйте ещё раз');
     }
-    if (toSave.length === 0) { closeSlotsModal(); return; }
+  }
 
-    setSavingSlots(true);
-    const results = await Promise.allSettled(toSave.map((p) => createTutorSlot({ date: p.date, time: p.time })));
-    const createdSlots: Slot[] = [];
-    const stillPending: typeof toSave = [];
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled') createdSlots.push(r.value);
-      else stillPending.push(toSave[i]);
+  /** "+" у даты — дата уже известна, спрашиваем только время нативным
+   * пикером браузера (невидимый <input type="time"> триггерится программно). */
+  function openTimePickerForDate(date: string) {
+    setTimePickerDate(date);
+    requestAnimationFrame(() => {
+      try { timePickerRef.current?.showPicker?.(); } catch { timePickerRef.current?.click?.(); }
     });
-    if (createdSlots.length) setSlots((prev) => [...prev, ...createdSlots]);
-    setPendingSlots(stillPending);
-    setSavingSlots(false);
-
-    if (stillPending.length === 0) {
-      setNewSlotDate('');
-      setNewSlotTime('');
-      setSlotsModalVisible(false);
-    } else {
-      setSlotsSaveError('Не удалось сохранить некоторые слоты — попробуйте ещё раз');
-    }
   }
 
   async function handleCreateEvent() {
@@ -843,17 +819,6 @@ export default function ProfileScreenWeb() {
   );
   const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />;
 
-  // Уже сохранённые слоты (чёрные) + добавленные через "+", но ещё не
-  // отправленные на бэкенд (красные, до "Сохранить") — единый список для
-  // попапа "Редактировать слоты для записи".
-  const combinedSlotsForModal: { id: string; date: string; time: string; pending: boolean }[] = [
-    ...slots.map((s) => ({ id: s.id, date: s.date, time: s.time, pending: false })),
-    ...pendingSlots.map((p) => ({ id: p.localId, date: p.date, time: p.time, pending: true })),
-  ];
-  function handleRemoveDisplaySlot(s: { id: string; pending: boolean }) {
-    if (s.pending) removePendingSlot(s.id);
-    else handleRemoveSlot(s.id);
-  }
 
   return (
     <SiteShell>
@@ -907,7 +872,7 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ))}
-        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setPendingSlots([]); setSlotsSaveError(''); setSlotsModalVisible(true); }}>
+        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}>
           <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
         </Pressable>
       </View>
@@ -1020,13 +985,12 @@ export default function ProfileScreenWeb() {
             </View>
 
             <ScrollView style={styles.slotsModalScroll}>
-              {groupSlotsByDate(combinedSlotsForModal).map((group) => (
+              {groupSlotsByDate(slots).map((group) => (
                 <View key={group.date} style={styles.slotDateGroup}>
                   <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
                   <View style={styles.slotTimesRow}>
                     {group.slots.map((s) => {
                       const active = selectedSlotId === s.id || hoveredSlotId === s.id;
-                      const isRed = s.pending || active;
                       return (
                         <Pressable
                           key={s.id}
@@ -1043,14 +1007,14 @@ export default function ProfileScreenWeb() {
                           }}
                           onPress={() => setSelectedSlotId((cur) => (cur === s.id ? null : s.id))}
                         >
-                          <Text style={[styles.slotTimeText, isRed && styles.slotTimeTextSelected]}>{s.time.slice(0, 5)}</Text>
+                          <Text style={[styles.slotTimeText, active && styles.slotTimeTextSelected]}>{s.time.slice(0, 5)}</Text>
                           {/* Всегда в разметке (не condition-render) — иначе появление
                               иконки сдвигает соседние слоты/чип "+" вправо прямо под
                               курсором и наведение "убегает". Скрываем через opacity. */}
                           <Pressable
                             style={[styles.slotRemoveChip, !active && styles.slotRemoveChipHidden]}
                             onHoverIn={() => { if (slotHoverOutTimer.current) clearTimeout(slotHoverOutTimer.current); setHoveredSlotId(s.id); }}
-                            onPress={(e) => { e.stopPropagation?.(); handleRemoveDisplaySlot(s); setSelectedSlotId(null); }}
+                            onPress={(e) => { e.stopPropagation?.(); handleRemoveSlot(s.id); setSelectedSlotId(null); }}
                             hitSlop={6}
                           >
                             <Text style={styles.slotRemoveChipText}>−</Text>
@@ -1058,7 +1022,7 @@ export default function ProfileScreenWeb() {
                         </Pressable>
                       );
                     })}
-                    <Pressable style={styles.slotAddChip} onPress={() => { stageSlot(group.date, newSlotTime); setNewSlotTime(''); }}>
+                    <Pressable style={styles.slotAddChip} onPress={() => openTimePickerForDate(group.date)}>
                       <Text style={styles.slotAddChipText}>+</Text>
                     </Pressable>
                   </View>
@@ -1066,15 +1030,45 @@ export default function ProfileScreenWeb() {
               ))}
             </ScrollView>
 
-            <DateFieldWithPicker label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate} />
-            <TimeFieldWithPicker label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} />
+            {/* Скрытый time-picker для "+" — дата уже известна (группа), спрашиваем
+                только время; выбранное значение сразу создаёт слот на бэкенде. */}
+            <input
+              ref={timePickerRef}
+              type="time"
+              style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' } as any}
+              onChange={(e: any) => {
+                const v = e.target.value;
+                const date = timePickerDate;
+                setTimePickerDate(null);
+                if (v && date) createAndAddSlot(date, v);
+              }}
+            />
+
+            <DateFieldWithPicker
+              label="Дата"
+              value={newSlotDate}
+              onChangeValue={(d) => {
+                if (newSlotTime) { createAndAddSlot(d, newSlotTime); setNewSlotDate(''); setNewSlotTime(''); }
+                else setNewSlotDate(d);
+              }}
+            />
+            <TimeFieldWithPicker
+              label="Время"
+              value={newSlotTime}
+              onChangeValue={(t) => {
+                if (newSlotDate) { createAndAddSlot(newSlotDate, t); setNewSlotDate(''); setNewSlotTime(''); }
+                else setNewSlotTime(t);
+              }}
+            />
 
             {slotsSaveError ? <Text style={styles.errorText}>{slotsSaveError}</Text> : null}
 
             <View style={styles.modalFooterRow}>
               <Pressable onPress={closeSlotsModal}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleSaveAllSlots} disabled={savingSlots}>
-                <Text style={styles.modalSaveText}>{savingSlots ? 'Сохраняем…' : 'Сохранить'}</Text>
+              {/* Слоты уже сохранены сразу при создании — "Сохранить" здесь чисто
+                  декоративная кнопка, просто закрывает попап. */}
+              <Pressable onPress={closeSlotsModal}>
+                <Text style={styles.modalSaveText}>Сохранить</Text>
               </Pressable>
             </View>
           </Pressable>
