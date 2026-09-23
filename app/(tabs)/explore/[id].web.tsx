@@ -19,11 +19,29 @@ function resolveCover(url: unknown): string | null {
   return `${API_BASE}${url}`;
 }
 
+// Формат события хранится в поле category (enum EventCategory на бэкенде) —
+// фид отдаёт английский слаг ('lecture', 'practices', ...), те же подписи,
+// что и в /events (см. events/index.web.tsx CATEGORY_LABELS).
+const CATEGORY_LABELS: Record<string, string> = {
+  broadcast: 'Трансляция',
+  lecture: 'Лекция',
+  mediation: 'Медиация',
+  practices: 'Практика',
+  meeting: 'Встреча',
+  discussion: 'Обсуждение',
+};
+function resolveFormat(raw: Record<string, unknown>): string | undefined {
+  const category = raw.category as string | null | undefined;
+  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
+  const legacy = (raw.format as string) ?? (raw.type as string) ?? undefined;
+  return legacy;
+}
+
 function formatEventDate(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}, ${d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    return `${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}, ${d.toLocaleTimeString('ru-RU', { hour: 'numeric', minute: '2-digit' })}`;
   } catch {
     return iso;
   }
@@ -100,7 +118,7 @@ export default function TutorCardScreenWeb() {
                 datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at ?? undefined,
                 price: typeof r.price === 'number' ? r.price : undefined,
                 coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url),
-                format: r.format ?? r.type ?? undefined,
+                format: resolveFormat(r),
               }))
               .filter((e: MentorEvent) => e.id);
             if (active) setMentorEvents(events);
