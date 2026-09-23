@@ -277,19 +277,21 @@ export async function deleteTutorSlots(slotIds: string[]): Promise<void> {
 }
 
 // --- События/занятия ---
+// У бэкенда нет отдельного /tutor/events — события общие, см. /events (было
+// 404 "Cannot POST /api/tutor/events" при создании события наставником).
 
-/** GET /tutor/events — список событий (привязанных к слотам) */
+/** GET /events/my — список своих событий (наставник видит созданные им) */
 export async function getTutorEvents(): Promise<Event[]> {
-  const res = await fetch(endpoints.tutorEvents, {
+  const res = await fetch(endpoints.eventsMy, {
     headers: await authHeaders(),
   });
   const data = await handleResponse<Event[] | { events?: Event[] }>(res);
   return Array.isArray(data) ? data : (data.events ?? []);
 }
 
-/** POST /tutor/events — создать событие (если добавляем сразу занятие) */
+/** POST /events — создать событие (если добавляем сразу занятие) */
 export async function createTutorEvent(event: EventCreate): Promise<Event> {
-  const res = await fetch(endpoints.tutorEvents, {
+  const res = await fetch(endpoints.events, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(event),
@@ -297,9 +299,9 @@ export async function createTutorEvent(event: EventCreate): Promise<Event> {
   return handleResponse<Event>(res);
 }
 
-/** POST /tutor/events — создать событие с полными данными (Название, Описание, Дата, Время, Стоимость, Участники, Обложка) */
+/** POST /events — создать событие с полными данными (Название, Описание, Дата, Время, Стоимость, Участники, Обложка) */
 export async function createTutorEventFull(event: EventCreateFull): Promise<Event> {
-  const res = await fetch(endpoints.tutorEvents, {
+  const res = await fetch(endpoints.events, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(event),
@@ -307,10 +309,10 @@ export async function createTutorEventFull(event: EventCreateFull): Promise<Even
   return handleResponse<Event>(res);
 }
 
-/** PUT /tutor/events/{id} — обновить статус урока */
+/** PATCH /events/{id} — обновить статус урока */
 export async function updateTutorEvent(id: string, data: EventUpdate): Promise<Event> {
-  const res = await fetch(`${endpoints.tutorEvents}/${id}`, {
-    method: 'PUT',
+  const res = await fetch(`${endpoints.events}/${id}`, {
+    method: 'PATCH',
     headers: await authHeaders(),
     body: JSON.stringify(data),
   });

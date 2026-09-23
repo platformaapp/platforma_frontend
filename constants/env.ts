@@ -32,10 +32,11 @@ export const endpoints = {
   // Student (Ученик) — профиль
   studentProfile: `${API_BASE}/api/student/profile`,
 
-  // Tutor (Наставник) — профиль, слоты, события, платежи
+  // Tutor (Наставник) — профиль, слоты, платежи
+  // (события у наставника создаются/читаются через общий /events, см. ниже —
+  // отдельного /api/tutor/events на бэкенде нет)
   tutorProfile: `${API_BASE}/api/tutor/profile`,
   tutorSlots: `${API_BASE}/api/tutor/slots`,
-  tutorEvents: `${API_BASE}/api/tutor/events`,
   tutorPayments: `${API_BASE}/api/tutor/payments`,
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
   tutorPayoutsBalance: `${API_BASE}/api/tutor/payouts/balance`,
