@@ -22,14 +22,14 @@ export function PromoBanner({ withTelegramLink }: { withTelegramLink?: boolean }
       
       {withTelegramLink ? (
         <View style={styles.promoImageWrap}>
-        <Image source={BANNER_IMAGE_TG} style={styles.promoImage} resizeMode="contain" />
-      </View>
-        // <Pressable
-        //   style={styles.telegramLink}
-        //   onPress={(e) => { e.stopPropagation?.(); Linking.openURL(TELEGRAM_URL); }}
-        // >
-        //   <Text style={styles.promoTelegramLinkText}>в телеге</Text>
-        // </Pressable>
+          <Image source={BANNER_IMAGE_TG} style={styles.promoImage} resizeMode="contain" />
+          <Pressable
+            style={styles.telegramLink}
+            accessibilityRole="link"
+            accessibilityLabel="в телеге"
+            onPress={(e) => { e.stopPropagation?.(); window.open(TELEGRAM_URL, '_blank', 'noopener,noreferrer'); }}
+          />
+        </View>
       ) : <View style={styles.promoImageWrap}>
       <Image source={BANNER_IMAGE} style={styles.promoImage} resizeMode="cover" />
     </View>}
@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
   promoBanner: { marginTop: 97, position: 'relative', backgroundColor: 'transparent' },
   promoImageWrap: { width: '100%', aspectRatio: BANNER_ASPECT_RATIO, position: 'relative', overflow: 'hidden' },
   promoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  telegramLink: { position: 'absolute', left: '24%', bottom: '7%' },
-  promoTelegramLinkText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
+  // Прозрачная область клика поверх уже вшитой в картинку надписи "в телеге"
+  // (координаты — bbox красного текста в ai-issue-banner-tg.png, с запасом).
+  telegramLink: { position: 'absolute', left: '27%', width: '16%', top: '84%', height: '13%' },
 });
