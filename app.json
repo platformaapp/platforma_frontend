@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/images/icon-p34.png",
       "supportsTablet": false,
       "bundleIdentifier": "ru.platformaapp",
       "buildNumber": "8",
