@@ -7,6 +7,7 @@ import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
+import { TOPICS } from '@/constants/topics';
 import { getAuthToken } from '@/lib/auth';
 import { parseFeedItems } from '@/lib/event-feed';
 
@@ -23,6 +24,7 @@ type EventFeedItem = {
   datetimeStart?: string;
   coverUrl?: string | null;
   format?: string;
+  topic?: string;
   mentor?: { id: string; name: string; avatarUrl?: string | null };
   [key: string]: unknown;
 };
@@ -89,6 +91,7 @@ export default function EventsScreenWeb() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [format, setFormat] = useState<string | null>(null);
+  const [topic, setTopic] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
@@ -132,6 +135,7 @@ export default function EventsScreenWeb() {
       datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
       coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url),
       format: resolveFormat(r),
+      topic: (r.topic as string) ?? undefined,
       mentor: r.mentor ? {
         id: String((r.mentor as any).id ?? ''),
         name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? (r.mentor as any).full_name ?? ''),
@@ -198,7 +202,9 @@ export default function EventsScreenWeb() {
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
-  const filtered = format ? events.filter((e) => e.format === format) : events;
+  const filtered = events
+    .filter((e) => !format || e.format === format)
+    .filter((e) => !topic || e.topic === topic);
 
   function renderFeaturedCard(item: EventFeedItem, index: 0 | 1) {
     const isSecond = index === 1;
@@ -276,6 +282,21 @@ export default function EventsScreenWeb() {
             >
               <Text style={[styles.filterPillText, format === DISCUSSION_FORMAT && styles.filterPillTextActive]}>{DISCUSSION_FORMAT}</Text>
             </Pressable>
+          </View>
+        ) : null}
+
+        {!isMobile ? (
+          <View style={styles.filtersRow}>
+            <View style={styles.filtersGroup}>
+              {TOPICS.map((t) => {
+                const active = t === topic;
+                return (
+                  <Pressable key={t} style={styles.filterPill} onPress={() => setTopic(active ? null : t)}>
+                    <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{t}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         ) : null}
 

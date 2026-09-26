@@ -6,6 +6,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
+import { TOPICS } from '@/constants/topics';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
 
@@ -25,6 +26,7 @@ export default function RegisterTutorStep2ScreenWeb() {
   const [about, setAbout] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [groupMeetings, setGroupMeetings] = useState('');
+  const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export default function RegisterTutorStep2ScreenWeb() {
         bio: about.trim() || undefined,
         hourlyRate: rateValue > 0 ? rateValue : undefined,
         groupMeetings: groupMeetings.trim() || undefined,
+        specialization: specialization ?? undefined,
         avatarUrl,
       });
 
@@ -95,6 +98,20 @@ export default function RegisterTutorStep2ScreenWeb() {
             <PlusField label="Собираете ли вы групповые встречи? Как часто?" value={groupMeetings} onChangeText={setGroupMeetings} multiline />
 
             <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Специализация</Text>
+              <View style={styles.topicsRow}>
+                {TOPICS.map((t) => {
+                  const active = t === specialization;
+                  return (
+                    <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
+                      <Text style={[styles.topicPillText, active && styles.topicPillTextActive]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Фото</Text>
               {avatarUri ? (
                 <Pressable style={styles.uploadWithPhoto} onPress={pickImage}>
@@ -136,6 +153,9 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 0 },
   fieldWrap: { marginBottom: 24 },
   fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
+  topicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
+  topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#838383' },
+  topicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -16, marginBottom: 16 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },

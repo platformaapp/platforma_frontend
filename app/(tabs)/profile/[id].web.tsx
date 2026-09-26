@@ -7,6 +7,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
+import { TOPICS } from '@/constants/topics';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
@@ -17,6 +18,11 @@ import {
   getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+
+// Бэкенд требует datetime_start И datetime_end (сам считает durationMinutes
+// из разницы) — в форме есть только "Время" (начало), длительность не
+// спрашиваем, поэтому фиксируем 60 минут по умолчанию.
+const DEFAULT_EVENT_DURATION_MINUTES = 60;
 
 /** Группирует слоты по дате (для отображения "13 мая: 14:00 15:00 20:00"), сортируя даты и время. */
 function groupSlotsByDate<T extends { date: string; time: string }>(slots: T[]): { date: string; slots: T[] }[] {
@@ -126,6 +132,7 @@ export default function ProfileScreenWeb() {
   const [eventTime, setEventTime] = useState('');
   const [eventPrice, setEventPrice] = useState('');
   const [eventMax, setEventMax] = useState('');
+  const [eventTopic, setEventTopic] = useState<string | null>(null);
   const [eventCoverUri, setEventCoverUri] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [eventError, setEventError] = useState('');
@@ -696,12 +703,16 @@ export default function ProfileScreenWeb() {
     try {
       let coverUrl: string | undefined;
       if (eventCoverUri) coverUrl = await uploadEventImage(eventCoverUri);
+      const startDate = new Date(`${eventDate}T${eventTime}:00`);
+      const endDate = new Date(startDate.getTime() + DEFAULT_EVENT_DURATION_MINUTES * 60000);
       await createTutorEventFull({
-        title: eventTitle, description: eventDescription, date: eventDate, time: eventTime,
-        price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0, cover_image: coverUrl,
+        title: eventTitle, description: eventDescription,
+        datetime_start: startDate.toISOString(), datetime_end: endDate.toISOString(),
+        price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0,
+        coverUrl, topic: eventTopic ?? undefined,
       });
       setEventCreated(true);
-      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventCoverUri(null);
+      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTopic(null); setEventCoverUri(null);
     } catch (e: any) {
       setEventError(e?.message ?? 'Не удалось создать событие');
     } finally {
@@ -976,6 +987,17 @@ export default function ProfileScreenWeb() {
               <TimeFieldWithPicker label="Время" value={eventTime} onChangeValue={setEventTime} />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
+              <Text style={styles.fieldLabel}>Рубрика</Text>
+              <View style={styles.eventTopicsRow}>
+                {TOPICS.map((t) => {
+                  const active = t === eventTopic;
+                  return (
+                    <Pressable key={t} onPress={() => setEventTopic(active ? null : t)}>
+                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Text style={styles.fieldLabel}>Обложка</Text>
               <Pressable style={styles.fieldInputWrap} onPress={handlePickCover}>
                 {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : (
@@ -1298,6 +1320,9 @@ const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
   fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
+  eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#838383' },
+  eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },

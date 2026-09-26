@@ -35,6 +35,8 @@ export interface TutorProfile {
   pricePerHour?: number;
   groupMeetings?: string;
   group_meetings?: string;
+  /** Рубрикатор — тема специализации (см. constants/topics.ts) */
+  specialization?: string;
   role?: 'tutor';
   created_at?: string;
   updated_at?: string;
@@ -59,6 +61,7 @@ export interface TutorProfileUpdate {
   pricePerHour?: number;
   groupMeetings?: string;
   group_meetings?: string;
+  specialization?: string;
 }
 
 /** free (или available) | booked | cancelled */
@@ -107,15 +110,21 @@ export interface EventCreate {
   title?: string;
 }
 
-/** Полный payload для создания события из формы new-event */
+/**
+ * Полный payload для создания события из формы "Добавить событие".
+ * Имена полей — как у бэкенда (CreateEventDto): datetime_start/datetime_end
+ * (ISO, оба обязательны — бэкенд сам считает durationMinutes из разницы),
+ * coverUrl (не cover_image). date/time по отдельности бэкенд не принимает.
+ */
 export interface EventCreateFull {
   title: string;
   description: string;
-  date: string;
-  time: string;
+  datetime_start: string;
+  datetime_end: string;
   price: number;
   max_participants: number;
-  cover_image?: string;
+  coverUrl?: string;
+  topic?: string;
 }
 
 export interface EventUpdate {
@@ -382,6 +391,8 @@ export interface PublicTutor {
   telegram_username?: string;
   /** Whether the mentor has been verified by admins */
   isVerified?: boolean;
+  /** Рубрикатор — тема специализации (см. constants/topics.ts) */
+  specialization?: string;
 }
 
 /**
@@ -400,6 +411,7 @@ export interface PublicTutorBasic {
   avatarUrl?: string;
   bio?: string;
   shortBio?: string;
+  specialization?: string;
 }
 
 /**
@@ -423,6 +435,7 @@ export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
       avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url) ?? undefined,
       bio: (u.bio ?? undefined) as string | undefined,
       shortBio: (u.shortBio ?? u.short_bio ?? u.roleLabel ?? u.role_label ?? u.specialty ?? undefined) as string | undefined,
+      specialization: (u.specialization ?? undefined) as string | undefined,
     }));
   } catch {
     return [];

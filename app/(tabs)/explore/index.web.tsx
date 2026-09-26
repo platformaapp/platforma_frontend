@@ -5,17 +5,11 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TOPICS } from '@/constants/topics';
 import { getPublicTutorList, getPublicTutors, type PublicTutor } from '@/lib/api/tutor';
 import { getAuthRole, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
-
-/**
- * Категории (Кино/Музыка/Искусство/...) — на макете есть, но у наставника
- * в бэкенде нет поля категории/специализации в этом виде. Пильки показаны
- * визуально, фильтрация не работает, пока бэкенд не добавит это поле.
- */
-const CATEGORIES = ['Кино', 'Музыка', 'Искусство', 'Литература', 'Театр', 'Танец', 'Новые увлечения'];
 
 /**
  * Высота фото у карточки — не унифицированный кроп и не реальная пропорция
@@ -45,8 +39,7 @@ export default function MentorsScreenWeb() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Как на /events: клик подсвечивает пилюлю (активная — чёрная и жирная,
-  // остальные — серые). У наставника в бэкенде нет поля категории, поэтому
-  // сам список пока не фильтруется — см. комментарий у CATEGORIES.
+  // остальные — серые). Фильтрует по tutor.specialization (см. TOPICS).
   const [category, setCategory] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -78,6 +71,8 @@ export default function MentorsScreenWeb() {
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
+  const filteredTutors = category ? tutors.filter((t) => t.specialization === category) : tutors;
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -86,7 +81,7 @@ export default function MentorsScreenWeb() {
 
         {isMobile ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
-            {CATEGORIES.map((c) => {
+            {TOPICS.map((c) => {
               const active = c === category;
               return (
                 <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
@@ -97,7 +92,7 @@ export default function MentorsScreenWeb() {
           </ScrollView>
         ) : (
           <View style={styles.filtersRow}>
-            {CATEGORIES.map((c) => {
+            {TOPICS.map((c) => {
               const active = c === category;
               return (
                 <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
@@ -112,11 +107,11 @@ export default function MentorsScreenWeb() {
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error ? (
           <View style={styles.centered}><Text style={styles.errorText}>{error}</Text></View>
-        ) : tutors.length === 0 ? (
+        ) : filteredTutors.length === 0 ? (
           <View style={styles.centered}><Text style={styles.emptyText}>Наставники не найдены</Text></View>
         ) : (
           <View style={styles.grid}>
-            {tutors.map((tutor, index) => {
+            {filteredTutors.map((tutor, index) => {
               const isOwn = tutor.id === myId && myRole === 'tutor';
               const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
               const ratio = avatarHeightRatio(index, isMobile ? 1 : 4);
