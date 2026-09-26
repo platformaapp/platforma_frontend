@@ -13,7 +13,7 @@
       "bundleIdentifier": "ru.platformaapp",
       "buildNumber": "8",
       "infoPlist": {
-        "CFBundleDisplayName": "Платформа34",
+        "CFBundleDisplayName": "p(34)",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
