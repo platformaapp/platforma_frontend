@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 
 import { ContactsContent } from '@/app/contacts';
 import { OfferContent } from '@/app/offer';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { DocumentModal } from './document-modal';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
@@ -23,10 +24,6 @@ const PARTNER_LOGO_HEIGHT = 56;
 // значения в пикселях один в один.
 const FOOTER_LABEL_WIDTH = 363;
 const FOOTER_LOGOS_WIDTH = 833;
-// На мобильном подпись+сетка не влезают рядом (363+833) — лого переносятся
-// в обычный flexWrap-ряд под подписью, по аналогии с карточками событий.
-const MOBILE_LOGO_WIDTH = 96;
-const MOBILE_LOGO_HEIGHT = 36;
 
 // "Кого консультировал" — по референсу это отдельные 3 клиентских лого, не
 // пересекающиеся с сеткой "друзей" ниже (старые 5 логотипов страт.
@@ -66,14 +63,11 @@ const FRIENDS = [
 // .partners__logo img { max-width:100%; max-height:100%; object-fit:contain }
 // — картинка вписывается в ячейку сетки любых пропорций без ручных ширин;
 // resizeMode="contain" в бокс любого размера делает то же самое.
-function Logo({ isMobile, ...l }: { name: string; logo: number; url?: string; isMobile: boolean }) {
+// logo — либо локальный require() (number), либо ссылка из админки (string).
+function Logo(l: { name: string; logo: number | string; url?: string }) {
+  const source = typeof l.logo === 'string' ? { uri: l.logo } : l.logo;
   const image = (
-    <Image
-      source={l.logo}
-      accessibilityLabel={l.name}
-      resizeMode="contain"
-      style={isMobile ? styles.logoImageMobile : styles.logoImage}
-    />
+    <Image source={source} accessibilityLabel={l.name} resizeMode="contain" style={styles.logoImage} />
   );
   if (!l.url) return image;
   return (
@@ -83,27 +77,33 @@ function Logo({ isMobile, ...l }: { name: string; logo: number; url?: string; is
   );
 }
 
-// Десктоп — .partners__grid: display:grid; grid-template-columns:repeat(5,1fr);
-// gap:50px 24px; align-items:center — настоящая CSS-сетка (веб-онли).
-// Мобильный — обычный flexWrap-ряд фиксированных ячеек, сетка 363+833 шире
-// любого мобильного экрана и не может тут работать.
-function LogoGrid({ logos, isMobile }: { logos: { name: string; logo: number; url?: string }[]; isMobile: boolean }) {
+// .partners__grid: display:grid; grid-template-columns:repeat(5,1fr);
+// gap:50px 24px; align-items:center — настоящая CSS-сетка (веб-онли; блок
+// показывается только на десктопе, см. displayPartners в SiteFooter).
+function LogoGrid({ logos }: { logos: { name: string; logo: number | string; url?: string }[] }) {
   return (
-    <View style={isMobile ? styles.logosWrapMobile : styles.logosGrid}>
-      {logos.map((l) => <Logo key={l.name} {...l} isMobile={isMobile} />)}
+    <View style={styles.logosGrid}>
+      {logos.map((l) => <Logo key={l.name} {...l} />)}
     </View>
   );
 }
 
 /**
- * Футер веб-версии: партнёры и друзья проекта (реальные лого) + копирайт +
- * ссылки на документы. Показывается на страницах с публичным контентом
- * (события, событие, наставник, статья).
+ * Футер веб-версии: копирайт + ссылки на документы — на всех страницах;
+ * блоки партнёров/друзей — только там, где это явно запрошено (showPartners),
+ * и только на десктопе (на мобильном партнёров не показываем нигде вообще).
  */
-export function SiteFooter() {
+export function SiteFooter({ showPartners = false }: { showPartners?: boolean }) {
   const [openDoc, setOpenDoc] = useState<'none' | 'contacts' | 'offer'>('none');
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
+  const displayPartners = showPartners && !isMobile;
+  // Если админ настроил свой список партнёров — показываем его вместо
+  // захардкоженных FRIENDS (одной сеткой, без деления на "стратегических").
+  const { partners: adminPartners } = useSiteSettings();
+  const friends = adminPartners.length > 0
+    ? adminPartners.map((p) => ({ name: p.name, logo: p.logoUrl, url: p.linkUrl }))
+    : FRIENDS;
   // Full-bleed: футер лежит внутри ScrollView (без него снова ломается
   // прокрутка — см. коммит про схлопывание ScrollView), но должен визуально
   // тянуться на всю ширину окна, а не только на центрированную колонку
@@ -114,17 +114,21 @@ export function SiteFooter() {
 
   return (
     <View style={[styles.footer, { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL }]}>
-      <View style={[styles.section, isMobile && styles.sectionMobile]}>
-        <Text style={[styles.sectionLabel, isMobile && styles.sectionLabelMobile]}>Наши стратегические партнеры</Text>
-        <LogoGrid logos={STRATEGIC_PARTNERS} isMobile={isMobile} />
-      </View>
+      {displayPartners ? (
+        <>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Наши стратегические партнеры</Text>
+            <LogoGrid logos={STRATEGIC_PARTNERS} />
+          </View>
 
-      <View style={[styles.section, isMobile ? styles.friendsSectionMobile : styles.friendsSection, isMobile && styles.sectionMobile]}>
-        <Text style={[styles.sectionLabel, isMobile && styles.sectionLabelMobile]}>Наши большие друзья</Text>
-        <LogoGrid logos={FRIENDS} isMobile={isMobile} />
-      </View>
+          <View style={[styles.section, styles.friendsSection]}>
+            <Text style={styles.sectionLabel}>Наши большие друзья</Text>
+            <LogoGrid logos={friends} />
+          </View>
+        </>
+      ) : null}
 
-      <View style={styles.bottomRow}>
+      <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
         <Text style={styles.copyright}>©2026, p(34)</Text>
         <View style={styles.bottomLinks}>
           <Pressable onPress={() => setOpenDoc('contacts')}>
@@ -150,13 +154,9 @@ const styles = StyleSheet.create({
   footer: { paddingVertical: 0, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
-  // На мобильном подпись не влезает рядом с сеткой — подпись сверху, лого снизу.
-  sectionMobile: { flexDirection: 'column', alignItems: 'flex-start' },
   // .partners__block + .partners__block { margin-top: 120px }
   friendsSection: { marginTop: 120 },
-  friendsSectionMobile: { marginTop: 40 },
   sectionLabel: { width: FOOTER_LABEL_WIDTH, flexShrink: 0, fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
-  sectionLabelMobile: { width: 'auto', marginBottom: 16 },
   // display/gridTemplateColumns — веб-онли CSS-свойства, их нет в типах
   // ViewStyle, поэтому приводим объект через as any (сам компонент — только
   // для веба, см. использование SiteFooter только в *.web.tsx).
@@ -169,10 +169,10 @@ const styles = StyleSheet.create({
     gridTemplateColumns: 'repeat(5, 1fr)',
   } as any,
   logoImage: { width: '100%', height: PARTNER_LOGO_HEIGHT },
-  // Мобильный — простой перенос по ширине экрана, а не жёсткая 5-колоночная сетка.
-  logosWrapMobile: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 20, columnGap: 20 },
-  logoImageMobile: { width: MOBILE_LOGO_WIDTH, height: MOBILE_LOGO_HEIGHT },
-  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 258 },
+  // Без партнёров сверху — небольшой отступ вместо огромного (тот нужен был,
+  // только чтобы отбить копирайт от сетки лого).
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
+  bottomRowWithPartners: { marginTop: 258 },
   copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
   bottomLinks: { flexDirection: 'row', gap: 24 },
   docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', textDecorationLine: 'none' },

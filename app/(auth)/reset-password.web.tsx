@@ -136,5 +136,5 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#9B9B9B', marginTop: -12 },
   footerRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
-  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
 });

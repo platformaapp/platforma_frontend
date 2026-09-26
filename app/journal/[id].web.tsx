@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
-  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
+  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4, textDecorationLine: 'underline' },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
   // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
@@ -293,5 +293,5 @@ const styles = StyleSheet.create({
   ctaCardTitleNoLabel: { marginTop: 33 },
   ctaCardMeta: { width: '100%', fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right', marginTop: 20 },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
-  storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
+  storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D', textDecorationLine: 'underline' },
 });

@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
 
   choiceLinks: { gap: 4, marginBottom: 8 },
   choiceLinkRow: { paddingVertical: 10 },
-  choiceLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  choiceLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
   switchLink: { marginTop: 16, alignItems: 'center' },
   switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
 
@@ -207,5 +207,5 @@ const styles = StyleSheet.create({
 
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginTop: 16 },
   linkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
-  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
 });

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   linksRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 32 },
   linksRowMobile: { flexDirection: 'column', alignItems: 'flex-start', gap: 4 },
   linkRow: { paddingVertical: 10 },
-  linkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  linkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
   loginLink: { marginLeft: 'auto' },
   loginLinkMobile: { marginLeft: 0, marginTop: 12 },
   loginLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },

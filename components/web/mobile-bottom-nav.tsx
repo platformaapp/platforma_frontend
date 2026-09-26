@@ -1,7 +1,8 @@
 import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
 const ACTIVE = '#E02D2D';
@@ -29,11 +30,18 @@ const LAST_ITEM = NAV_ITEMS[4];
 export function MobileBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
+  const { navItems: navOverrides } = useSiteSettings();
 
-  function renderItem({ key, href, Icon, match }: (typeof NAV_ITEMS)[number]) {
+  function renderItem(item: (typeof NAV_ITEMS)[number]) {
+    const { key, href, Icon, match } = item;
+    const iconUrl = navOverrides[NAV_ITEMS.indexOf(item)]?.iconUrl;
     return (
       <Pressable key={key} style={styles.item} onPress={() => router.push(href as any)} hitSlop={12}>
-        <Icon color={isActive(pathname, match) ? ACTIVE : INACTIVE} size={20} />
+        {iconUrl ? (
+          <Image source={{ uri: iconUrl }} style={styles.iconImage} />
+        ) : (
+          <Icon color={isActive(pathname, match) ? ACTIVE : INACTIVE} size={20} />
+        )}
       </Pressable>
     );
   }
@@ -59,4 +67,5 @@ const styles = StyleSheet.create({
   },
   group: { flexDirection: 'row', alignItems: 'center', gap: 38 },
   item: { alignItems: 'center', justifyContent: 'center' },
+  iconImage: { width: 20, height: 20 },
 });

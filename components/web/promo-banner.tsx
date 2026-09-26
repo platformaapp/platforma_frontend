@@ -2,6 +2,8 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
+import { useSiteSettings } from '@/hooks/use-site-settings';
+
 const TELEGRAM_URL = 'https://t.me/p34forma';
 const BANNER_IMAGE = require('@/assets/images/ai-issue-banner.webp');
 const BANNER_IMAGE_TG = require('@/assets/images/ai-issue-banner-tg.png');
@@ -10,16 +12,32 @@ const BANNER_IMAGE_TG = require('@/assets/images/ai-issue-banner-tg.png');
 const BANNER_ASPECT_RATIO = 1244 / 290;
 
 /**
- * Промо-баннер материала "AI ISSUE" — используется на /events и /journal.
- * На /journal рядом с подписью есть ещё красная ссылка "в телеге" на канал —
- * на /events её нет, поэтому это опционально; кладём её поверх картинки
- * рядом с уже вшитым в неё текстом "читайте в нашем материале".
+ * Промо-баннер — используется на /events и /journal. Картинку и ссылку можно
+ * переопределить из админки (Настройки сайта); без этого — дефолтный баннер
+ * материала "AI ISSUE", ведущий в /journal. На /journal рядом с подписью
+ * есть ещё красная ссылка "в телеге" на канал — на /events её нет, поэтому
+ * это опционально; кладём её поверх картинки рядом с уже вшитым в неё
+ * текстом "читайте в нашем материале" (только для дефолтного баннера).
  */
 export function PromoBanner({ withTelegramLink }: { withTelegramLink?: boolean }) {
   const router = useRouter();
+  const { banner } = useSiteSettings();
+
+  if (banner.imageUrl) {
+    return (
+      <Pressable
+        style={styles.promoBanner}
+        onPress={() => banner.linkUrl && window.open(banner.linkUrl, '_blank', 'noopener,noreferrer')}
+      >
+        <View style={styles.promoImageWrap}>
+          <Image source={{ uri: banner.imageUrl }} style={styles.promoImage} resizeMode="cover" />
+        </View>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable style={styles.promoBanner} onPress={() => router.push('/journal' as any)}>
-      
       {withTelegramLink ? (
         <View style={styles.promoImageWrap}>
           <Image source={BANNER_IMAGE_TG} style={styles.promoImage} resizeMode="contain" />

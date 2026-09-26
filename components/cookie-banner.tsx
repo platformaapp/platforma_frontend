@@ -53,5 +53,5 @@ const styles = StyleSheet.create({
   close: { fontSize: 26, color: '#181818' },
   text: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 24 },
   okButton: { alignSelf: 'flex-end' },
-  okText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
+  okText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D', textDecorationLine: 'underline' },
 });

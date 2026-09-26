@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
 
   nextLink: { alignSelf: 'flex-start', marginTop: 28 },
   nextLinkDisabled: { opacity: 0.5 },
-  nextLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  nextLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
   nextLinkTextDisabled: { color: '#9B9B9B' },
 
   confirmRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginTop: 8 },
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   confirmDate: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#010101' },
   confirmPrice: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
 
-  payLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  payLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
   payLinkDisabled: { color: '#9B9B9B' },
   payLinkSpacing: { alignSelf: 'flex-end', marginTop: 40 },
 

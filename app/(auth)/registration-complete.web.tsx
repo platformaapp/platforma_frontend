@@ -69,5 +69,5 @@ const styles = StyleSheet.create({
   description: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#010101', marginBottom: 24 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   laterLink: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  nowLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  nowLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
 });

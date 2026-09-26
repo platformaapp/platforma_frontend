@@ -64,12 +64,16 @@ export const endpoints = {
   // Журнал (статьи) — публичный список/детали
   articles: `${API_BASE}/api/articles`,
 
+  // Настройки сайта (навигация/баннер/партнёры/рубрикатор) — публичное чтение
+  settingsSite: `${API_BASE}/api/settings/site`,
+
   // Admin
   adminLogin: `${API_BASE}/api/admin/auth/login`,
   adminApplications: `${API_BASE}/api/admin/tutor-applications`,
   adminUsers: `${API_BASE}/api/admin/users`,
   adminEventsAdmin: `${API_BASE}/api/admin/events`,
   adminSettings: `${API_BASE}/api/admin/settings`,
+  adminSettingsSite: `${API_BASE}/api/admin/settings/site`,
   adminArticles: `${API_BASE}/api/admin/articles`,
   adminPaymentsExport: `${API_BASE}/api/admin/payments/export`,
 };

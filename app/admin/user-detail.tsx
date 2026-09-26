@@ -260,10 +260,11 @@ const styles = StyleSheet.create({
 
   content: { paddingBottom: 48 },
 
-  heroRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5', gap: 16 },
-  avatar: { width: 72, height: 72, backgroundColor: '#E5E5E5' },
+  heroRow: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5', gap: 16 },
+  // Было 72×72 — просили увеличить фото в админке.
+  avatar: { width: 140, height: 140, backgroundColor: '#E5E5E5' },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { fontSize: 26, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  avatarInitial: { fontSize: 48, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   heroText: { flex: 1 },
   heroName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
   heroRoles: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6 },

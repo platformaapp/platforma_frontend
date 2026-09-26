@@ -505,10 +505,10 @@ const styles = StyleSheet.create({
   cardSecondaryRowMobile: { gap: 8, marginTop: 8 },
   cardAction: { paddingVertical: 6 },
   cardActionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
   chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
   chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
-  chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
+  chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D', textDecorationLine: 'underline' },
 
   linkCardRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#010101', height: 56, marginBottom: 24 },
   plusBox: { width: 56, backgroundColor: '#010101', alignItems: 'center', justifyContent: 'center' },

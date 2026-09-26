@@ -1,7 +1,8 @@
 import { usePathname, useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
@@ -31,6 +32,9 @@ export function SiteHeader() {
   const pathname = usePathname();
   const { width } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
+  // Текст пунктов и иконки можно переопределить из админки (Настройки сайта);
+  // порядок/маршруты — нет, это структура навигации, не контент.
+  const { navItems: navOverrides } = useSiteSettings();
 
   if (isMobile) {
     return (
@@ -46,13 +50,18 @@ export function SiteHeader() {
     <View style={styles.header}>
       <View style={styles.headerInner}>
         <View style={styles.nav}>
-          {NAV_ITEMS.map(({ key, label, href, Icon, match }) => {
+          {NAV_ITEMS.map(({ key, label, href, Icon, match }, index) => {
             const active = isActive(pathname, match);
             const color = active ? ACTIVE : INACTIVE;
+            const override = navOverrides[index];
             return (
               <Pressable key={key} style={styles.navItem} onPress={() => router.push(href as any)}>
-                <Icon color={color} />
-                <Text style={[styles.navLabel, { color }]}>{label}</Text>
+                {override?.iconUrl ? (
+                  <Image source={{ uri: override.iconUrl }} style={styles.navIconImage} />
+                ) : (
+                  <Icon color={color} />
+                )}
+                <Text style={[styles.navLabel, { color }]}>{override?.label || label}</Text>
               </Pressable>
             );
           })}
@@ -82,6 +91,7 @@ const styles = StyleSheet.create({
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  navIconImage: { width: 16, height: 16 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15 },
   logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 20, color: '#010101' },
   mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },

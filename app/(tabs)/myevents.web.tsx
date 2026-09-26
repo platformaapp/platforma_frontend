@@ -10,7 +10,16 @@ import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
+import { parseFeedItems } from '@/lib/event-feed';
 import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
+
+type RecommendedEvent = { id: string; title: string; coverUrl?: string };
+
+function resolveUploadUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
 
 type EventItem = MyEventItem & { datetimeStart?: string; mentor?: { id: string; name: string; avatarUrl?: string | null }; registeredCount?: number };
 
@@ -105,6 +114,8 @@ export default function MyEventsScreenWeb() {
   // независимо от того, размонтируется экран или нет; сбрасывается при
   // каждом новом фокусе на страницу (см. useFocusEffect ниже).
   const [emptyModalDismissed, setEmptyModalDismissed] = useState(false);
+  // Рекомендуем 3 события в попапе "нет записей" — вместо пустого текста.
+  const [recommended, setRecommended] = useState<RecommendedEvent[]>([]);
 
   const [cancelTarget, setCancelTarget] = useState<BookingItem | null>(null);
   const [cancelPhase, setCancelPhase] = useState<'confirm' | 'success'>('confirm');
@@ -231,6 +242,26 @@ export default function MyEventsScreenWeb() {
   const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
   const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
+
+  useEffect(() => {
+    if (!isEmpty) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=3`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = parseFeedItems(data) as Record<string, unknown>[];
+        if (!active) return;
+        setRecommended(raw.slice(0, 3).map((r) => ({
+          id: String(r.id ?? ''),
+          title: String(r.title ?? ''),
+          coverUrl: resolveUploadUrl((r.coverUrl ?? r.cover_url) as string | undefined),
+        })));
+      } catch { /* тихо — попап и без рекомендаций покажет ссылку "Посмотреть события" */ }
+    })();
+    return () => { active = false; };
+  }, [isEmpty]);
 
   // "Открыть видео" в шапке — ведёт на ближайшую предстоящую личную встречу, если она есть.
   const nextBooking = upcomingBookings[0];
@@ -366,6 +397,24 @@ export default function MyEventsScreenWeb() {
                   <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}><Text style={styles.emptyClose}>✕</Text></Pressable>
                 </View>
                 <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
+                {recommended.length > 0 ? (
+                  <View style={styles.emptyRecommendedRow}>
+                    {recommended.map((r) => (
+                      <Pressable
+                        key={r.id}
+                        style={styles.emptyRecommendedCard}
+                        onPress={() => { setEmptyModalDismissed(true); router.push(`/(tabs)/events/${r.id}` as any); }}
+                      >
+                        {r.coverUrl ? (
+                          <Image source={{ uri: r.coverUrl }} style={styles.emptyRecommendedImage} resizeMode="cover" />
+                        ) : (
+                          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder]} />
+                        )}
+                        <Text style={styles.emptyRecommendedTitle} numberOfLines={2}>{r.title}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
                 <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
                   <Text style={styles.emptyLink}>Посмотреть события</Text>
                 </Pressable>
@@ -507,7 +556,11 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', flex: 1 },
   emptyClose: { fontSize: 18, color: '#010101' },
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20, maxWidth: 480 },
-  emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-end' },
+  emptyRecommendedRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
+  emptyRecommendedCard: { flex: 1, minWidth: 0 },
+  emptyRecommendedImage: { width: '100%', aspectRatio: 1.3, backgroundColor: '#E5E5E5', marginBottom: 8 },
+  emptyRecommendedTitle: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-end', textDecorationLine: 'underline' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
@@ -564,5 +617,5 @@ const styles = StyleSheet.create({
   modalClose: { fontSize: 20, color: '#010101' },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   modalCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
 });

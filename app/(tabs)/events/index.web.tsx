@@ -8,6 +8,7 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { TOPICS } from '@/constants/topics';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { getAuthToken } from '@/lib/auth';
 import { parseFeedItems } from '@/lib/event-feed';
 
@@ -58,8 +59,6 @@ function resolveFormat(raw: Record<string, unknown>): string | undefined {
 
 const PER_PAGE = 20;
 
-const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-
 // Точные пропорции блоков и отступы — с vladyakunin.ru/projects/ (.proj-featured,
 // .proj-row): 2 крупные карточки сверху (649:84:716, у второй картинка+текст
 // уже, 72.8% от своей колонки — 716*0.728≈521), дальше строки по 3 карточки
@@ -68,20 +67,6 @@ const MONTHS_GEN = ['января', 'февраля', 'марта', 'апрел�
 const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const ROW_WIDTHS: [number, number, number] = [403, 365, 340];
-
-function formatEventTime(iso?: string): string {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    const day = d.getDate();
-    const month = MONTHS_GEN[d.getMonth()];
-    const hh = d.getHours();
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${day} ${month} ${hh}:${mm}`;
-  } catch {
-    return '';
-  }
-}
 
 export default function EventsScreenWeb() {
   const router = useRouter();
@@ -92,6 +77,8 @@ export default function EventsScreenWeb() {
   const [error, setError] = useState('');
   const [format, setFormat] = useState<string | null>(null);
   const [topic, setTopic] = useState<string | null>(null);
+  const { topics: adminTopics } = useSiteSettings();
+  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
@@ -225,7 +212,6 @@ export default function EventsScreenWeb() {
             {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
           <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]} numberOfLines={3}>{item.title}</Text>
-          <Text style={[styles.cardTime, isSecond ? styles.featuredMetaTwo : styles.featuredMetaOne]}>{formatEventTime(item.datetimeStart)}</Text>
         </View>
       </Pressable>
     );
@@ -244,7 +230,6 @@ export default function EventsScreenWeb() {
           {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
         </View>
         <Text style={[styles.cardTitleText, styles.rowTitle]} numberOfLines={3}>{item.title}</Text>
-        <Text style={[styles.cardTime, styles.rowMeta]}>{formatEventTime(item.datetimeStart)}</Text>
       </Pressable>
     );
   }
@@ -288,7 +273,7 @@ export default function EventsScreenWeb() {
         {!isMobile ? (
           <View style={styles.filtersRow}>
             <View style={styles.filtersGroup}>
-              {TOPICS.map((t) => {
+              {topicsList.map((t) => {
                 const active = t === topic;
                 return (
                   <Pressable key={t} style={styles.filterPill} onPress={() => setTopic(active ? null : t)}>
@@ -322,7 +307,6 @@ export default function EventsScreenWeb() {
                     {item.mentor?.name ? <Text style={[styles.mobileAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
                     <Text style={styles.mobileTitleText} numberOfLines={4}>{item.title}</Text>
                   </View>
-                  <Text style={styles.mobileTime}>{formatEventTime(item.datetimeStart)}</Text>
                 </View>
               </Pressable>
             ))}
@@ -351,7 +335,7 @@ export default function EventsScreenWeb() {
         ) : null}
       </View>
 
-        <SiteFooter />
+        <SiteFooter showPartners />
       </ScrollView>
     </SiteShell>
   );
@@ -391,11 +375,6 @@ const styles = StyleSheet.create({
   cardLabelSecondLine: { marginTop: 4 },
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  // width:'100%' обязателен — без него Text-бокс сжимается по содержимому,
-  // и textAlign:'right' визуально ничего не делает (нечего выравнивать
-  // внутри бокса размером с сам текст).
-  cardTime: { width: '100%', fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right' },
-
   // .proj-featured: 2 крупные карточки, 649:84:716. У второй картинка и текст
   // занимают только 72.8% её колонки (716*0.728≈521) — .card--p2 .card__img/.card__body.
   featuredRow: { flexDirection: 'row', gap: 84, marginTop: 80 },
@@ -407,8 +386,6 @@ const styles = StyleSheet.create({
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13 },
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
-  featuredMetaOne: { marginTop: 13 },
-  featuredMetaTwo: { marginTop: 46 },
 
   // .proj-row: тройки карточек 403:75:365:76:340 (последняя колонка 191 — пустая
   // правая граница, специально не занята). Первая тройка после крупных карточек
@@ -419,15 +396,13 @@ const styles = StyleSheet.create({
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
-  rowMeta: { marginTop: 50 },
   // Мобильный список — обложка слева (166×149, см. моб. макет), текст
-  // справа: автор+заголовок сверху, время прижато к низу колонки (высота
-  // которой равна высоте обложки) — space-between вместо центрирования.
+  // справа: автор+заголовок, по центру колонки (высота которой равна
+  // высоте обложки) — время убрано из карточки по просьбе пользователя.
   mobileList: { gap: 28 },
   mobileRow: { flexDirection: 'row', gap: 14 },
   mobileThumb: { width: 166, height: 149, backgroundColor: '#E5E5E5' },
-  mobileInfo: { flex: 1, height: 149, justifyContent: 'space-between' },
+  mobileInfo: { flex: 1, height: 149, justifyContent: 'center' },
   mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  mobileTime: { width: '100%', fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right' },
 });

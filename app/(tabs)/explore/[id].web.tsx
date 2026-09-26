@@ -380,13 +380,14 @@ const styles = StyleSheet.create({
   role: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
   roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
   bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
-  priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
+  // Стоимость — на отдельной строке под подписью (не в один ряд).
+  priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24 },
   priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   priceValue: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
     bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
   actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.

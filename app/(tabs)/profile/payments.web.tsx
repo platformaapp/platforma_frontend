@@ -391,10 +391,10 @@ const styles = StyleSheet.create({
   cardAction: { paddingVertical: 6 },
   cardActionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardActionDelete: {},
-  cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
   chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
   chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
-  chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
+  chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D', textDecorationLine: 'underline' },
 
   historyCard: { borderWidth: 1, borderColor: '#E5E5E5', marginBottom: 8, padding: 12 },
   historyCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },

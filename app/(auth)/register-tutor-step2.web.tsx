@@ -7,6 +7,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
 import { TOPICS } from '@/constants/topics';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
 
@@ -28,6 +29,8 @@ export default function RegisterTutorStep2ScreenWeb() {
   const [groupMeetings, setGroupMeetings] = useState('');
   const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const { topics: adminTopics } = useSiteSettings();
+  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +103,7 @@ export default function RegisterTutorStep2ScreenWeb() {
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Специализация</Text>
               <View style={styles.topicsRow}>
-                {TOPICS.map((t) => {
+                {topicsList.map((t) => {
                   const active = t === specialization;
                   return (
                     <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
@@ -130,6 +133,11 @@ export default function RegisterTutorStep2ScreenWeb() {
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
+
+          <Text style={styles.terms}>
+            Нажимая кнопку «Отправить заявку», вы принимаете{' '}
+            <Text style={styles.termsLink} onPress={() => router.push('/tutor-offer' as any)}>оферту для наставников</Text>
+          </Text>
 
           <View style={styles.footerRow}>
             <Pressable onPress={() => router.back()}><Text style={styles.cancelLink}>Назад</Text></Pressable>
@@ -162,7 +170,9 @@ const styles = StyleSheet.create({
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
   replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4 },
+  terms: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#010101', marginTop: 16 },
+  termsLink: { textDecorationLine: 'underline' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
 });

@@ -396,7 +396,7 @@ export default function EventDetailScreenWeb() {
   );
 
   const mentorRow = event?.mentor ? (
-    <View style={styles.mentorRow}>
+    <Pressable style={styles.mentorRow} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
       <View style={styles.mentorInfo}>
         <Text style={styles.mentorName}>{event.mentor.name}</Text>
         {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
@@ -406,7 +406,7 @@ export default function EventDetailScreenWeb() {
         style={styles.mentorAvatar}
         resizeMode="cover"
       />
-    </View>
+    </Pressable>
   ) : null;
 
   return (
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
   cancelModalText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20 },
   cancelModalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cancelModalLeave: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
-  cancelModalConfirm: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  cancelModalConfirm: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
 
   // "Изменение события" — попап поверх текущей (дименой) страницы события,
   // а не отдельный полноэкранный маршрут (см. референс) — та же механика
@@ -804,5 +804,5 @@ const styles = StyleSheet.create({
   editStatusText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 8 },
   editFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   editCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
-  editSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  editSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
 });

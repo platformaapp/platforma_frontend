@@ -6,6 +6,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { TOPICS } from '@/constants/topics';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { getPublicTutorList, getPublicTutors, type PublicTutor } from '@/lib/api/tutor';
 import { getAuthRole, getUserProfile } from '@/lib/auth';
 
@@ -41,6 +42,8 @@ export default function MentorsScreenWeb() {
   // Как на /events: клик подсвечивает пилюлю (активная — чёрная и жирная,
   // остальные — серые). Фильтрует по tutor.specialization (см. TOPICS).
   const [category, setCategory] = useState<string | null>(null);
+  const { topics: adminTopics } = useSiteSettings();
+  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
 
   const load = useCallback(async () => {
     try {
@@ -81,7 +84,7 @@ export default function MentorsScreenWeb() {
 
         {isMobile ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
-            {TOPICS.map((c) => {
+            {topicsList.map((c) => {
               const active = c === category;
               return (
                 <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
@@ -92,7 +95,7 @@ export default function MentorsScreenWeb() {
           </ScrollView>
         ) : (
           <View style={styles.filtersRow}>
-            {TOPICS.map((c) => {
+            {topicsList.map((c) => {
               const active = c === category;
               return (
                 <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
@@ -137,7 +140,7 @@ export default function MentorsScreenWeb() {
         )}
       </View>
 
-        <SiteFooter />
+        <SiteFooter showPartners />
       </ScrollView>
     </SiteShell>
   );

@@ -8,6 +8,7 @@ import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
 import { TOPICS } from '@/constants/topics';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
@@ -23,6 +24,26 @@ import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 // из разницы) — в форме есть только "Время" (начало), длительность не
 // спрашиваем, поэтому фиксируем 60 минут по умолчанию.
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
+const EVENT_DESCRIPTION_MAX_CHARS = 500;
+const EVENT_DESCRIPTION_MAX_WORDS = 100;
+
+/** Режет текст до 500 символов и до 100 слов — что наступит раньше. */
+function clampEventDescription(text: string): string {
+  const clipped = text.slice(0, EVENT_DESCRIPTION_MAX_CHARS);
+  const words = clipped.split(/(\s+)/);
+  let wordCount = 0;
+  let cut = clipped.length;
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].trim()) {
+      wordCount++;
+      if (wordCount > EVENT_DESCRIPTION_MAX_WORDS) {
+        cut = words.slice(0, i).join('').length;
+        break;
+      }
+    }
+  }
+  return clipped.slice(0, cut);
+}
 
 /** Группирует слоты по дате (для отображения "13 мая: 14:00 15:00 20:00"), сортируя даты и время. */
 function groupSlotsByDate<T extends { date: string; time: string }>(slots: T[]): { date: string; slots: T[] }[] {
@@ -133,6 +154,8 @@ export default function ProfileScreenWeb() {
   const [eventPrice, setEventPrice] = useState('');
   const [eventMax, setEventMax] = useState('');
   const [eventTopic, setEventTopic] = useState<string | null>(null);
+  const { topics: adminTopics } = useSiteSettings();
+  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [eventCoverUri, setEventCoverUri] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [eventError, setEventError] = useState('');
@@ -982,14 +1005,20 @@ export default function ProfileScreenWeb() {
             <ScrollView style={styles.slotsModalScroll}>
               {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
               <FieldWithPlus label="Название" value={eventTitle} onChangeText={setEventTitle} />
-              <FieldWithPlus label="Описание" value={eventDescription} onChangeText={setEventDescription} multiline />
+              <FieldWithPlus
+                label="Описание"
+                value={eventDescription}
+                onChangeText={(t) => setEventDescription(clampEventDescription(t))}
+                multiline
+                maxLength={EVENT_DESCRIPTION_MAX_CHARS}
+              />
               <DateFieldWithPicker label="Дата" value={eventDate} onChangeValue={setEventDate} />
               <TimeFieldWithPicker label="Время" value={eventTime} onChangeValue={setEventTime} />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
               <Text style={styles.fieldLabel}>Рубрика</Text>
               <View style={styles.eventTopicsRow}>
-                {TOPICS.map((t) => {
+                {topicsList.map((t) => {
                   const active = t === eventTopic;
                   return (
                     <Pressable key={t} onPress={() => setEventTopic(active ? null : t)}>
@@ -1125,7 +1154,7 @@ export default function ProfileScreenWeb() {
  * кружок с плюсом вместо рамки, клик по плюсу открывает настоящий инпут с
  * курсором (см. ту же логику на страницах авторизации/регистрации).
  */
-function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline }: {
+function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline, maxLength }: {
   label: string;
   value: string;
   onChangeText?: (text: string) => void;
@@ -1133,6 +1162,7 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   multiline?: boolean;
+  maxLength?: number;
 }) {
   return (
     <PlusField
@@ -1143,6 +1173,7 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
       multiline={multiline}
+      maxLength={maxLength}
     />
   );
 }
@@ -1246,7 +1277,7 @@ const styles = StyleSheet.create({
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
   profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
@@ -1302,7 +1333,7 @@ const styles = StyleSheet.create({
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
-  paymentCardDelete: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  paymentCardDelete: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
   paymentCardEdit: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
   // Slots modal ("Редактировать слоты для записи")
@@ -1310,7 +1341,7 @@ const styles = StyleSheet.create({
   slotsModalScroll: { maxHeight: 320, marginBottom: 12 },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
   modalCancelText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  modalSaveText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
+  modalSaveText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D', textDecorationLine: 'underline' },
 
   // Tutor tabbed view (unchanged)
   tabsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
@@ -1338,9 +1369,9 @@ const styles = StyleSheet.create({
   // красный и с минусом вместо плюса.
   slotRemoveChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#E02D2D', alignItems: 'center', justifyContent: 'center' },
   slotRemoveChipHidden: { opacity: 0, pointerEvents: 'none' },
-  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
-  addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#010101' },
   // Мини-пикер времени под группой даты — виден целиком (не спрятанный
