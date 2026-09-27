@@ -50,6 +50,21 @@ export default function Root({ children }: { children: React.ReactNode }) {
                 правило выше без !important.
               */
               [aria-modal="true"] .r-cursor-1loqt21:hover { opacity: 1; }
+
+              /*
+                Красные текстовые кнопки/ссылки — подчёркивание только при
+                наведении. r-color-1l3ds1r — детерминированный атомарный
+                класс react-native-web для color:'#E02D2D' (тот же приём,
+                что и .r-cursor-1loqt21 выше: см. compiler.atomic в
+                node_modules/react-native-web/.../StyleSheet/compiler).
+                Подчёркивается сам текст (когда цвет — прямо на Pressable)
+                и текст-потомок (обычный случай: Pressable > Text).
+              */
+              .r-cursor-1loqt21:hover.r-color-1l3ds1r,
+              .r-cursor-1loqt21:hover .r-color-1l3ds1r {
+                text-decoration: underline;
+                text-underline-offset: 3px;
+              }
             }
           `
         }} />

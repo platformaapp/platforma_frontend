@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   navSlotLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },
   partnerRow: { marginBottom: 14, gap: 6, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 14 },
   removeBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
-  removeBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
+  removeBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   addBtn: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start' },
   addBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   topicsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },

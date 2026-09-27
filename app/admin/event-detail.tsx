@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   },
   modCoverPreview: { width: '100%', height: 80 },
   modCoverBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  modCoverRemove: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, textDecorationLine: 'underline' },
+  modCoverRemove: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4 },
   modError: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 12 },
   modSuccessText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#155724', backgroundColor: '#D4EDDA', padding: 10, marginTop: 12 },
   modSubmitBtn: { marginTop: 16, backgroundColor: '#181818', paddingVertical: 14, alignItems: 'center' },

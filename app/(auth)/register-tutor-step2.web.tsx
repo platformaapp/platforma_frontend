@@ -174,5 +174,5 @@ const styles = StyleSheet.create({
   termsLink: { textDecorationLine: 'underline' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
 });

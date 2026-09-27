@@ -4,17 +4,18 @@ import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
-import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
 const ACTIVE = '#E02D2D';
 const INACTIVE = '#010101';
 
+// Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png),
+// подписи и порядок пунктов — свои, не менялись.
 const NAV_ITEMS = [
-  { key: 'events', label: 'События', href: '/events', Icon: SquareIcon, match: ['/events'] },
-  { key: 'explore', label: 'Наставники', href: '/explore', Icon: TriangleIcon, match: ['/explore'] },
-  { key: 'myevents', label: 'Мои записи', href: '/myevents', Icon: PlusIcon, match: ['/myevents'] },
-  { key: 'journal', label: 'Журнал', href: '/journal', Icon: CircleIcon, match: ['/journal'] },
-  { key: 'profile', label: 'Личный кабинет', href: '/profile', Icon: PencilIcon, match: ['/profile'] },
+  { key: 'events', label: 'События', href: '/events', icon: require('@/assets/images/nav-1.png'), match: ['/events'] },
+  { key: 'explore', label: 'Наставники', href: '/explore', icon: require('@/assets/images/nav-2.png'), match: ['/explore'] },
+  { key: 'myevents', label: 'Мои записи', href: '/myevents', icon: require('@/assets/images/nav-3.png'), match: ['/myevents'] },
+  { key: 'journal', label: 'Журнал', href: '/journal', icon: require('@/assets/images/nav-4.png'), match: ['/journal'] },
+  { key: 'profile', label: 'Личный кабинет', href: '/profile', icon: require('@/assets/images/nav-5.png'), match: ['/profile'] },
 ] as const;
 
 function isActive(pathname: string, match: readonly string[]) {
@@ -50,17 +51,13 @@ export function SiteHeader() {
     <View style={styles.header}>
       <View style={styles.headerInner}>
         <View style={styles.nav}>
-          {NAV_ITEMS.map(({ key, label, href, Icon, match }, index) => {
+          {NAV_ITEMS.map(({ key, label, href, icon, match }, index) => {
             const active = isActive(pathname, match);
             const color = active ? ACTIVE : INACTIVE;
             const override = navOverrides[index];
             return (
               <Pressable key={key} style={styles.navItem} onPress={() => router.push(href as any)}>
-                {override?.iconUrl ? (
-                  <Image source={{ uri: override.iconUrl }} style={styles.navIconImage} />
-                ) : (
-                  <Icon color={color} />
-                )}
+                <Image source={override?.iconUrl ? { uri: override.iconUrl } : icon} style={styles.navIconImage} />
                 <Text style={[styles.navLabel, { color }]}>{override?.label || label}</Text>
               </Pressable>
             );

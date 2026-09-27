@@ -383,11 +383,11 @@ const styles = StyleSheet.create({
   // Стоимость — на отдельной строке под подписью (не в один ряд).
   priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24 },
   priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  priceValue: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  priceValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000' },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
     bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
   actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.

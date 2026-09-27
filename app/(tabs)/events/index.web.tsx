@@ -7,8 +7,6 @@ import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
-import { TOPICS } from '@/constants/topics';
-import { useSiteSettings } from '@/hooks/use-site-settings';
 import { getAuthToken } from '@/lib/auth';
 import { parseFeedItems } from '@/lib/event-feed';
 
@@ -16,6 +14,19 @@ function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   return `${API_BASE}${url}`;
+}
+
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+// На карточках — только дата (без времени, см. страницу события — там оно есть).
+function formatEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return '';
+  }
 }
 
 type EventFeedItem = {
@@ -76,9 +87,6 @@ export default function EventsScreenWeb() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [format, setFormat] = useState<string | null>(null);
-  const [topic, setTopic] = useState<string | null>(null);
-  const { topics: adminTopics } = useSiteSettings();
-  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
@@ -189,9 +197,7 @@ export default function EventsScreenWeb() {
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
-  const filtered = events
-    .filter((e) => !format || e.format === format)
-    .filter((e) => !topic || e.topic === topic);
+  const filtered = events.filter((e) => !format || e.format === format);
 
   function renderFeaturedCard(item: EventFeedItem, index: 0 | 1) {
     const isSecond = index === 1;
@@ -212,6 +218,7 @@ export default function EventsScreenWeb() {
             {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
           <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]} numberOfLines={3}>{item.title}</Text>
+          {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
         </View>
       </Pressable>
     );
@@ -230,6 +237,7 @@ export default function EventsScreenWeb() {
           {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
         </View>
         <Text style={[styles.cardTitleText, styles.rowTitle]} numberOfLines={3}>{item.title}</Text>
+        {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
       </Pressable>
     );
   }
@@ -270,21 +278,6 @@ export default function EventsScreenWeb() {
           </View>
         ) : null}
 
-        {!isMobile ? (
-          <View style={styles.filtersRow}>
-            <View style={styles.filtersGroup}>
-              {topicsList.map((t) => {
-                const active = t === topic;
-                return (
-                  <Pressable key={t} style={styles.filterPill} onPress={() => setTopic(active ? null : t)}>
-                    <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{t}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
-
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error ? (
@@ -306,6 +299,7 @@ export default function EventsScreenWeb() {
                     {item.format ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.format}</Text> : null}
                     {item.mentor?.name ? <Text style={[styles.mobileAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
                     <Text style={styles.mobileTitleText} numberOfLines={4}>{item.title}</Text>
+                    {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                   </View>
                 </View>
               </Pressable>
@@ -375,6 +369,7 @@ const styles = StyleSheet.create({
   cardLabelSecondLine: { marginTop: 4 },
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  cardDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
   // .proj-featured: 2 крупные карточки, 649:84:716. У второй картинка и текст
   // занимают только 72.8% её колонки (716*0.728≈521) — .card--p2 .card__img/.card__body.
   featuredRow: { flexDirection: 'row', gap: 84, marginTop: 80 },
@@ -405,4 +400,5 @@ const styles = StyleSheet.create({
   mobileInfo: { flex: 1, height: 149, justifyContent: 'center' },
   mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  mobileDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 6 },
 });

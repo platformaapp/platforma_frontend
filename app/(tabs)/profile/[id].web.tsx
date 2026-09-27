@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
   profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
@@ -1333,7 +1333,7 @@ const styles = StyleSheet.create({
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   paymentRightActions: { flexDirection: 'row', gap: 20 },
-  paymentCardDelete: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
+  paymentCardDelete: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   paymentCardEdit: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
   // Slots modal ("Редактировать слоты для записи")
@@ -1341,7 +1341,7 @@ const styles = StyleSheet.create({
   slotsModalScroll: { maxHeight: 320, marginBottom: 12 },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
   modalCancelText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  modalSaveText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D', textDecorationLine: 'underline' },
+  modalSaveText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   // Tutor tabbed view (unchanged)
   tabsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 20, marginBottom: 24, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 12 },
@@ -1369,9 +1369,9 @@ const styles = StyleSheet.create({
   // красный и с минусом вместо плюса.
   slotRemoveChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#E02D2D', alignItems: 'center', justifyContent: 'center' },
   slotRemoveChipHidden: { opacity: 0, pointerEvents: 'none' },
-  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
+  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
-  addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textDecorationLine: 'underline' },
+  addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
   slotAddChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#010101' },
   // Мини-пикер времени под группой даты — виден целиком (не спрятанный

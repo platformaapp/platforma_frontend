@@ -39,7 +39,7 @@ export function PlusField({ label, hint, value, onChangeText, secureTextEntry, m
         <View style={styles.inputRow}>
           <TextInput
             ref={inputRef}
-            style={styles.input}
+            style={[styles.input, !multiline && styles.inputSingleLine]}
             value={value}
             onChangeText={onChangeText}
             autoFocus={active}
@@ -78,11 +78,14 @@ const styles = StyleSheet.create({
   label: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101', marginBottom: 8 },
   labelError: { color: '#E02D2D' },
   hint: { color: '#9B9B9B' },
-  plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
+  // Плюс (20×20) и однострочный инпут должны иметь одинаковую высоту —
+  // иначе при клике по плюсу вся форма ниже прыгает вверх/вниз.
+  plusButton: { height: 24, justifyContent: 'center', alignSelf: 'flex-start' },
   inputRow: { position: 'relative' },
   input: {
     fontFamily: 'Gramatika-Regular',
     fontSize: 15,
+    lineHeight: 20,
     color: '#010101',
     paddingVertical: 4,
     paddingHorizontal: 0,
@@ -91,6 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     outlineStyle: 'none',
   } as any,
+  inputSingleLine: { height: 24, paddingVertical: 2 },
   eye: { position: 'absolute', right: 0, top: 4 },
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#E02D2D', marginTop: 4 },
 });

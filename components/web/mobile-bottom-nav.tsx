@@ -3,17 +3,14 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { useSiteSettings } from '@/hooks/use-site-settings';
-import { CircleIcon, PencilIcon, PlusIcon, SquareIcon, TriangleIcon } from './nav-icons';
 
-const ACTIVE = '#E02D2D';
-const INACTIVE = '#181818';
-
+// Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png).
 const NAV_ITEMS = [
-  { key: 'events', href: '/events', Icon: SquareIcon, match: ['/events'] },
-  { key: 'explore', href: '/explore', Icon: TriangleIcon, match: ['/explore'] },
-  { key: 'myevents', href: '/myevents', Icon: PlusIcon, match: ['/myevents'] },
-  { key: 'journal', href: '/journal', Icon: CircleIcon, match: ['/journal'] },
-  { key: 'profile', href: '/profile', Icon: PencilIcon, match: ['/profile'] },
+  { key: 'events', href: '/events', icon: require('@/assets/images/nav-1.png'), match: ['/events'] },
+  { key: 'explore', href: '/explore', icon: require('@/assets/images/nav-2.png'), match: ['/explore'] },
+  { key: 'myevents', href: '/myevents', icon: require('@/assets/images/nav-3.png'), match: ['/myevents'] },
+  { key: 'journal', href: '/journal', icon: require('@/assets/images/nav-4.png'), match: ['/journal'] },
+  { key: 'profile', href: '/profile', icon: require('@/assets/images/nav-5.png'), match: ['/profile'] },
 ] as const;
 
 function isActive(pathname: string, match: readonly string[]) {
@@ -33,15 +30,13 @@ export function MobileBottomNav() {
   const { navItems: navOverrides } = useSiteSettings();
 
   function renderItem(item: (typeof NAV_ITEMS)[number]) {
-    const { key, href, Icon, match } = item;
+    const { key, href, icon, match } = item;
     const iconUrl = navOverrides[NAV_ITEMS.indexOf(item)]?.iconUrl;
+    const active = isActive(pathname, match);
     return (
       <Pressable key={key} style={styles.item} onPress={() => router.push(href as any)} hitSlop={12}>
-        {iconUrl ? (
-          <Image source={{ uri: iconUrl }} style={styles.iconImage} />
-        ) : (
-          <Icon color={isActive(pathname, match) ? ACTIVE : INACTIVE} size={20} />
-        )}
+        <Image source={iconUrl ? { uri: iconUrl } : icon} style={styles.iconImage} />
+        {active ? <View style={styles.activeDot} /> : null}
       </Pressable>
     );
   }
@@ -68,4 +63,5 @@ const styles = StyleSheet.create({
   group: { flexDirection: 'row', alignItems: 'center', gap: 38 },
   item: { alignItems: 'center', justifyContent: 'center' },
   iconImage: { width: 20, height: 20 },
+  activeDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#E02D2D', marginTop: 4 },
 });

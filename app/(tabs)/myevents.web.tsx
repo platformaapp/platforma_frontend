@@ -38,6 +38,10 @@ type BookingItem = {
 
 type Tab = 'events' | 'meetings';
 
+// Те же пропорции, что и тройки карточек на странице событий (ROW_ASPECTS в
+// events/index.web.tsx) — сетка разной высоты, а не ровные одинаковые блоки.
+const RECOMMENDED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+
 const MONTHS_GEN = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 function pluralRu(n: number, forms: [string, string, string]): string {
@@ -107,14 +111,7 @@ export default function MyEventsScreenWeb() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
   const [error, setError] = useState('');
-  // router.push() не размонтирует этот экран — expo-router (React
-  // Navigation) держит предыдущий экран стека смонтированным, поэтому
-  // Modal с visible={true} по условию isEmpty продолжал бы висеть поверх
-  // /events даже после смены адреса. Явное состояние закрытия решает это
-  // независимо от того, размонтируется экран или нет; сбрасывается при
-  // каждом новом фокусе на страницу (см. useFocusEffect ниже).
-  const [emptyModalDismissed, setEmptyModalDismissed] = useState(false);
-  // Рекомендуем 3 события в попапе "нет записей" — вместо пустого текста.
+  // Рекомендуем 3 события прямо на странице "нет записей" — вместо пустого текста.
   const [recommended, setRecommended] = useState<RecommendedEvent[]>([]);
 
   const [cancelTarget, setCancelTarget] = useState<BookingItem | null>(null);
@@ -189,7 +186,7 @@ export default function MyEventsScreenWeb() {
     }
   }, [router]);
 
-  useFocusEffect(useCallback(() => { setLoading(true); setEmptyModalDismissed(false); load(); }, [load]));
+  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
   async function performCancelBooking(booking: BookingItem): Promise<boolean> {
     const viewerRole = booking._viewerRole ?? role;
@@ -382,45 +379,31 @@ export default function MyEventsScreenWeb() {
         ) : error && activeTab === 'events' && isEmpty ? (
           <Text style={styles.errorText}>Не удалось загрузить события: {error}</Text>
         ) : isEmpty ? (
-          // Modal (не обычный View с flex:1) — гарантированно перекрывает всю
-          // страницу независимо от окружающего flex-контекста, см. cookie-banner.
-          // visible={!emptyModalDismissed}, а не жёстко true — router.push не
-          // размонтирует этот экран (expo-router держит предыдущие экраны
-          // стека смонтированными), поэтому одной навигации недостаточно:
-          // без явного dismissed-состояния попап продолжал бы висеть поверх
-          // /events и после перехода.
-          <Modal transparent animationType="fade" visible={!emptyModalDismissed} onRequestClose={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
-            <View style={[styles.emptyOverlay, { pointerEvents: 'box-none' }]}>
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyHeaderRow}>
-                  <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
-                  <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}><Text style={styles.emptyClose}>✕</Text></Pressable>
-                </View>
-                <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
-                {recommended.length > 0 ? (
-                  <View style={styles.emptyRecommendedRow}>
-                    {recommended.map((r) => (
-                      <Pressable
-                        key={r.id}
-                        style={styles.emptyRecommendedCard}
-                        onPress={() => { setEmptyModalDismissed(true); router.push(`/(tabs)/events/${r.id}` as any); }}
-                      >
-                        {r.coverUrl ? (
-                          <Image source={{ uri: r.coverUrl }} style={styles.emptyRecommendedImage} resizeMode="cover" />
-                        ) : (
-                          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder]} />
-                        )}
-                        <Text style={styles.emptyRecommendedTitle} numberOfLines={2}>{r.title}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-                <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
-                  <Text style={styles.emptyLink}>Посмотреть события</Text>
-                </Pressable>
+          <View style={styles.emptyBlock}>
+            <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
+            <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
+            {recommended.length > 0 ? (
+              <View style={[styles.emptyRecommendedRow, isMobile && styles.emptyRecommendedRowMobile]}>
+                {recommended.map((r, idx) => (
+                  <Pressable
+                    key={r.id}
+                    style={styles.emptyRecommendedCard}
+                    onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
+                  >
+                    {r.coverUrl ? (
+                      <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: RECOMMENDED_ASPECTS[idx] }]} resizeMode="cover" />
+                    ) : (
+                      <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: RECOMMENDED_ASPECTS[idx] }]} />
+                    )}
+                    <Text style={styles.emptyRecommendedTitle} numberOfLines={2}>{r.title}</Text>
+                  </Pressable>
+                ))}
               </View>
-            </View>
-          </Modal>
+            ) : null}
+            <Pressable onPress={() => router.push('/events' as any)}>
+              <Text style={styles.emptyLink}>Посмотреть события</Text>
+            </Pressable>
+          </View>
         ) : (
           <>
             {activeTab === 'events' ? (
@@ -550,17 +533,15 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  emptyOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  emptyCard: { backgroundColor: '#fff', padding: 24, width: '100%', maxWidth: 680 },
-  emptyHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', flex: 1 },
-  emptyClose: { fontSize: 18, color: '#010101' },
-  emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20, maxWidth: 480 },
-  emptyRecommendedRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
+  emptyBlock: { paddingTop: 24, paddingBottom: 24 },
+  emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
+  emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
+  emptyRecommendedRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 24, marginBottom: 32 },
+  emptyRecommendedRowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 20 },
   emptyRecommendedCard: { flex: 1, minWidth: 0 },
-  emptyRecommendedImage: { width: '100%', aspectRatio: 1.3, backgroundColor: '#E5E5E5', marginBottom: 8 },
+  emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
   emptyRecommendedTitle: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-end', textDecorationLine: 'underline' },
+  emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
@@ -617,5 +598,5 @@ const styles = StyleSheet.create({
   modalClose: { fontSize: 20, color: '#010101' },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   modalCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', textDecorationLine: 'underline' },
+  modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
 });
