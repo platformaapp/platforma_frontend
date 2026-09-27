@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
@@ -9,6 +10,7 @@ import { authedFetch } from '@/lib/authed-fetch';
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function DeleteAccountScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <Path d="M15 18L9 12L15 6" stroke="#181818" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

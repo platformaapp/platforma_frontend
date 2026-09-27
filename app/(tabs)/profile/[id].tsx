@@ -428,6 +428,11 @@ export default function ProfileByIdScreen() {
       <Pressable style={styles.logoutButton} onPress={async () => { await clearAuth(); router.replace('/login'); }}>
         <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
       </Pressable>
+      {/* App Store 5.1.1(v): удаление аккаунта должно быть легко найти —
+          дублируем пункт из "Изменить личные данные" прямо в профиле. */}
+      <Pressable style={styles.deleteAccountButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+        <Text style={styles.deleteAccountButtonText}>Удалить аккаунт</Text>
+      </Pressable>
     </>
   );
 
@@ -532,6 +537,11 @@ export default function ProfileByIdScreen() {
 
       <Pressable style={styles.logoutButton} onPress={async () => { await clearAuth(); router.replace('/login'); }}>
         <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+      </Pressable>
+      {/* App Store 5.1.1(v): удаление аккаунта должно быть легко найти —
+          дублируем пункт из "Изменить личные данные" прямо в профиле. */}
+      <Pressable style={styles.deleteAccountButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+        <Text style={styles.deleteAccountButtonText}>Удалить аккаунт</Text>
       </Pressable>
     </>
   );
@@ -641,8 +651,10 @@ const styles = StyleSheet.create({
   shareCopiedText: { marginTop: 4, fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#181818' },
   shareModalClose: { marginTop: 12, height: 52, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E' },
   shareModalCloseText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
-  logoutButton: { marginTop: 24, marginBottom: 32, borderWidth: 1, borderColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
+  logoutButton: { marginTop: 24, borderWidth: 1, borderColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
   logoutButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  deleteAccountButton: { marginTop: 8, marginBottom: 32, paddingVertical: 14, alignItems: 'center' },
+  deleteAccountButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   becomeTutorCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#1E1E1E', marginTop: 16, backgroundColor: '#F8F8F8' },
   becomeTutorContent: { flex: 1, paddingHorizontal: 16, paddingVertical: 14 },
   becomeTutorTitle: { fontSize: 15, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 4 },
