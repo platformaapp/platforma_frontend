@@ -27,6 +27,18 @@ const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const EVENT_DESCRIPTION_MAX_CHARS = 500;
 const EVENT_DESCRIPTION_MAX_WORDS = 100;
 
+// Тот же формат, что фильтр на /events (см. events/index.web.tsx FORMATS) —
+// подписи те же, а слаги — под backend EventCategory. Без выбора формата
+// created-событие никогда не попадало ни под один фильтр (category
+// оставался null навсегда — его негде было установить).
+const EVENT_FORMATS: { label: string; slug: string }[] = [
+  { label: 'Трансляция', slug: 'broadcast' },
+  { label: 'Лекция', slug: 'lecture' },
+  { label: 'Практика', slug: 'practices' },
+  { label: 'Встреча', slug: 'meeting' },
+  { label: 'Обсуждение', slug: 'discussion' },
+];
+
 /** Режет текст до 500 символов и до 100 слов — что наступит раньше. */
 function clampEventDescription(text: string): string {
   const clipped = text.slice(0, EVENT_DESCRIPTION_MAX_CHARS);
@@ -121,6 +133,7 @@ export default function ProfileScreenWeb() {
   const [bio, setBio] = useState('');
   const [shortBio, setShortBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
+  const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
 
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -154,6 +167,7 @@ export default function ProfileScreenWeb() {
   const [eventPrice, setEventPrice] = useState('');
   const [eventMax, setEventMax] = useState('');
   const [eventTopic, setEventTopic] = useState<string | null>(null);
+  const [eventFormat, setEventFormat] = useState<string | null>(null);
   const { topics: adminTopics } = useSiteSettings();
   const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [eventCoverUri, setEventCoverUri] = useState<string | null>(null);
@@ -218,6 +232,7 @@ export default function ProfileScreenWeb() {
           setEmail(tp.email ?? profile?.email ?? '');
           setBio(tp.bio ?? '');
           setShortBio(tp.shortBio ?? tp.short_bio ?? '');
+          setSpecialization(tp.specialization ?? null);
           setTelegram(tp.telegram ?? '');
           const rate = tp.hourlyRate ?? tp.hourly_rate ?? tp.pricePerHour;
           if (typeof rate === 'number') setHourlyRate(String(rate));
@@ -659,6 +674,7 @@ export default function ProfileScreenWeb() {
         fullName, bio, shortBio, telegram,
         avatarUrl: avatarUrl || undefined,
         hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
+        specialization: specialization ?? undefined,
       });
       setTutorSaveOk(true);
       setTutorEditModalVisible(false);
@@ -732,10 +748,10 @@ export default function ProfileScreenWeb() {
         title: eventTitle, description: eventDescription,
         datetime_start: startDate.toISOString(), datetime_end: endDate.toISOString(),
         price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0,
-        coverUrl, topic: eventTopic ?? undefined,
+        coverUrl, topic: eventTopic ?? undefined, category: eventFormat ?? undefined,
       });
       setEventCreated(true);
-      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTopic(null); setEventCoverUri(null);
+      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTopic(null); setEventFormat(null); setEventCoverUri(null);
     } catch (e: any) {
       setEventError(e?.message ?? 'Не удалось создать событие');
     } finally {
@@ -963,6 +979,20 @@ export default function ProfileScreenWeb() {
               {hourlyRate && Number(hourlyRate) > 0 ? (
                 <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
               ) : null}
+              {/* Без этого поля специализация наставника никогда не устанавливалась
+                  и не менялась после регистрации — наставник навсегда выпадал из
+                  всех фильтров рубрикатора на /explore. */}
+              <Text style={styles.fieldLabel}>Специализация</Text>
+              <View style={styles.eventTopicsRow}>
+                {topicsList.map((t) => {
+                  const active = t === specialization;
+                  return (
+                    <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
+                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -1035,6 +1065,19 @@ export default function ProfileScreenWeb() {
               <TimeFieldWithPicker label="Время" value={eventTime} onChangeValue={setEventTime} />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
+              {/* Без выбора формата событие никогда не получало category — не
+                  попадало ни под один фильтр на /events, кроме "Все". */}
+              <Text style={styles.fieldLabel}>Формат</Text>
+              <View style={styles.eventTopicsRow}>
+                {EVENT_FORMATS.map(({ label, slug }) => {
+                  const active = slug === eventFormat;
+                  return (
+                    <Pressable key={slug} onPress={() => setEventFormat(active ? null : slug)}>
+                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Text style={styles.fieldLabel}>Рубрика</Text>
               <View style={styles.eventTopicsRow}>
                 {topicsList.map((t) => {

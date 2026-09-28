@@ -125,6 +125,10 @@ export interface EventCreateFull {
   max_participants: number;
   coverUrl?: string;
   topic?: string;
+  /** Формат события (broadcast/lecture/practices/meeting/discussion) — см.
+   * EventCategory на бэкенде. Без него /events фильтр по формату не работает
+   * ни для одного созданного события (category всегда остаётся null). */
+  category?: string;
 }
 
 export interface EventUpdate {
