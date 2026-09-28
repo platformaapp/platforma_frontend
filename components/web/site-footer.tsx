@@ -25,15 +25,6 @@ const PARTNER_LOGO_HEIGHT = 56;
 const FOOTER_LABEL_WIDTH = 363;
 const FOOTER_LOGOS_WIDTH = 833;
 
-// "Кого консультировал" — по референсу это отдельные 3 клиентских лого, не
-// пересекающиеся с сеткой "друзей" ниже (старые 5 логотипов страт.
-// партнёров либо переехали в FRIENDS, либо убраны — см. FRIENDS).
-const STRATEGIC_PARTNERS = [
-  { name: 'X5 Group', logo: require('@/assets/images/partner-x5.png'), url: 'https://www.x5.ru/' },
-  { name: 'Яндекс Директ', logo: require('@/assets/images/partner-yandex-direct.png'), url: 'https://direct.yandex.ru/' },
-  { name: 'VK Билеты', logo: require('@/assets/images/partner-vk-tickets.png'), url: 'https://vk.com/tickets' },
-];
-
 // url не проставлен там, где среди нескольких организаций с похожим/общим
 // названием не нашлось однозначного совпадения (см. чат) — лого пока кликом
 // никуда не ведёт, чтобы не сослаться на чужой сайт.
@@ -115,17 +106,10 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
   return (
     <View style={[styles.footer, { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL }]}>
       {displayPartners ? (
-        <>
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Наши стратегические партнеры</Text>
-            <LogoGrid logos={STRATEGIC_PARTNERS} />
-          </View>
-
-          <View style={[styles.section, styles.friendsSection]}>
-            <Text style={styles.sectionLabel}>Наши большие друзья</Text>
-            <LogoGrid logos={friends} />
-          </View>
-        </>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Наши большие друзья</Text>
+          <LogoGrid logos={friends} />
+        </View>
       ) : null}
 
       <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
@@ -154,8 +138,6 @@ const styles = StyleSheet.create({
   footer: { paddingVertical: 0, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
-  // .partners__block + .partners__block { margin-top: 120px }
-  friendsSection: { marginTop: 120 },
   sectionLabel: { width: FOOTER_LABEL_WIDTH, flexShrink: 0, fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
   // display/gridTemplateColumns — веб-онли CSS-свойства, их нет в типах
   // ViewStyle, поэтому приводим объект через as any (сам компонент — только
