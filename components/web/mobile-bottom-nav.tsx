@@ -61,7 +61,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   group: { flexDirection: 'row', alignItems: 'center', gap: 38 },
-  item: { alignItems: 'center', justifyContent: 'center' },
+  // position:'relative' + абсолютная точка ниже — точка не должна добавлять
+  // высоту в поток: иначе активный пункт становится выше остальных и
+  // alignItems:'center' в .bar сдвигает именно его иконку относительно
+  // остальных (была ровно эта поломка выравнивания).
+  item: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
   iconImage: { width: 20, height: 20 },
-  activeDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#E02D2D', marginTop: 4 },
+  activeDot: { position: 'absolute', bottom: -8, left: '50%', marginLeft: -2, width: 4, height: 4, borderRadius: 2, backgroundColor: '#E02D2D' },
 });
