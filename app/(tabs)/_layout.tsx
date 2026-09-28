@@ -3,7 +3,6 @@ import { Tabs, useRouter } from 'expo-router';
 import React from 'react';
 import { View } from 'react-native';
 
-import { CookieBanner } from '@/components/cookie-banner';
 import { EventBanner } from '@/components/event-banner';
 import { HapticTab } from '@/components/haptic-tab';
 import { TabIcon } from '@/components/tab-icons';
@@ -17,7 +16,6 @@ export default function TabLayout() {
         return (
           <View>
             {currentRoute !== 'myevents' && <EventBanner />}
-            <CookieBanner />
             <BottomTabBar {...props} />
           </View>
         );
