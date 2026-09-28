@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,6 +32,7 @@ type UserDetail = {
   defaultPaymentMethodId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  applicationId?: string | null;
   applicationStatus?: string | null;
   rejectionReason?: string | null;
 };
@@ -84,6 +86,11 @@ export default function AdminUserDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [showRejectBox, setShowRejectBox] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isActioning, setActioning] = useState(false);
+  const [actionError, setActionError] = useState('');
+
   useEffect(() => {
     if (!id) return;
     let active = true;
@@ -127,6 +134,7 @@ export default function AdminUserDetailScreen() {
           defaultPaymentMethodId: raw.defaultPaymentMethodId ?? raw.default_payment_method_id ?? null,
           createdAt: raw.createdAt ?? raw.created_at,
           updatedAt: raw.updatedAt ?? raw.updated_at,
+          applicationId: raw.applicationId ?? raw.application_id ?? null,
           applicationStatus: raw.applicationStatus ?? raw.application_status ?? null,
           rejectionReason: raw.rejectionReason ?? raw.rejection_reason ?? null,
         });
@@ -140,6 +148,55 @@ export default function AdminUserDetailScreen() {
     load();
     return () => { active = false; };
   }, [id]);
+
+  async function handleApprove() {
+    if (!user?.applicationId) return;
+    setActioning(true);
+    setActionError('');
+    try {
+      const token = await getAdminToken();
+      if (!token) return;
+      const res = await fetch(`${endpoints.adminApplications}/${user.applicationId}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setActionError(d?.message ?? `Ошибка (${res.status})`);
+        return;
+      }
+      router.back();
+    } catch {
+      setActionError('Не удалось выполнить действие');
+    } finally {
+      setActioning(false);
+    }
+  }
+
+  async function handleRejectConfirm() {
+    if (!user?.applicationId) return;
+    setActioning(true);
+    setActionError('');
+    try {
+      const token = await getAdminToken();
+      if (!token) return;
+      const res = await fetch(`${endpoints.adminApplications}/${user.applicationId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: rejectReason.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setActionError(d?.message ?? `Ошибка (${res.status})`);
+        return;
+      }
+      router.back();
+    } catch {
+      setActionError('Не удалось выполнить действие');
+    } finally {
+      setActioning(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -175,23 +232,22 @@ export default function AdminUserDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Hero */}
-        <View style={styles.heroRow}>
-          {user.avatarUrl ? (
-            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitial}>{(user.fullName || user.email || '?')[0].toUpperCase()}</Text>
-            </View>
-          )}
-          <View style={styles.heroText}>
-            <Text style={styles.heroName}>{user.fullName || '—'}</Text>
-            <Text style={styles.heroRoles}>{user.roles.join(', ') || 'без роли'}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: user.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
-              <Text style={[styles.statusText, { color: user.isBlocked ? '#721c24' : '#155724' }]}>
-                {user.isBlocked ? 'Заблокирован' : 'Активен'}
-              </Text>
-            </View>
+        {/* Hero — большое фото во всю ширину: перед аппрувом наставника
+            нужно нормально видеть человека, а не пиктограмму 72×72. */}
+        {user.avatarUrl ? (
+          <Image source={{ uri: user.avatarUrl }} style={styles.heroPhoto} resizeMode="cover" />
+        ) : (
+          <View style={[styles.heroPhoto, styles.avatarPlaceholder]}>
+            <Text style={styles.heroPhotoInitial}>{(user.fullName || user.email || '?')[0].toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={styles.heroTextBlock}>
+          <Text style={styles.heroName}>{user.fullName || '—'}</Text>
+          <Text style={styles.heroRoles}>{user.roles.join(', ') || 'без роли'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: user.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
+            <Text style={[styles.statusText, { color: user.isBlocked ? '#721c24' : '#155724' }]}>
+              {user.isBlocked ? 'Заблокирован' : 'Активен'}
+            </Text>
           </View>
         </View>
 
@@ -232,6 +288,58 @@ export default function AdminUserDetailScreen() {
             {user.applicationStatus === 'rejected' && (
               <Row label="Причина отказа" value={user.rejectionReason} />
             )}
+            {user.applicationStatus === 'pending' && user.applicationId && (
+              <View style={styles.appActions}>
+                {actionError ? <Text style={styles.actionErrorText}>{actionError}</Text> : null}
+                {!showRejectBox ? (
+                  <View style={styles.appActionBtnRow}>
+                    <Pressable
+                      style={[styles.approveActionBtn, isActioning && styles.btnDisabled]}
+                      onPress={handleApprove}
+                      disabled={isActioning}
+                    >
+                      {isActioning ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.approveActionBtnText}>Одобрить</Text>}
+                    </Pressable>
+                    <Pressable
+                      style={[styles.rejectActionBtn, isActioning && styles.btnDisabled]}
+                      onPress={() => setShowRejectBox(true)}
+                      disabled={isActioning}
+                    >
+                      <Text style={styles.rejectActionBtnText}>Отклонить</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <>
+                    <TextInput
+                      style={styles.rejectInput}
+                      placeholder="Причина отклонения (необязательно)"
+                      placeholderTextColor="#9B9B9B"
+                      value={rejectReason}
+                      onChangeText={setRejectReason}
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                    />
+                    <View style={styles.appActionBtnRow}>
+                      <Pressable
+                        style={[styles.rejectActionBtn, isActioning && styles.btnDisabled]}
+                        onPress={handleRejectConfirm}
+                        disabled={isActioning}
+                      >
+                        {isActioning ? <ActivityIndicator color="#721c24" size="small" /> : <Text style={styles.rejectActionBtnText}>Подтвердить отклонение</Text>}
+                      </Pressable>
+                      <Pressable
+                        style={styles.cancelActionBtn}
+                        onPress={() => { setShowRejectBox(false); setRejectReason(''); setActionError(''); }}
+                        disabled={isActioning}
+                      >
+                        <Text style={styles.cancelActionBtnText}>Отмена</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
           </Section>
         )}
 
@@ -260,13 +368,13 @@ const styles = StyleSheet.create({
 
   content: { paddingBottom: 48 },
 
-  heroRow: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5', gap: 16 },
-  // Было 72×72 — просили увеличить фото в админке.
-  avatar: { width: 140, height: 140, backgroundColor: '#E5E5E5' },
+  // Было 72×72 в ряд с текстом, потом 140×140 — теперь фото на всю ширину
+  // (нужно нормально видеть человека перед аппрувом заявки).
+  heroPhoto: { width: '100%', height: 340, backgroundColor: '#E5E5E5' },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { fontSize: 48, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  heroText: { flex: 1 },
-  heroName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
+  heroPhotoInitial: { fontSize: 72, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  heroTextBlock: { padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5' },
+  heroName: { fontSize: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
   heroRoles: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6 },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
@@ -277,4 +385,22 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
   rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   rowValue: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+
+  // Одобрить/отклонить заявку — прямо на странице, без модалок.
+  appActions: { paddingTop: 12, paddingBottom: 8 },
+  appActionBtnRow: { flexDirection: 'row', gap: 10 },
+  approveActionBtn: { flex: 1, backgroundColor: '#155724', height: 44, alignItems: 'center', justifyContent: 'center' },
+  approveActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  rejectActionBtn: { flex: 1, borderWidth: 1, borderColor: '#721c24', height: 44, alignItems: 'center', justifyContent: 'center' },
+  rejectActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#721c24' },
+  cancelActionBtn: { flex: 1, borderWidth: 1, borderColor: '#1E1E1E', height: 44, alignItems: 'center', justifyContent: 'center' },
+  cancelActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  rejectInput: {
+    borderWidth: 1, borderColor: '#1E1E1E',
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818',
+    minHeight: 80, marginBottom: 10,
+  },
+  btnDisabled: { opacity: 0.5 },
+  actionErrorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 10 },
 });

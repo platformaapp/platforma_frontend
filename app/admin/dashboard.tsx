@@ -108,10 +108,6 @@ export default function AdminDashboard() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Detail modal
-  const [selected, setSelected] = useState<TutorApplication | null>(null);
-  const [isDetailVisible, setDetailVisible] = useState(false);
-
   // Reject modal
   const [isRejectVisible, setRejectVisible] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<TutorApplication | null>(null);
@@ -196,8 +192,6 @@ export default function AdminDashboard() {
       setApplications((prev) =>
         prev.map((a) => a.id === app.id ? { ...a, status: 'approved' } : a)
       );
-      if (selected?.id === app.id) setSelected((s) => s ? { ...s, status: 'approved' } : s);
-      setDetailVisible(false);
     } catch {
       setActionError('Не удалось выполнить действие');
     } finally {
@@ -236,11 +230,7 @@ export default function AdminDashboard() {
             : a
         )
       );
-      if (selected?.id === rejectTarget.id) {
-        setSelected((s) => s ? { ...s, status: 'rejected', rejectionReason: rejectReason.trim() || undefined } : s);
-      }
       setRejectVisible(false);
-      setDetailVisible(false);
     } catch {
       setActionError('Не удалось выполнить действие');
     } finally {
@@ -261,7 +251,7 @@ export default function AdminDashboard() {
   ];
 
   const renderItem = ({ item }: { item: TutorApplication }) => (
-    <Pressable style={styles.card} onPress={() => { setSelected(item); setDetailVisible(true); }}>
+    <Pressable style={styles.card} onPress={() => router.push(`/admin/user-detail?id=${item.user.id}` as any)}>
       <View style={styles.cardLeft}>
         {item.user.avatarUrl ? (
           <Image source={{ uri: item.user.avatarUrl }} style={styles.avatar} />
@@ -401,92 +391,6 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* ── Detail modal ─────────────────────────────────────────────────── */}
-      <Modal
-        transparent
-        animationType="slide"
-        visible={isDetailVisible}
-        onRequestClose={() => setDetailVisible(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setDetailVisible(false)}>
-          <Pressable style={styles.modalSheet} onPress={() => {}}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {selected ? (
-                <>
-                  <View style={styles.detailHeader}>
-                    {selected.user.avatarUrl ? (
-                      <Image source={{ uri: selected.user.avatarUrl }} style={styles.detailAvatar} />
-                    ) : (
-                      <View style={[styles.detailAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.detailAvatarInitial}>
-                          {(selected.user.fullName || '?')[0].toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.detailName}>{selected.user.fullName || '—'}</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: STATUS_BG[selected.status], alignSelf: 'flex-start', marginTop: 4 }]}>
-                        <Text style={[styles.statusText, { color: STATUS_COLOR[selected.status] }]}>
-                          {STATUS_LABEL[selected.status]}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View style={styles.detailFields}>
-                    <DetailRow label="Email" value={selected.user.email} />
-                    {selected.user.phone ? <DetailRow label="Телефон" value={selected.user.phone} /> : null}
-                    {selected.user.specialization ? <DetailRow label="Специализация" value={selected.user.specialization} /> : null}
-                    <DetailRow label="Дата подачи" value={formatDate(selected.createdAt)} />
-                    {selected.user.bio ? (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>О себе</Text>
-                        <Text style={styles.detailValue}>{selected.user.bio}</Text>
-                      </View>
-                    ) : null}
-                    {selected.status === 'rejected' && selected.rejectionReason ? (
-                      <View style={styles.detailRow}>
-                        <Text style={[styles.detailLabel, { color: '#721c24' }]}>Причина отклонения</Text>
-                        <Text style={[styles.detailValue, { color: '#721c24' }]}>{selected.rejectionReason}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {actionError ? <Text style={styles.actionErrorText}>{actionError}</Text> : null}
-
-                  {selected.status === 'pending' ? (
-                    <View style={styles.detailBtnRow}>
-                      <Pressable
-                        style={[styles.detailApproveBtn, isActioning && styles.btnDisabled]}
-                        onPress={() => handleApprove(selected)}
-                        disabled={isActioning}
-                      >
-                        {isActioning ? (
-                          <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                          <Text style={styles.detailApproveBtnText}>Одобрить</Text>
-                        )}
-                      </Pressable>
-                      <Pressable
-                        style={[styles.detailRejectBtn, isActioning && styles.btnDisabled]}
-                        onPress={() => openReject(selected)}
-                        disabled={isActioning}
-                      >
-                        <Text style={styles.detailRejectBtnText}>Отклонить</Text>
-                      </Pressable>
-                    </View>
-                  ) : null}
-
-                  <Pressable style={styles.detailCloseBtn} onPress={() => setDetailVisible(false)}>
-                    <Text style={styles.detailCloseBtnText}>Закрыть</Text>
-                  </Pressable>
-                </>
-              ) : null}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {/* ── Reject reason modal ───────────────────────────────────────────── */}
       <Modal
         transparent
@@ -528,16 +432,6 @@ export default function AdminDashboard() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value?: string }) {
-  if (!value) return null;
-  return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
     </View>
   );
 }
@@ -604,17 +498,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 16,
     paddingTop: 20, paddingBottom: 32, maxHeight: '90%',
   },
-  detailHeader: { flexDirection: 'row', gap: 14, marginBottom: 16, alignItems: 'flex-start' },
-  detailAvatar: { width: 72, height: 72 },
-  detailAvatarInitial: { fontSize: 28, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  detailName: { fontSize: 18, lineHeight: 24, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
-  detailFields: { borderTopWidth: 1, borderColor: '#E5E5E5', marginBottom: 16 },
-  detailRow: { borderBottomWidth: 1, borderColor: '#E5E5E5', paddingVertical: 10 },
-  detailLabel: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
-  detailValue: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
-  detailBtnRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  detailApproveBtn: { flex: 1, backgroundColor: '#155724', height: 48, alignItems: 'center', justifyContent: 'center' },
-  detailApproveBtnText: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#fff' },
   detailRejectBtn: { flex: 1, borderWidth: 1, borderColor: '#721c24', height: 48, alignItems: 'center', justifyContent: 'center' },
   detailRejectBtnText: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#721c24' },
   detailCloseBtn: { height: 48, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
