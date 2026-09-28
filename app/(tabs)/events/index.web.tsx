@@ -309,7 +309,9 @@ export default function EventsScreenWeb() {
           <View>
             {featured.length > 0 ? (
               <View style={styles.featuredRow}>
-                {featured.map((item, idx) => renderFeaturedCard(item, idx as 0 | 1))}
+                {renderFeaturedCard(featured[0], 0)}
+                {featured.length > 1 ? <View /> : null}
+                {featured.length > 1 ? renderFeaturedCard(featured[1], 1) : null}
               </View>
             ) : null}
             {rows.map((row, rowIdx) => (
@@ -370,12 +372,13 @@ const styles = StyleSheet.create({
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
-  // .proj-featured: 2 крупные карточки, 649:84:716. У второй картинка и текст
-  // занимают только 72.8% её колонки (716*0.728≈521) — .card--p2 .card__img/.card__body.
-  featuredRow: { flexDirection: 'row', gap: 84, marginTop: 80 },
-  featuredCardOne: { width: 649 },
-  featuredCardTwo: { width: 716 },
-  featuredInnerTwo: { width: 521 },
+  // .proj-featured: 2 крупные карточки, 649:84:716 — CSS grid с той же пропорцией
+  // в fr (не flex+gap), средняя колонка остаётся пустым спейсером. У второй
+  // картинка и текст занимают только 72.8% её колонки — .card--p2 .card__img/.card__body.
+  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr', marginTop: 80 } as any,
+  featuredCardOne: { width: '100%' },
+  featuredCardTwo: { width: '100%' },
+  featuredInnerTwo: { width: '72.8%' },
   featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
