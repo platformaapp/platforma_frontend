@@ -28,6 +28,8 @@ const FOOTER_LOGOS_WIDTH = 833;
 // url не проставлен там, где среди нескольких организаций с похожим/общим
 // названием не нашлось однозначного совпадения (см. чат) — лого пока кликом
 // никуда не ведёт, чтобы не сослаться на чужой сайт.
+// Первые 5 (Никола-Ленивец…KION) — "Наши стратегические партнеры", остальные
+// 15 — "Наши большие друзья" (см. STRATEGIC_COUNT в SiteFooter).
 const FRIENDS = [
   { name: 'Никола-Ленивец', logo: require('@/assets/images/friend-nikola-lenivets.png'), url: 'https://nikola-lenivets.com/' },
   { name: 'Random Coffee', logo: require('@/assets/images/friend-random-coffee.png') },
@@ -50,6 +52,9 @@ const FRIENDS = [
   { name: 'ДК РАССВЕТ', logo: require('@/assets/images/friend-dkrassvet.png'), url: 'https://dkrassvet.space/' },
   { name: 'ЭЙЧ', logo: require('@/assets/images/friend-eich.png') },
 ];
+
+// Сколько первых элементов FRIENDS уходит в "Наши стратегические партнеры".
+const STRATEGIC_COUNT = 5;
 
 // .partners__logo img { max-width:100%; max-height:100%; object-fit:contain }
 // — картинка вписывается в ячейку сетки любых пропорций без ручных ширин;
@@ -90,11 +95,16 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
   const displayPartners = showPartners && !isMobile;
   // Если админ настроил свой список партнёров — показываем его вместо
-  // захардкоженных FRIENDS (одной сеткой, без деления на "стратегических").
+  // захардкоженных FRIENDS одной сеткой (без деления на "стратегических" —
+  // в админке пока нет способа разметить, где проходит граница между
+  // группами). Дефолтный список делим по STRATEGIC_COUNT, как в референсе.
   const { partners: adminPartners } = useSiteSettings();
-  const friends = adminPartners.length > 0
+  const usingAdminPartners = adminPartners.length > 0;
+  const friends = usingAdminPartners
     ? adminPartners.map((p) => ({ name: p.name, logo: p.logoUrl, url: p.linkUrl }))
     : FRIENDS;
+  const strategicPartners = usingAdminPartners ? [] : friends.slice(0, STRATEGIC_COUNT);
+  const bigFriends = usingAdminPartners ? friends : friends.slice(STRATEGIC_COUNT);
   // Full-bleed: футер лежит внутри ScrollView (без него снова ломается
   // прокрутка — см. коммит про схлопывание ScrollView), но должен визуально
   // тянуться на всю ширину окна, а не только на центрированную колонку
@@ -106,10 +116,18 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
   return (
     <View style={[styles.footer, { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL }]}>
       {displayPartners ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Наши большие друзья</Text>
-          <LogoGrid logos={friends} />
-        </View>
+        <>
+          {strategicPartners.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Наши стратегические партнеры</Text>
+              <LogoGrid logos={strategicPartners} />
+            </View>
+          ) : null}
+          <View style={[styles.section, strategicPartners.length > 0 && styles.friendsSection]}>
+            <Text style={styles.sectionLabel}>Наши большие друзья</Text>
+            <LogoGrid logos={bigFriends} />
+          </View>
+        </>
       ) : null}
 
       <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
@@ -138,6 +156,8 @@ const styles = StyleSheet.create({
   footer: { paddingVertical: 0, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
+  // .partners__block + .partners__block { margin-top: 120px }
+  friendsSection: { marginTop: 120 },
   sectionLabel: { width: FOOTER_LABEL_WIDTH, flexShrink: 0, fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
   // display/gridTemplateColumns — веб-онли CSS-свойства, их нет в типах
   // ViewStyle, поэтому приводим объект через as any (сам компонент — только

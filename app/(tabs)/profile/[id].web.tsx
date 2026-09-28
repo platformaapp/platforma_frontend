@@ -1119,15 +1119,9 @@ export default function ProfileScreenWeb() {
 
                   {timePickerOpenDate === group.date ? (
                     <View style={styles.slotTimePickerRow}>
-                      <input
-                        type="time"
-                        value={timePickerDraft}
-                        autoFocus
-                        style={styles.slotTimePickerInput as any}
-                        onChange={(e: any) => setTimePickerDraft(e.target.value)}
-                      />
+                      <TimeFieldWithPicker value={timePickerDraft} onChangeValue={setTimePickerDraft} autoActive />
                       <Pressable
-                        style={[styles.slotTimePickerConfirmInline, !timePickerDraft && styles.btnDisabled]}
+                        style={[styles.slotTimePickerConfirm, !timePickerDraft && styles.btnDisabled]}
                         onPress={confirmTimePickerSlot}
                         disabled={!timePickerDraft}
                       >
@@ -1241,29 +1235,60 @@ function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; v
   );
 }
 
-function TimeFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
-  const [active, setActive] = useState(false);
-  const webRef = useRef<any>(null);
+const WHEEL_HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const WHEEL_MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+/**
+ * Свой пикер времени вместо нативного <input type="time"> — у выпадающего
+ * попапа браузера (Chrome) выделенная ячейка синяя и никак не перекрашивается
+ * через CSS (это внутренний UA-shadow-DOM браузера, не наша разметка).
+ * Две прокручиваемые колонки, часы/минуты, выбранная ячейка — фирменный
+ * красный, как остальные акценты сайта.
+ */
+function TimeWheelPicker({ value, onPick }: { value: string; onPick: (v: string) => void }) {
+  const [h, m] = value ? value.split(':') : ['', ''];
+  return (
+    <View style={styles.timeWheelPopover}>
+      <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
+        {WHEEL_HOURS.map((hh) => (
+          <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} onPress={() => onPick(`${hh}:${m || '00'}`)}>
+            <Text style={[styles.timeWheelCellText, hh === h && styles.timeWheelCellTextActive]}>{hh}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
+        {WHEEL_MINUTES.map((mm) => (
+          <Pressable key={mm} style={[styles.timeWheelCell, mm === m && styles.timeWheelCellActive]} onPress={() => onPick(`${h || '00'}:${mm}`)}>
+            <Text style={[styles.timeWheelCellText, mm === m && styles.timeWheelCellTextActive]}>{mm}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function TimeFieldWithPicker({ label, value, onChangeValue, autoActive }: { label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean }) {
+  const [active, setActive] = useState(!!autoActive);
+  const [pickerOpen, setPickerOpen] = useState(!!autoActive);
   const expanded = active || value.length > 0;
 
   return (
     <View style={styles.plusFieldWrap}>
-      <Text style={styles.plusFieldLabel}>{label}</Text>
+      {label ? <Text style={styles.plusFieldLabel}>{label}</Text> : null}
       {expanded ? (
-        <Pressable
-          style={styles.plusFieldValueRow}
-          onPress={() => { try { webRef.current?.showPicker?.(); } catch { webRef.current?.click?.(); } }}
-        >
-          <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
-          <input
-            ref={webRef}
-            type="time"
-            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
-            onChange={(e: any) => { if (e.target.value) onChangeValue(e.target.value); }}
-          />
-        </Pressable>
+        <View>
+          <Pressable style={styles.plusFieldValueRow} onPress={() => setPickerOpen((o) => !o)}>
+            <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
+          </Pressable>
+          {/* Не закрываем попап сразу после клика — иначе часы и минуты
+              нельзя выбрать за одно открытие (пикер снова схлопывается
+              после первого же тапа). Закрывается кликом по самому значению. */}
+          {pickerOpen ? (
+            <TimeWheelPicker value={value} onPick={onChangeValue} />
+          ) : null}
+        </View>
       ) : (
-        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { setActive(true); setPickerOpen(true); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1400,11 +1425,18 @@ const styles = StyleSheet.create({
   // Мини-пикер времени под группой даты — виден целиком (не спрятанный
   // <input>), с явной кнопкой "Выбрать", чтобы можно было покликать по часам
   // и минутам сколько нужно, не создавая слот раньше времени.
-  slotTimePickerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-  slotTimePickerInput: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101', borderWidth: 1, borderColor: '#010101', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'transparent' },
-  slotTimePickerConfirmInline: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16 },
+  slotTimePickerRow: { marginTop: 12 },
   slotTimePickerConfirm: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
   slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
+
+  // Свой пикер времени — см. TimeWheelPicker. Красный акцент вместо синего
+  // выделения нативного браузерного попапа (тот не перекрашивается).
+  timeWheelPopover: { flexDirection: 'row', gap: 16, marginTop: 12, borderWidth: 1, borderColor: '#E5E5E5', padding: 8 },
+  timeWheelColumn: { flex: 1, maxHeight: 224 },
+  timeWheelCell: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  timeWheelCellActive: { backgroundColor: '#E02D2D' },
+  timeWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  timeWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
   successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
