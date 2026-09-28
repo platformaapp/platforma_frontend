@@ -755,14 +755,16 @@ export default function ProfileScreenWeb() {
   }
 
   // Выйти/удалить аккаунт — в нативной версии профиля (см. profile/[id].tsx)
-  // уже были, в веб-версию не попали. Общий блок для студента и наставника.
+  // уже были, в веб-версию не попали. Общий блок для студента и наставника —
+  // те же красные текстовые ссылки, что "Изменить личные данные"/"Платежи",
+  // не отдельные окантованные кнопки.
   const accountActions = (
-    <View style={styles.accountActionsBlock}>
-      <Pressable style={styles.logoutButton} onPress={async () => { await clearAuth(); router.replace('/login' as any); }}>
-        <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+    <View style={styles.accountActionsRow}>
+      <Pressable onPress={async () => { await clearAuth(); router.replace('/login' as any); }}>
+        <Text style={styles.actionLink}>Выйти из аккаунта</Text>
       </Pressable>
-      <Pressable style={styles.deleteAccountButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
-        <Text style={styles.deleteAccountButtonText}>Удалить аккаунт</Text>
+      <Pressable onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+        <Text style={styles.actionLink}>Удалить аккаунт</Text>
       </Pressable>
     </View>
   );
@@ -1277,13 +1279,9 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
-  // Выйти/удалить аккаунт — общие для студента и наставника, максимальная
-  // ширина как у остальной колонки контента (не на всю ширину экрана).
-  accountActionsBlock: { maxWidth: 420, marginTop: 40 },
-  logoutButton: { borderWidth: 1, borderColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
-  logoutButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  deleteAccountButton: { marginTop: 8, paddingVertical: 14, alignItems: 'center' },
-  deleteAccountButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  // Выйти/удалить аккаунт — общие для студента и наставника, тот же стиль
+  // красной текстовой ссылки, что actionLink ("Изменить личные данные" и т.д.).
+  accountActionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 40 },
 
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
