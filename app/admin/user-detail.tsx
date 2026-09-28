@@ -20,6 +20,7 @@ type UserDetail = {
   email: string;
   fullName: string;
   phone?: string | null;
+  telegram?: string | null;
   roles: string[];
   avatarUrl?: string | null;
   bio?: string | null;
@@ -43,12 +44,13 @@ function resolveUrl(url: unknown): string | null {
   return `${API_BASE}${url}`;
 }
 
+// Пустое значение — не "нет такого поля", а "наставник его не заполнил":
+// всегда показываем строку, просто с прочерком, а не прячем целиком.
 function Row({ label, value }: { label: string; value?: string | null }) {
-  if (value == null || value === '') return null;
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <Text style={styles.rowValue}>{value != null && value !== '' ? value : '—'}</Text>
     </View>
   );
 }
@@ -120,6 +122,7 @@ export default function AdminUserDetailScreen() {
           email: raw.email ?? '',
           fullName: raw.fullName ?? raw.full_name ?? raw.name ?? '',
           phone: raw.phone ?? null,
+          telegram: raw.telegram ?? null,
           roles: Array.isArray(raw.roles)
             ? raw.roles.map((r: any) => typeof r === 'string' ? r : r?.name ?? '')
             : typeof raw.role === 'string' ? [raw.role] : [],
@@ -221,6 +224,11 @@ export default function AdminUserDetailScreen() {
   const statusLabel = user.applicationStatus
     ? (APPLICATION_STATUS_LABELS[user.applicationStatus] ?? user.applicationStatus)
     : null;
+  // Заявка на роль наставника ещё не даёт роль tutor — её присваивают только
+  // при одобрении (см. backend admin.service.ts approveApplication). Значит
+  // ровно в момент, когда нужно посмотреть анкету для решения, isTutor ещё
+  // false — поэтому секцию профиля наставника показываем и по заявке тоже.
+  const hasTutorProfile = isTutor || Boolean(user.applicationStatus);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -235,7 +243,7 @@ export default function AdminUserDetailScreen() {
         {/* Hero — большое фото во всю ширину: перед аппрувом наставника
             нужно нормально видеть человека, а не пиктограмму 72×72. */}
         {user.avatarUrl ? (
-          <Image source={{ uri: user.avatarUrl }} style={styles.heroPhoto} resizeMode="cover" />
+          <Image source={{ uri: user.avatarUrl }} style={styles.heroPhoto} resizeMode="contain" />
         ) : (
           <View style={[styles.heroPhoto, styles.avatarPlaceholder]}>
             <Text style={styles.heroPhotoInitial}>{(user.fullName || user.email || '?')[0].toUpperCase()}</Text>
@@ -256,10 +264,12 @@ export default function AdminUserDetailScreen() {
           <Row label="ID" value={user.id} />
           <Row label="Email" value={user.email} />
           <Row label="Телефон" value={user.phone} />
+          <Row label="Телеграм" value={user.telegram} />
         </Section>
 
-        {/* Tutor profile */}
-        {isTutor && (
+        {/* Tutor profile — см. hasTutorProfile выше: доступно и по заявке,
+            не только состоявшимся наставникам. */}
+        {hasTutorProfile && (
           <Section title="Профиль наставника">
             <Row label="Короткое био" value={user.shortBio} />
             <Row label="Специализация" value={user.specialization} />
@@ -281,8 +291,11 @@ export default function AdminUserDetailScreen() {
           <Row label="Метод оплаты по умолч." value={user.defaultPaymentMethodId} />
         </Section>
 
-        {/* Application (tutors only) */}
-        {isTutor && statusLabel && (
+        {/* Application — гейт на statusLabel, не на isTutor: у заявки на
+            рассмотрении роли tutor ещё нет, а кнопки "Одобрить"/"Отклонить"
+            здесь и находятся — если завязать на isTutor, их вообще нельзя
+            будет увидеть до одобрения. */}
+        {statusLabel && (
           <Section title="Заявка наставника">
             <Row label="Статус заявки" value={statusLabel} />
             {user.applicationStatus === 'rejected' && (

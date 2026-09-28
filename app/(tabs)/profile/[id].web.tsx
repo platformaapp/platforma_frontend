@@ -18,7 +18,7 @@ import {
   getTutorPayoutsBalance,
   getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
-import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { clearAuth, getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 // Бэкенд требует datetime_start И datetime_end (сам считает durationMinutes
 // из разницы) — в форме есть только "Время" (начало), длительность не
@@ -754,6 +754,19 @@ export default function ProfileScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
+  // Выйти/удалить аккаунт — в нативной версии профиля (см. profile/[id].tsx)
+  // уже были, в веб-версию не попали. Общий блок для студента и наставника.
+  const accountActions = (
+    <View style={styles.accountActionsBlock}>
+      <Pressable style={styles.logoutButton} onPress={async () => { await clearAuth(); router.replace('/login' as any); }}>
+        <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+      </Pressable>
+      <Pressable style={styles.deleteAccountButton} onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+        <Text style={styles.deleteAccountButtonText}>Удалить аккаунт</Text>
+      </Pressable>
+    </View>
+  );
+
   // ─── Student view ──────────────────────────────────────────────────────────
   if (role === 'student') {
     const studentActions = (
@@ -792,6 +805,8 @@ export default function ProfileScreenWeb() {
               </View>
             </View>
           )}
+
+          {accountActions}
         </View>
 
           <SiteFooter />
@@ -924,6 +939,8 @@ export default function ProfileScreenWeb() {
         <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}>
           <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
         </Pressable>
+
+        {accountActions}
       </View>
 
         <SiteFooter />
@@ -1259,6 +1276,14 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
+
+  // Выйти/удалить аккаунт — общие для студента и наставника, максимальная
+  // ширина как у остальной колонки контента (не на всю ширину экрана).
+  accountActionsBlock: { maxWidth: 420, marginTop: 40 },
+  logoutButton: { borderWidth: 1, borderColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
+  logoutButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  deleteAccountButton: { marginTop: 8, paddingVertical: 14, alignItems: 'center' },
+  deleteAccountButtonText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
