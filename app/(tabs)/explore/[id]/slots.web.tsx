@@ -9,6 +9,7 @@ import { bindPaymentMethod, getPaymentMethods } from '@/lib/api/student-payments
 import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
+import { slotDateTimeMs } from '@/lib/slots-utils';
 
 type SlotItem = { id: string; rawDate: string; time: string; price?: number };
 
@@ -80,15 +81,21 @@ export default function TutorSlotsScreenWeb() {
         const tutor = authList.find((t) => t.id === id) ?? publicList.find((t) => t.id === id);
         if (active && tutor) {
           setMentorName(tutor.fullName ?? '');
-          const rate = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
-          if (typeof rate === 'number' && rate > 0) setMentorPrice(`${rate.toLocaleString('ru-RU')} ₽`);
+          // hourlyRate — Postgres decimal без transformer'а, бэкенд отдаёт
+          // его строкой ("7000.00"), не числом.
+          const rateRaw = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
+          const rate = typeof rateRaw === 'string' ? parseFloat(rateRaw) : rateRaw;
+          if (typeof rate === 'number' && !isNaN(rate) && rate > 0) setMentorPrice(`${rate.toLocaleString('ru-RU')} ₽`);
         }
 
         const apiSlots = await getStudentTutorSlots(id);
         const nowTs = Date.now();
         const filtered = apiSlots.filter((s) => {
           if (s.status !== 'free' && s.status !== 'available') return false;
-          return new Date(`${s.date}T${s.time}:00`).getTime() > nowTs;
+          // s.time — "HH:MM:SS" с бэка, не "HH:MM" (см. slotDateTimeMs) —
+          // наивное добавление ":00" давало невалидную дату, и слоты
+          // считались прошедшими независимо от реальной даты/времени.
+          return slotDateTimeMs(s.date, s.time) > nowTs;
         });
         if (active) setSlots(filtered.map((s) => ({ id: s.id, rawDate: s.date, time: s.time.slice(0, 5), price: s.price })));
       } catch (e: any) {

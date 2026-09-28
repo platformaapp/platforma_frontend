@@ -67,6 +67,17 @@ export function formatDateInput(value: string): string {
   return `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4, 8)}`;
 }
 
+/**
+ * Слот отдаёт время как "HH:MM:SS" (Postgres time-колонка), а не "HH:MM".
+ * Наивный `${date}T${time}:00` (расчёт на "HH:MM" из нативного time-инпута)
+ * при секундах в ответе даёт невалидную дату ("...T10:00:00:00") — все слоты
+ * молча считались прошедшими и пропадали из будущих списков.
+ */
+export function slotDateTimeMs(date: string, time: string): number {
+  const normalizedTime = time.split(':').length >= 3 ? time : `${time}:00`;
+  return new Date(`${date}T${normalizedTime}`).getTime();
+}
+
 /** Форматирует ввод при наборе: 2000 → 20:00 */
 export function formatTimeInput(value: string): string {
   const t = value.replace(/\D/g, '').slice(0, 4);

@@ -30,9 +30,11 @@ export interface TutorProfile {
   short_bio?: string;
   telegram?: string;
   phone?: string;
-  hourlyRate?: number;
-  hourly_rate?: number;
-  pricePerHour?: number;
+  // number в типах, но Postgres decimal без transformer'а бэкенд реально
+  // отдаёт строкой ("7000.00") — не число.
+  hourlyRate?: number | string;
+  hourly_rate?: number | string;
+  pricePerHour?: number | string;
   groupMeetings?: string;
   group_meetings?: string;
   /** Рубрикатор — тема специализации (см. constants/topics.ts) */

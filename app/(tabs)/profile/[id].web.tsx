@@ -19,6 +19,7 @@ import {
   getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
 import { clearAuth, getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { slotDateTimeMs } from '@/lib/slots-utils';
 
 // Бэкенд требует datetime_start И datetime_end (сам считает durationMinutes
 // из разницы) — в форме есть только "Время" (начало), длительность не
@@ -234,11 +235,21 @@ export default function ProfileScreenWeb() {
           setShortBio(tp.shortBio ?? tp.short_bio ?? '');
           setSpecialization(tp.specialization ?? null);
           setTelegram(tp.telegram ?? '');
+          // Postgres-колонка hourly_rate — decimal без transformer'а, бэкенд
+          // отдаёт её строкой ("7000.00"), а не числом — typeof rate ===
+          // 'number' всегда был false, поле молча оставалось пустым при
+          // каждой перезагрузке страницы, хотя на бэкенде значение сохранено.
           const rate = tp.hourlyRate ?? tp.hourly_rate ?? tp.pricePerHour;
-          if (typeof rate === 'number') setHourlyRate(String(rate));
+          const rateNum = typeof rate === 'string' ? parseFloat(rate) : rate;
+          if (typeof rateNum === 'number' && !isNaN(rateNum)) setHourlyRate(String(rateNum));
           setAvatarUrl(tp.avatarUrl ?? tp.avatar_url ?? '');
           const nowTs = Date.now();
-          setSlots(tutorSlots.filter((s) => new Date(`${s.date}T${s.time}:00`).getTime() > nowTs));
+          // s.time — Postgres time-колонка, приходит как "HH:MM:SS" (с
+          // секундами) — раньше сюда всегда дописывалось ещё ":00" (расчёт
+          // на "HH:MM" из нативного time-инпута), что после перезагрузки
+          // страницы давало невалидную дату ("...T10:00:00:00") и все слоты
+          // молча считались прошедшими и пропадали из списка.
+          setSlots(tutorSlots.filter((s) => slotDateTimeMs(s.date, s.time) > nowTs));
         } else {
           const sp = await getStudentProfile();
           if (!active) return;
@@ -1234,16 +1245,90 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
   );
 }
 
+const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Свой календарь вместо нативного <input type="date"> — тот же приём, что
+ * и у TimeWheelPicker ниже (свой UI вместо непере-крашиваемого браузерного
+ * попапа), плюс сразу решает "нельзя выбрать прошедшую дату": дни до
+ * сегодняшнего в сетке недоступны для клика, а не просто выглядят иначе.
+ */
+function DateWheelPicker({ value, onPick }: { value: string; onPick: (v: string) => void }) {
+  const today = startOfToday();
+  const initial = value ? new Date(`${value}T00:00:00`) : today;
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  // getDay(): 0=вс..6=сб — сдвигаем так, чтобы неделя начиналась с понедельника.
+  const leadingBlanks = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const cells: (Date | null)[] = [
+    ...Array(leadingBlanks).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => new Date(viewYear, viewMonth, i + 1)),
+  ];
+
+  function goMonth(delta: number) {
+    const d = new Date(viewYear, viewMonth + delta, 1);
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  }
+
+  return (
+    <View style={styles.dateWheelPopover}>
+      <View style={styles.dateWheelHeader}>
+        <Pressable onPress={() => goMonth(-1)} hitSlop={8}><Text style={styles.dateWheelNav}>‹</Text></Pressable>
+        <Text style={styles.dateWheelHeaderText}>{MONTHS_NOM[viewMonth]} {viewYear}</Text>
+        <Pressable onPress={() => goMonth(1)} hitSlop={8}><Text style={styles.dateWheelNav}>›</Text></Pressable>
+      </View>
+      <View style={styles.dateWheelWeekRow}>
+        {WEEKDAYS_SHORT.map((w) => <Text key={w} style={styles.dateWheelWeekday}>{w}</Text>)}
+      </View>
+      <View style={styles.dateWheelGrid}>
+        {cells.map((d, i) => {
+          if (!d) return <View key={`blank-${i}`} style={styles.dateWheelCell} />;
+          const key = toDateKey(d);
+          const disabled = d.getTime() < today.getTime();
+          const active = key === value;
+          return (
+            <Pressable
+              key={key}
+              style={[styles.dateWheelCell, active && styles.dateWheelCellActive]}
+              disabled={disabled}
+              onPress={() => onPick(key)}
+            >
+              <Text style={[styles.dateWheelCellText, disabled && styles.dateWheelCellTextDisabled, active && styles.dateWheelCellTextActive]}>
+                {d.getDate()}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 /**
  * Дата/время в том же визуальном стиле, что PlusField (подпись + кружок с
- * плюсом), но вместо текстового инпута — настоящий нативный date/time picker
- * браузера (невидимый <input> поверх кликабельного значения, тот же приём,
- * что в new-event.tsx). Этот файл — веб-онли (.web.tsx), поэтому без
- * iOS/Android-веток.
+ * плюсом), но вместо текстового инпута — свой попап-пикер (см.
+ * DateWheelPicker/TimeWheelPicker), абсолютно спозиционированный поверх
+ * остального контента — раньше открытый пикер был частью обычного потока
+ * разметки и раздвигал родительскую модалку по высоте.
  */
 function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
   const [active, setActive] = useState(false);
-  const webRef = useRef<any>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const expanded = active || value.length > 0;
   const dateObj = value ? new Date(`${value}T00:00:00`) : null;
   const display = dateObj && !isNaN(dateObj.getTime())
@@ -1251,23 +1336,21 @@ function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; v
     : '';
 
   return (
-    <View style={styles.plusFieldWrap}>
+    <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
       <Text style={styles.plusFieldLabel}>{label}</Text>
       {expanded ? (
-        <Pressable
-          style={styles.plusFieldValueRow}
-          onPress={() => { try { webRef.current?.showPicker?.(); } catch { webRef.current?.click?.(); } }}
-        >
-          <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
-          <input
-            ref={webRef}
-            type="date"
-            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
-            onChange={(e: any) => { if (e.target.value) onChangeValue(e.target.value); }}
-          />
-        </Pressable>
+        <View style={styles.pickerAnchor}>
+          <Pressable style={styles.plusFieldValueRow} onPress={() => setPickerOpen((o) => !o)}>
+            <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
+          </Pressable>
+          {/* В отличие от времени, дата — одно действие (клик по дню), поэтому
+              попап закрывается сразу после выбора. */}
+          {pickerOpen ? (
+            <DateWheelPicker value={value} onPick={(v) => { onChangeValue(v); setPickerOpen(false); }} />
+          ) : null}
+        </View>
       ) : (
-        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { setActive(true); setPickerOpen(true); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1316,10 +1399,10 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive }: { labe
   const expanded = active || value.length > 0;
 
   return (
-    <View style={styles.plusFieldWrap}>
+    <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
       {label ? <Text style={styles.plusFieldLabel}>{label}</Text> : null}
       {expanded ? (
-        <View>
+        <View style={styles.pickerAnchor}>
           <Pressable style={styles.plusFieldValueRow} onPress={() => setPickerOpen((o) => !o)}>
             <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
           </Pressable>
@@ -1354,10 +1437,18 @@ const styles = StyleSheet.create({
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
   plusFieldWrap: { marginBottom: 24 },
+  // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
+  // текст следующих полей/кнопок (напр. "Время", "Отменить") рисуется
+  // поверх попапа вместо того, чтобы быть под ним (z-index попапа сам по
+  // себе сравнивается только с соседями внутри своего родителя).
+  plusFieldWrapElevated: { zIndex: 50 },
   plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', marginBottom: 8 },
   plusFieldButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   plusFieldValueRow: { position: 'relative', paddingVertical: 4 },
   plusFieldValueText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
+  // Якорь для попапов даты/времени — сами попапы position:'absolute'
+  // относительно этого блока, чтобы не раздвигать родительскую модалку.
+  pickerAnchor: { position: 'relative' },
 
   // Student view
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
@@ -1474,12 +1565,37 @@ const styles = StyleSheet.create({
 
   // Свой пикер времени — см. TimeWheelPicker. Красный акцент вместо синего
   // выделения нативного браузерного попапа (тот не перекрашивается).
-  timeWheelPopover: { flexDirection: 'row', gap: 16, marginTop: 12, borderWidth: 1, borderColor: '#E5E5E5', padding: 8 },
-  timeWheelColumn: { flex: 1, maxHeight: 224 },
+  // position:'absolute' — попап лежит поверх контента, а не в потоке
+  // разметки, иначе раскрытый пикер раздвигал родительскую модалку.
+  timeWheelPopover: {
+    position: 'absolute', top: 32, left: 0, zIndex: 30, width: 224,
+    flexDirection: 'row', gap: 16, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 8,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  timeWheelColumn: { width: 88, maxHeight: 224 },
   timeWheelCell: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   timeWheelCellActive: { backgroundColor: '#E02D2D' },
   timeWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   timeWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
+
+  // Свой календарь — см. DateWheelPicker. Тот же приём попапа, что у времени.
+  dateWheelPopover: {
+    position: 'absolute', top: 32, left: 0, zIndex: 30, width: 280,
+    borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 12,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  dateWheelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  dateWheelNav: { fontSize: 20, lineHeight: 22, color: '#010101', paddingHorizontal: 8 },
+  dateWheelHeaderText: { fontFamily: 'Gramatika-Regular', fontSize: 15, color: '#010101' },
+  dateWheelWeekRow: { flexDirection: 'row', marginBottom: 4 },
+  dateWheelWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B' },
+  dateWheelGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dateWheelCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
+  dateWheelCellActive: { backgroundColor: '#E02D2D' },
+  dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
+  dateWheelCellTextDisabled: { color: '#D0D0D0' },
+  dateWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
+
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
   successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
