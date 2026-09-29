@@ -84,6 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 32,
+    paddingTop: 49,
     paddingVertical: 20,
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
