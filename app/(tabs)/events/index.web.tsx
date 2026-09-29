@@ -346,10 +346,10 @@ const styles = StyleSheet.create({
   // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
   pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
   titleRow: {},
-  title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
   titleMobile: { fontSize: 25, lineHeight: 28 },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
-  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 59 },
+  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },
   filterPill: { paddingVertical: 4 },
   filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
@@ -368,9 +368,12 @@ const styles = StyleSheet.create({
 
   // Тип события (формат) — над именем наставника, тот же стиль (cardAuthor/
   // mobileAuthor); если показаны оба — небольшой отступ между строками.
+  // Цвет — как .card__label на vladyakunin.ru (чёрный текст, opacity:0.5),
+  // а не отдельный серый тон.
   cardLabelSecondLine: { marginTop: 4 },
-  cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  cardTitleText: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
+  // .card__title: font-size:25, line-height:0.9 (22.5px) на vladyakunin.ru/projects/.
+  cardTitleText: { fontSize: 25, lineHeight: 22.5, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
   // .proj-featured: 2 крупные карточки, 649:84:716 — CSS grid с той же пропорцией
   // в fr (не flex+gap), средняя колонка остаётся пустым спейсером. У второй
@@ -401,7 +404,7 @@ const styles = StyleSheet.create({
   mobileRow: { flexDirection: 'row', gap: 14 },
   mobileThumb: { width: 166, height: 149, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, height: 149, justifyContent: 'center' },
-  mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 6 },
   mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
   mobileDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 6 },
 });
