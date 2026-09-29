@@ -88,8 +88,10 @@ const styles = StyleSheet.create({
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navIconImage: { width: 16, height: 16 },
-  navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15 },
+  // Иконка 14px, текст line-height:1 (=15px при font-size:15) — строка
+  // пункта навигации высотой 15px, как в макете.
+  navIconImage: { width: 14, height: 14 },
+  navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 15 },
   logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 20, color: '#010101' },
   mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
 });

@@ -209,9 +209,9 @@ export default function EventsScreenWeb() {
       >
         <View style={isSecond ? styles.featuredInnerTwo : undefined}>
           {item.coverUrl ? (
-            <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
+            <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
           ) : (
-            <View style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} />
+            <View style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
           <View style={isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne}>
             {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
@@ -383,6 +383,8 @@ const styles = StyleSheet.create({
   featuredCardTwo: { width: '100%' },
   featuredInnerTwo: { width: '72.8%' },
   featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  // Высота второй картинки фиксированная (248px), а не по aspect-ratio.
+  featuredImageTwo: { height: 248 },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13 },
