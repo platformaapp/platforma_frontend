@@ -382,6 +382,9 @@ export default function EventDetailScreenWeb() {
   }
 
   const isOwnEvent = currentUserId != null && event?.mentor?.id === currentUserId;
+  // Прошедшее событие нельзя ни редактировать/отменить (организатор), ни
+  // отменить запись на него (участник) — действие уже неактуально.
+  const isPastEvent = !!event?.datetimeStart && new Date(event.datetimeStart).getTime() < Date.now();
 
   const metaBlock = (
     <View style={styles.metaRow}>
@@ -441,20 +444,24 @@ export default function EventDetailScreenWeb() {
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
             {isOwnEvent ? (
-              <>
-                <Pressable style={styles.chipButton} onPress={openEditModal}>
-                  <Text style={styles.chipButtonText}>Редактировать событие</Text>
-                </Pressable>
-                <Pressable style={styles.chipButton} onPress={() => setDeleteStep('confirm')}>
-                  <Text style={styles.chipButtonText}>Отменить событие</Text>
-                </Pressable>
-              </>
+              isPastEvent ? null : (
+                <>
+                  <Pressable style={styles.chipButton} onPress={openEditModal}>
+                    <Text style={styles.chipButtonText}>Редактировать событие</Text>
+                  </Pressable>
+                  <Pressable style={styles.chipButton} onPress={() => setDeleteStep('confirm')}>
+                    <Text style={styles.chipButtonText}>Отменить событие</Text>
+                  </Pressable>
+                </>
+              )
             ) : (
               <>
                 {event.isRegistered ? (
-                  <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
-                    <Text style={styles.chipButtonText}>Отменить запись</Text>
-                  </Pressable>
+                  isPastEvent ? null : (
+                    <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
+                      <Text style={styles.chipButtonText}>Отменить запись</Text>
+                    </Pressable>
+                  )
                 ) : (
                   <Pressable style={[styles.chipButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
                     <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
@@ -483,20 +490,24 @@ export default function EventDetailScreenWeb() {
 
               <View style={styles.actionsRow}>
                 {isOwnEvent ? (
-                  <>
-                    <Pressable onPress={openEditModal}>
-                      <Text style={styles.actionLink}>Редактировать событие</Text>
-                    </Pressable>
-                    <Pressable onPress={() => setDeleteStep('confirm')}>
-                      <Text style={styles.actionLink}>Отменить событие</Text>
-                    </Pressable>
-                  </>
+                  isPastEvent ? null : (
+                    <>
+                      <Pressable onPress={openEditModal}>
+                        <Text style={styles.actionLink}>Редактировать событие</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setDeleteStep('confirm')}>
+                        <Text style={styles.actionLink}>Отменить событие</Text>
+                      </Pressable>
+                    </>
+                  )
                 ) : (
                   <>
                     {event.isRegistered ? (
-                      <Pressable onPress={() => setCancelStep('confirm')}>
-                        <Text style={styles.actionLink}>Отменить запись</Text>
-                      </Pressable>
+                      isPastEvent ? null : (
+                        <Pressable onPress={() => setCancelStep('confirm')}>
+                          <Text style={styles.actionLink}>Отменить запись</Text>
+                        </Pressable>
+                      )
                     ) : (
                       <Pressable onPress={handleRegister} disabled={isRegistering}>
                         <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>

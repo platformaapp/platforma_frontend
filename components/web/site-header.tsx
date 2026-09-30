@@ -1,26 +1,20 @@
-import { usePathname, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
-const ACTIVE = '#010101';
-const INACTIVE = '#838383';
-
 // Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png),
-// подписи и порядок пунктов — свои, не менялись.
+// подписи и порядок пунктов — свои, не менялись. Пункты всегда чёрные —
+// без подсветки активного (по просьбе пользователя).
 const NAV_ITEMS = [
-  { key: 'events', label: 'События', href: '/events', icon: require('@/assets/images/nav-1.png'), match: ['/events'] },
-  { key: 'explore', label: 'Наставники', href: '/explore', icon: require('@/assets/images/nav-2.png'), match: ['/explore'] },
-  { key: 'myevents', label: 'Мои записи', href: '/myevents', icon: require('@/assets/images/nav-3.png'), match: ['/myevents'] },
-  { key: 'journal', label: 'Журнал', href: '/journal', icon: require('@/assets/images/nav-4.png'), match: ['/journal'] },
-  { key: 'profile', label: 'Личный кабинет', href: '/profile', icon: require('@/assets/images/nav-5.png'), match: ['/profile'] },
+  { key: 'events', label: 'События', href: '/events', icon: require('@/assets/images/nav-1.png') },
+  { key: 'explore', label: 'Наставники', href: '/explore', icon: require('@/assets/images/nav-2.png') },
+  { key: 'myevents', label: 'Мои записи', href: '/myevents', icon: require('@/assets/images/nav-3.png') },
+  { key: 'journal', label: 'Журнал', href: '/journal', icon: require('@/assets/images/nav-4.png') },
+  { key: 'profile', label: 'Личный кабинет', href: '/profile', icon: require('@/assets/images/nav-5.png') },
 ] as const;
-
-function isActive(pathname: string, match: readonly string[]) {
-  return match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
-}
 
 /**
  * Шапка. На десктопе — иконка+подпись слева, типографический логотип "p(34)"
@@ -30,7 +24,6 @@ function isActive(pathname: string, match: readonly string[]) {
  */
 export function SiteHeader() {
   const router = useRouter();
-  const pathname = usePathname();
   const { width } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
   // Текст пунктов и иконки можно переопределить из админки (Настройки сайта);
@@ -51,14 +44,12 @@ export function SiteHeader() {
     <View style={styles.header}>
       <View style={styles.headerInner}>
         <View style={styles.nav}>
-          {NAV_ITEMS.map(({ key, label, href, icon, match }, index) => {
-            const active = isActive(pathname, match);
-            const color = active ? ACTIVE : INACTIVE;
+          {NAV_ITEMS.map(({ key, label, href, icon }, index) => {
             const override = navOverrides[index];
             return (
               <Pressable key={key} style={styles.navItem} onPress={() => router.push(href as any)}>
                 <Image source={override?.iconUrl ? { uri: override.iconUrl } : icon} style={styles.navIconImage} />
-                <Text style={[styles.navLabel, { color }]}>{override?.label || label}</Text>
+                <Text style={styles.navLabel}>{override?.label || label}</Text>
               </Pressable>
             );
           })}
@@ -92,7 +83,7 @@ const styles = StyleSheet.create({
   // Иконка 14px, текст line-height:1 (=15px при font-size:15) — строка
   // пункта навигации высотой 15px, как в макете.
   navIconImage: { width: 14, height: 14 },
-  navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 15 },
+  navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 15, color: '#010101' },
   logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#010101', lineHeight: 1
    },
   mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
