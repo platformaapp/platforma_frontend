@@ -1077,6 +1077,7 @@ export default function ProfileScreenWeb() {
                 multiline
                 maxLength={EVENT_DESCRIPTION_MAX_CHARS}
               />
+              <Text style={styles.hint}>Ограничение: {EVENT_DESCRIPTION_MAX_CHARS} символов или {EVENT_DESCRIPTION_MAX_WORDS} слов</Text>
               <DateFieldWithPicker
                 label="Дата" value={eventDate} onChangeValue={setEventDate}
                 pickerId="new-event-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
