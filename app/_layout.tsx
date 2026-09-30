@@ -3,41 +3,82 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { enableScreens } from 'react-native-screens';
 import 'react-native-reanimated';
 
-// Hover-затемнение для любого кликабельного блока (Pressable) — та же CSS-
-// строка уже лежит в app/+html.tsx (статический шелл при экспорте), но тот
-// файл — не обычный компонент и Metro не обязан подхватывать его правки
-// hot-reload'ом на уже запущенном dev-сервере (нужен полный рестарт). Этот
-// же блок, вставленный из обычного компонента через useEffect, гарантированно
-// живёт в актуальном виде при любой пересборке. Дублирование с +html.tsx
-// безвредно — оба применяют одно и то же правило.
+// Hover-затемнение для любого кликабельного блока (Pressable) сайта разом,
+// плюс подчёркивание красных текстовых кнопок/ссылок при наведении — оба
+// правила целятся в "атомарные" CSS-классы, которые react-native-web сам
+// генерирует для cursor:'pointer' и color:'#E02D2D' (r-cursor-*, r-color-*
+// — общие для ВСЕХ элементов с этим стилем, поэтому не нужно править каждый
+// Pressable по отдельности). Раньше хеш этих классов был захардкожен в CSS
+// (например ".r-cursor-1loqt21") — на проде оказалось, что реальный класс в
+// браузере другой: хеш не гарантированно стабилен между сборками/версиями
+// react-native-web, хардкод был угадыванием, а не контрактом библиотеки.
+// Вместо хардкода — определяем настоящий класс в рантайме: рендерим
+// невидимые калибровочные элементы с теми же стилями (см. HoverDimCalibrator
+// ниже) и читаем их className из живого DOM уже в браузере пользователя.
 const HOVER_DIM_STYLE_ID = 'hover-dim-style';
-const HOVER_DIM_CSS = `
-  @media (hover: hover) and (pointer: fine) {
-    .r-cursor-1loqt21 { transition: opacity 0.18s ease; }
-    .r-cursor-1loqt21:hover { opacity: 0.5; }
-    /* Внутри попапов (aria-modal="true" на корневом div любого <Modal>)
-       затемнение при наведении не нужно. */
-    [aria-modal="true"] .r-cursor-1loqt21:hover { opacity: 1; }
-  }
-`;
 
-function useHoverDimStyle() {
+function findAtomicClass(el: HTMLElement | null, prefix: string): string | null {
+  if (!el) return null;
+  return Array.from(el.classList).find((c) => c.startsWith(prefix)) ?? null;
+}
+
+function buildHoverDimCss(cursorClass: string, redClass: string | null): string {
+  const redRule = redClass ? `
+    .${cursorClass}:hover.${redClass},
+    .${cursorClass}:hover .${redClass} {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  ` : '';
+  return `
+    @media (hover: hover) and (pointer: fine) {
+      .${cursorClass} { transition: opacity 0.18s ease; }
+      .${cursorClass}:hover { opacity: 0.5; }
+      /* Внутри попапов (aria-modal="true" на корневом div любого <Modal>)
+         затемнение при наведении не нужно. */
+      [aria-modal="true"] .${cursorClass}:hover { opacity: 1; }
+      ${redRule}
+    }
+  `;
+}
+
+function HoverDimCalibrator() {
+  const cursorRef = useRef<any>(null);
+  const redRef = useRef<any>(null);
+
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const cursorClass = findAtomicClass(cursorRef.current, 'r-cursor-');
+    if (!cursorClass) return; // не должно случиться — на всякий случай не ломаем страницу
+    const redClass = findAtomicClass(redRef.current, 'r-color-');
+
     let styleEl = document.getElementById(HOVER_DIM_STYLE_ID) as HTMLStyleElement | null;
     if (!styleEl) {
       styleEl = document.createElement('style');
       styleEl.id = HOVER_DIM_STYLE_ID;
       document.head.appendChild(styleEl);
     }
-    styleEl.textContent = HOVER_DIM_CSS;
+    styleEl.textContent = buildHoverDimCss(cursorClass, redClass);
   }, []);
+
+  return (
+    <View pointerEvents="none" style={calibratorStyles.hidden}>
+      <View ref={cursorRef} style={calibratorStyles.cursor as any} />
+      <Text ref={redRef} style={calibratorStyles.red}>.</Text>
+    </View>
+  );
 }
+
+const calibratorStyles = StyleSheet.create({
+  hidden: { position: 'absolute', width: 0, height: 0, overflow: 'hidden' },
+  cursor: { cursor: 'pointer' },
+  red: { color: '#E02D2D' },
+});
 
 // react-native-screens ~4.16 крашит на iOS 26 в RNSTabBarController.updateTabBarAppearance
 // (https://github.com/software-mansion/react-native-screens/issues/3940), а RN 0.81.x не
@@ -73,8 +114,6 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  useHoverDimStyle();
-
   // Загружаем шрифты
   // ВАЖНО: React Native поддерживает только .ttf и .otf форматы
   // Если у вас .woff файлы, их нужно конвертировать в .ttf
@@ -105,6 +144,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={DefaultTheme}>
+      <HoverDimCalibrator />
       <View style={styles.pageBackground}>
         <View style={styles.contentFrame}>
           <Stack
