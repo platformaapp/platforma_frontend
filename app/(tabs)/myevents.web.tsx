@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
   pageContent: { paddingHorizontal: 32 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
   headerVideoBlock: { alignItems: 'flex-end' },
   headerVideoButton: { backgroundColor: '#010101', paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },

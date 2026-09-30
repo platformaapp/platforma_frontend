@@ -192,9 +192,9 @@ export default function JournalScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 24 },
+  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 0, marginTop: 68 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

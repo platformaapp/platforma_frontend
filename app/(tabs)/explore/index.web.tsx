@@ -149,7 +149,7 @@ export default function MentorsScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
   // кликабельны, активная — чёрная и жирная, остальные — серые.
