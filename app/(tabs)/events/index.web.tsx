@@ -357,7 +357,10 @@ const styles = StyleSheet.create({
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },
   filterPill: { paddingVertical: 4 },
-  filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
+  // margin-right:13.4% — как .page-projects .proj-tabs > :last-child на
+  // vladyakunin.ru/projects/: последняя пилюля не прижата к самому краю
+  // контента, а слегка утоплена, вровень с более узкой второй картинкой.
+  filterPillRight: { marginLeft: 'auto', marginRight: '13.4%', paddingLeft: 24 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

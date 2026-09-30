@@ -157,6 +157,10 @@ export default function ProfileScreenWeb() {
   // а по явному нажатию "Выбрать".
   const [timePickerOpenDate, setTimePickerOpenDate] = useState<string | null>(null);
   const [timePickerDraft, setTimePickerDraft] = useState('');
+  // Общий на весь экран id открытого попапа даты/времени — чтобы никогда не
+  // было двух попапов одновременно: открытие одного (см. DateFieldWithPicker/
+  // TimeFieldWithPicker) закрывает любой другой, где бы он ни был на экране.
+  const [openPickerId, setOpenPickerId] = useState<string | null>(null);
 
   // ── Tutor-only modals ───────────────────────────────────────────────────────
   const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
@@ -881,9 +885,9 @@ export default function ProfileScreenWeb() {
                 </View>
                 <Pressable onPress={() => setPasswordModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
-              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
+              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
               <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прописных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
@@ -1035,9 +1039,9 @@ export default function ProfileScreenWeb() {
               </Pressable>
               <Text style={styles.modalTitle}>Новый пароль</Text>
             </View>
-            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
+            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
@@ -1072,8 +1076,14 @@ export default function ProfileScreenWeb() {
                 multiline
                 maxLength={EVENT_DESCRIPTION_MAX_CHARS}
               />
-              <DateFieldWithPicker label="Дата" value={eventDate} onChangeValue={setEventDate} />
-              <TimeFieldWithPicker label="Время" value={eventTime} onChangeValue={setEventTime} />
+              <DateFieldWithPicker
+                label="Дата" value={eventDate} onChangeValue={setEventDate}
+                pickerId="new-event-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+              />
+              <TimeFieldWithPicker
+                label="Время" value={eventTime} onChangeValue={setEventTime}
+                pickerId="new-event-time" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+              />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
               {/* Без выбора формата событие никогда не получало category — не
@@ -1173,7 +1183,10 @@ export default function ProfileScreenWeb() {
 
                   {timePickerOpenDate === group.date ? (
                     <View style={styles.slotTimePickerRow}>
-                      <TimeFieldWithPicker value={timePickerDraft} onChangeValue={setTimePickerDraft} autoActive />
+                      <TimeFieldWithPicker
+                        value={timePickerDraft} onChangeValue={setTimePickerDraft} autoActive
+                        pickerId={`slot-time-${group.date}`} openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+                      />
                       <Pressable
                         style={[styles.slotTimePickerConfirm, !timePickerDraft && styles.btnDisabled]}
                         onPress={confirmTimePickerSlot}
@@ -1187,8 +1200,14 @@ export default function ProfileScreenWeb() {
               ))}
             </ScrollView>
 
-            <DateFieldWithPicker label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate} />
-            <TimeFieldWithPicker label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} />
+            <DateFieldWithPicker
+              label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate}
+              pickerId="new-slot-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+            />
+            <TimeFieldWithPicker
+              label="Время" value={newSlotTime} onChangeValue={setNewSlotTime}
+              pickerId="new-slot-time" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+            />
             {newSlotDate && newSlotTime ? (
               <Pressable
                 style={styles.slotTimePickerConfirm}
@@ -1241,6 +1260,8 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       autoCapitalize={autoCapitalize}
       multiline={multiline}
       maxLength={maxLength}
+      labelStyle={styles.popupFieldLabel}
+      inputStyle={styles.popupFieldInput}
     />
   );
 }
@@ -1258,13 +1279,39 @@ function startOfToday(): Date {
   return d;
 }
 
+// Примерная высота попапов — используется, чтобы решить, помещается ли попап
+// снизу от поля, или его нужно открыть вверх (см. useFlipDirection ниже).
+const TIME_POPOVER_HEIGHT = 240;
+const DATE_POPOVER_HEIGHT = 340;
+
+/**
+ * Меряет положение якоря относительно окна в момент открытия попапа и решает,
+ * в какую сторону он поместится: вниз (по умолчанию) или вверх, если снизу
+ * не хватает места, а сверху его больше. Пересчитывается при каждом открытии
+ * (positions could change, e.g. after scrolling), не при каждом рендере.
+ */
+function useFlipDirection(open: boolean, popoverHeight: number): [React.RefObject<any>, 'down' | 'up'] {
+  const anchorRef = useRef<any>(null);
+  const [direction, setDirection] = useState<'down' | 'up'>('down');
+  useEffect(() => {
+    if (!open) return;
+    const node = anchorRef.current;
+    if (!node || typeof node.getBoundingClientRect !== 'function') return;
+    const rect = node.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    setDirection(spaceBelow < popoverHeight && spaceAbove > spaceBelow ? 'up' : 'down');
+  }, [open, popoverHeight]);
+  return [anchorRef, direction];
+}
+
 /**
  * Свой календарь вместо нативного <input type="date"> — тот же приём, что
  * и у TimeWheelPicker ниже (свой UI вместо непере-крашиваемого браузерного
  * попапа), плюс сразу решает "нельзя выбрать прошедшую дату": дни до
  * сегодняшнего в сетке недоступны для клика, а не просто выглядят иначе.
  */
-function DateWheelPicker({ value, onPick }: { value: string; onPick: (v: string) => void }) {
+function DateWheelPicker({ value, onPick, openUp }: { value: string; onPick: (v: string) => void; openUp?: boolean }) {
   const today = startOfToday();
   const initial = value ? new Date(`${value}T00:00:00`) : today;
   const [viewYear, setViewYear] = useState(initial.getFullYear());
@@ -1286,7 +1333,7 @@ function DateWheelPicker({ value, onPick }: { value: string; onPick: (v: string)
   }
 
   return (
-    <View style={styles.dateWheelPopover}>
+    <View style={[styles.dateWheelPopover, openUp ? styles.dateWheelPopoverUp : styles.dateWheelPopoverDown]}>
       <View style={styles.dateWheelHeader}>
         <Pressable onPress={() => goMonth(-1)} hitSlop={8}><Text style={styles.dateWheelNav}>‹</Text></Pressable>
         <Text style={styles.dateWheelHeaderText}>{MONTHS_NOM[viewMonth]} {viewYear}</Text>
@@ -1326,31 +1373,35 @@ function DateWheelPicker({ value, onPick }: { value: string; onPick: (v: string)
  * остального контента — раньше открытый пикер был частью обычного потока
  * разметки и раздвигал родительскую модалку по высоте.
  */
-function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
+function DateFieldWithPicker({ label, value, onChangeValue, pickerId, openPickerId, onOpenPicker }: {
+  label: string; value: string; onChangeValue: (v: string) => void;
+  pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
+}) {
   const [active, setActive] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerOpen = openPickerId === pickerId;
   const expanded = active || value.length > 0;
   const dateObj = value ? new Date(`${value}T00:00:00`) : null;
   const display = dateObj && !isNaN(dateObj.getTime())
     ? `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`
     : '';
+  const [anchorRef, direction] = useFlipDirection(pickerOpen, DATE_POPOVER_HEIGHT);
 
   return (
     <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
       <Text style={styles.plusFieldLabel}>{label}</Text>
       {expanded ? (
-        <View style={styles.pickerAnchor}>
-          <Pressable style={styles.plusFieldValueRow} onPress={() => setPickerOpen((o) => !o)}>
+        <View style={styles.pickerAnchor} ref={anchorRef}>
+          <Pressable style={styles.plusFieldValueRow} onPress={() => onOpenPicker(pickerOpen ? null : pickerId)}>
             <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
           </Pressable>
           {/* В отличие от времени, дата — одно действие (клик по дню), поэтому
               попап закрывается сразу после выбора. */}
           {pickerOpen ? (
-            <DateWheelPicker value={value} onPick={(v) => { onChangeValue(v); setPickerOpen(false); }} />
+            <DateWheelPicker value={value} onPick={(v) => { onChangeValue(v); onOpenPicker(null); }} openUp={direction === 'up'} />
           ) : null}
         </View>
       ) : (
-        <Pressable onPress={() => { setActive(true); setPickerOpen(true); }} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { setActive(true); onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1371,10 +1422,10 @@ const WHEEL_MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2,
  * Две прокручиваемые колонки, часы/минуты, выбранная ячейка — фирменный
  * красный, как остальные акценты сайта.
  */
-function TimeWheelPicker({ value, onPick }: { value: string; onPick: (v: string) => void }) {
+function TimeWheelPicker({ value, onPick, openUp }: { value: string; onPick: (v: string) => void; openUp?: boolean }) {
   const [h, m] = value ? value.split(':') : ['', ''];
   return (
-    <View style={styles.timeWheelPopover}>
+    <View style={[styles.timeWheelPopover, openUp ? styles.timeWheelPopoverUp : styles.timeWheelPopoverDown]}>
       <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
         {WHEEL_HOURS.map((hh) => (
           <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} onPress={() => onPick(`${hh}:${m || '00'}`)}>
@@ -1393,28 +1444,39 @@ function TimeWheelPicker({ value, onPick }: { value: string; onPick: (v: string)
   );
 }
 
-function TimeFieldWithPicker({ label, value, onChangeValue, autoActive }: { label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean }) {
+function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, pickerId, openPickerId, onOpenPicker }: {
+  label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean;
+  pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
+}) {
   const [active, setActive] = useState(!!autoActive);
-  const [pickerOpen, setPickerOpen] = useState(!!autoActive);
+  const pickerOpen = openPickerId === pickerId;
   const expanded = active || value.length > 0;
+  const [anchorRef, direction] = useFlipDirection(pickerOpen, TIME_POPOVER_HEIGHT);
+
+  // autoActive — попап должен быть открыт сразу при появлении поля (см.
+  // инлайн-время-пикер для конкретной даты), а не только по клику.
+  useEffect(() => {
+    if (autoActive) onOpenPicker(pickerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
       {label ? <Text style={styles.plusFieldLabel}>{label}</Text> : null}
       {expanded ? (
-        <View style={styles.pickerAnchor}>
-          <Pressable style={styles.plusFieldValueRow} onPress={() => setPickerOpen((o) => !o)}>
+        <View style={styles.pickerAnchor} ref={anchorRef}>
+          <Pressable style={styles.plusFieldValueRow} onPress={() => onOpenPicker(pickerOpen ? null : pickerId)}>
             <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
           </Pressable>
           {/* Не закрываем попап сразу после клика — иначе часы и минуты
               нельзя выбрать за одно открытие (пикер снова схлопывается
               после первого же тапа). Закрывается кликом по самому значению. */}
           {pickerOpen ? (
-            <TimeWheelPicker value={value} onPick={onChangeValue} />
+            <TimeWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} />
           ) : null}
         </View>
       ) : (
-        <Pressable onPress={() => { setActive(true); setPickerOpen(true); }} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { setActive(true); onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1436,6 +1498,10 @@ const styles = StyleSheet.create({
 
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
+  // Переопределение размера текста общего PlusField/FieldWithPlus — во всех
+  // попапах этой страницы текст 18px, кроме заголовка модалки.
+  popupFieldLabel: { fontSize: 18 },
+  popupFieldInput: { fontSize: 18, lineHeight: 22 },
   plusFieldWrap: { marginBottom: 24 },
   // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
   // текст следующих полей/кнопок (напр. "Время", "Отменить") рисуется
@@ -1475,13 +1541,13 @@ const styles = StyleSheet.create({
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   modalHeaderRowSpread: { justifyContent: 'space-between' },
   modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  passwordDots: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', paddingVertical: 10 },
+  passwordDots: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', paddingVertical: 10 },
   modalSaveLink: { alignSelf: 'flex-end', marginTop: 12 },
   backArrow: { fontSize: 25, color: '#010101' },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
+  hint: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 0, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 2 },
@@ -1492,13 +1558,13 @@ const styles = StyleSheet.create({
   historyScroll: { maxHeight: 420 },
   historyItem: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
   historyTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  historyOrderNumber: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  historyStatus: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  historyTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
-  historySubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  historyOrderNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  historyStatus: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  historyTitle: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
+  historySubtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   historyBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  historyDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  historyAmount: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  historyDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  historyAmount: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   infoIconText: { fontSize: 14, color: '#9B9B9B' },
   historyAmountRight: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right', marginTop: 8 },
   // Обёртка вокруг значка ⓘ — точка отсчёта для абсолютно спозиционированного
@@ -1506,11 +1572,11 @@ const styles = StyleSheet.create({
   tooltipAnchor: { position: 'relative' },
   payoutTooltipBubble: { position: 'absolute', top: 22, right: 0, width: 150, backgroundColor: '#010101', padding: 8, zIndex: 10 },
   balanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 20 },
-  balanceLabel: { fontSize: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  balanceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   balanceInfoIcon: { marginTop: 2 },
   balanceTooltipBubble: { position: 'absolute', top: 24, left: 0, width: 180, backgroundColor: '#010101', padding: 8, zIndex: 10 },
-  tooltipBubbleText: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#fff' },
-  withdrawMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  tooltipBubbleText: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  withdrawMessage: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
   modalTitleError: { color: '#E02D2D' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
@@ -1534,7 +1600,7 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
-  eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#838383' },
+  eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
@@ -1561,17 +1627,25 @@ const styles = StyleSheet.create({
   // и минутам сколько нужно, не создавая слот раньше времени.
   slotTimePickerRow: { marginTop: 12 },
   slotTimePickerConfirm: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
-  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
+  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#68717A' },
 
   // Свой пикер времени — см. TimeWheelPicker. Красный акцент вместо синего
   // выделения нативного браузерного попапа (тот не перекрашивается).
   // position:'absolute' — попап лежит поверх контента, а не в потоке
   // разметки, иначе раскрытый пикер раздвигал родительскую модалку.
   timeWheelPopover: {
-    position: 'absolute', top: 32, left: 0, zIndex: 30, width: 224,
+    position: 'absolute', left: 0, zIndex: 30, width: 224,
     flexDirection: 'row', gap: 16, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 8,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
+  // Направление раскрытия — отдельные стили, а не top:undefined поверх
+  // timeWheelPopoverDown: в RN стиль-массивах undefined не "снимает" ранее
+  // заданное значение при флэттенинге, оба свойства применяются разом, и
+  // абсолютный блок с одновременными top И bottom схлопывается по высоте.
+  timeWheelPopoverDown: { top: 32 },
+  // Если снизу не хватает места (см. useFlipDirection) — открываем вверх:
+  // тот же попап, но растёт от нижнего края якоря вместо верхнего.
+  timeWheelPopoverUp: { bottom: 32 },
   timeWheelColumn: { width: 88, maxHeight: 224 },
   timeWheelCell: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   timeWheelCellActive: { backgroundColor: '#E02D2D' },
@@ -1580,26 +1654,28 @@ const styles = StyleSheet.create({
 
   // Свой календарь — см. DateWheelPicker. Тот же приём попапа, что у времени.
   dateWheelPopover: {
-    position: 'absolute', top: 32, left: 0, zIndex: 30, width: 280,
+    position: 'absolute', left: 0, zIndex: 30, width: 280,
     borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 12,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
+  dateWheelPopoverDown: { top: 32 },
+  dateWheelPopoverUp: { bottom: 32 },
   dateWheelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   dateWheelNav: { fontSize: 20, lineHeight: 22, color: '#010101', paddingHorizontal: 8 },
-  dateWheelHeaderText: { fontFamily: 'Gramatika-Regular', fontSize: 15, color: '#010101' },
+  dateWheelHeaderText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   dateWheelWeekRow: { flexDirection: 'row', marginBottom: 4 },
-  dateWheelWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B' },
+  dateWheelWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#9B9B9B' },
   dateWheelGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dateWheelCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
   dateWheelCellActive: { backgroundColor: '#E02D2D' },
-  dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
+  dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   dateWheelCellTextDisabled: { color: '#D0D0D0' },
   dateWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
 
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
-  errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
-  successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
+  errorText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
+  successText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
   primaryButton: { backgroundColor: '#010101', paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
-  primaryButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FFFFFF' },
+  primaryButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FFFFFF' },
 });
