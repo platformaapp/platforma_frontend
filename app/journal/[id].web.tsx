@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   // ниже flexBasis и текст вылезает за край на узких экранах.
   colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
   colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240, maxHeight: 494 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 40},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   // Имя+роль+био — текстом сверху, квадратное (не круглое) фото под ним;
