@@ -197,15 +197,15 @@ const styles = StyleSheet.create({
   choiceLinkRow: { paddingVertical: 10 },
   choiceLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   switchLink: { marginTop: 16, alignItems: 'center' },
-  switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
+  switchLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
 
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
   checkbox: { width: 22, height: 22, borderWidth: 1, borderColor: '#010101', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   checkmark: { fontSize: 14, color: '#010101', fontWeight: 'normal', lineHeight: 18 },
-  checkboxLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#010101' },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 8 },
+  checkboxLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 20, color: '#010101' },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginTop: 8 },
 
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginTop: 16 },
-  linkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
-  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  linkText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
+  submitLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

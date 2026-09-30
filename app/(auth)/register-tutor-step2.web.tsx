@@ -10,6 +10,7 @@ import { TOPICS } from '@/constants/topics';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
+import { openInNewTab } from '@/lib/open-in-new-tab';
 
 const SHORT_BIO_LIMIT = 70;
 const ABOUT_LIMIT = 400;
@@ -136,7 +137,7 @@ export default function RegisterTutorStep2ScreenWeb() {
 
           <Text style={styles.terms}>
             Нажимая кнопку «Отправить заявку», вы принимаете{' '}
-            <Text style={styles.termsLink} onPress={() => router.push('/tutor-offer' as any)}>оферту для наставников</Text>
+            <Text style={styles.termsLink} onPress={() => openInNewTab('/tutor-offer')}>оферту для наставников</Text>
           </Text>
 
           <View style={styles.footerRow}>
@@ -160,19 +161,19 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
   fieldWrap: { marginBottom: 24 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
+  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
   topicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
-  topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#838383' },
+  topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   topicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -16, marginBottom: 16 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginTop: -16, marginBottom: 16 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
-  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4 },
-  terms: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#010101', marginTop: 16 },
+  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginTop: 4 },
+  terms: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#010101', marginTop: 16 },
   termsLink: { textDecorationLine: 'underline' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
-  cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

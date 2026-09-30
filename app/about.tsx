@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
+import { openInNewTab } from '@/lib/open-in-new-tab';
 
 export default function AboutScreen() {
   const router = useRouter();
@@ -105,10 +106,10 @@ export default function AboutScreen() {
             Настоящий сайт является публичной офертой. Регистрируясь на платформе или оплачивая мероприятие, пользователь принимает условия публичной оферты и политики конфиденциальности.
           </Text>
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => router.push('/offer' as any)}>
+            <Pressable onPress={() => openInNewTab('/offer')}>
               <Text style={styles.legalLink}>Публичная оферта →</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/privacy' as any)}>
+            <Pressable onPress={() => openInNewTab('/privacy')}>
               <Text style={styles.legalLink}>Политика конфиденциальности →</Text>
             </Pressable>
           </View>

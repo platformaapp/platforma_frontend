@@ -42,5 +42,5 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   description: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#010101' },
   bottomLink: { marginTop: 32 },
-  bottomLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 20, color: '#687076' },
+  bottomLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 20, color: '#687076' },
 });

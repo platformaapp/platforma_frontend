@@ -7,6 +7,7 @@ import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken, type UserProfile } from '@/lib/auth';
 import { getTutorProfile } from '@/lib/api/tutor';
+import { openInNewTab } from '@/lib/open-in-new-tab';
 
 const REGISTER_URL = endpoints.register;
 
@@ -161,9 +162,9 @@ export default function RegisterTutorScreenWeb() {
           <View style={styles.footerRow}>
             <Text style={styles.terms}>
               Нажимая кнопку «Далее», вы принимаете{' '}
-              <Text style={styles.termsLink} onPress={() => router.push('/offer' as any)}>публичную оферту</Text>
+              <Text style={styles.termsLink} onPress={() => openInNewTab('/offer')}>публичную оферту</Text>
               {' '}и{' '}
-              <Text style={styles.termsLink} onPress={() => router.push('/privacy' as any)}>политику конфиденциальности</Text>
+              <Text style={styles.termsLink} onPress={() => openInNewTab('/privacy')}>политику конфиденциальности</Text>
             </Text>
             <Pressable onPress={onSubmit} disabled={isSubmitting}>
               <Text style={styles.nextLink}>{isSubmitting ? 'Отправляем…' : 'Далее'}</Text>
@@ -183,10 +184,10 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginBottom: 12 },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginBottom: 4 },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginBottom: 12 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginTop: 16 },
-  terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#010101' },
+  terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#010101' },
   termsLink: { textDecorationLine: 'underline' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

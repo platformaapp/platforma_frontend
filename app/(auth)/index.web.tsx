@@ -67,5 +67,5 @@ const styles = StyleSheet.create({
   linkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   loginLink: { marginLeft: 'auto' },
   loginLinkMobile: { marginLeft: 0, marginTop: 12 },
-  loginLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#687076' },
+  loginLinkText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
 });

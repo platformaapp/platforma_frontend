@@ -9,6 +9,7 @@ import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { uploadEventImage } from '@/lib/api/events';
 import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
+import { openInNewTab } from '@/lib/open-in-new-tab';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken, UserProfile } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
@@ -228,9 +229,9 @@ export default function RegisterStudentScreenWeb() {
         <View style={styles.footerRow}>
           <Text style={styles.terms}>
             Нажимая кнопку «Далее», вы принимаете{' '}
-            <Text style={styles.termsLink} onPress={() => router.push('/offer' as any)}>публичную оферту</Text>
+            <Text style={styles.termsLink} onPress={() => openInNewTab('/offer')}>публичную оферту</Text>
             {' '}и{' '}
-            <Text style={styles.termsLink} onPress={() => router.push('/privacy' as any)}>политику конфиденциальности</Text>
+            <Text style={styles.termsLink} onPress={() => openInNewTab('/privacy')}>политику конфиденциальности</Text>
           </Text>
           <Pressable onPress={onSubmit} disabled={isSubmitting}>
             <Text style={styles.nextLink}>{isSubmitting ? 'Отправляем…' : 'Далее'}</Text>
@@ -250,16 +251,16 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginBottom: 12 },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginBottom: 4 },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginBottom: 12 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
   fieldWrap: { marginBottom: 24 },
-  label: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101', marginBottom: 8 },
+  label: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101', marginBottom: 8 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
-  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
+  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginTop: 16 },
-  terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#010101' },
+  terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#010101' },
   termsLink: { textDecorationLine: 'underline' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

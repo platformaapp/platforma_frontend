@@ -418,8 +418,8 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 380, padding: 24 },
   modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 20, textTransform: 'uppercase', lineHeight: 28 },
   modalOutlineButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
-  modalOutlineButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  modalOutlineButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   modalDangerButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
-  modalDangerButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
+  modalDangerButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
 });
