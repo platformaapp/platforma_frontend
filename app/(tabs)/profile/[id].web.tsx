@@ -885,9 +885,9 @@ export default function ProfileScreenWeb() {
                 </View>
                 <Pressable onPress={() => setPasswordModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
-              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
+              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
               <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прописных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
@@ -1039,9 +1039,9 @@ export default function ProfileScreenWeb() {
               </Pressable>
               <Text style={styles.modalTitle}>Новый пароль</Text>
             </View>
-            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
+            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
@@ -1260,6 +1260,8 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       autoCapitalize={autoCapitalize}
       multiline={multiline}
       maxLength={maxLength}
+      labelStyle={styles.popupFieldLabel}
+      inputStyle={styles.popupFieldInput}
     />
   );
 }
@@ -1496,6 +1498,10 @@ const styles = StyleSheet.create({
 
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
+  // Переопределение размера текста общего PlusField/FieldWithPlus — во всех
+  // попапах этой страницы текст 18px, кроме заголовка модалки.
+  popupFieldLabel: { fontSize: 18 },
+  popupFieldInput: { fontSize: 18, lineHeight: 22 },
   plusFieldWrap: { marginBottom: 24 },
   // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
   // текст следующих полей/кнопок (напр. "Время", "Отменить") рисуется
@@ -1535,13 +1541,13 @@ const styles = StyleSheet.create({
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   modalHeaderRowSpread: { justifyContent: 'space-between' },
   modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  passwordDots: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', paddingVertical: 10 },
+  passwordDots: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', paddingVertical: 10 },
   modalSaveLink: { alignSelf: 'flex-end', marginTop: 12 },
   backArrow: { fontSize: 25, color: '#010101' },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
+  hint: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 0, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 2 },
@@ -1552,13 +1558,13 @@ const styles = StyleSheet.create({
   historyScroll: { maxHeight: 420 },
   historyItem: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
   historyTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  historyOrderNumber: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  historyStatus: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  historyTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
-  historySubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  historyOrderNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  historyStatus: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  historyTitle: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
+  historySubtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   historyBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  historyDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  historyAmount: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  historyDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  historyAmount: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   infoIconText: { fontSize: 14, color: '#9B9B9B' },
   historyAmountRight: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right', marginTop: 8 },
   // Обёртка вокруг значка ⓘ — точка отсчёта для абсолютно спозиционированного
@@ -1566,11 +1572,11 @@ const styles = StyleSheet.create({
   tooltipAnchor: { position: 'relative' },
   payoutTooltipBubble: { position: 'absolute', top: 22, right: 0, width: 150, backgroundColor: '#010101', padding: 8, zIndex: 10 },
   balanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 20 },
-  balanceLabel: { fontSize: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  balanceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   balanceInfoIcon: { marginTop: 2 },
   balanceTooltipBubble: { position: 'absolute', top: 24, left: 0, width: 180, backgroundColor: '#010101', padding: 8, zIndex: 10 },
-  tooltipBubbleText: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#fff' },
-  withdrawMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  tooltipBubbleText: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  withdrawMessage: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
   modalTitleError: { color: '#E02D2D' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
@@ -1594,7 +1600,7 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
-  eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#838383' },
+  eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
@@ -1621,7 +1627,7 @@ const styles = StyleSheet.create({
   // и минутам сколько нужно, не создавая слот раньше времени.
   slotTimePickerRow: { marginTop: 12 },
   slotTimePickerConfirm: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
-  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
+  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#68717A' },
 
   // Свой пикер времени — см. TimeWheelPicker. Красный акцент вместо синего
   // выделения нативного браузерного попапа (тот не перекрашивается).
@@ -1656,20 +1662,20 @@ const styles = StyleSheet.create({
   dateWheelPopoverUp: { bottom: 32 },
   dateWheelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   dateWheelNav: { fontSize: 20, lineHeight: 22, color: '#010101', paddingHorizontal: 8 },
-  dateWheelHeaderText: { fontFamily: 'Gramatika-Regular', fontSize: 15, color: '#010101' },
+  dateWheelHeaderText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   dateWheelWeekRow: { flexDirection: 'row', marginBottom: 4 },
-  dateWheelWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#9B9B9B' },
+  dateWheelWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#9B9B9B' },
   dateWheelGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dateWheelCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
   dateWheelCellActive: { backgroundColor: '#E02D2D' },
-  dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
+  dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   dateWheelCellTextDisabled: { color: '#D0D0D0' },
   dateWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
 
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
-  errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
-  successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
+  errorText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
+  successText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
   primaryButton: { backgroundColor: '#010101', paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
-  primaryButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FFFFFF' },
+  primaryButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FFFFFF' },
 });

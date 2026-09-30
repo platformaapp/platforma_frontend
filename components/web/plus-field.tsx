@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, TextStyle, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 type PlusFieldProps = {
@@ -14,6 +14,11 @@ type PlusFieldProps = {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   maxLength?: number;
   editable?: boolean;
+  // Опциональные переопределения размера текста — не трогают дефолтный
+  // вид (используется на страницах логина/регистрации), нужны только там,
+  // где поле стоит внутри попапа с единым размером текста 18px.
+  labelStyle?: TextStyle;
+  inputStyle?: TextStyle;
 };
 
 /**
@@ -23,7 +28,7 @@ type PlusFieldProps = {
  * Поле с уже введённым значением (например, при возврате на шаг назад)
  * сразу открыто.
  */
-export function PlusField({ label, hint, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true }: PlusFieldProps) {
+export function PlusField({ label, hint, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true, labelStyle, inputStyle }: PlusFieldProps) {
   const [active, setActive] = useState(false);
   const [secureVisible, setSecureVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -31,7 +36,7 @@ export function PlusField({ label, hint, value, onChangeText, secureTextEntry, m
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.label, error && styles.labelError]}>
+      <Text style={[styles.label, error && styles.labelError, labelStyle]}>
         {label}
         {hint ? <Text style={styles.hint}> {hint}</Text> : null}
       </Text>
@@ -39,7 +44,7 @@ export function PlusField({ label, hint, value, onChangeText, secureTextEntry, m
         <View style={styles.inputRow}>
           <TextInput
             ref={inputRef}
-            style={[styles.input, !multiline && styles.inputSingleLine]}
+            style={[styles.input, !multiline && styles.inputSingleLine, inputStyle]}
             value={value}
             onChangeText={onChangeText}
             autoFocus={active}
