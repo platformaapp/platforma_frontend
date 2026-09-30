@@ -72,12 +72,14 @@ const PER_PAGE = 20;
 
 // Точные пропорции блоков и отступы — с vladyakunin.ru/projects/ (.proj-featured,
 // .proj-row): 2 крупные карточки сверху (649:84:716, у второй картинка+текст
-// уже, 72.8% от своей колонки — 716*0.728≈521), дальше строки по 3 карточки
-// (403:75:365:76:340, последняя колонка 191 остаётся пустой). Первая строка
-// из тройки отбита от блока крупных карточек на 254, следующие — на 120.
+// уже, 72.8% от своей колонки — 716*0.728≈521), дальше строки по 3 карточки —
+// тот же приём: CSS grid 403:75:365:76:340:191 (последняя колонка пустая),
+// карточки стоят в колонках 1/3/5 (.proj-row .card:nth-child(1/2/3)). Отступ
+// сверху чередуется: 254 у нечётных по счёту строк троек (.proj-row--2),
+// 120 у чётных (.proj-row--3).
 const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
-const ROW_WIDTHS: [number, number, number] = [403, 365, 340];
+const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 export default function EventsScreenWeb() {
   const router = useRouter();
@@ -226,7 +228,7 @@ export default function EventsScreenWeb() {
 
   function renderRowCard(item: EventFeedItem, posInRow: 0 | 1 | 2) {
     return (
-      <Pressable key={item.id} style={{ width: ROW_WIDTHS[posInRow] }} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -315,7 +317,10 @@ export default function EventsScreenWeb() {
               </View>
             ) : null}
             {rows.map((row, rowIdx) => (
-              <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx === 0 ? styles.rowThreeFirst : styles.rowThreeNext]}>
+              <View
+                key={row.map((r) => r.id).join('-')}
+                style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}
+              >
                 {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
               </View>
             ))}
@@ -390,12 +395,13 @@ const styles = StyleSheet.create({
   featuredTitleOne: { marginTop: 13 },
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
 
-  // .proj-row: тройки карточек 403:75:365:76:340 (последняя колонка 191 — пустая
-  // правая граница, специально не занята). Первая тройка после крупных карточек
-  // отбита на 254, следующие — на 120 (.proj-row--2 / .proj-row--3).
-  rowThree: { flexDirection: 'row', gap: 76 },
-  rowThreeFirst: { marginTop: 165 },
-  rowThreeNext: { marginTop: 120 },
+  // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают
+  // колонки 1/3/5 (см. ROW_GRID_COLUMNS), 2/4 — зазоры, 6 (191fr) — пустая
+  // правая граница, специально не занята. Отступ сверху чередуется по
+  // строкам: 254 (.proj-row--2), 120 (.proj-row--3), 254, 120, ...
+  rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
+  rowThree254: { marginTop: 254 },
+  rowThree120: { marginTop: 120 },
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
