@@ -1083,7 +1083,7 @@ export default function ProfileScreenWeb() {
                 pickerId="new-event-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
               />
               <TimeFieldWithPicker
-                label="Время" value={eventTime} onChangeValue={setEventTime}
+                label="Время" value={eventTime} onChangeValue={setEventTime} referenceDate={eventDate}
                 pickerId="new-event-time" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
               />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
@@ -1173,7 +1173,9 @@ export default function ProfileScreenWeb() {
                             onPress={(e) => { e.stopPropagation?.(); handleRemoveSlot(s.id); setSelectedSlotId(null); }}
                             hitSlop={6}
                           >
-                            <Text style={styles.slotRemoveChipText}>−</Text>
+                            <Svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                              <Path d="M1.5 5H8.5" stroke="#E02D2D" strokeWidth="1.5" strokeLinecap="round" />
+                            </Svg>
                           </Pressable>
                         </Pressable>
                       );
@@ -1186,7 +1188,7 @@ export default function ProfileScreenWeb() {
                   {timePickerOpenDate === group.date ? (
                     <View style={styles.slotTimePickerRow}>
                       <TimeFieldWithPicker
-                        value={timePickerDraft} onChangeValue={setTimePickerDraft} autoActive
+                        value={timePickerDraft} onChangeValue={setTimePickerDraft} autoActive referenceDate={group.date}
                         pickerId={`slot-time-${group.date}`} openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
                       />
                       <Pressable
@@ -1207,7 +1209,7 @@ export default function ProfileScreenWeb() {
               pickerId="new-slot-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
             />
             <TimeFieldWithPicker
-              label="Время" value={newSlotTime} onChangeValue={setNewSlotTime}
+              label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} referenceDate={newSlotDate}
               pickerId="new-slot-time" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
             />
             {newSlotDate && newSlotTime ? (
@@ -1453,24 +1455,44 @@ const WHEEL_MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2,
  * Две прокручиваемые колонки, часы/минуты, выбранная ячейка — фирменный
  * красный, как остальные акценты сайта.
  */
-function TimeWheelPicker({ value, onPick, openUp, onConfirm }: { value: string; onPick: (v: string) => void; openUp?: boolean; onConfirm: () => void }) {
+function TimeWheelPicker({ value, onPick, openUp, onConfirm, minTime }: {
+  value: string; onPick: (v: string) => void; openUp?: boolean; onConfirm: () => void;
+  minTime?: { hour: number; minute: number };
+}) {
   const [h, m] = value ? value.split(':') : ['', ''];
+  // Пока час ещё не выбран, onPick подставляет "00" (см. ниже) — те же "00"
+  // берём и здесь, чтобы список минут дизейблился ровно так же, как реально
+  // выберется час при клике по минуте.
+  const effectiveHour = h ? Number(h) : 0;
+  const hourDisabled = (hh: string) => !!minTime && Number(hh) < minTime.hour;
+  const minuteDisabled = (mm: string) => {
+    if (!minTime) return false;
+    if (effectiveHour > minTime.hour) return false;
+    if (effectiveHour < minTime.hour) return true;
+    return Number(mm) < minTime.minute;
+  };
   return (
     <View style={[styles.timeWheelPopover, openUp ? styles.timeWheelPopoverUp : styles.timeWheelPopoverDown]}>
       <View style={styles.timeWheelColumnsRow}>
         <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
-          {WHEEL_HOURS.map((hh) => (
-            <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} onPress={() => onPick(`${hh}:${m || '00'}`)}>
-              <Text style={[styles.timeWheelCellText, hh === h && styles.timeWheelCellTextActive]}>{hh}</Text>
-            </Pressable>
-          ))}
+          {WHEEL_HOURS.map((hh) => {
+            const disabled = hourDisabled(hh);
+            return (
+              <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} disabled={disabled} onPress={() => onPick(`${hh}:${m || '00'}`)}>
+                <Text style={[styles.timeWheelCellText, disabled && styles.timeWheelCellTextDisabled, hh === h && styles.timeWheelCellTextActive]}>{hh}</Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
         <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
-          {WHEEL_MINUTES.map((mm) => (
-            <Pressable key={mm} style={[styles.timeWheelCell, mm === m && styles.timeWheelCellActive]} onPress={() => onPick(`${h || '00'}:${mm}`)}>
-              <Text style={[styles.timeWheelCellText, mm === m && styles.timeWheelCellTextActive]}>{mm}</Text>
-            </Pressable>
-          ))}
+          {WHEEL_MINUTES.map((mm) => {
+            const disabled = minuteDisabled(mm);
+            return (
+              <Pressable key={mm} style={[styles.timeWheelCell, mm === m && styles.timeWheelCellActive]} disabled={disabled} onPress={() => onPick(`${h || '00'}:${mm}`)}>
+                <Text style={[styles.timeWheelCellText, disabled && styles.timeWheelCellTextDisabled, mm === m && styles.timeWheelCellTextActive]}>{mm}</Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
       <Pressable style={[styles.wheelConfirmBtn, !(h && m) && styles.btnDisabled]} disabled={!(h && m)} onPress={onConfirm}>
@@ -1480,8 +1502,8 @@ function TimeWheelPicker({ value, onPick, openUp, onConfirm }: { value: string; 
   );
 }
 
-function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, pickerId, openPickerId, onOpenPicker }: {
-  label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean;
+function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, referenceDate, pickerId, openPickerId, onOpenPicker }: {
+  label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean; referenceDate?: string;
   pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
 }) {
   const [active, setActive] = useState(!!autoActive);
@@ -1497,6 +1519,13 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, pickerId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Прошедшее время недоступно для выбора, но только если выбранная дата —
+  // сегодня; для будущих дат все часы/минуты открыты.
+  const now = new Date();
+  const minTime = referenceDate && referenceDate === toDateKey(now)
+    ? { hour: now.getHours(), minute: now.getMinutes() }
+    : undefined;
+
   return (
     <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
       {label ? <Text style={styles.plusFieldLabel}>{label}</Text> : null}
@@ -1509,7 +1538,7 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, pickerId
               попап не закрывается сам по себе; закрывается кнопкой "Выбрать"
               внутри него (или кликом мимо). */}
           {pickerOpen ? (
-            <TimeWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} onConfirm={() => onOpenPicker(null)} />
+            <TimeWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} onConfirm={() => onOpenPicker(null)} minTime={minTime} />
           ) : null}
         </View>
       ) : (
@@ -1654,7 +1683,6 @@ const styles = StyleSheet.create({
   // красный и с минусом вместо плюса.
   slotRemoveChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#E02D2D', alignItems: 'center', justifyContent: 'center' },
   slotRemoveChipHidden: { opacity: 0, pointerEvents: 'none' },
-  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
   addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
@@ -1688,6 +1716,7 @@ const styles = StyleSheet.create({
   timeWheelCell: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   timeWheelCellActive: { backgroundColor: '#E02D2D' },
   timeWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  timeWheelCellTextDisabled: { color: '#D0D0D0' },
   timeWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
 
   // Свой календарь — см. DateWheelPicker. Тот же приём попапа, что у времени.

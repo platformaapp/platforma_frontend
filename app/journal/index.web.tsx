@@ -158,7 +158,17 @@ export default function JournalScreenWeb() {
                 {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
               </View>
             ))}
-            {filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
+            {filtered.length > 0 ? (
+              // Баннер должен заканчиваться там же, где и карточки в тройке
+              // (rowThree резервирует справа пустую 6-ю колонку 191fr, куда
+              // карточки-тройки не заходят) — тот же grid, растягиваем
+              // баннер на колонки 1..5, не на всю ширину.
+              <View style={styles.rowThree}>
+                <View style={styles.promoBannerCell}>
+                  <PromoBanner withTelegramLink />
+                </View>
+              </View>
+            ) : null}
             {rowsAfterBanner.map((row, localIdx) => {
               const rowIdx = bannerRowIndex + localIdx;
               return (
@@ -214,6 +224,9 @@ const styles = StyleSheet.create({
   rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
   rowThree254: { marginTop: 254 },
   rowThree120: { marginTop: 120 },
+  // Баннер — только колонки 1..5 той же сетки (не заезжает в пустую 6-ю),
+  // чтобы его правый край совпадал с правым краем карточек в тройке.
+  promoBannerCell: { gridColumn: '1 / 6' } as any,
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
