@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   // пункта навигации высотой 15px, как в макете.
   navIconImage: { width: 14, height: 14 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 15 },
-  logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 20, color: '#010101' },
+  logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#010101', lineHeight: 1
+   },
   mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
 });
