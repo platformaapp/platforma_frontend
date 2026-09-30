@@ -16,17 +16,20 @@ export default function Root({ children }: { children: React.ReactNode }) {
           (нужен для анимации перехода между экранами), который стоит ВЫШЕ
           контента страницы в DOM — что бы мы ни делали с html/body/#root,
           всё, что не влезает в этот контейнер, просто обрезается и никаким
-          скроллом не достаётся. Поэтому скроллит именно ScrollView страницы
-          (как и задумано RN), а не документ — просто прячем его скроллбар
-          визуально (scrollbar-width/::-webkit-scrollbar), сам скролл при
-          этом остаётся полностью рабочим (колесо, клавиши, тач, драг).
+          скроллом не достаётся. Поэтому скроллит именно scrollArea из
+          SiteShell (components/web/site-shell.tsx) — она включает и шапку,
+          и контент страницы, поэтому шапка прокручивается вместе со
+          страницей, а не остаётся зафиксированной сверху — просто прячем
+          скроллбар визуально (scrollbar-width/::-webkit-scrollbar), сам
+          скролл при этом остаётся полностью рабочим (колесо, клавиши, тач,
+          драг).
         */}
         <style dangerouslySetInnerHTML={{
           __html: `
             html, body, #root { height: 100%; background-color: #ffffff; margin: 0; padding: 0; overflow: hidden; }
             #root { display: flex; }
-            [data-site-content="true"] > div { scrollbar-width: none; -ms-overflow-style: none; }
-            [data-site-content="true"] > div::-webkit-scrollbar { display: none; width: 0; height: 0; }
+            [data-site-content="true"] { scrollbar-width: none; -ms-overflow-style: none; }
+            [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
             /*
               Hover-затемнение для ЛЮБОГО кликабельного блока (Pressable)
               сайта разом, без правки каждого использования по отдельности.
