@@ -17,8 +17,8 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 12, paddingVertical: 12,
-    fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular',
+    fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular',
     color: '#181818', marginBottom: 12,
     justifyContent: 'center', position: 'relative',
   },
@@ -517,8 +517,8 @@ const styles = StyleSheet.create({
   titleCounter: { position: 'absolute', top: 8, right: 8, backgroundColor: '#181818', paddingHorizontal: 7, paddingVertical: 3, minWidth: 32, alignItems: 'center' },
   titleCounterText: { fontFamily: 'Gramatika-Regular', fontSize: 11, color: '#fff' },
   titleCounterError: { color: '#E02D2D' },
-  dateText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
-  placeholderText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  dateText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  placeholderText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   textArea: { minHeight: 96, paddingTop: 12 },
 
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },

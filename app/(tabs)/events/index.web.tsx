@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   // Отступы страницы — как .container/.page-head на vladyakunin.ru/projects/
   // (--pad:31px, заголовок 106px от шапки).
   scrollContent: { paddingTop: 63, paddingBottom: 24 },
-  pageContent: { paddingHorizontal: 31, paddingRight: 240 },
+  pageContent: { paddingHorizontal: 31, paddingRight: 31 },
   // paddingRight:240 у десктопной версии — оставляет поле под decor справа
   // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
   pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
