@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
@@ -285,7 +286,7 @@ export default function TutorCardScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/explore' as any))} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
+          <BackArrowIcon />
         </Pressable>
 
         {isMobile ? (

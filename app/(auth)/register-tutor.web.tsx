@@ -144,7 +144,7 @@ export default function RegisterTutorScreenWeb() {
             <PlusField label="Почта" value={email} error={errors.email} autoCapitalize="none" keyboardType="email-address"
               onChangeText={(t) => { setEmail(t); if (errors.email) setErrors((e) => ({ ...e, email: undefined })); }} />
 
-            <PlusField label="Телеграм" value={telegram} autoCapitalize="none"
+            <PlusField label="Телеграм" value={telegram} autoCapitalize="none" placeholder="Телеграм без @"
               onChangeText={(t) => setTelegram(t.replace(/^@/, ''))} />
 
             <PlusField label="Пароль" value={password} error={errors.password} secureTextEntry

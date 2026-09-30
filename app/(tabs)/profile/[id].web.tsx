@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
@@ -818,7 +819,7 @@ export default function ProfileScreenWeb() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.pageContent}>
           <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
-            <Text style={styles.backArrow}>←</Text>
+            <BackArrowIcon />
           </Pressable>
 
           {isMobile ? (
@@ -855,7 +856,7 @@ export default function ProfileScreenWeb() {
               </View>
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
-              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
+              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -879,7 +880,7 @@ export default function ProfileScreenWeb() {
               <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
                 <View style={styles.modalHeaderLeft}>
                   <Pressable onPress={() => { setPasswordModalVisible(false); setEditModalVisible(true); }} hitSlop={8}>
-                    <Text style={styles.backArrow}>←</Text>
+                    <BackArrowIcon />
                   </Pressable>
                   <Text style={styles.modalTitle}>Новый пароль</Text>
                 </View>
@@ -922,7 +923,7 @@ export default function ProfileScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
+          <BackArrowIcon />
         </Pressable>
 
         {isMobile ? (
@@ -988,7 +989,7 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
-              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
+              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
               <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline />
               <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
@@ -1035,7 +1036,7 @@ export default function ProfileScreenWeb() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeaderRow}>
               <Pressable onPress={() => { setPasswordModalVisible(false); setTutorEditModalVisible(true); }} hitSlop={8}>
-                <Text style={styles.backArrow}>←</Text>
+                <BackArrowIcon />
               </Pressable>
               <Text style={styles.modalTitle}>Новый пароль</Text>
             </View>
@@ -1240,7 +1241,7 @@ export default function ProfileScreenWeb() {
  * кружок с плюсом вместо рамки, клик по плюсу открывает настоящий инпут с
  * курсором (см. ту же логику на страницах авторизации/регистрации).
  */
-function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline, maxLength }: {
+function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline, maxLength, placeholder }: {
   label: string;
   value: string;
   onChangeText?: (text: string) => void;
@@ -1249,6 +1250,7 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   multiline?: boolean;
   maxLength?: number;
+  placeholder?: string;
 }) {
   return (
     <PlusField
@@ -1260,6 +1262,7 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       autoCapitalize={autoCapitalize}
       multiline={multiline}
       maxLength={maxLength}
+      placeholder={placeholder}
       labelStyle={styles.popupFieldLabel}
       inputStyle={styles.popupFieldInput}
     />

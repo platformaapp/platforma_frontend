@@ -5,6 +5,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 type PlusFieldProps = {
   label: string;
   hint?: string;
+  placeholder?: string;
   value: string;
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
@@ -28,7 +29,7 @@ type PlusFieldProps = {
  * Поле с уже введённым значением (например, при возврате на шаг назад)
  * сразу открыто.
  */
-export function PlusField({ label, hint, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true, labelStyle, inputStyle }: PlusFieldProps) {
+export function PlusField({ label, hint, placeholder, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true, labelStyle, inputStyle }: PlusFieldProps) {
   const [active, setActive] = useState(false);
   const [secureVisible, setSecureVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -47,6 +48,8 @@ export function PlusField({ label, hint, value, onChangeText, secureTextEntry, m
             style={[styles.input, !multiline && styles.inputSingleLine, inputStyle]}
             value={value}
             onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor="#9B9B9B"
             autoFocus={active}
             onBlur={() => { if (!value) setActive(false); }}
             secureTextEntry={secureTextEntry && !secureVisible}

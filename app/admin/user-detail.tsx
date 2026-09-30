@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
 
@@ -213,8 +214,9 @@ export default function AdminUserDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{error || 'Пользователь не найден'}</Text>
-        <Pressable style={styles.retryBackBtn} onPress={() => router.back()}>
-          <Text style={styles.retryBackText}>← Назад</Text>
+        <Pressable style={[styles.retryBackBtn, styles.retryBackRow]} onPress={() => router.back()}>
+          <BackArrowIcon width={16} height={15} />
+          <Text style={styles.retryBackText}>Назад</Text>
         </Pressable>
       </View>
     );
@@ -372,6 +374,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   retryBackBtn: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 20 },
+  retryBackRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   retryBackText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },

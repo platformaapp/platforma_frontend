@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
@@ -236,7 +237,7 @@ export default function PaymentsScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleRow}>
-          <Pressable onPress={() => router.replace('/(tabs)/profile' as any)}><Text style={styles.backArrow}>←</Text></Pressable>
+          <Pressable onPress={() => router.replace('/(tabs)/profile' as any)}><BackArrowIcon /></Pressable>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
 

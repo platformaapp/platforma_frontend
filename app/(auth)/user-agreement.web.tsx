@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell } from '@/components/web/site-shell';
 
@@ -13,8 +14,8 @@ export default function UserAgreementScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any))}>
-          <Text style={styles.backArrow}>←</Text>
+        <Pressable style={styles.backArrow} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any))}>
+          <BackArrowIcon />
         </Pressable>
 
         <View style={styles.content}>
@@ -41,7 +42,7 @@ export default function UserAgreementScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
-  backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
+  backArrow: { marginBottom: 24, alignSelf: 'flex-start' },
   content: { maxWidth: 720, gap: 16 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
   heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
