@@ -557,11 +557,11 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
 
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
-  rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  rowValue: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  rowLabel: { width: 160, fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  rowValue: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   descBlock: { paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
-  descText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818', lineHeight: 20, marginTop: 4 },
+  descText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#181818', lineHeight: 20, marginTop: 4 },
 
   mentorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderColor: '#F0F0F0' },
   mentorAvatar: { width: 48, height: 48, backgroundColor: '#E5E5E5' },

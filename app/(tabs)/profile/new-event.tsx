@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 12, paddingVertical: 12,
-    fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular',
+    fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular',
     color: '#181818', marginBottom: 12,
     justifyContent: 'center',
     position: 'relative',
