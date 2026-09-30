@@ -1584,13 +1584,13 @@ const styles = StyleSheet.create({
 
   // Student view
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
-  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
+  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 410 },
+  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 410 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative'},
+  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', marginTop: 40},
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
   profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0, justifyContent: 'space-between', width: '100%' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },

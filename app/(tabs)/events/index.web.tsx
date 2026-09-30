@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
   pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
   titleRow: {},
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101' },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginTop: 23 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 68 },
