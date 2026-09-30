@@ -5,15 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
-import { openInNewTab } from '@/lib/open-in-new-tab';
 
 const EMAIL = 'v.yakunin2011@yandex.ru';
-
-const DOCUMENTS = [
-  { label: 'Публичная оферта', path: '/offer' },
-  { label: 'Политика конфиденциальности', path: '/privacy' },
-  { label: 'Оферта для наставников', path: '/tutor-offer' },
-];
 
 /**
  * Содержимое страницы без обвязки (шапка/ScrollView) — переиспользуется и
@@ -26,17 +19,6 @@ export function ContactsContent() {
       <Pressable onPress={() => Linking.openURL(`mailto:${EMAIL}`)}>
         <Text style={styles.email}>{EMAIL}</Text>
       </Pressable>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Документы</Text>
-        <View style={styles.docsMenu}>
-          {DOCUMENTS.map((d) => (
-            <Pressable key={d.path} onPress={() => openInNewTab(d.path)}>
-              <Text style={styles.docsMenuLink}>{d.label} →</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionHeading}>Реквизиты сервиса</Text>
@@ -96,8 +78,6 @@ const styles = StyleSheet.create({
   email: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', textDecorationLine: 'underline', marginBottom: 28 },
   section: { marginBottom: 24 },
   sectionHeading: { fontSize: 14, lineHeight: 22, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 6, marginBottom: 10 },
-  docsMenu: { gap: 10 },
-  docsMenuLink: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#181818', textDecorationLine: 'underline' },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
   rowLabel: { fontSize: 13, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#555', minWidth: 110, marginRight: 6 },
   rowValue: { fontSize: 13, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818', flex: 1 },

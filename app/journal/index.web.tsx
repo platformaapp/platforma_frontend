@@ -22,7 +22,7 @@ const BANNER_AFTER = 10;
 // 521 из 716, оставляя пустое поле справа), .proj-row тройки 403:76:365:76:340.
 const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
-const ROW_WIDTHS: [number, number, number] = [403, 365, 340];
+const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 export default function JournalScreenWeb() {
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function JournalScreenWeb() {
 
   function renderRowCard(item: Article, posInRow: 0 | 1 | 2) {
     return (
-      <Pressable key={item.id} style={{ width: ROW_WIDTHS[posInRow] }} onPress={() => router.push(`/journal/${item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.id}` as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -148,20 +148,25 @@ export default function JournalScreenWeb() {
           <View>
             {featured.length > 0 ? (
               <View style={styles.featuredRow}>
-                {featured.map((item, idx) => renderFeaturedCard(item, idx as 0 | 1))}
+                {renderFeaturedCard(featured[0], 0)}
+                {featured.length > 1 ? <View /> : null}
+                {featured.length > 1 ? renderFeaturedCard(featured[1], 1) : null}
               </View>
             ) : null}
             {rowsBeforeBanner.map((row, rowIdx) => (
-              <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx === 0 ? styles.rowThreeFirst : styles.rowThreeNext]}>
+              <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
                 {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
               </View>
             ))}
             {filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
-            {rowsAfterBanner.map((row) => (
-              <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, styles.rowThreeNext]}>
-                {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
-              </View>
-            ))}
+            {rowsAfterBanner.map((row, localIdx) => {
+              const rowIdx = bannerRowIndex + localIdx;
+              return (
+                <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
+                  {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -191,22 +196,24 @@ const styles = StyleSheet.create({
   cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  // Та же сетка, что на /events: featured-пара 649:84:716 (у второй карточки
-  // картинка+текст занимают только 521 из 716 — намеренно узкая колонка с
-  // пустым полем справа), затем тройки 403:76:365:76:340.
-  featuredRow: { flexDirection: 'row', gap: 84, marginTop: 32 },
-  featuredCardOne: { width: 649 },
-  featuredCardTwo: { width: 716 },
-  featuredInnerTwo: { width: 521 },
+  // Та же сетка, что на /events: featured-пара — CSS grid 649fr:84fr:716fr
+  // (средняя колонка — пустой спейсер), у второй карточки картинка+текст
+  // занимают только 72.8% её колонки. Дальше тройки — CSS grid
+  // 403fr:75fr:365fr:76fr:340fr:191fr, карточки в колонках 1/3/5
+  // (см. ROW_GRID_COLUMNS), отступ сверху чередуется: 254/120.
+  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr', marginTop: 80 } as any,
+  featuredCardOne: { width: '100%' },
+  featuredCardTwo: { width: '100%' },
+  featuredInnerTwo: { width: '72.8%' },
   featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13 },
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
 
-  rowThree: { flexDirection: 'row', gap: 76 },
-  rowThreeFirst: { marginTop: 64 },
-  rowThreeNext: { marginTop: 56 },
+  rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
+  rowThree254: { marginTop: 254 },
+  rowThree120: { marginTop: 120 },
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
