@@ -5,8 +5,8 @@ import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
-const ACTIVE = '#E02D2D';
-const INACTIVE = '#010101';
+const ACTIVE = '#010101';
+const INACTIVE = '#838383';
 
 // Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png),
 // подписи и порядок пунктов — свои, не менялись.

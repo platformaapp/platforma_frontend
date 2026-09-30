@@ -1194,7 +1194,7 @@ export default function ProfileScreenWeb() {
                         onPress={confirmTimePickerSlot}
                         disabled={!timePickerDraft}
                       >
-                        <Text style={styles.slotTimePickerConfirmText}>Выбрать</Text>
+                        <Text style={styles.slotTimePickerConfirmText}>Добавить слот</Text>
                       </Pressable>
                     </View>
                   ) : null}
@@ -1215,7 +1215,7 @@ export default function ProfileScreenWeb() {
                 style={styles.slotTimePickerConfirm}
                 onPress={() => { createAndAddSlot(newSlotDate, newSlotTime); setNewSlotDate(''); setNewSlotTime(''); }}
               >
-                <Text style={styles.slotTimePickerConfirmText}>Выбрать</Text>
+                <Text style={styles.slotTimePickerConfirmText}>Добавить слот</Text>
               </Pressable>
             ) : null}
 
@@ -1285,8 +1285,8 @@ function startOfToday(): Date {
 
 // Примерная высота попапов — используется, чтобы решить, помещается ли попап
 // снизу от поля, или его нужно открыть вверх (см. useFlipDirection ниже).
-const TIME_POPOVER_HEIGHT = 240;
-const DATE_POPOVER_HEIGHT = 340;
+const TIME_POPOVER_HEIGHT = 290;
+const DATE_POPOVER_HEIGHT = 390;
 
 /**
  * Меряет положение якоря относительно окна в момент открытия попапа и решает,
@@ -1310,12 +1310,34 @@ function useFlipDirection(open: boolean, popoverHeight: number): [React.RefObjec
 }
 
 /**
+ * Закрывает попап по клику вне области якоря (поле + сам попап) — без этого
+ * открытый date/timepicker можно было закрыть только повторным кликом по
+ * значению или (для времени) кнопкой "Выбрать", а клик мимо ни на что не
+ * влиял, попап просто оставался висеть поверх контента.
+ */
+function useOutsideClick(ref: React.RefObject<any>, active: boolean, onOutside: () => void) {
+  const onOutsideRef = useRef(onOutside);
+  onOutsideRef.current = onOutside;
+  useEffect(() => {
+    if (!active) return;
+    function handlePointerDown(e: any) {
+      const node = ref.current;
+      if (node && typeof node.contains === 'function' && e.target && !node.contains(e.target)) {
+        onOutsideRef.current();
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [active, ref]);
+}
+
+/**
  * Свой календарь вместо нативного <input type="date"> — тот же приём, что
  * и у TimeWheelPicker ниже (свой UI вместо непере-крашиваемого браузерного
  * попапа), плюс сразу решает "нельзя выбрать прошедшую дату": дни до
  * сегодняшнего в сетке недоступны для клика, а не просто выглядят иначе.
  */
-function DateWheelPicker({ value, onPick, openUp }: { value: string; onPick: (v: string) => void; openUp?: boolean }) {
+function DateWheelPicker({ value, onPick, openUp, onConfirm }: { value: string; onPick: (v: string) => void; openUp?: boolean; onConfirm: () => void }) {
   const today = startOfToday();
   const initial = value ? new Date(`${value}T00:00:00`) : today;
   const [viewYear, setViewYear] = useState(initial.getFullYear());
@@ -1366,6 +1388,9 @@ function DateWheelPicker({ value, onPick, openUp }: { value: string; onPick: (v:
           );
         })}
       </View>
+      <Pressable style={[styles.wheelConfirmBtn, !value && styles.btnDisabled]} disabled={!value} onPress={onConfirm}>
+        <Text style={styles.wheelConfirmBtnText}>Выбрать</Text>
+      </Pressable>
     </View>
   );
 }
@@ -1389,6 +1414,7 @@ function DateFieldWithPicker({ label, value, onChangeValue, pickerId, openPicker
     ? `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`
     : '';
   const [anchorRef, direction] = useFlipDirection(pickerOpen, DATE_POPOVER_HEIGHT);
+  useOutsideClick(anchorRef, pickerOpen, () => onOpenPicker(null));
 
   return (
     <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
@@ -1398,10 +1424,11 @@ function DateFieldWithPicker({ label, value, onChangeValue, pickerId, openPicker
           <Pressable style={styles.plusFieldValueRow} onPress={() => onOpenPicker(pickerOpen ? null : pickerId)}>
             <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
           </Pressable>
-          {/* В отличие от времени, дата — одно действие (клик по дню), поэтому
-              попап закрывается сразу после выбора. */}
+          {/* Попап закрывается кнопкой "Выбрать" внутри него (или кликом
+              мимо), а не сразу по клику на день — иначе нельзя было
+              рассмотреть выбранную дату перед подтверждением. */}
           {pickerOpen ? (
-            <DateWheelPicker value={value} onPick={(v) => { onChangeValue(v); onOpenPicker(null); }} openUp={direction === 'up'} />
+            <DateWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} onConfirm={() => onOpenPicker(null)} />
           ) : null}
         </View>
       ) : (
@@ -1426,24 +1453,29 @@ const WHEEL_MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2,
  * Две прокручиваемые колонки, часы/минуты, выбранная ячейка — фирменный
  * красный, как остальные акценты сайта.
  */
-function TimeWheelPicker({ value, onPick, openUp }: { value: string; onPick: (v: string) => void; openUp?: boolean }) {
+function TimeWheelPicker({ value, onPick, openUp, onConfirm }: { value: string; onPick: (v: string) => void; openUp?: boolean; onConfirm: () => void }) {
   const [h, m] = value ? value.split(':') : ['', ''];
   return (
     <View style={[styles.timeWheelPopover, openUp ? styles.timeWheelPopoverUp : styles.timeWheelPopoverDown]}>
-      <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
-        {WHEEL_HOURS.map((hh) => (
-          <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} onPress={() => onPick(`${hh}:${m || '00'}`)}>
-            <Text style={[styles.timeWheelCellText, hh === h && styles.timeWheelCellTextActive]}>{hh}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-      <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
-        {WHEEL_MINUTES.map((mm) => (
-          <Pressable key={mm} style={[styles.timeWheelCell, mm === m && styles.timeWheelCellActive]} onPress={() => onPick(`${h || '00'}:${mm}`)}>
-            <Text style={[styles.timeWheelCellText, mm === m && styles.timeWheelCellTextActive]}>{mm}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View style={styles.timeWheelColumnsRow}>
+        <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
+          {WHEEL_HOURS.map((hh) => (
+            <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} onPress={() => onPick(`${hh}:${m || '00'}`)}>
+              <Text style={[styles.timeWheelCellText, hh === h && styles.timeWheelCellTextActive]}>{hh}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+        <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
+          {WHEEL_MINUTES.map((mm) => (
+            <Pressable key={mm} style={[styles.timeWheelCell, mm === m && styles.timeWheelCellActive]} onPress={() => onPick(`${h || '00'}:${mm}`)}>
+              <Text style={[styles.timeWheelCellText, mm === m && styles.timeWheelCellTextActive]}>{mm}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+      <Pressable style={[styles.wheelConfirmBtn, !(h && m) && styles.btnDisabled]} disabled={!(h && m)} onPress={onConfirm}>
+        <Text style={styles.wheelConfirmBtnText}>Выбрать</Text>
+      </Pressable>
     </View>
   );
 }
@@ -1456,6 +1488,7 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, pickerId
   const pickerOpen = openPickerId === pickerId;
   const expanded = active || value.length > 0;
   const [anchorRef, direction] = useFlipDirection(pickerOpen, TIME_POPOVER_HEIGHT);
+  useOutsideClick(anchorRef, pickerOpen, () => onOpenPicker(null));
 
   // autoActive — попап должен быть открыт сразу при появлении поля (см.
   // инлайн-время-пикер для конкретной даты), а не только по клику.
@@ -1472,11 +1505,11 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, pickerId
           <Pressable style={styles.plusFieldValueRow} onPress={() => onOpenPicker(pickerOpen ? null : pickerId)}>
             <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
           </Pressable>
-          {/* Не закрываем попап сразу после клика — иначе часы и минуты
-              нельзя выбрать за одно открытие (пикер снова схлопывается
-              после первого же тапа). Закрывается кликом по самому значению. */}
+          {/* Часы и минуты — два отдельных клика за одно открытие, поэтому
+              попап не закрывается сам по себе; закрывается кнопкой "Выбрать"
+              внутри него (или кликом мимо). */}
           {pickerOpen ? (
-            <TimeWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} />
+            <TimeWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} onConfirm={() => onOpenPicker(null)} />
           ) : null}
         </View>
       ) : (
@@ -1639,9 +1672,10 @@ const styles = StyleSheet.create({
   // разметки, иначе раскрытый пикер раздвигал родительскую модалку.
   timeWheelPopover: {
     position: 'absolute', left: 0, zIndex: 30, width: 224,
-    flexDirection: 'row', gap: 16, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 8,
+    borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 8,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
+  timeWheelColumnsRow: { flexDirection: 'row', gap: 16 },
   // Направление раскрытия — отдельные стили, а не top:undefined поверх
   // timeWheelPopoverDown: в RN стиль-массивах undefined не "снимает" ранее
   // заданное значение при флэттенинге, оба свойства применяются разом, и
@@ -1675,6 +1709,12 @@ const styles = StyleSheet.create({
   dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   dateWheelCellTextDisabled: { color: '#D0D0D0' },
   dateWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
+
+  // Кнопка "Выбрать" внутри попапа (и у даты, и у времени) — подтверждает и
+  // закрывает именно этот попап; отдельно от кнопки "Добавить слот", которая
+  // сабмитит слот целиком, когда оба поля (дата и время) уже заполнены.
+  wheelConfirmBtn: { backgroundColor: '#010101', paddingVertical: 10, alignItems: 'center', marginTop: 10 },
+  wheelConfirmBtnText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
 
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
   errorText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
