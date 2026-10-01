@@ -11,20 +11,26 @@ import 'react-native-reanimated';
 // Hover-затемнение для любого кликабельного блока (Pressable) сайта разом,
 // плюс подчёркивание красных текстовых кнопок/ссылок при наведении — оба
 // правила целятся в "атомарные" CSS-классы, которые react-native-web сам
-// генерирует для cursor:'pointer' и color:'#E02D2D' (r-cursor-*, r-color-*
-// — общие для ВСЕХ элементов с этим стилем, поэтому не нужно править каждый
-// Pressable по отдельности). Раньше хеш этих классов был захардкожен в CSS
-// (например ".r-cursor-1loqt21") — на проде оказалось, что реальный класс в
-// браузере другой: хеш не гарантированно стабилен между сборками/версиями
-// react-native-web, хардкод был угадыванием, а не контрактом библиотеки.
-// Вместо хардкода — определяем настоящий класс в рантайме: рендерим
-// невидимые калибровочные элементы с теми же стилями (см. HoverDimCalibrator
-// ниже) и читаем их className из живого DOM уже в браузере пользователя.
+// генерирует для cursor:'pointer' и color:'#E02D2D' — общие для ВСЕХ
+// элементов с этим стилем, поэтому не нужно править каждый Pressable по
+// отдельности. Раньше хеш этих классов был захардкожен в CSS (например
+// ".r-cursor-1loqt21"), затем — определялся в рантайме, но по префиксу
+// "r-cursor-"/"r-color-". Оба варианта сломались на проде: там react-
+// native-web вообще не кладёт имя CSS-свойства в класс (там просто
+// "r-1loqt21", без "cursor-"), в отличие от dev-сборки — то есть между
+// dev и production отличается не только хеш, а сама схема именования
+// классов. Поэтому больше не предполагаем НИКАКОЙ схемы: рендерим пару
+// "пустой / со стилем" элементов одного типа и сравниваем их реальные
+// className — класс(ы), которых нет на пустом элементе, это и есть
+// то, что добавил нужный стиль, какой бы схемой именования библиотека
+// внутри ни пользовалась.
 const HOVER_DIM_STYLE_ID = 'hover-dim-style';
 
-function findAtomicClass(el: HTMLElement | null, prefix: string): string | null {
-  if (!el) return null;
-  return Array.from(el.classList).find((c) => c.startsWith(prefix)) ?? null;
+function diffClass(styledEl: HTMLElement | null, blankEl: HTMLElement | null): string | null {
+  if (!styledEl || !blankEl) return null;
+  const blankClasses = new Set(Array.from(blankEl.classList));
+  const extra = Array.from(styledEl.classList).find((c) => !blankClasses.has(c));
+  return extra ?? null;
 }
 
 function buildHoverDimCss(cursorClass: string, redClass: string | null): string {
@@ -48,14 +54,16 @@ function buildHoverDimCss(cursorClass: string, redClass: string | null): string 
 }
 
 function HoverDimCalibrator() {
+  const blankViewRef = useRef<any>(null);
   const cursorRef = useRef<any>(null);
+  const blankTextRef = useRef<any>(null);
   const redRef = useRef<any>(null);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const cursorClass = findAtomicClass(cursorRef.current, 'r-cursor-');
+    const cursorClass = diffClass(cursorRef.current, blankViewRef.current);
     if (!cursorClass) return; // не должно случиться — на всякий случай не ломаем страницу
-    const redClass = findAtomicClass(redRef.current, 'r-color-');
+    const redClass = diffClass(redRef.current, blankTextRef.current);
 
     let styleEl = document.getElementById(HOVER_DIM_STYLE_ID) as HTMLStyleElement | null;
     if (!styleEl) {
@@ -68,7 +76,9 @@ function HoverDimCalibrator() {
 
   return (
     <View pointerEvents="none" style={calibratorStyles.hidden}>
+      <View ref={blankViewRef} />
       <View ref={cursorRef} style={calibratorStyles.cursor as any} />
+      <Text ref={blankTextRef}>.</Text>
       <Text ref={redRef} style={calibratorStyles.red}>.</Text>
     </View>
   );
