@@ -1,19 +1,20 @@
 {
   "expo": {
-    "name": "Platforma34",
+    "name": "p(34)",
     "slug": "platforma-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "platformaapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/images/icon-p34.png",
       "supportsTablet": false,
       "bundleIdentifier": "ru.platformaapp",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
-        "CFBundleDisplayName": "Платформа34",
+        "CFBundleDisplayName": "p(34)",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
@@ -24,13 +25,14 @@
       }
     },
     "android": {
+      "icon": "./assets/images/icon-p34.png",
       "package": "ru.platformaapp.p34",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/android-icon-foreground-p34.png",
+        "backgroundImage": "./assets/images/android-icon-background-p34.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome-p34.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
