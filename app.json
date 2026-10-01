@@ -27,7 +27,7 @@
     "android": {
       "icon": "./assets/images/icon-p34.png",
       "package": "ru.platformaapp.p34",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground-p34.png",
