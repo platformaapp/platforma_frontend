@@ -2,18 +2,19 @@
   "expo": {
     "name": "Platforma34",
     "slug": "platforma-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "platformaapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/images/icon-p34.png",
       "supportsTablet": false,
       "bundleIdentifier": "ru.platformaapp",
       "buildNumber": "10",
       "infoPlist": {
-        "CFBundleDisplayName": "Платформа34",
+        "CFBundleDisplayName": "p(34)",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
