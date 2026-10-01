@@ -12,7 +12,7 @@
       "icon": "./assets/images/icon-p34.png",
       "supportsTablet": false,
       "bundleIdentifier": "ru.platformaapp",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "CFBundleDisplayName": "p(34)",
         "NSAppTransportSecurity": {
