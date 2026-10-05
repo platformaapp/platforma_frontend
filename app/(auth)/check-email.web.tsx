@@ -7,17 +7,20 @@ import { SiteShell } from '@/components/web/site-shell';
 /** Веб-версия экрана "Проверьте почту" (см. check-email.tsx для нативной). */
 export default function CheckEmailScreenWeb() {
   const router = useRouter();
+  // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
+  // тогда router.back() молча ничего не делает, и попап нечем закрыть.
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any));
 
   return (
     <SiteShell>
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
-      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>А проверьте почту!</Text>
-            <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+            <Pressable onPress={handleClose}><Text style={styles.close}>✕</Text></Pressable>
           </View>
 
           <Text style={styles.description}>

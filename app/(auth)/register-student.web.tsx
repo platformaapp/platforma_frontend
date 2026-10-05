@@ -43,6 +43,9 @@ export default function RegisterStudentScreenWeb() {
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string; password2?: string }>({});
+  // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
+  // тогда router.back() молча ничего не делает, и попап нечем закрыть.
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any));
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -179,12 +182,12 @@ export default function RegisterStudentScreenWeb() {
       <Stack.Screen options={{ headerShown: false }} />
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
-      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
       <View style={styles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Регистрация ученика</Text>
-          <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+          <Pressable onPress={handleClose}><Text style={styles.close}>✕</Text></Pressable>
         </View>
 
         <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">

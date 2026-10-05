@@ -12,6 +12,9 @@ export default function ForgotPasswordScreenWeb() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
+  // тогда router.back() молча ничего не делает, и попап нечем закрыть.
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any));
 
   function validateEmail(emailValue: string): string | null {
     if (!emailValue) return 'Поле не заполнено!';
@@ -74,12 +77,12 @@ export default function ForgotPasswordScreenWeb() {
     <SiteShell>
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
-      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Авторизация</Text>
-            <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+            <Pressable onPress={handleClose}><Text style={styles.close}>✕</Text></Pressable>
           </View>
 
           <Text style={styles.description}>

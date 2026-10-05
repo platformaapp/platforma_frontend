@@ -34,6 +34,9 @@ export default function RegisterTutorStep2ScreenWeb() {
   const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
+  // тогда router.back() молча ничего не делает, и попап нечем закрыть.
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any));
 
   const rateValue = hourlyRate ? parseInt(hourlyRate) || 0 : 0;
 
@@ -72,12 +75,12 @@ export default function RegisterTutorStep2ScreenWeb() {
     <SiteShell>
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
-      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Регистрация наставника</Text>
-            <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+            <Pressable onPress={handleClose}><Text style={styles.close}>✕</Text></Pressable>
           </View>
 
           <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -141,7 +144,7 @@ export default function RegisterTutorStep2ScreenWeb() {
           </Text>
 
           <View style={styles.footerRow}>
-            <Pressable onPress={() => router.back()}><Text style={styles.cancelLink}>Назад</Text></Pressable>
+            <Pressable onPress={handleClose}><Text style={styles.cancelLink}>Назад</Text></Pressable>
             <Pressable onPress={onSubmit} disabled={isSubmitting}>
               <Text style={styles.nextLink}>{isSubmitting ? 'Отправляем…' : 'Отправить заявку'}</Text>
             </Pressable>
