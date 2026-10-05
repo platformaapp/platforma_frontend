@@ -38,9 +38,11 @@ type BookingItem = {
 
 type Tab = 'events' | 'meetings';
 
-// Те же пропорции, что и тройки карточек на странице событий (ROW_ASPECTS в
-// events/index.web.tsx) — сетка разной высоты, а не ровные одинаковые блоки.
+// Та же сетка-тройка, что на /events и /journal (.proj-row--2 с
+// vladyakunin.ru/projects/): CSS grid 403fr:75fr:365fr:76fr:340fr:191fr
+// (последняя колонка пустая), карточки в колонках 1/3/5, отступ сверху 254px.
 const RECOMMENDED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const RECOMMENDED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 const MONTHS_GEN = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
@@ -387,7 +389,7 @@ export default function MyEventsScreenWeb() {
                 {recommended.map((r, idx) => (
                   <Pressable
                     key={r.id}
-                    style={styles.emptyRecommendedCard}
+                    style={[styles.emptyRecommendedCard, !isMobile && ({ gridColumn: RECOMMENDED_GRID_COLUMNS[idx] } as any)]}
                     onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
                   >
                     {r.coverUrl ? (
@@ -536,9 +538,9 @@ const styles = StyleSheet.create({
   emptyBlock: { paddingTop: 24, paddingBottom: 24 },
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
-  emptyRecommendedRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 24, marginBottom: 32 },
-  emptyRecommendedRowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: 20 },
-  emptyRecommendedCard: { flex: 1, minWidth: 0 },
+  emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr', marginTop: 254, marginBottom: 32 } as any,
+  emptyRecommendedRowMobile: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 20, marginTop: 0 } as any,
+  emptyRecommendedCard: { minWidth: 0 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
   emptyRecommendedTitle: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#010101' },
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
