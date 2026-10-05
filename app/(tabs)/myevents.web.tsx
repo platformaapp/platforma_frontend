@@ -13,7 +13,22 @@ import { authedFetch } from '@/lib/authed-fetch';
 import { parseFeedItems } from '@/lib/event-feed';
 import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
-type RecommendedEvent = { id: string; title: string; coverUrl?: string };
+type RecommendedEvent = { id: string; title: string; coverUrl?: string; mentorName?: string; datetimeStart?: string };
+
+// Та же подпись автора/даты, что и на карточках /events (см. formatEventDate
+// в events/index.web.tsx) — полное название месяца, без времени, в отличие
+// от formatDatetime ниже (тот — для уже забронированных встреч/событий, там
+// другой формат с коротким месяцем и временем).
+const RECOMMENDED_MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+function formatRecommendedEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${RECOMMENDED_MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return '';
+  }
+}
 
 function resolveUploadUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
@@ -256,6 +271,8 @@ export default function MyEventsScreenWeb() {
           id: String(r.id ?? ''),
           title: String(r.title ?? ''),
           coverUrl: resolveUploadUrl((r.coverUrl ?? r.cover_url) as string | undefined),
+          datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
+          mentorName: r.mentor ? String((r.mentor as any).name ?? (r.mentor as any).fullName ?? (r.mentor as any).full_name ?? '') : undefined,
         })));
       } catch { /* тихо — попап и без рекомендаций покажет ссылку "Посмотреть события" */ }
     })();
@@ -397,7 +414,9 @@ export default function MyEventsScreenWeb() {
                     ) : (
                       <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: RECOMMENDED_ASPECTS[idx] }]} />
                     )}
+                    {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
                     <Text style={styles.emptyRecommendedTitle} numberOfLines={2}>{r.title}</Text>
+                    {r.datetimeStart ? <Text style={styles.emptyRecommendedDate}>{formatRecommendedEventDate(r.datetimeStart)}</Text> : null}
                   </Pressable>
                 ))}
               </View>
@@ -542,7 +561,9 @@ const styles = StyleSheet.create({
   emptyRecommendedRowMobile: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 20, marginTop: 0 } as any,
   emptyRecommendedCard: { minWidth: 0 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
+  emptyRecommendedAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
   emptyRecommendedTitle: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  emptyRecommendedDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
