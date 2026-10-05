@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
 const FORMATS = ['Подкаст', 'Текст', 'Интервью'] as const;
 
@@ -32,14 +33,15 @@ function resolveUrl(url: unknown): string | null {
 async function uploadAdminImage(uri: string): Promise<string> {
   const token = await getAdminToken();
   if (!token) throw new Error('Требуется авторизация');
+  const resizedUri = await resizeImageForUpload(uri);
   const formData = new FormData();
   const filename = `article_${Date.now()}.jpg`;
   if (Platform.OS === 'web') {
-    const resp = await fetch(uri);
+    const resp = await fetch(resizedUri);
     const blob = await resp.blob();
     formData.append('file', blob, filename);
   } else {
-    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+    formData.append('file', { uri: resizedUri, name: filename, type: 'image/jpeg' } as any);
   }
   const res = await fetch(endpoints.uploadImage, {
     method: 'POST',
