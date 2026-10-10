@@ -13,10 +13,13 @@ import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 // единственном числе (см. lib/api/journal.ts).
 const FILTER_LABELS: Record<string, string> = { 'Подкаст': 'Подкасты', 'Текст': 'Тексты', 'Интервью': 'Интервью' };
 
-// Та же сетка карточек, что и на /events (featured-пара сверху + тройки
-// ниже) — идентичные пропорции колонок из референса (vladyakunin.ru):
-// .proj-featured 649:84:716 (у второй карточки картинка+текст — только
-// 521 из 716, оставляя пустое поле справа), .proj-row тройки 403:76:365:76:340.
+// Повторяющийся цикл из 4 строк (пара/тройка/пара/тройка, см. rows ниже) —
+// пропорции колонок из референса (vladyakunin.ru): .proj-featured 649:84:716
+// и вторая пара 481:165:611:193 (у второй карточки в обеих — картинка+текст
+// занимают только 521/716 ≈ 72.8% своей колонки, оставляя пустое поле
+// справа), .proj-row тройки 403:76:365:76:340. Размеры самих картинок (не
+// только колонок сетки) даны только для первой пары — вторая пара (pairB)
+// переиспользует те же пропорции картинок за неимением отдельных.
 const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
@@ -109,10 +112,28 @@ export default function JournalScreenWeb() {
     );
   }
 
-  const featured = filtered.slice(0, 2);
-  const rest = filtered.slice(2);
-  const rowChunks: Article[][] = [];
-  for (let i = 0; i < rest.length; i += 3) rowChunks.push(rest.slice(i, i + 3));
+  // Полная сетка — не "featured-пара один раз + тройки до конца", а
+  // повторяющийся цикл из 4 строк (видно на vladyakunin.ru при скролле):
+  // 1) пара 649:84:716 ("pairA", она же бывший featured), 2) тройка
+  // 403:75:365:76:340:191, 3) пара 481:165:611:193 ("pairB"), 4) снова
+  // тройка — и цикл начинается заново с 1). Баннер — после каждой 3-й
+  // строки этого цикла (считая строки любого типа подряд), поэтому его
+  // позиция относительно типа строки каждый раз разная (НОК(3,4)=12).
+  const rows: { type: 'pairA' | 'triple' | 'pairB'; items: Article[] }[] = [];
+  {
+    const cycle: ('pairA' | 'triple' | 'pairB')[] = ['pairA', 'triple', 'pairB', 'triple'];
+    let i = 0;
+    let cycleIdx = 0;
+    while (i < filtered.length) {
+      const type = cycle[cycleIdx % cycle.length];
+      const count = type === 'triple' ? 3 : 2;
+      const items = filtered.slice(i, i + count);
+      if (items.length === 0) break;
+      rows.push({ type, items });
+      i += items.length;
+      cycleIdx++;
+    }
+  }
 
   return (
     <SiteShell>
@@ -158,36 +179,44 @@ export default function JournalScreenWeb() {
           </View>
         ) : (
           <View>
-            {featured.length > 0 ? (
-              <View style={styles.featuredRow}>
-                {renderFeaturedCard(featured[0], 0)}
-                {featured.length > 1 ? <View /> : null}
-                {featured.length > 1 ? renderFeaturedCard(featured[1], 1) : null}
-              </View>
-            ) : null}
-            {rowChunks.map((row, rowIdx) => (
-              <React.Fragment key={row.map((r) => r.id).join('-')}>
-                <View style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
-                  {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
+            {rows.map((row, rowIdx) => {
+              // Отступ сверху — единая чередующаяся последовательность для
+              // ВСЕХ строк подряд (не только троек): первая строка — 80
+              // (отступ от фильтров), дальше 254/120/254/120...
+              const marginTop = rowIdx === 0 ? 80 : rowIdx % 2 === 1 ? 254 : 120;
+              const rowEl = row.type === 'triple' ? (
+                <View style={[styles.rowThree, { marginTop }]}>
+                  {row.items.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
                 </View>
-                {(rowIdx + 1) % 3 === 0 ? (
-                  // Баннер после каждой 3-й строки карточек — должен
-                  // заканчиваться там же, где и карточки в тройке (rowThree
-                  // резервирует справа пустую 6-ю колонку 191fr, куда
-                  // карточки-тройки не заходят) — тот же grid, растягиваем
-                  // баннер на колонки 1..5, не на всю ширину.
-                  <View style={styles.rowThree}>
-                    <View style={styles.promoBannerCell}>
-                      <PromoBanner withTelegramLink />
+              ) : (
+                <View style={[row.type === 'pairA' ? styles.featuredRow : styles.pairBRow, { marginTop }]}>
+                  {renderFeaturedCard(row.items[0], 0)}
+                  {row.items.length > 1 ? <View /> : null}
+                  {row.items.length > 1 ? renderFeaturedCard(row.items[1], 1) : null}
+                </View>
+              );
+              return (
+                <React.Fragment key={row.items.map((r) => r.id).join('-')}>
+                  {rowEl}
+                  {(rowIdx + 1) % 3 === 0 ? (
+                    // Баннер после каждой 3-й строки (любого типа) — должен
+                    // заканчиваться там же, где и карточки в тройке (rowThree
+                    // резервирует справа пустую 6-ю колонку 191fr, куда
+                    // карточки-тройки не заходят) — тот же grid, растягиваем
+                    // баннер на колонки 1..5, не на всю ширину.
+                    <View style={styles.rowThree}>
+                      <View style={styles.promoBannerCell}>
+                        <PromoBanner withTelegramLink />
+                      </View>
                     </View>
-                  </View>
-                ) : null}
-              </React.Fragment>
-            ))}
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
           </View>
         )}
 
-        {!isMobile && !loading && !error && filtered.length > 0 && (rowChunks.length === 0 || rowChunks.length % 3 !== 0) ? <PromoBanner withTelegramLink /> : null}
+        {!isMobile && !loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner withTelegramLink /> : null}
         {isMobile && !loading && !error && filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
 
         {!loading && !error && hasMore ? (
@@ -222,12 +251,15 @@ const styles = StyleSheet.create({
   cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  // Та же сетка, что на /events: featured-пара — CSS grid 649fr:84fr:716fr
-  // (средняя колонка — пустой спейсер), у второй карточки картинка+текст
-  // занимают только 72.8% её колонки. Дальше тройки — CSS grid
-  // 403fr:75fr:365fr:76fr:340fr:191fr, карточки в колонках 1/3/5
-  // (см. ROW_GRID_COLUMNS), отступ сверху чередуется: 254/120.
-  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr', marginTop: 80 } as any,
+  // Полный повторяющийся цикл строк (см. rows/cycle выше): пара A — CSS grid
+  // 649fr:84fr:716fr, пара B — 481fr:165fr:611fr:193fr (у обеих — пустая
+  // колонка-спейсер после первой карточки, и у второй карточки картинка+текст
+  // занимают только 72.8% её колонки). Тройка — CSS grid
+  // 403fr:75fr:365fr:76fr:340fr:191fr, карточки в колонках 1/3/5 (см.
+  // ROW_GRID_COLUMNS). Отступ сверху всех строк подряд — 80 (первая), затем
+  // 254/120/254/120... (см. marginTop в рендере).
+  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
+  pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
   featuredCardOne: { width: '100%' },
   featuredCardTwo: { width: '100%' },
   featuredInnerTwo: { width: '72.8%' },
@@ -238,8 +270,6 @@ const styles = StyleSheet.create({
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
 
   rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
-  rowThree254: { marginTop: 254 },
-  rowThree120: { marginTop: 120 },
   // Баннер — только колонки 1..5 той же сетки (не заезжает в пустую 6-ю),
   // чтобы его правый край совпадал с правым краем карточек в тройке.
   promoBannerCell: { gridColumn: '1 / 6' } as any,
