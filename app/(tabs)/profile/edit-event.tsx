@@ -3,19 +3,19 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -423,12 +423,12 @@ export default function EditEventScreen() {
         <View style={[styles.priceRow, hasPaidRegistrations && styles.inputDisabled]}>
           {hasPaidRegistrations ? (
             <Text style={[styles.priceDisplay, { color: '#9B9B9B' }]} numberOfLines={1}>
-              {priceValue > 0 ? `Стоимость участия — ${priceValue} ₽` : 'Стоимость участия — Бесплатно'}
+              {priceValue > 0 ? `Стоимость участия — ${priceValue} Р` : 'Стоимость участия — Бесплатно'}
             </Text>
           ) : price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
               <Text style={styles.priceDisplay} numberOfLines={1}>
-                {priceValue > 0 ? `Стоимость участия — ${priceValue} ₽` : 'Стоимость участия — Бесплатно'}
+                {priceValue > 0 ? `Стоимость участия — ${priceValue} Р` : 'Стоимость участия — Бесплатно'}
               </Text>
             </Pressable>
           ) : (
@@ -445,7 +445,7 @@ export default function EditEventScreen() {
           {price && priceValue > 0 ? (
             <View style={styles.commissionInfo}>
               <Text style={styles.commissionText}>Комиссия 10%</Text>
-              <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} ₽</Text>
+              <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} Р</Text>
             </View>
           ) : price && priceValue === 0 ? (
             <Text style={styles.commissionText}>Без комиссии</Text>

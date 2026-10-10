@@ -85,7 +85,7 @@ export default function TutorSlotsScreenWeb() {
           // его строкой ("7000.00"), не числом.
           const rateRaw = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
           const rate = typeof rateRaw === 'string' ? parseFloat(rateRaw) : rateRaw;
-          if (typeof rate === 'number' && !isNaN(rate) && rate > 0) setMentorPrice(`${rate.toLocaleString('ru-RU')} ₽`);
+          if (typeof rate === 'number' && !isNaN(rate) && rate > 0) setMentorPrice(`${rate.toLocaleString('ru-RU')} Р`);
         }
 
         const apiSlots = await getStudentTutorSlots(id);
@@ -253,7 +253,7 @@ export default function TutorSlotsScreenWeb() {
                 <Text style={styles.confirmMentorName}>{mentorName || 'Наставник'}</Text>
                 <Text style={styles.confirmDate}>{formatDateHeading(selected.rawDate)}, {selected.time}</Text>
               </View>
-              {selected.price != null ? <Text style={styles.confirmPrice}>{selected.price.toLocaleString('ru-RU')} ₽</Text> : null}
+              {selected.price != null ? <Text style={styles.confirmPrice}>{selected.price.toLocaleString('ru-RU')} Р</Text> : null}
 
               <Pressable style={styles.payLinkSpacing} onPress={handleBook} disabled={isBooking}>
                 <Text style={[styles.payLink, isBooking && styles.payLinkDisabled]}>{isBooking ? 'Оплата…' : 'Оплатить'}</Text>

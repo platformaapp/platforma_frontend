@@ -3,16 +3,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,7 +21,7 @@ import { AuthError } from '@/lib/api/auth-error';
 import { uploadEventImage } from '@/lib/api/events';
 import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { getTutorProfile, updateTutorProfile } from '@/lib/api/tutor';
-import { getAuthRole, getUserProfile, getAuthToken } from '@/lib/auth';
+import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 const SHORT_BIO_LIMIT = 70;
 const ABOUT_LIMIT = 400;
@@ -391,7 +391,7 @@ export default function EditProfileScreen() {
                 <Text style={styles.commissionPanelText}>
                   Платформа удерживает 10% с каждого события и индивидуальной встречи.
                   {hourlyRate && parseInt(hourlyRate) > 0
-                    ? ` При стоимости часа ${parseInt(hourlyRate).toLocaleString('ru-RU')} ₽ вы получите ${Math.round(parseInt(hourlyRate) * 0.9).toLocaleString('ru-RU')} ₽.`
+                    ? ` При стоимости часа ${parseInt(hourlyRate).toLocaleString('ru-RU')} Р вы получите ${Math.round(parseInt(hourlyRate) * 0.9).toLocaleString('ru-RU')} Р.`
                     : ''}
                 </Text>
               </View>

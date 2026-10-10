@@ -477,7 +477,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>Деньги отправлены!</Text>
               <Pressable onPress={() => setWithdrawSuccessVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} ₽.</Text>
+            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} Р.</Text>
             <Text style={styles.withdrawMessage}>{WITHDRAWAL_TOOLTIP}.</Text>
           </Pressable>
         </Pressable>
@@ -611,7 +611,7 @@ export default function ProfileScreenWeb() {
                       </View>
                     </View>
                     <Text style={styles.historyDate}>{formatHistoryDate(p.createdAt ?? p.created_at ?? '')}</Text>
-                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} ₽</Text>
+                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} Р</Text>
                   </View>
                 ))}
               </ScrollView>
@@ -627,7 +627,7 @@ export default function ProfileScreenWeb() {
                     {item.subtitle ? <Text style={styles.historySubtitle}>{item.subtitle}</Text> : null}
                     <View style={styles.historyBottomRow}>
                       <Text style={styles.historyDate}>{formatHistoryDate(item.created_at)}</Text>
-                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} ₽</Text>
+                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} Р</Text>
                     </View>
                   </View>
                 ))}
@@ -710,7 +710,7 @@ export default function ProfileScreenWeb() {
                   <View style={styles.plusBox}><Text style={styles.plusText}>+</Text></View>
                   <View style={styles.linkTextBox}><Text style={styles.linkText}>{isLinkingCard ? 'Привязка...' : 'Привязать карту'}</Text></View>
                 </Pressable>
-                <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+                <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
                 {linkCardError ? <Text style={styles.errorText}>{linkCardError}</Text> : null}
               </>
             ) : null}
@@ -1028,7 +1028,7 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline />
               <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
-                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
+                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} Р</Text>
               ) : null}
               {/* Без этого поля специализация наставника никогда не устанавливалась
                   и не менялась после регистрации — наставник навсегда выпадал из
@@ -1654,12 +1654,12 @@ const styles = StyleSheet.create({
   pickerAnchor: { position: 'relative' },
 
   // Student view
-  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 410 },
-  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 410 },
+  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 345 },
+  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 345 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', marginTop: 40},
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
-  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
+  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 285,     width: '22.42%', aspectRatio: 339 / 409 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0, justifyContent: 'space-between', width: '100%' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
@@ -1745,8 +1745,8 @@ const styles = StyleSheet.create({
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
-  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
+  bioText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 30 },
+  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000',     marginTop: 16, lineHeight: 18 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },
   emptyText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076',  marginTop: 24, marginBottom: 8 },
   slotDateGroup: { marginBottom: 12 },

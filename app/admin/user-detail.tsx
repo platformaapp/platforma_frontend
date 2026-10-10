@@ -1,14 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -279,7 +279,7 @@ export default function AdminUserDetailScreen() {
             <Row label="Групповые встречи" value={user.groupMeetings} />
             <Row
               label="Стоимость часа"
-              value={user.hourlyRate != null ? `${Number(user.hourlyRate).toLocaleString('ru-RU')} ₽` : null}
+              value={user.hourlyRate != null ? `${Number(user.hourlyRate).toLocaleString('ru-RU')} Р` : null}
             />
           </Section>
         )}

@@ -1,32 +1,32 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    useWindowDimensions,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { API_BASE, endpoints } from '@/constants/env';
-
-const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
-import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getPaymentMethods } from '@/lib/api/student-payments';
+import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
+
+const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 
 type MentorEvent = {
   id: string;
@@ -135,7 +135,7 @@ export default function TutorCardScreen() {
           setAvatarUrl(tutor.avatarUrl ?? '');
           const rate = (tutor as any).hourlyRate ?? (tutor as any).hourly_rate ?? (tutor as any).pricePerHour;
           if (typeof rate === 'number' && rate > 0) {
-            setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
+            setDisplayPrice(`${rate.toLocaleString('ru-RU')} Р в час`);
           }
           const tg = (tutor as any).telegram ?? (tutor as any).telegramUsername ?? (tutor as any).telegram_username ?? '';
           setTelegramHandle(tg.replace(/^@/, ''));
@@ -394,7 +394,7 @@ export default function TutorCardScreen() {
                   <Text style={styles.eventDate}>{formatEventDate(ev.datetimeStart)}</Text>
                 ) : null}
                 {ev.price != null ? (
-                  <Text style={styles.eventPrice}>{ev.price.toLocaleString('ru-RU')} ₽</Text>
+                  <Text style={styles.eventPrice}>{ev.price.toLocaleString('ru-RU')} Р</Text>
                 ) : null}
               </View>
             </Pressable>
@@ -473,7 +473,7 @@ export default function TutorCardScreen() {
                 <View style={styles.bookingCardDivider} />
                 <Text style={styles.bookingCardPrice}>
                   {selectedSlot?.price != null
-                    ? `${selectedSlot.price.toLocaleString('ru-RU')} ₽`
+                    ? `${selectedSlot.price.toLocaleString('ru-RU')} Р`
                     : displayPrice || '—'}
                 </Text>
               </View>

@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -384,10 +384,10 @@ const styles = StyleSheet.create({
   // Имя наставника — тип события (формат) здесь не показываем (только на
   // странице события и в рубрикаторе). Цвет — как .card__label на
   // vladyakunin.ru (чёрный текст, opacity:0.5), а не отдельный серый тон.
-  cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
+  cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, lineHeight: 18 },
   // .card__title: font-size:25, line-height:0.9 (22.5px) на vladyakunin.ru/projects/.
-  cardTitleText: { fontSize: 25, lineHeight: 22.5, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
+  cardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  cardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 1, textAlign: 'right', marginTop: 13  },
   // .proj-featured: 2 крупные карточки, 649:84:716 — CSS grid с той же пропорцией
   // в fr (не flex+gap), средняя колонка остаётся пустым спейсером. У второй
   // картинка и текст занимают только 72.8% её колонки — .card--p2 .card__img/.card__body.
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   featuredImageTwo: { height: 248 },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
-  featuredTitleOne: { marginTop: 13 },
+  featuredTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25},
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
 
   // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают

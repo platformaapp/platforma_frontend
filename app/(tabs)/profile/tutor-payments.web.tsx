@@ -7,19 +7,19 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import {
-  deleteCurrentPaymentMethod,
-  getPaymentMethods,
-  type Card,
+    deleteCurrentPaymentMethod,
+    getPaymentMethods,
+    type Card,
 } from '@/lib/api/student-payments';
 import {
-  getTutorPayments,
-  getTutorPaymentsSummary,
-  getTutorPayouts,
-  getTutorPayoutsBalance,
-  type Payment,
-  type PaymentsSummary,
-  type Payout,
-  type PayoutBalance,
+    getTutorPayments,
+    getTutorPaymentsSummary,
+    getTutorPayouts,
+    getTutorPayoutsBalance,
+    type Payment,
+    type PaymentsSummary,
+    type Payout,
+    type PayoutBalance,
 } from '@/lib/api/tutor';
 import { getAuthToken } from '@/lib/auth';
 
@@ -40,7 +40,7 @@ function formatDate(iso: string | undefined | null): string {
 }
 
 function formatAmount(amount: number): string {
-  return `${amount.toLocaleString('ru-RU')} ₽`;
+  return `${amount.toLocaleString('ru-RU')} Р`;
 }
 
 function statusLabel(status: string): string {
@@ -448,7 +448,7 @@ export default function TutorPaymentsScreenWeb() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>{activeCard ? 'Изменить карту' : 'Добавить карту'}</Text>
             <Text style={styles.vpnWarning}>Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.</Text>
-            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
             {bindError ? <Text style={styles.errorText}>{bindError}</Text> : null}
             <Pressable style={[styles.primaryButton, styles.modalButtonSpacing, isLinking && styles.btnDisabled]} onPress={handleEditSubmit} disabled={isLinking}>
               <Text style={styles.primaryButtonText}>{isLinking ? 'Открытие...' : 'Привязать карту'}</Text>
