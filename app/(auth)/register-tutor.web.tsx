@@ -157,7 +157,7 @@ export default function RegisterTutorScreenWeb() {
             <PlusField label="Еще раз пароль" value={password2} error={errors.password2} secureTextEntry
               onChangeText={(t) => { setPassword2(t); if (errors.password2) setErrors((e) => ({ ...e, password2: undefined })); }} />
 
-            <Text style={styles.hint}>Пароль должен быть не менее 7 символов и содержать буквы, цифры и спецсимволы</Text>
+            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
 
             {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
           </ScrollView>

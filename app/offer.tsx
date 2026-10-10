@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
@@ -296,12 +296,18 @@ export default function OfferScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => router.back()}>
-          <BackArrowIcon width={16} height={15} />
-          <Text style={styles.backText}>Назад</Text>
-        </Pressable>
-      </View>
+      {Platform.OS === 'web' ? null : (
+        // На вебе /offer открывается в новой вкладке (openInNewTab) — там
+        // нет истории для router.back(), кнопка "Назад" была бы нерабочей.
+        // На нативе страница открывается через router.push из флоу
+        // регистрации — там кнопка нужна.
+        <View style={styles.header}>
+          <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => router.back()}>
+            <BackArrowIcon width={16} height={15} />
+            <Text style={styles.backText}>Назад</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.mainTitle}>ПУБЛИЧНАЯ ОФЕРТА И ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ СЕРВИСА p34</Text>

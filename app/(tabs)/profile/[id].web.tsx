@@ -818,10 +818,6 @@ export default function ProfileScreenWeb() {
       <SiteShell>
         <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.pageContent}>
-          <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
-            <BackArrowIcon />
-          </Pressable>
-
           {isMobile ? (
             <View>
               <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
@@ -889,7 +885,7 @@ export default function ProfileScreenWeb() {
               <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
               <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
               <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
-              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прописных символов</Text>
+              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
                 <Text style={styles.modalSaveText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
@@ -922,10 +918,6 @@ export default function ProfileScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
-        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
-          <BackArrowIcon />
-        </Pressable>
-
         {isMobile ? (
           <View>
             <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
@@ -1043,7 +1035,7 @@ export default function ProfileScreenWeb() {
             <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
-            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
+            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
               <Text style={styles.primaryButtonText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
@@ -1583,7 +1575,6 @@ const styles = StyleSheet.create({
   pickerAnchor: { position: 'relative' },
 
   // Student view
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 410 },
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 410 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
