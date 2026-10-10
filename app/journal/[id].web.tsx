@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -183,10 +182,6 @@ export default function ArticleScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/journal' as any))}>
-          <BackArrowIcon />
-        </Pressable>
-
         {isMobile ? (
           // Мобильная раскладка — один столбец: заголовок, затем обложка (+
           // галерея), затем автор, и только после них текст статьи.
@@ -259,7 +254,6 @@ const styles = StyleSheet.create({
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
   // Десктоп: единая двухколоночная строка — весь текст (заголовок, автор,
   // абзацы) в одной колонке, обложка+галерея — в другой; так текст и медиа
   // просто текут каждый в своей колонке, не привязанные построчно друг к

@@ -28,6 +28,9 @@ import { slotDateTimeMs } from '@/lib/slots-utils';
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const EVENT_DESCRIPTION_MAX_CHARS = 500;
 const EVENT_DESCRIPTION_MAX_WORDS = 100;
+// Тот же лимит, что у нативной формы создания события (new-event.tsx)
+// — на вебе он отсутствовал вовсе, название можно было вводить без границ.
+const EVENT_TITLE_MAX_CHARS = 70;
 
 // Тот же формат, что фильтр на /events (см. events/index.web.tsx FORMATS) —
 // подписи те же, а слаги — под backend EventCategory. Без выбора формата
@@ -180,6 +183,7 @@ export default function ProfileScreenWeb() {
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [eventError, setEventError] = useState('');
   const [eventCreated, setEventCreated] = useState(false);
+  const [eventErrorModalVisible, setEventErrorModalVisible] = useState(false);
   const [tutorSaving, setTutorSaving] = useState(false);
   const [tutorSaveError, setTutorSaveError] = useState('');
   const [tutorSaveOk, setTutorSaveOk] = useState(false);
@@ -802,10 +806,13 @@ export default function ProfileScreenWeb() {
         price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0,
         coverUrl, topic: eventTopic ?? undefined, category: eventFormat ?? undefined,
       });
-      setEventCreated(true);
       setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTopic(null); setEventFormat(null); setEventCoverUri(null);
+      setNewEventModalVisible(false);
+      setEventCreated(true);
     } catch (e: any) {
       setEventError(e?.message ?? 'Не удалось создать событие');
+      setNewEventModalVisible(false);
+      setEventErrorModalVisible(true);
     } finally {
       setCreatingEvent(false);
     }
@@ -1096,8 +1103,13 @@ export default function ProfileScreenWeb() {
               <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
             <ScrollView style={styles.slotsModalScroll}>
-              {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
-              <FieldWithPlus label="Название" value={eventTitle} onChangeText={setEventTitle} />
+              <FieldWithPlus
+                label="Название"
+                value={eventTitle}
+                onChangeText={(t) => t.length <= EVENT_TITLE_MAX_CHARS && setEventTitle(t)}
+                maxLength={EVENT_TITLE_MAX_CHARS}
+              />
+              <Text style={styles.hint}>Ограничение: {EVENT_TITLE_MAX_CHARS} символов</Text>
               <FieldWithPlus
                 label="Описание"
                 value={eventDescription}
@@ -1149,12 +1161,43 @@ export default function ProfileScreenWeb() {
                   </Svg>
                 )}
               </Pressable>
-              {eventError ? <Text style={styles.errorText}>{eventError}</Text> : null}
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
               <Pressable onPress={handleCreateEvent} disabled={creatingEvent}>
                 <Text style={styles.modalSaveText}>{creatingEvent ? 'Создаём…' : 'Сохранить'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Событие создано!" modal — после успешного создания события ──── */}
+      <Modal transparent animationType="fade" visible={eventCreated} onRequestClose={() => setEventCreated(false)}>
+        <Pressable style={styles.overlay} onPress={() => setEventCreated(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Событие создано!</Text>
+              <Pressable onPress={() => setEventCreated(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.withdrawMessage}>Событие опубликовано и уже доступно для записи.</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Не удалось создать событие" modal — ошибка создания ──────────── */}
+      <Modal transparent animationType="fade" visible={eventErrorModalVisible} onRequestClose={() => setEventErrorModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setEventErrorModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={[styles.modalTitle, styles.modalTitleError]}>Не удалось создать событие</Text>
+              <Pressable onPress={() => setEventErrorModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.errorText}>{eventError}</Text>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setEventErrorModalVisible(false)}><Text style={styles.modalCancelText}>Закрыть</Text></Pressable>
+              <Pressable onPress={() => { setEventErrorModalVisible(false); setNewEventModalVisible(true); }}>
+                <Text style={styles.modalSaveText}>Попробовать ещё раз</Text>
               </Pressable>
             </View>
           </Pressable>

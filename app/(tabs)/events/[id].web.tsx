@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
@@ -14,6 +13,9 @@ import { getAuthToken, getUserProfile } from '@/lib/auth';
 import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
+// Тот же лимит, что у нативной формы редактирования события (edit-event.tsx)
+// — на вебе название при редактировании можно было вводить без границ.
+const EDIT_TITLE_MAX_CHARS = 100;
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -28,11 +30,29 @@ type EventDetail = {
   datetimeStart?: string;
   price?: number;
   coverUrl?: string | null;
+  format?: string;
   mentor?: { id: string; name: string; avatarUrl?: string | null; bio?: string; shortBio?: string };
   isRegistered?: boolean;
   maxParticipants?: number;
   hasPaidRegistrations?: boolean;
 };
+
+// Тип события — показывается только здесь (страница события) и в
+// рубрикаторе фильтров, не в карточках списка /events (см. resolveFormat
+// в events/index.web.tsx, та же логика).
+const CATEGORY_LABELS: Record<string, string> = {
+  broadcast: 'Трансляция',
+  lecture: 'Лекция',
+  mediation: 'Медиация',
+  practices: 'Практика',
+  meeting: 'Встреча',
+  discussion: 'Обсуждение',
+};
+function resolveFormat(raw: Record<string, unknown>): string | undefined {
+  const category = raw.category as string | null | undefined;
+  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
+  return (raw.format as string) ?? (raw.type as string) ?? undefined;
+}
 
 function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const r = (unwrapApiData<Record<string, unknown>>(raw) ?? raw) as Record<string, unknown>;
@@ -61,6 +81,7 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
     datetimeStart,
     price,
     coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
+    format: resolveFormat(r),
     mentor,
     isRegistered: isRegisteredOnEventItem(r) || registeredFromCup,
     maxParticipants: Number.isFinite(maxParticipants) ? maxParticipants : undefined,
@@ -388,6 +409,12 @@ export default function EventDetailScreenWeb() {
 
   const metaBlock = (
     <View style={styles.metaRow}>
+      {event?.format ? (
+        <View>
+          <Text style={styles.metaLabel}>Тип:</Text>
+          <Text style={styles.metaValue}>{event.format}</Text>
+        </View>
+      ) : null}
       <View>
         <Text style={styles.metaLabel}>Дата:</Text>
         <Text style={styles.metaValue}>{formatDatetime(event?.datetimeStart)}</Text>
@@ -417,10 +444,6 @@ export default function EventDetailScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
-        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/events' as any))} hitSlop={8}>
-          <BackArrowIcon />
-        </Pressable>
-
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error || !event ? (
@@ -433,6 +456,7 @@ export default function EventDetailScreenWeb() {
               <View style={styles.mobileHeaderRow}>
                 <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" />
                 <View style={styles.mobileMetaCol}>
+                  {event.format ? <Text style={styles.mobileMetaValue}>{event.format}</Text> : null}
                   <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
                   <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
                 </View>
@@ -610,10 +634,11 @@ export default function EventDetailScreenWeb() {
                 <Text style={styles.editFieldLabel}>Название</Text>
                 <TextInput
                   value={editTitle}
-                  onChangeText={setEditTitle}
+                  onChangeText={(t) => t.length <= EDIT_TITLE_MAX_CHARS && setEditTitle(t)}
                   style={[styles.editFieldInput, { height: editTitleHeight }]}
                   multiline
                   scrollEnabled={false}
+                  maxLength={EDIT_TITLE_MAX_CHARS}
                   onContentSizeChange={(e) => setEditTitleHeight(Math.max(24, Math.ceil(e.nativeEvent.contentSize.height)))}
                   editable={!event?.hasPaidRegistrations}
                 />
@@ -736,8 +761,6 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 20, color: '#010101' },
 
   // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
   // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)

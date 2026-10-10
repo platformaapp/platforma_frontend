@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import {
@@ -290,9 +289,6 @@ export default function TutorPaymentsScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.titleRow}>
-          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any))}>
-            <BackArrowIcon />
-          </Pressable>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
 

@@ -217,8 +217,7 @@ export default function EventsScreenWeb() {
             <View style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
           <View style={isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne}>
-            {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
-            {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
+            {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
           <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]}>{item.title}</Text>
           {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
@@ -236,8 +235,7 @@ export default function EventsScreenWeb() {
           <View style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} />
         )}
         <View style={styles.rowLabel}>
-          {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
-          {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
+          {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
         </View>
         <Text style={[styles.cardTitleText, styles.rowTitle]}>{item.title}</Text>
         {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
@@ -299,8 +297,7 @@ export default function EventsScreenWeb() {
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   <View>
-                    {item.format ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.format}</Text> : null}
-                    {item.mentor?.name ? <Text style={[styles.mobileAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
+                    {item.mentor?.name ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
                     <Text style={styles.mobileTitleText}>{item.title}</Text>
                     {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                   </View>
@@ -384,11 +381,9 @@ const styles = StyleSheet.create({
   chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
   chipButtonText: { color: '#68717A' },
 
-  // Тип события (формат) — над именем наставника, тот же стиль (cardAuthor/
-  // mobileAuthor); если показаны оба — небольшой отступ между строками.
-  // Цвет — как .card__label на vladyakunin.ru (чёрный текст, opacity:0.5),
-  // а не отдельный серый тон.
-  cardLabelSecondLine: { marginTop: 4 },
+  // Имя наставника — тип события (формат) здесь не показываем (только на
+  // странице события и в рубрикаторе). Цвет — как .card__label на
+  // vladyakunin.ru (чёрный текст, opacity:0.5), а не отдельный серый тон.
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
   // .card__title: font-size:25, line-height:0.9 (22.5px) на vladyakunin.ru/projects/.
   cardTitleText: { fontSize: 25, lineHeight: 22.5, fontFamily: 'Gramatika-Regular', color: '#010101' },
