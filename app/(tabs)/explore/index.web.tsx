@@ -2,7 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type PressableStateCallbackType } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -125,23 +125,15 @@ export default function MentorsScreenWeb() {
                   style={[styles.card, isMobile && styles.cardMobile]}
                   onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
                 >
-                  {(state: PressableStateCallbackType & { hovered?: boolean }) => (
-                    <>
-                      <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
-                        <Image
-                          source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
-                          // expo-image's web style prop must be a plain object, not an RN style
-                          // array — internally it does `{...style}`, which silently drops
-                          // everything if given an array (object-spreads numeric indices
-                          // instead of the actual CSS props).
-                          style={StyleSheet.flatten([styles.avatar, !isMobile && (state.hovered ? styles.avatarColor : styles.avatarGrayscale)])}
-                          resizeMode="cover"
-                        />
-                      </View>
-                      {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
-                      <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
-                    </>
-                  )}
+                  <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
+                    <Image
+                      source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
+                      style={styles.avatar}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
+                  <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
                 </Pressable>
               );
             })}
@@ -194,13 +186,6 @@ const styles = StyleSheet.create({
   // ряду осознанно разной высоты, как на референсе.
   avatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  // Ч/б по умолчанию, цветное при наведении (см. cosmoscow.com/about/team) —
-  // только на десктопе: на вебе на мобильных устройствах нет hover, только
-  // клик, так что фото там всегда цветное (Pressable's hovered всегда false
-  // при touch, но isMobile гейтит это явно и не завязано на поведение
-  // браузера).
-  avatarGrayscale: { filter: 'grayscale(1)', transition: 'filter 0.25s ease' } as any,
-  avatarColor: { filter: 'grayscale(0)', transition: 'filter 0.25s ease' } as any,
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   shortBio: { fontSize: 18, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
 });
