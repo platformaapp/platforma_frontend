@@ -20,27 +20,53 @@ const FILTER_LABELS: Record<string, string> = { 'Подкаст': 'Подкас�
 const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+const PER_PAGE = 20;
 
 export default function JournalScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [category, setCategory] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setError('');
-      const { items } = await getArticles({ perPage: 100 });
+      const { items, total } = await getArticles({ page: 1, perPage: PER_PAGE });
       setArticles(items);
+      setPage(1);
+      setHasMore(items.length < total);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить журнал');
       setArticles([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const { items, total } = await getArticles({ page: nextPage, perPage: PER_PAGE });
+      setArticles((prev) => {
+        const seen = new Set(prev.map((a) => a.id));
+        return [...prev, ...items.filter((a) => !seen.has(a.id))];
+      });
+      setPage(nextPage);
+      setHasMore(nextPage * PER_PAGE < total);
+    } catch {
+      // Оставляем hasMore как есть — пользователь может нажать "Показать ещё" снова.
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page]);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
@@ -163,6 +189,12 @@ export default function JournalScreenWeb() {
 
         {!isMobile && !loading && !error && filtered.length > 0 && (rowChunks.length === 0 || rowChunks.length % 3 !== 0) ? <PromoBanner withTelegramLink /> : null}
         {isMobile && !loading && !error && filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
+
+        {!loading && !error && hasMore ? (
+          <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
+            {loadingMore ? <ActivityIndicator color="#010101" /> : <Text style={styles.loadMoreButtonText}>Показать ещё</Text>}
+          </Pressable>
+        ) : null}
       </View>
 
         <SiteFooter />
@@ -184,6 +216,8 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
+  loadMoreButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   cardTitleText: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
