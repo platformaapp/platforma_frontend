@@ -13,6 +13,10 @@ import { getAuthRole, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
+// Последняя пилька рубрикатора — отдельно и прижата вправо (по логотипу в
+// шапке), как "Обсуждение" на /events (см. filterPillRight).
+const LAST_TOPIC_RIGHT_ALIGNED = 'Новые увлечения';
+
 /**
  * Высота фото у карточки — не унифицированный кроп и не реальная пропорция
  * самого фото (та у наставников почти всегда ~квадратная, разницы не видно),
@@ -81,7 +85,9 @@ export default function MentorsScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
-        <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
+        <Pressable onPress={() => setCategory(null)}>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
+        </Pressable>
 
         {isMobile ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
@@ -96,14 +102,24 @@ export default function MentorsScreenWeb() {
           </ScrollView>
         ) : (
           <View style={styles.filtersRow}>
-            {topicsList.map((c) => {
-              const active = c === category;
-              return (
-                <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
-                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{c}</Text>
-                </Pressable>
-              );
-            })}
+            <View style={styles.filtersGroup}>
+              {topicsList.filter((c) => c !== LAST_TOPIC_RIGHT_ALIGNED).map((c) => {
+                const active = c === category;
+                return (
+                  <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
+                    <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{c}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {topicsList.includes(LAST_TOPIC_RIGHT_ALIGNED) ? (
+              <Pressable
+                style={styles.filterPillRight}
+                onPress={() => setCategory(category === LAST_TOPIC_RIGHT_ALIGNED ? null : LAST_TOPIC_RIGHT_ALIGNED)}
+              >
+                <Text style={[styles.filterPillText, category === LAST_TOPIC_RIGHT_ALIGNED && styles.filterPillTextActive]}>{LAST_TOPIC_RIGHT_ALIGNED}</Text>
+              </Pressable>
+            ) : null}
           </View>
         )}
 
@@ -153,9 +169,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
-  // кликабельны, активная — чёрная и жирная, остальные — серые.
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, marginBottom: 86, marginTop: 50
-   },
+  // кликабельны, активная — чёрная и жирная, остальные — серые. Последняя
+  // ("Новые увлечения") — отдельно и прижата вправо по логотипу (см.
+  // filterPillRight на /events — то же значение marginRight).
+  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 86, marginTop: 50 },
+  filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, flexShrink: 1 },
+  filterPillRight: { marginLeft: 'auto', marginRight: '13.4%', paddingLeft: 24 },
   filtersScroll: { marginBottom: 32 },
   filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
