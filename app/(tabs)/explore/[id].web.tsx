@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
@@ -285,10 +284,6 @@ export default function TutorCardScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
-        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/explore' as any))} hitSlop={8}>
-          <BackArrowIcon />
-        </Pressable>
-
         {isMobile ? (
           <View>
             <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
@@ -338,7 +333,9 @@ export default function TutorCardScreenWeb() {
                 </Text>
               ) : null}
             </View>
-            <Image source={imageSource} style={styles.avatarLarge} />
+            <View style={styles.avatarLargeBox}>
+              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" />
+            </View>
 
             {eventsGridRow('События наставника', upcomingSplit.left, upcomingSplit.right)}
             {eventsGridRow('Прошедшие события', pastSplit.left, pastSplit.right)}
@@ -356,8 +353,6 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 25, color: '#010101' },
 
   // Desktop: настоящий CSS Grid, а не два независимых flex-столбца — нужно,
   // чтобы строка карточек справа (под фото) совпадала по высоте со строкой
@@ -365,8 +360,15 @@ const styles = StyleSheet.create({
   // между текстом/фото по референсу (не баг). display:'grid' — не входит в
   // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
   // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
-  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 360px', columnGap: 308, alignItems: 'start', position: 'relative' } as any,
-  avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
+  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 339px', columnGap: 308, alignItems: 'start', position: 'relative' } as any,
+  // 339×409 по референсу (339/1512 от общей ширины страницы = 22.42%) —
+  // прямоугольное портретное фото вместо квадратного. paddingBottom-в-%
+  // вместо aspectRatio — тот ломается для RN Image с локальным
+  // плейсхолдером (react-native-web подставляет inline height по
+  // натуральным пикселям самой картинки, игнорируя aspectRatio; та же
+  // проблема и тот же фикс, что и на /explore, см. комментарий там).
+  avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: `${(409 / 339) * 100}%` },
+  avatarLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
   // Mobile: имя отдельной строкой сверху, ниже — портретное фото слева и
