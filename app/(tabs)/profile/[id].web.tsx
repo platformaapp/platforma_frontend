@@ -12,7 +12,7 @@ import { TOPICS } from '@/constants/topics';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
-import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
+import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import {
   createTutorEventFull, createTutorSlot, deleteTutorSlot,
   getTutorPayouts,
@@ -191,6 +191,9 @@ export default function ProfileScreenWeb() {
   const [paymentCards, setPaymentCards] = useState<Card[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [deleteCardError, setDeleteCardError] = useState('');
+  const [isLinkingCard, setIsLinkingCard] = useState(false);
+  const [linkCardError, setLinkCardError] = useState('');
   const [editCardModalVisible, setEditCardModalVisible] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editCardExpiry, setEditCardExpiry] = useState('');
@@ -334,12 +337,35 @@ export default function ProfileScreenWeb() {
 
   async function handleDeleteCard(card: Card) {
     setDeletingCardId(card.id);
+    setDeleteCardError('');
     try {
-      await deletePaymentMethod(card.id);
+      try {
+        await deletePaymentMethod(card.id);
+      } catch {
+        // Бэкенд может не поддерживать удаление по id — пробуем legacy-эндпоинт
+        // "отвязать текущую карту" (см. payments.web.tsx, та же логика).
+        await deleteCurrentPaymentMethod();
+      }
       setPaymentCards((prev) => prev.filter((c) => c.id !== card.id));
-    } catch { /* keep card in list, user can retry */ }
-    finally {
+    } catch (e: any) {
+      setDeleteCardError(e?.message ?? 'Не удалось удалить карту');
+    } finally {
       setDeletingCardId(null);
+    }
+  }
+
+  async function handleLinkCard() {
+    if (isLinkingCard || paymentCards.length >= MAX_CARDS) return;
+    setIsLinkingCard(true);
+    setLinkCardError('');
+    try {
+      const { confirmationUrl } = await bindPaymentMethod();
+      const w = (globalThis as any).window;
+      if (w) w.location.href = confirmationUrl;
+    } catch (e: any) {
+      setLinkCardError(e?.message ?? 'Не удалось привязать карту');
+    } finally {
+      setIsLinkingCard(false);
     }
   }
 
@@ -622,8 +648,6 @@ export default function ProfileScreenWeb() {
 
             {paymentsLoading ? (
               <ActivityIndicator color="#010101" />
-            ) : paymentCards.length === 0 ? (
-              <Text style={styles.emptyText}>Карта не привязана</Text>
             ) : (
               paymentCards.map((card) => (
                 <View key={card.id} style={styles.paymentCardBlock}>
@@ -671,9 +695,21 @@ export default function ProfileScreenWeb() {
                       </Pressable>
                     </View>
                   </View>
+                  {deleteCardError ? <Text style={styles.errorText}>{deleteCardError}</Text> : null}
                 </View>
               ))
             )}
+
+            {!paymentsLoading && paymentCards.length < MAX_CARDS ? (
+              <>
+                <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinkingCard}>
+                  <View style={styles.plusBox}><Text style={styles.plusText}>+</Text></View>
+                  <View style={styles.linkTextBox}><Text style={styles.linkText}>{isLinkingCard ? 'Привязка...' : 'Привязать карту'}</Text></View>
+                </Pressable>
+                <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+                {linkCardError ? <Text style={styles.errorText}>{linkCardError}</Text> : null}
+              </>
+            ) : null}
           </Pressable>
         </Pressable>
       </Modal>
@@ -1609,6 +1645,13 @@ const styles = StyleSheet.create({
   paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 2 },
   paymentCardBank: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 2 },
+  // "Привязать карту" — тот же вид, что и на /profile/payments.
+  linkRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#010101', height: 56, marginTop: 16, marginBottom: 8 },
+  plusBox: { width: 56, backgroundColor: '#010101', alignItems: 'center', justifyContent: 'center' },
+  plusText: { fontSize: 22, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  linkTextBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
+  linkText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  verificationNote: { marginTop: 8, fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   editCardNumberBlock: { marginBottom: 16 },
   editCardRow: { flexDirection: 'row', gap: 16 },
   editCardRowItem: { flex: 1 },

@@ -131,11 +131,21 @@ export default function ArticleScreenWeb() {
   // На десктопе идёт сразу под заголовком (см. колонку текста); на мобильном
   // — после обложки, а не перед ней (см. референс: заголовок → обложка →
   // автор → текст).
+  const authorNameAndRole = (
+    <>
+      {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
+      {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
+    </>
+  );
+
   const authorBlock = (
     <View style={[styles.authorRow, isMobile && styles.authorRowMobile]}>
       <View>
-        {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
-        {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
+        {article.author.id ? (
+          <Pressable onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}>
+            {authorNameAndRole}
+          </Pressable>
+        ) : authorNameAndRole}
         {article.author.shortBio ? <Text style={styles.authorBio}>{article.author.shortBio}</Text> : null}
       </View>
       {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
