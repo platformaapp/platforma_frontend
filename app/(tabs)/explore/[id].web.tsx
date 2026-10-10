@@ -350,7 +350,7 @@ export default function TutorCardScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 0, paddingBottom: 24,     marginTop: 106 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
@@ -360,14 +360,15 @@ const styles = StyleSheet.create({
   // между текстом/фото по референсу (не баг). display:'grid' — не входит в
   // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
   // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
-  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 339px', columnGap: 308, alignItems: 'start', position: 'relative' } as any,
+  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, alignItems: 'start', position: 'relative' } as any,
   // 339×409 по референсу (339/1512 от общей ширины страницы = 22.42%) —
   // прямоугольное портретное фото вместо квадратного. paddingBottom-в-%
   // вместо aspectRatio — тот ломается для RN Image с локальным
   // плейсхолдером (react-native-web подставляет inline height по
   // натуральным пикселям самой картинки, игнорируя aspectRatio; та же
   // проблема и тот же фикс, что и на /explore, см. комментарий там).
-  avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: `${(409 / 339) * 100}%` },
+  avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: 0,     height: 345,  },
+  // avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: `${(409 / 339) * 100}%` },
   avatarLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
@@ -380,17 +381,18 @@ const styles = StyleSheet.create({
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   nameMobile: { fontSize: 25, lineHeight: 28 },
-  role: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
+  role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
   roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
-  bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
+  bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   // Стоимость — на отдельной строке под подписью (не в один ряд).
   priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24 },
-  priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  priceValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000' },
+  priceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18 },
+  priceValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', lineHeight: 18 },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
-    bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+    bottom: 0,     width: '100%',
+    justifyContent: 'space-between' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
   actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
@@ -406,8 +408,8 @@ const styles = StyleSheet.create({
   // Доп. отступ сверху для заголовка-строки грида (сама eventsSectionTitle
   // без него — используется и в мобильной eventsSection, где отступ уже
   // на обёртке).
-  eventsSectionTitleGrid: { marginTop: 300 },
-  eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  eventsSectionTitleGrid: { marginTop: 300, marginBottom: 93  },
+  eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
   // Левая колонка грида — 2 карточки в ряд; правая (под фото) — 1 карточка
   // в столбик, см. splitForColumns/renderEventCard(widthVariant) выше — по
   // референсу карточки событий распределены между обеими колонками
@@ -421,9 +423,9 @@ const styles = StyleSheet.create({
   eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
   eventCardBody: { paddingTop: 10 },
-  eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4 },
-  eventCardTitle: { fontSize: 25, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4 },
-  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4, marginTop: 12, lineHeight: 0.9 },
+  eventCardTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4, marginTop: 12, lineHeight: 25 },
+  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', marginTop: 27, lineHeight: 1, textAlign: 'right' },
 
   // Mobile: полноширинная строка на событие (миниатюра + текст), а не
   // карточки в сетке — см. renderEventCardMobile / референс.
