@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   // filterPillRight на /events — то же значение marginRight).
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 86, marginTop: 50 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, flexShrink: 1 },
-  filterPillRight: { marginLeft: 'auto', marginRight: '0', paddingLeft: 24 },
+  filterPillRight: { marginLeft: 'auto', marginRight: 0, paddingLeft: 24 },
   filtersScroll: { marginBottom: 32 },
   filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },

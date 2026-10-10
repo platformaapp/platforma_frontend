@@ -14,10 +14,10 @@ import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import {
-    createTutorEventFull, createTutorSlot, deleteTutorSlot,
-    getTutorPayouts,
-    getTutorPayoutsBalance,
-    getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
+  createTutorEventFull, createTutorSlot, deleteTutorSlot,
+  getTutorPayouts,
+  getTutorPayoutsBalance,
+  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
 import { clearAuth, getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 import { slotDateTimeMs } from '@/lib/slots-utils';
@@ -1611,12 +1611,12 @@ const styles = StyleSheet.create({
   pickerAnchor: { position: 'relative' },
 
   // Student view
-  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 410 },
-  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 410 },
+  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 345 },
+  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 345 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', marginTop: 40},
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
-  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
+  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 285,     width: '22.42%', aspectRatio: 339 / 409 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0, justifyContent: 'space-between', width: '100%' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
@@ -1702,8 +1702,8 @@ const styles = StyleSheet.create({
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
-  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
+  bioText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 30 },
+  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000',     marginTop: 16, lineHeight: 18 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },
   emptyText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076',  marginTop: 24, marginBottom: 8 },
   slotDateGroup: { marginBottom: 12 },
