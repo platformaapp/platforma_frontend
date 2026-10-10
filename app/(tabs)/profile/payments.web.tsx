@@ -9,14 +9,14 @@ import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import {
-  deleteCurrentPaymentMethod,
-  deletePaymentMethod,
-  getPaymentMethods,
-  getStudentPayments,
-  MAX_CARDS,
-  setDefaultPaymentMethod,
-  type Card,
-  type PaymentHistoryItem,
+    deleteCurrentPaymentMethod,
+    deletePaymentMethod,
+    getPaymentMethods,
+    getStudentPayments,
+    MAX_CARDS,
+    setDefaultPaymentMethod,
+    type Card,
+    type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
 import { getAuthToken } from '@/lib/auth';
 
@@ -30,7 +30,7 @@ function formatDate(iso: string): string {
 }
 
 function formatAmount(amount: number): string {
-  return `${amount.toLocaleString('ru-RU')} ₽`;
+  return `${amount.toLocaleString('ru-RU')} Р`;
 }
 
 function cardDisplay(card: Card): string {
@@ -283,7 +283,7 @@ export default function PaymentsScreenWeb() {
               <View style={styles.plusBox}><Text style={styles.plusText}>+</Text></View>
               <View style={styles.linkTextBox}><Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text></View>
             </Pressable>
-            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
             <Text style={styles.legalText}>
               {'Нажимая «Привязать карту», вы принимаете оферту, политику конфиденциальности и условия сервиса'}
             </Text>

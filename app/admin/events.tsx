@@ -1,15 +1,15 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -178,7 +178,7 @@ export default function AdminEventsScreen() {
               </Text>
             </View>
             {item.price != null && (
-              <Text style={styles.priceBadge}>{item.price.toLocaleString('ru-RU')} ₽</Text>
+              <Text style={styles.priceBadge}>{item.price.toLocaleString('ru-RU')} Р</Text>
             )}
           </View>
         </View>

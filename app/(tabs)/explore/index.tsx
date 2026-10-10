@@ -2,14 +2,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Image,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -130,7 +130,7 @@ export default function MentorsScreen() {
               {typeof rate === 'number' && rate > 0 ? (
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Стоимость консультации</Text>
-                  <Text style={styles.priceValue}>{rate.toLocaleString('ru-RU')} ₽ в час</Text>
+                  <Text style={styles.priceValue}>{rate.toLocaleString('ru-RU')} Р в час</Text>
                 </View>
               ) : null}
 

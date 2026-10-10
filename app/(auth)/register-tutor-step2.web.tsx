@@ -100,7 +100,7 @@ export default function RegisterTutorStep2ScreenWeb() {
             />
 
             <PlusField label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
-            {rateValue > 0 ? <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(rateValue * 0.9)} ₽</Text> : null}
+            {rateValue > 0 ? <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(rateValue * 0.9)} Р</Text> : null}
 
             <PlusField label="Собираете ли вы групповые встречи? Как часто?" value={groupMeetings} onChangeText={setGroupMeetings} multiline />
 

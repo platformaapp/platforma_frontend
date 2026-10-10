@@ -14,10 +14,10 @@ import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import {
-  createTutorEventFull, createTutorSlot, deleteTutorSlot,
-  getTutorPayouts,
-  getTutorPayoutsBalance,
-  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
+    createTutorEventFull, createTutorSlot, deleteTutorSlot,
+    getTutorPayouts,
+    getTutorPayoutsBalance,
+    getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
 } from '@/lib/api/tutor';
 import { clearAuth, getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 import { slotDateTimeMs } from '@/lib/slots-utils';
@@ -473,7 +473,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>Деньги отправлены!</Text>
               <Pressable onPress={() => setWithdrawSuccessVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} ₽.</Text>
+            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} Р.</Text>
             <Text style={styles.withdrawMessage}>{WITHDRAWAL_TOOLTIP}.</Text>
           </Pressable>
         </Pressable>
@@ -607,7 +607,7 @@ export default function ProfileScreenWeb() {
                       </View>
                     </View>
                     <Text style={styles.historyDate}>{formatHistoryDate(p.createdAt ?? p.created_at ?? '')}</Text>
-                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} ₽</Text>
+                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} Р</Text>
                   </View>
                 ))}
               </ScrollView>
@@ -623,7 +623,7 @@ export default function ProfileScreenWeb() {
                     {item.subtitle ? <Text style={styles.historySubtitle}>{item.subtitle}</Text> : null}
                     <View style={styles.historyBottomRow}>
                       <Text style={styles.historyDate}>{formatHistoryDate(item.created_at)}</Text>
-                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} ₽</Text>
+                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} Р</Text>
                     </View>
                   </View>
                 ))}
@@ -706,7 +706,7 @@ export default function ProfileScreenWeb() {
                   <View style={styles.plusBox}><Text style={styles.plusText}>+</Text></View>
                   <View style={styles.linkTextBox}><Text style={styles.linkText}>{isLinkingCard ? 'Привязка...' : 'Привязать карту'}</Text></View>
                 </Pressable>
-                <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+                <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
                 {linkCardError ? <Text style={styles.errorText}>{linkCardError}</Text> : null}
               </>
             ) : null}
@@ -1021,7 +1021,7 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline />
               <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
-                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
+                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} Р</Text>
               ) : null}
               {/* Без этого поля специализация наставника никогда не устанавливалась
                   и не менялась после регистрации — наставник навсегда выпадал из

@@ -3,33 +3,33 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { endpoints } from '@/constants/env';
 import {
-  deleteCurrentPaymentMethod,
-  getPaymentMethods,
-  type Card
+    deleteCurrentPaymentMethod,
+    getPaymentMethods,
+    type Card
 } from '@/lib/api/student-payments';
 import {
-  getTutorPayments,
-  getTutorPaymentsSummary,
-  getTutorPayouts,
-  getTutorPayoutsBalance,
-  type Payment,
-  type PaymentsSummary,
-  type Payout,
-  type PayoutBalance,
+    getTutorPayments,
+    getTutorPaymentsSummary,
+    getTutorPayouts,
+    getTutorPayoutsBalance,
+    type Payment,
+    type PaymentsSummary,
+    type Payout,
+    type PayoutBalance,
 } from '@/lib/api/tutor';
 import { getAuthToken } from '@/lib/auth';
 import * as Linking from 'expo-linking';
@@ -51,7 +51,7 @@ function formatDate(iso: string | undefined | null): string {
 }
 
 function formatAmount(amount: number): string {
-  return `${amount.toLocaleString('ru-RU')} ₽`;
+  return `${amount.toLocaleString('ru-RU')} Р`;
 }
 
 function statusLabel(status: string): string {
@@ -548,7 +548,7 @@ export default function TutorPaymentsScreen() {
               Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.
             </Text>
             <Text style={styles.verificationNote}>
-              С карты спишется проверочный платеж 1 ₽.
+              С карты спишется проверочный платеж 1 Р.
             </Text>
 
             {bindError ? (

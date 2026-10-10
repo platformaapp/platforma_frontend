@@ -92,7 +92,7 @@ export default function TutorCardScreenWeb() {
           // decimal-колонки в TypeORM/pg нередко приходят строкой ("2500.00"),
           // а не числом — принимаем оба варианта.
           const rate = typeof rateRaw === 'number' ? rateRaw : typeof rateRaw === 'string' ? parseFloat(rateRaw) : NaN;
-          if (!isNaN(rate) && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
+          if (!isNaN(rate) && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} Р в час`);
           setTelegramHandle(((tutor as any).telegram ?? (tutor as any).telegramUsername ?? '').replace(/^@/, ''));
           setIsMentorVerified((tutor as any).isVerified !== false);
         }
@@ -202,7 +202,7 @@ export default function TutorCardScreenWeb() {
           <Text style={styles.eventCardTitle}>{ev.title}</Text>
           <Text style={styles.eventCardMeta}>
             {formatEventDate(ev.datetimeStart)}
-            {isMobile && ev.price != null ? ` · ${ev.price.toLocaleString('ru-RU')} ₽` : ''}
+            {isMobile && ev.price != null ? ` · ${ev.price.toLocaleString('ru-RU')} Р` : ''}
           </Text>
         </View>
       </Pressable>

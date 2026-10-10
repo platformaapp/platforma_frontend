@@ -2,16 +2,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -112,7 +112,7 @@ function fmtDate(iso?: string | null): string {
 
 function fmtMoney(v?: number | null): string | null {
   if (v == null) return null;
-  return `${Number(v).toLocaleString('ru-RU')} ₽`;
+  return `${Number(v).toLocaleString('ru-RU')} Р`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
