@@ -173,7 +173,7 @@ export default function TutorCardScreenWeb() {
         <View style={styles.eventRowBodyMobile}>
           <View>
             {ev.format ? <Text style={styles.eventFormatMobile}>{ev.format}</Text> : null}
-            <Text style={styles.eventCardTitleMobile} numberOfLines={3}>{ev.title}</Text>
+            <Text style={styles.eventCardTitleMobile}>{ev.title}</Text>
           </View>
           <Text style={styles.eventRowMetaMobile}>
             {formatEventDate(ev.datetimeStart)}
@@ -199,7 +199,7 @@ export default function TutorCardScreenWeb() {
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventCardBody}>
           {ev.format ? <Text style={styles.eventFormat}>{ev.format}</Text> : null}
-          <Text style={styles.eventCardTitle} numberOfLines={2}>{ev.title}</Text>
+          <Text style={styles.eventCardTitle}>{ev.title}</Text>
           <Text style={styles.eventCardMeta}>
             {formatEventDate(ev.datetimeStart)}
             {isMobile && ev.price != null ? ` · ${ev.price.toLocaleString('ru-RU')} ₽` : ''}

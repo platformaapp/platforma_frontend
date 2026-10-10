@@ -13,10 +13,6 @@ import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 // единственном числе (см. lib/api/journal.ts).
 const FILTER_LABELS: Record<string, string> = { 'Подкаст': 'Подкасты', 'Текст': 'Тексты', 'Интервью': 'Интервью' };
 
-// Вставляем промо-баннер после первых 2 групп карточек (см. макет — баннер
-// не всегда в самом низу ленты, а после 10-й карточки).
-const BANNER_AFTER = 10;
-
 // Та же сетка карточек, что и на /events (featured-пара сверху + тройки
 // ниже) — идентичные пропорции колонок из референса (vladyakunin.ru):
 // .proj-featured 649:84:716 (у второй карточки картинка+текст — только
@@ -67,7 +63,7 @@ export default function JournalScreenWeb() {
           {item.category ? (
             <Text style={[styles.cardCategory, isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne]}>{item.category}</Text>
           ) : null}
-          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]} numberOfLines={3}>{item.title}</Text>
+          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]}>{item.title}</Text>
         </View>
       </Pressable>
     );
@@ -82,7 +78,7 @@ export default function JournalScreenWeb() {
           <View style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} />
         )}
         {item.category ? <Text style={[styles.cardCategory, styles.rowLabel]}>{item.category}</Text> : null}
-        <Text style={[styles.cardTitleText, styles.rowTitle]} numberOfLines={3}>{item.title}</Text>
+        <Text style={[styles.cardTitleText, styles.rowTitle]}>{item.title}</Text>
       </Pressable>
     );
   }
@@ -91,17 +87,6 @@ export default function JournalScreenWeb() {
   const rest = filtered.slice(2);
   const rowChunks: Article[][] = [];
   for (let i = 0; i < rest.length; i += 3) rowChunks.push(rest.slice(i, i + 3));
-
-  // Ищем первую тройку, после которой набирается BANNER_AFTER карточек —
-  // туда и вставляем баннер (если материалов меньше — баннер уходит в конец).
-  let cumulative = featured.length;
-  let bannerRowIndex = rowChunks.length;
-  for (let i = 0; i < rowChunks.length; i++) {
-    cumulative += rowChunks[i].length;
-    if (cumulative >= BANNER_AFTER) { bannerRowIndex = i + 1; break; }
-  }
-  const rowsBeforeBanner = rowChunks.slice(0, bannerRowIndex);
-  const rowsAfterBanner = rowChunks.slice(bannerRowIndex);
 
   return (
     <SiteShell>
@@ -140,7 +125,7 @@ export default function JournalScreenWeb() {
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   {item.category ? <Text style={styles.cardCategory}>{item.category}</Text> : null}
-                  <Text style={styles.mobileTitleText} numberOfLines={3}>{item.title}</Text>
+                  <Text style={styles.mobileTitleText}>{item.title}</Text>
                 </View>
               </Pressable>
             ))}
@@ -154,33 +139,29 @@ export default function JournalScreenWeb() {
                 {featured.length > 1 ? renderFeaturedCard(featured[1], 1) : null}
               </View>
             ) : null}
-            {rowsBeforeBanner.map((row, rowIdx) => (
-              <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
-                {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
-              </View>
-            ))}
-            {filtered.length > 0 ? (
-              // Баннер должен заканчиваться там же, где и карточки в тройке
-              // (rowThree резервирует справа пустую 6-ю колонку 191fr, куда
-              // карточки-тройки не заходят) — тот же grid, растягиваем
-              // баннер на колонки 1..5, не на всю ширину.
-              <View style={styles.rowThree}>
-                <View style={styles.promoBannerCell}>
-                  <PromoBanner withTelegramLink />
-                </View>
-              </View>
-            ) : null}
-            {rowsAfterBanner.map((row, localIdx) => {
-              const rowIdx = bannerRowIndex + localIdx;
-              return (
-                <View key={row.map((r) => r.id).join('-')} style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
+            {rowChunks.map((row, rowIdx) => (
+              <React.Fragment key={row.map((r) => r.id).join('-')}>
+                <View style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
                   {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
                 </View>
-              );
-            })}
+                {(rowIdx + 1) % 3 === 0 ? (
+                  // Баннер после каждой 3-й строки карточек — должен
+                  // заканчиваться там же, где и карточки в тройке (rowThree
+                  // резервирует справа пустую 6-ю колонку 191fr, куда
+                  // карточки-тройки не заходят) — тот же grid, растягиваем
+                  // баннер на колонки 1..5, не на всю ширину.
+                  <View style={styles.rowThree}>
+                    <View style={styles.promoBannerCell}>
+                      <PromoBanner withTelegramLink />
+                    </View>
+                  </View>
+                ) : null}
+              </React.Fragment>
+            ))}
           </View>
         )}
 
+        {!isMobile && !loading && !error && filtered.length > 0 && (rowChunks.length === 0 || rowChunks.length % 3 !== 0) ? <PromoBanner withTelegramLink /> : null}
         {isMobile && !loading && !error && filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
       </View>
 

@@ -210,7 +210,7 @@ export default function ArticleScreenWeb() {
             <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
               {relatedEvent.coverUrl ? <Image source={{ uri: relatedEvent.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
               <Text style={styles.ctaCardLabel} numberOfLines={1}>{article.author.name}</Text>
-              <Text style={styles.ctaCardTitle} numberOfLines={2}>{relatedEvent.title}</Text>
+              <Text style={styles.ctaCardTitle}>{relatedEvent.title}</Text>
               <Text style={styles.ctaCardMeta}>{formatEventTime(relatedEvent.datetimeStart)}</Text>
             </Pressable>
           </View>

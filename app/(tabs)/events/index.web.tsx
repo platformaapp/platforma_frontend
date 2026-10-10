@@ -220,7 +220,7 @@ export default function EventsScreenWeb() {
             {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
             {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
-          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]} numberOfLines={3}>{item.title}</Text>
+          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]}>{item.title}</Text>
           {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
         </View>
       </Pressable>
@@ -239,7 +239,7 @@ export default function EventsScreenWeb() {
           {item.format ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.format}</Text> : null}
           {item.mentor?.name ? <Text style={[styles.cardAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
         </View>
-        <Text style={[styles.cardTitleText, styles.rowTitle]} numberOfLines={3}>{item.title}</Text>
+        <Text style={[styles.cardTitleText, styles.rowTitle]}>{item.title}</Text>
         {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
       </Pressable>
     );
@@ -301,7 +301,7 @@ export default function EventsScreenWeb() {
                   <View>
                     {item.format ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.format}</Text> : null}
                     {item.mentor?.name ? <Text style={[styles.mobileAuthor, item.format && styles.cardLabelSecondLine]} numberOfLines={1}>{item.mentor.name}</Text> : null}
-                    <Text style={styles.mobileTitleText} numberOfLines={4}>{item.title}</Text>
+                    <Text style={styles.mobileTitleText}>{item.title}</Text>
                     {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                   </View>
                 </View>
@@ -318,17 +318,26 @@ export default function EventsScreenWeb() {
               </View>
             ) : null}
             {rows.map((row, rowIdx) => (
-              <View
-                key={row.map((r) => r.id).join('-')}
-                style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}
-              >
-                {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
-              </View>
+              <React.Fragment key={row.map((r) => r.id).join('-')}>
+                <View style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
+                  {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
+                </View>
+                {(rowIdx + 1) % 3 === 0 ? (
+                  // Баннер после каждой 3-й строки карточек — та же сетка
+                  // rowThree, колонки 1..5 (без пустой 6-й), чтобы правый
+                  // край совпадал с карточками.
+                  <View style={styles.rowThree}>
+                    <View style={styles.promoBannerCell}>
+                      <PromoBanner />
+                    </View>
+                  </View>
+                ) : null}
+              </React.Fragment>
             ))}
           </View>
         )}
 
-        {!loading && !error && filtered.length > 0 ? <PromoBanner /> : null}
+        {!loading && !error && filtered.length > 0 && (rows.length === 0 || rows.length % 3 !== 0) ? <PromoBanner /> : null}
 
         {!loading && !error && hasMore ? (
           <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
@@ -406,6 +415,9 @@ const styles = StyleSheet.create({
   rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
   rowThree254: { marginTop: 254 },
   rowThree120: { marginTop: 120 },
+  // Баннер между тройками — только колонки 1..5 той же сетки (не заезжает
+  // в пустую 6-ю), чтобы его правый край совпадал с правым краем карточек.
+  promoBannerCell: { gridColumn: '1 / 6', marginTop: 120 } as any,
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },

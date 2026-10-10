@@ -313,7 +313,7 @@ export default function MyEventsScreenWeb() {
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
           <View style={styles.listBody}>
             <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
-            <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{item.title}</Text>
+            <Text style={[styles.listTitle, muted && styles.textMuted]}>{item.title}</Text>
             {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
           </View>
         </Pressable>
@@ -329,7 +329,7 @@ export default function MyEventsScreenWeb() {
         )}
         <View style={styles.cardBody}>
           {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
-          <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+          <Text style={styles.cardTitle}>{item.title}</Text>
           <View style={styles.cardMetaRow}>
             <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
             {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
@@ -415,7 +415,7 @@ export default function MyEventsScreenWeb() {
                       <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: RECOMMENDED_ASPECTS[idx] }]} />
                     )}
                     {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
-                    <Text style={styles.emptyRecommendedTitle} numberOfLines={2}>{r.title}</Text>
+                    <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
                     {r.datetimeStart ? <Text style={styles.emptyRecommendedDate}>{formatRecommendedEventDate(r.datetimeStart)}</Text> : null}
                   </Pressable>
                 ))}
