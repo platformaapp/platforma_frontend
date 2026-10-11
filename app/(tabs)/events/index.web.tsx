@@ -243,10 +243,26 @@ export default function EventsScreenWeb() {
     );
   }
 
-  const featured = filtered.slice(0, 2);
-  const rest = filtered.slice(2);
-  const rows: EventFeedItem[][] = [];
-  for (let i = 0; i < rest.length; i += 3) rows.push(rest.slice(i, i + 3));
+  // Повторяющийся цикл из 4 строк (как на /journal — см. комментарий там):
+  // 1) пара 649:84:716 ("pairA", бывший featured), 2) тройка
+  // 403:75:365:76:340:191, 3) пара 481:165:611:193 ("pairB"), 4) снова
+  // тройка — и цикл начинается заново с 1). Баннер — после каждой 3-й
+  // строки этого цикла (считая строки любого типа подряд).
+  const rows: { type: 'pairA' | 'triple' | 'pairB'; items: EventFeedItem[] }[] = [];
+  {
+    const cycle: ('pairA' | 'triple' | 'pairB')[] = ['pairA', 'triple', 'pairB', 'triple'];
+    let i = 0;
+    let cycleIdx = 0;
+    while (i < filtered.length) {
+      const type = cycle[cycleIdx % cycle.length];
+      const count = type === 'triple' ? 3 : 2;
+      const items = filtered.slice(i, i + count);
+      if (items.length === 0) break;
+      rows.push({ type, items });
+      i += items.length;
+      cycleIdx++;
+    }
+  }
 
   return (
     <SiteShell>
@@ -307,34 +323,42 @@ export default function EventsScreenWeb() {
           </View>
         ) : (
           <View>
-            {featured.length > 0 ? (
-              <View style={styles.featuredRow}>
-                {renderFeaturedCard(featured[0], 0)}
-                {featured.length > 1 ? <View /> : null}
-                {featured.length > 1 ? renderFeaturedCard(featured[1], 1) : null}
-              </View>
-            ) : null}
-            {rows.map((row, rowIdx) => (
-              <React.Fragment key={row.map((r) => r.id).join('-')}>
-                <View style={[styles.rowThree, rowIdx % 2 === 0 ? styles.rowThree254 : styles.rowThree120]}>
-                  {row.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
+            {rows.map((row, rowIdx) => {
+              // Отступ сверху — единая чередующаяся последовательность для
+              // ВСЕХ строк подряд (не только троек): первая строка — 80
+              // (отступ от фильтров), дальше 254/120/254/120...
+              const marginTop = rowIdx === 0 ? 80 : rowIdx % 2 === 1 ? 254 : 120;
+              const rowEl = row.type === 'triple' ? (
+                <View style={[styles.rowThree, { marginTop }]}>
+                  {row.items.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
                 </View>
-                {(rowIdx + 1) % 3 === 0 ? (
-                  // Баннер после каждой 3-й строки карточек — та же сетка
-                  // rowThree, колонки 1..5 (без пустой 6-й), чтобы правый
-                  // край совпадал с карточками.
-                  <View style={styles.rowThree}>
-                    <View style={styles.promoBannerCell}>
-                      <PromoBanner />
+              ) : (
+                <View style={[row.type === 'pairA' ? styles.featuredRow : styles.pairBRow, { marginTop }]}>
+                  {renderFeaturedCard(row.items[0], 0)}
+                  {row.items.length > 1 ? <View /> : null}
+                  {row.items.length > 1 ? renderFeaturedCard(row.items[1], 1) : null}
+                </View>
+              );
+              return (
+                <React.Fragment key={row.items.map((r) => r.id).join('-')}>
+                  {rowEl}
+                  {(rowIdx + 1) % 3 === 0 ? (
+                    // Баннер после каждой 3-й строки (любого типа) — та же
+                    // сетка rowThree, колонки 1..5 (без пустой 6-й), чтобы
+                    // правый край совпадал с карточками.
+                    <View style={styles.rowThree}>
+                      <View style={styles.promoBannerCell}>
+                        <PromoBanner />
+                      </View>
                     </View>
-                  </View>
-                ) : null}
-              </React.Fragment>
-            ))}
+                  ) : null}
+                </React.Fragment>
+              );
+            })}
           </View>
         )}
 
-        {!loading && !error && filtered.length > 0 && (rows.length === 0 || rows.length % 3 !== 0) ? <PromoBanner /> : null}
+        {!loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner /> : null}
 
         {!loading && !error && hasMore ? (
           <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
@@ -388,15 +412,22 @@ const styles = StyleSheet.create({
   // .card__title: font-size:25, line-height:0.9 (22.5px) на vladyakunin.ru/projects/.
   cardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 1, textAlign: 'right', marginTop: 13  },
-  // .proj-featured: 2 крупные карточки, 649:84:716 — CSS grid с той же пропорцией
-  // в fr (не flex+gap), средняя колонка остаётся пустым спейсером. У второй
-  // картинка и текст занимают только 72.8% её колонки — .card--p2 .card__img/.card__body.
-  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr', marginTop: 80 } as any,
+  // Полный повторяющийся цикл строк (см. rows/cycle выше): пара A — CSS grid
+  // 649fr:84fr:716fr, пара B — 481fr:165fr:611fr:193fr (у обеих — пустая
+  // колонка-спейсер после первой карточки, и у второй карточки картинка+текст
+  // занимают только 72.8% её колонки). Тройка — CSS grid
+  // 403fr:75fr:365fr:76fr:340fr:191fr, карточки в колонках 1/3/5 (см.
+  // ROW_GRID_COLUMNS). Отступ сверху всех строк подряд — 80 (первая), затем
+  // 254/120/254/120... (см. marginTop в рендере).
+  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
+  pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
   featuredCardOne: { width: '100%' },
   featuredCardTwo: { width: '100%' },
   featuredInnerTwo: { width: '72.8%' },
   featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
-  // Высота второй картинки фиксированная (248px), а не по aspect-ratio.
+  // Высота второй картинки фиксированная (248px), а не по aspect-ratio. У
+  // пары B отдельных размеров картинок не дано — переиспользуем те же, что
+  // и у пары A, чтобы не выдумывать новые числа.
   featuredImageTwo: { height: 248 },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
@@ -405,11 +436,8 @@ const styles = StyleSheet.create({
 
   // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают
   // колонки 1/3/5 (см. ROW_GRID_COLUMNS), 2/4 — зазоры, 6 (191fr) — пустая
-  // правая граница, специально не занята. Отступ сверху чередуется по
-  // строкам: 254 (.proj-row--2), 120 (.proj-row--3), 254, 120, ...
+  // правая граница, специально не занята.
   rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
-  rowThree254: { marginTop: 254 },
-  rowThree120: { marginTop: 120 },
   // Баннер между тройками — только колонки 1..5 той же сетки (не заезжает
   // в пустую 6-ю), чтобы его правый край совпадал с правым краем карточек.
   promoBannerCell: { gridColumn: '1 / 6', marginTop: 120 } as any,
