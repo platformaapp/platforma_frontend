@@ -53,11 +53,18 @@ type BookingItem = {
 
 type Tab = 'events' | 'meetings';
 
-// Та же сетка-тройка, что на /events и /journal (.proj-row--2 с
-// vladyakunin.ru/projects/): CSS grid 403fr:75fr:365fr:76fr:340fr:191fr
-// (последняя колонка пустая), карточки в колонках 1/3/5, отступ сверху 254px.
+// Та же сетка, что в "События наставника" на /explore/[id] (см. комментарий
+// там): CSS grid 403fr:75fr:365fr:266fr:340fr, карточки в колонках 1/3/5.
+// Строки по 3 карточки, пара строк образует повторяющийся блок — в чётных
+// строках третья картинка уже (84.4% вместо 100%, card--d на референсе).
 const RECOMMENDED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const RECOMMENDED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+
+function chunk3<T>(items: T[]): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += 3) rows.push(items.slice(i, i + 3));
+  return rows;
+}
 
 const MONTHS_GEN = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
@@ -128,7 +135,7 @@ export default function MyEventsScreenWeb() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
   const [error, setError] = useState('');
-  // Рекомендуем 3 события прямо на странице "нет записей" — вместо пустого текста.
+  // Рекомендуем до 6 событий прямо на странице "нет записей" (2 строки по 3) — вместо пустого текста.
   const [recommended, setRecommended] = useState<RecommendedEvent[]>([]);
 
   const [cancelTarget, setCancelTarget] = useState<BookingItem | null>(null);
@@ -262,12 +269,12 @@ export default function MyEventsScreenWeb() {
     let active = true;
     (async () => {
       try {
-        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=3`);
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=6`);
         if (!res.ok) return;
         const data = await res.json();
         const raw = parseFeedItems(data) as Record<string, unknown>[];
         if (!active) return;
-        setRecommended(raw.slice(0, 3).map((r) => ({
+        setRecommended(raw.slice(0, 6).map((r) => ({
           id: String(r.id ?? ''),
           title: String(r.title ?? ''),
           coverUrl: resolveUploadUrl((r.coverUrl ?? r.cover_url) as string | undefined),
@@ -357,6 +364,25 @@ export default function MyEventsScreenWeb() {
     );
   }
 
+  function renderRecommendedCard(r: RecommendedEvent, posInRow: 0 | 1 | 2, narrowImage: boolean) {
+    return (
+      <Pressable
+        key={r.id}
+        style={[styles.emptyRecommendedCard, !isMobile && ({ gridColumn: RECOMMENDED_GRID_COLUMNS[posInRow] } as any)]}
+        onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
+      >
+        {r.coverUrl ? (
+          <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: RECOMMENDED_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: RECOMMENDED_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+        )}
+        {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
+        <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
+        {r.datetimeStart ? <Text style={styles.emptyRecommendedDate}>{formatRecommendedEventDate(r.datetimeStart)}</Text> : null}
+      </Pressable>
+    );
+  }
+
   function renderBookingGroups(items: BookingItem[], muted = false) {
     if (items.length === 0) return null;
     if (role !== 'tutor') return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
@@ -402,24 +428,19 @@ export default function MyEventsScreenWeb() {
             <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
             <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
             {recommended.length > 0 ? (
-              <View style={[styles.emptyRecommendedRow, isMobile && styles.emptyRecommendedRowMobile]}>
-                {recommended.map((r, idx) => (
-                  <Pressable
-                    key={r.id}
-                    style={[styles.emptyRecommendedCard, !isMobile && ({ gridColumn: RECOMMENDED_GRID_COLUMNS[idx] } as any)]}
-                    onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
-                  >
-                    {r.coverUrl ? (
-                      <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: RECOMMENDED_ASPECTS[idx] }]} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: RECOMMENDED_ASPECTS[idx] }]} />
-                    )}
-                    {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
-                    <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
-                    {r.datetimeStart ? <Text style={styles.emptyRecommendedDate}>{formatRecommendedEventDate(r.datetimeStart)}</Text> : null}
-                  </Pressable>
-                ))}
-              </View>
+              isMobile ? (
+                <View style={styles.emptyRecommendedRowMobile}>
+                  {recommended.map((r, idx) => renderRecommendedCard(r, idx % 3 as 0 | 1 | 2, false))}
+                </View>
+              ) : (
+                <>
+                  {chunk3(recommended).map((row, rowIdx) => (
+                    <View key={row.map((r) => r.id).join('-')} style={styles.emptyRecommendedRow}>
+                      {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
+                    </View>
+                  ))}
+                </>
+              )
             ) : null}
             <Pressable onPress={() => router.push('/events' as any)}>
               <Text style={styles.emptyLink}>Посмотреть события</Text>
@@ -557,10 +578,13 @@ const styles = StyleSheet.create({
   emptyBlock: { paddingTop: 24, paddingBottom: 24 },
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
-  emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr', marginTop: 254, marginBottom: 32 } as any,
+  emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginTop: 254, marginBottom: 32 } as any,
   emptyRecommendedRowMobile: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 20, marginTop: 0 } as any,
   emptyRecommendedCard: { minWidth: 0 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
+  // card--d по референсу — третья карточка каждой второй строки уже
+  // остальных (84.4% вместо 100%), только картинка.
+  emptyRecommendedImageNarrow: { width: '84.4%' },
   emptyRecommendedAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
   emptyRecommendedTitle: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#010101' },
   emptyRecommendedDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
