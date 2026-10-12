@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
   eventsSection: { marginTop: 40 },
-  eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 93 },
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
 
@@ -444,9 +444,9 @@ const styles = StyleSheet.create({
   // отдельная от 2-колоночного desktopGrid выше (текст/фото), см.
   // renderMentorEventsGrid/renderMentorGridCard. Колонки 1/3/5 — карточки
   // (см. MENTOR_ROW_COLUMNS), 2/4 — зазоры.
-  mentorEventsSection: { marginTop: 64 },
+  mentorEventsSection: { marginTop: 273 },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
-  mentorEventsRowSpacing: { marginTop: 254 },
+  mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
   // card--d по референсу — третья карточка каждой второй строки уже
   // остальных (84.4% вместо 100%), только картинка, не весь блок карточки.
