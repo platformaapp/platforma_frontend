@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 0, marginTop: 68 },
+  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, marginBottom: 0, marginTop: 68 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
   loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
   loadMoreButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  cardTitleText: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18 },
+  cardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   // Полный повторяющийся цикл строк (см. rows/cycle выше): пара A — CSS grid
   // 649fr:84fr:716fr, пара B — 481fr:165fr:611fr:193fr (у обеих — пустая
