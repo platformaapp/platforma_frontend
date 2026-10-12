@@ -29,6 +29,14 @@ export interface RelatedArticle {
   coverUrl: string | null;
 }
 
+export interface ArticleEvent {
+  id: string;
+  title: string;
+  coverUrl: string | null;
+  datetimeStart: string | null;
+  price: number;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -40,6 +48,9 @@ export interface Article {
   // "Окей, что ещё" в конце статьи — до 3 статей, выбранных в админке
   // (см. admin/journal-detail.tsx). Только на findOne (списки отдают []).
   relatedArticles: RelatedArticle[];
+  // Событие, явно привязанное к статье в админке (CTA "Записаться на
+  // событие") — null, если не выбрано.
+  event: ArticleEvent | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +91,18 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
           coverUrl: resolveUrl(r.cover_url as string | undefined),
         }))
       : [],
+    event: raw.event && typeof raw.event === 'object'
+      ? (() => {
+          const e = raw.event as Record<string, unknown>;
+          return {
+            id: String(e.id ?? ''),
+            title: String(e.title ?? ''),
+            coverUrl: resolveUrl(e.cover_url as string | undefined),
+            datetimeStart: (e.datetime_start as string) ?? null,
+            price: typeof e.price === 'number' ? e.price : Number(e.price ?? 0),
+          };
+        })()
+      : null,
     createdAt: String(raw.created_at ?? ''),
     updatedAt: String(raw.updated_at ?? ''),
   };

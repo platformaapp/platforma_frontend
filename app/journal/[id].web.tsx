@@ -4,12 +4,9 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, T
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
-import { endpoints } from '@/constants/env';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
-
-type RelatedEvent = { id: string; title: string; datetimeStart?: string; coverUrl?: string | null };
 
 // "Окей, что ещё" — до 3 связанных статей вместо баннера в конце (выбраны в
 // админке, см. admin/journal-detail.tsx). Та же сетка-тройка (403/365/340),
@@ -63,7 +60,6 @@ export default function ArticleScreenWeb() {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [relatedEvent, setRelatedEvent] = useState<RelatedEvent | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -85,25 +81,6 @@ export default function ArticleScreenWeb() {
           }
         } catch { /* короткое био необязательно — блок автора остаётся без него */ }
       }
-
-      try {
-        const feedRes = await fetch(`${endpoints.eventsFeed}?per_page=50`);
-        if (feedRes.ok) {
-          const data = await feedRes.json();
-          const list: unknown[] = Array.isArray(data?.items) ? data.items : Array.isArray(data) ? data : [];
-          const now = Date.now();
-          const upcoming = list
-            .map((r: any) => ({
-              id: String(r.id ?? ''),
-              title: String(r.title ?? ''),
-              datetimeStart: r.datetimeStart ?? r.datetime_start ?? undefined,
-              coverUrl: r.coverUrl ?? r.cover_url ?? null,
-              mentorId: String(r.mentor?.id ?? r.mentor?.userId ?? ''),
-            }))
-            .filter((e) => e.mentorId === a.author.id && (!e.datetimeStart || new Date(e.datetimeStart).getTime() > now));
-          setRelatedEvent(upcoming[0] ?? null);
-        }
-      } catch { /* related event is optional, ignore failures */ }
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить материал');
       setArticle(null);
@@ -236,17 +213,18 @@ export default function ArticleScreenWeb() {
 
         {relatedBlock}
 
-        {/* На десктопе блоки "Записаться на событие" и "Скачать приложение" убраны */}
-        {isMobile && relatedEvent ? (
+        {/* Событие, явно привязанное к статье в админке (не эвристика по
+            автору, как раньше) — теперь и на десктопе, не только на мобильном. */}
+        {article.event ? (
           <View style={styles.ctaBlock}>
-            <Pressable onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
+            <Pressable onPress={() => router.push(`/(tabs)/events/${article.event!.id}` as any)}>
               <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
             </Pressable>
-            <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${relatedEvent.id}` as any)}>
-              {relatedEvent.coverUrl ? <Image source={{ uri: relatedEvent.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
+            <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${article.event!.id}` as any)}>
+              {article.event.coverUrl ? <Image source={{ uri: article.event.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
               <Text style={styles.ctaCardLabel} numberOfLines={1}>{article.author.name}</Text>
-              <Text style={styles.ctaCardTitle}>{relatedEvent.title}</Text>
-              <Text style={styles.ctaCardMeta}>{formatEventTime(relatedEvent.datetimeStart)}</Text>
+              <Text style={styles.ctaCardTitle}>{article.event.title}</Text>
+              <Text style={styles.ctaCardMeta}>{formatEventTime(article.event.datetimeStart ?? undefined)}</Text>
             </Pressable>
           </View>
         ) : null}

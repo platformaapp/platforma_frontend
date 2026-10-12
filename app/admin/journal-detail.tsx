@@ -39,6 +39,7 @@ const TOOLBAR_ACTIONS: { label: string; title: string; before: string; after: st
 
 type TutorOption = { id: string; fullName: string; email: string };
 type ArticleOption = { id: string; title: string; category: string | null };
+type EventOption = { id: string; title: string; datetimeStart: string | null };
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -135,6 +136,13 @@ export default function AdminJournalDetailScreen() {
   const [relatedOptions, setRelatedOptions] = useState<ArticleOption[]>([]);
   const [relatedSearching, setRelatedSearching] = useState(false);
 
+  // Событие, привязанное к статье — CTA "Записаться на событие" на странице
+  // статьи (см. [id].web.tsx). В отличие от похожих статей — одно, не три.
+  const [event, setEvent] = useState<EventOption | null>(null);
+  const [eventQuery, setEventQuery] = useState('');
+  const [eventOptions, setEventOptions] = useState<EventOption[]>([]);
+  const [eventSearching, setEventSearching] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -166,6 +174,7 @@ export default function AdminJournalDetailScreen() {
         if (Array.isArray(a.related_articles)) {
           setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
         }
+        if (a.event) setEvent({ id: a.event.id, title: a.event.title, datetimeStart: a.event.datetime_start ?? null });
       } catch {
         if (active) setLoadError('Не удалось загрузить материал');
       } finally {
@@ -229,6 +238,27 @@ export default function AdminJournalDetailScreen() {
   function removeRelatedArticle(articleId: string) {
     setRelatedArticles((prev) => prev.filter((r) => r.id !== articleId));
   }
+
+  useEffect(() => {
+    if (!eventQuery.trim()) { setEventOptions([]); return; }
+    let active = true;
+    const t = setTimeout(async () => {
+      const token = await getAdminToken();
+      if (!token) return;
+      setEventSearching(true);
+      try {
+        const params = new URLSearchParams({ search: eventQuery.trim(), per_page: '10' });
+        const res = await fetch(`${endpoints.adminEventsAdmin}?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const opts = items.map((e: any) => ({ id: e.id, title: e.title, datetimeStart: e.datetimeStart ?? null }));
+        if (active) setEventOptions(opts);
+      } catch { /* ignore */ }
+      finally { if (active) setEventSearching(false); }
+    }, 300);
+    return () => { active = false; clearTimeout(t); };
+  }, [eventQuery]);
 
   async function handlePickCover() {
     const uri = await pickImage();
@@ -296,6 +326,7 @@ export default function AdminJournalDetailScreen() {
         cover_url: uploadedCover,
         gallery: uploadedGallery,
         related_article_ids: relatedArticles.map((r) => r.id),
+        event_id: event ? event.id : null,
         author_id: author.id,
       };
 
@@ -488,6 +519,31 @@ export default function AdminJournalDetailScreen() {
             ))}
           </>
         ) : null}
+
+        <Text style={styles.label}>Событие — CTA «Записаться на событие» на странице статьи</Text>
+        {event ? (
+          <View style={styles.authorSelected}>
+            <Text style={styles.authorSelectedText}>{event.title}</Text>
+            <Pressable onPress={() => setEvent(null)}><Text style={styles.removeLink}>Изменить</Text></Pressable>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              value={eventQuery}
+              onChangeText={setEventQuery}
+              placeholder="Поиск события по названию"
+              placeholderTextColor="#9B9B9B"
+            />
+            {eventSearching ? <ActivityIndicator style={{ marginTop: 8 }} color="#181818" /> : null}
+            {eventOptions.map((opt) => (
+              <Pressable key={opt.id} style={styles.authorOption} onPress={() => { setEvent(opt); setEventQuery(''); setEventOptions([]); }}>
+                <Text style={styles.authorOptionName}>{opt.title}</Text>
+                {opt.datetimeStart ? <Text style={styles.authorOptionEmail}>{new Date(opt.datetimeStart).toLocaleDateString('ru-RU')}</Text> : null}
+              </Pressable>
+            ))}
+          </>
+        )}
 
         {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
 
