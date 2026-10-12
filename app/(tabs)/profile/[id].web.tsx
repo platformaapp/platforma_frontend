@@ -954,7 +954,7 @@ export default function ProfileScreenWeb() {
       {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
     </>
   );
-  const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />;
+  const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.tutorAvatarImg} resizeMode="cover" /> : <View style={[styles.tutorAvatarImg, styles.bigAvatarPlaceholder]} />;
 
 
   return (
@@ -976,8 +976,8 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ) : (
-          <View style={styles.profileDesktopLayout}>
-            <View style={styles.profileLeftCol}>
+          <View style={styles.tutorDesktopGrid}>
+            <View style={styles.tutorInfoContainer}>
               <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
               {tutorBioBlock}
               <View style={styles.actionsRow}>
@@ -992,7 +992,7 @@ export default function ProfileScreenWeb() {
                 </Pressable>
               </View>
             </View>
-            <View style={styles.profileRightCol}>{tutorAvatar}</View>
+            <View style={styles.tutorAvatarBox}>{tutorAvatar}</View>
           </View>
         )}
 
@@ -1662,6 +1662,16 @@ const styles = StyleSheet.create({
   profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 285,     width: '22.42%', aspectRatio: 339 / 409 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0, justifyContent: 'space-between', width: '100%' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+
+  // Tutor view (собственный профиль наставника) — та же сетка, что и на
+  // публичной странице наставника (/explore/[id].web.tsx: desktopGrid),
+  // а не отдельная flex-вёрстка: фикс. px-колонки + columnGap дают
+  // правильный отступ фото от правого края страницы, в отличие от
+  // profileRightCol (width в % вперемешку с maxWidth/flexBasis).
+  tutorDesktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, alignItems: 'start', position: 'relative', marginTop: 40 } as any,
+  tutorInfoContainer: { position: 'relative', height: '100%' },
+  tutorAvatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', height: 345 },
+  tutorAvatarImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
