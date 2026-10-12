@@ -57,8 +57,10 @@ type Tab = 'events' | 'meetings';
 // там): CSS grid 403fr:75fr:365fr:266fr:340fr, карточки в колонках 1/3/5.
 // Строки по 3 карточки, пара строк образует повторяющийся блок — в чётных
 // строках третья картинка уже (84.4% вместо 100%, card--d на референсе).
-const RECOMMENDED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
-const RECOMMENDED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+// Общая и для рекомендаций в пустом состоянии, и для настоящего списка
+// записей (см. renderEventsGrid).
+const CARD_ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const CARD_ROW_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 function chunk3<T>(items: T[]): T[][] {
   const rows: T[][] = [];
@@ -311,28 +313,38 @@ export default function MyEventsScreenWeb() {
     return other.isViewerTutor ? `/(tabs)/profile/student/${other.id}` : `/(tabs)/explore/${other.id}`;
   }
 
-  function renderEventCard(item: EventItem, muted = false) {
+  // Мобильная полноширинная строка (см. renderEventsGrid — на десктопе
+  // вместо неё теперь карточки в grid-строках по 3, renderEventGridCard).
+  function renderEventListRowMobile(item: EventItem, muted = false) {
     const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
-
-    if (isMobile) {
-      return (
-        <Pressable key={item.id} style={styles.listRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
-          <View style={styles.listBody}>
-            <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
-            <Text style={[styles.listTitle, muted && styles.textMuted]}>{item.title}</Text>
-            {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
-          </View>
-        </Pressable>
-      );
-    }
-
     return (
-      <Pressable key={item.id} style={[styles.card, muted && styles.cardMuted]} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={styles.listRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
+        <View style={styles.listBody}>
+          <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
+          <Text style={[styles.listTitle, muted && styles.textMuted]}>{item.title}</Text>
+          {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  // Та же асимметричная сетка (403/365/340, см. CARD_ROW_ASPECTS выше), что
+  // и у рекомендаций в пустом состоянии — раньше тут была равномерная
+  // flex-wrap сетка (styles.grid/card), по референсу список тоже должен
+  // идти строками по 3 с повторяющимся card--d на каждой второй строке.
+  function renderEventGridCard(item: EventItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
+    const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
+    return (
+      <Pressable
+        key={item.id}
+        style={[{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any, muted && styles.cardMuted]}
+        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+      >
         {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={styles.cardImage} resizeMode="cover" />
+          <Image source={{ uri: item.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
         ) : (
-          <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
         )}
         <View style={styles.cardBody}>
           {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
@@ -343,6 +355,20 @@ export default function MyEventsScreenWeb() {
           </View>
         </View>
       </Pressable>
+    );
+  }
+
+  function renderEventsGrid(items: EventItem[], muted = false) {
+    if (items.length === 0) return null;
+    if (isMobile) return <View style={styles.list}>{items.map((e) => renderEventListRowMobile(e, muted))}</View>;
+    return (
+      <>
+        {chunk3(items).map((row, rowIdx) => (
+          <View key={row.map((e) => e.id).join('-')} style={[styles.cardsGridRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
+            {row.map((e, pos) => renderEventGridCard(e, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2, muted))}
+          </View>
+        ))}
+      </>
     );
   }
 
@@ -368,13 +394,13 @@ export default function MyEventsScreenWeb() {
     return (
       <Pressable
         key={r.id}
-        style={[styles.emptyRecommendedCard, !isMobile && ({ gridColumn: RECOMMENDED_GRID_COLUMNS[posInRow] } as any)]}
+        style={[styles.emptyRecommendedCard, !isMobile && ({ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any)]}
         onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
       >
         {r.coverUrl ? (
-          <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: RECOMMENDED_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+          <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
         ) : (
-          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: RECOMMENDED_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
         )}
         {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
         <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
@@ -448,11 +474,7 @@ export default function MyEventsScreenWeb() {
           </View>
         ) : (
           <>
-            {activeTab === 'events' ? (
-              upcomingEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
-            ) : (
-              renderBookingGroups(upcomingBookings)
-            )}
+            {activeTab === 'events' ? renderEventsGrid(upcomingEvents) : renderBookingGroups(upcomingBookings)}
 
             {nextBooking && isMobile ? (
               <View style={styles.mobileVideoBar}>
@@ -471,11 +493,7 @@ export default function MyEventsScreenWeb() {
             {currentPast.length > 0 ? (
               <Text style={styles.pastSeparator}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
             ) : null}
-            {activeTab === 'events' ? (
-              pastEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{pastEvents.map((e) => renderEventCard(e, true))}</View>
-            ) : (
-              renderBookingGroups(pastBookings, true)
-            )}
+            {activeTab === 'events' ? renderEventsGrid(pastEvents, true) : renderBookingGroups(pastBookings, true)}
           </>
         )}
       </View>
@@ -591,6 +609,13 @@ const styles = StyleSheet.create({
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
+  // Настоящий список записей (не пустое состояние) — та же асимметричная
+  // сетка 403/75/365/266/340, что и emptyRecommendedRow, но без её
+  // marginTop:254 на первой строке (список начинается сразу под вкладками,
+  // а не после текста "нет записей") — отступ только между строками.
+  cardsGridRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
+  cardsGridRowSpacing: { marginTop: 254 },
+  // grid — только для личных встреч (renderBookingGroups), события теперь используют cardsGridRow.
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
   list: { gap: 20, marginBottom: 24 },
   card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, backgroundColor: '#fff', position: 'relative' },

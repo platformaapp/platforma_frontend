@@ -47,7 +47,7 @@ function formatEventDate(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return `${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}, ${d.toLocaleTimeString('ru-RU', { hour: 'numeric', minute: '2-digit' })}`;
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   } catch {
     return iso;
   }
