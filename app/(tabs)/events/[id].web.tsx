@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
   // + карточка наставника — в широкой колонке справа.
   desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between' },
   leftCol: { flexBasis: 420, maxWidth: 420, flexShrink: 1 },
-  rightCol: { flex: 1, minWidth: 0, maxWidth: 709 },
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 565 },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },

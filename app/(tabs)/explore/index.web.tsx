@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   // ("Новые увлечения") — отдельно и прижата вправо по логотипу (см.
   // filterPillRight на /events — то же значение marginRight).
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 86, marginTop: 50 },
-  filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 32, rowGap: 12, flexShrink: 1 },
+  filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
   filterPillRight: { marginLeft: 'auto', marginRight: 0, paddingLeft: 24 },
   filtersScroll: { marginBottom: 32 },
   filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
@@ -206,5 +206,5 @@ const styles = StyleSheet.create({
   avatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  shortBio: { fontSize: 18, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
+  shortBio: { fontSize: 16, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: 'rgba(131, 131, 131, 1.00)', marginBottom: 6 },
 });
