@@ -37,6 +37,12 @@ function resolveFormat(raw: Record<string, unknown>): string | undefined {
   return legacy;
 }
 
+// Карточки в строке "События наставника" — 3 на ряд, каждая со своим
+// соотношением сторон картинки (та же сетка 403/365/340, что в rowThree на
+// /events, но со своими колонками-зазорами — см. mentorEventsRow).
+const MENTOR_ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const MENTOR_ROW_COLUMNS: [string, string, string] = ['1', '3', '5'];
+
 function formatEventDate(iso?: string): string {
   if (!iso) return '';
   try {
@@ -150,18 +156,17 @@ export default function TutorCardScreenWeb() {
   const upcomingEvents = mentorEvents.filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now);
   const pastEvents = mentorEvents.filter((e) => e.datetimeStart && new Date(e.datetimeStart).getTime() <= now);
 
-  // Как на референсе: карточки событий распределены между обеими колонками
-  // страницы — 2 в узкой левой колонке (под текстом) и 1 в правой (под
-  // фото), затем повтор — а не всё в одной колонке. slice/every 3rd matches
-  // that 2-left/1-right rhythm.
-  function splitForColumns(events: MentorEvent[]): { left: MentorEvent[]; right: MentorEvent[] } {
-    const left: MentorEvent[] = [];
-    const right: MentorEvent[] = [];
-    events.forEach((e, i) => (i % 3 === 2 ? right : left).push(e));
-    return { left, right };
+  // Сетка "События наставника"/"Прошедшие события" по референсу — не внутри
+  // 2-колоночного desktopGrid (текст/фото), а отдельная полноширинная
+  // 3-колоночная сетка: 403fr 75fr 365fr 266fr 340fr (карточки в колонках
+  // 1/3/5, 2 и 4 — зазоры). Строки по 3 карточки, две строки образуют
+  // повторяющийся блок: во второй строке каждой пары третья карточка уже
+  // (84.4% вместо 100% по ширине) — см. MENTOR_ROW_ASPECTS/renderMentorGridCard.
+  function buildMentorEventRows(events: MentorEvent[]): MentorEvent[][] {
+    const rows: MentorEvent[][] = [];
+    for (let i = 0; i < events.length; i += 3) rows.push(events.slice(i, i + 3));
+    return rows;
   }
-  const upcomingSplit = splitForColumns(upcomingEvents);
-  const pastSplit = splitForColumns(pastEvents);
 
   // Mobile: одно событие — одна полноширинная строка (миниатюра слева,
   // текст справа, дата/цена прижаты к низу справа) — не карточка в сетке
@@ -235,21 +240,44 @@ export default function TutorCardScreenWeb() {
     </>
   );
 
-  // Desktop: настоящий CSS Grid (не два независимых flex-столбца) — иначе
-  // строка карточек справа (под фото) не может ровно совпасть по высоте со
-  // строкой карточек слева: у каждой "логической строки" (герой/фото,
-  // заголовок/пусто, карточки-слева/карточки-справа) обе ячейки — прямые
-  // дети грида в одном и том же порядке, поэтому высота строки — это
-  // максимум из двух ячеек, и содержимое всегда стартует на одном уровне.
-  function eventsGridRow(title: string, left: MentorEvent[], right: MentorEvent[]) {
-    if (left.length === 0 && right.length === 0) return null;
+  function renderMentorGridCard(ev: MentorEvent, posInRow: 0 | 1 | 2, narrowImage: boolean) {
     return (
-      <>
-        <Text style={[styles.eventsSectionTitle, styles.eventsSectionTitleGrid]}>{title}</Text>
-        <View />
-        <View style={styles.eventsGridLeft}>{left.map((e) => renderEventCard(e, 'half'))}</View>
-        <View style={styles.eventsGridRight}>{right.map((e) => renderEventCard(e, 'full'))}</View>
-      </>
+      <Pressable key={ev.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}>
+        {ev.coverUrl ? (
+          <Image
+            source={{ uri: ev.coverUrl }}
+            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]} />
+        )}
+        <View style={styles.eventCardBody}>
+          {ev.format ? <Text style={styles.eventFormat}>{ev.format}</Text> : null}
+          <Text style={styles.eventCardTitle}>{ev.title}</Text>
+          <Text style={styles.eventCardMeta}>{formatEventDate(ev.datetimeStart)}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderMentorEventsGrid(title: string, events: MentorEvent[]) {
+    if (events.length === 0) return null;
+    const rows = buildMentorEventRows(events);
+    return (
+      <View style={styles.mentorEventsSection}>
+        <Text style={styles.eventsSectionTitle}>{title}</Text>
+        {rows.map((row, rowIdx) => {
+          // Вторая строка каждой пары — та, где у третьей карточки узкая
+          // картинка (card--d на референсе).
+          const narrowLast = rowIdx % 2 === 1;
+          return (
+            <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
+              {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, narrowLast && pos === 2))}
+            </View>
+          );
+        })}
+      </View>
     );
   }
 
@@ -311,8 +339,9 @@ export default function TutorCardScreenWeb() {
           </View>
         ) : (
           // Пустая полоса между текстом и фото (по референсу, не баг) — это
-          // columnGap между двумя колонками грида. Каждая "строка" — пара
-          // прямых детей (лево/право), см. eventsGridRow.
+          // columnGap между двумя колонками грида. Сетка событий наставника
+          // — отдельная полноширинная сетка ниже, не часть этого грида, см.
+          // renderMentorEventsGrid.
           <View style={styles.desktopGrid}>
             <View style={styles.actionsRowContainer}>
               <Text style={styles.name}>{displayName || 'Наставник'}</Text>
@@ -336,11 +365,15 @@ export default function TutorCardScreenWeb() {
             <View style={styles.avatarLargeBox}>
               <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" />
             </View>
-
-            {eventsGridRow('События наставника', upcomingSplit.left, upcomingSplit.right)}
-            {eventsGridRow('Прошедшие события', pastSplit.left, pastSplit.right)}
           </View>
         )}
+
+        {!isMobile ? (
+          <>
+            {renderMentorEventsGrid('События наставника', upcomingEvents)}
+            {renderMentorEventsGrid('Прошедшие события', pastEvents)}
+          </>
+        ) : null}
       </View>
 
         <SiteFooter />
@@ -405,17 +438,20 @@ const styles = StyleSheet.create({
   eventsSection: { marginTop: 40 },
   eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
-  // Доп. отступ сверху для заголовка-строки грида (сама eventsSectionTitle
-  // без него — используется и в мобильной eventsSection, где отступ уже
-  // на обёртке).
-  eventsSectionTitleGrid: { marginTop: 300, marginBottom: 93  },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
-  // Левая колонка грида — 2 карточки в ряд; правая (под фото) — 1 карточка
-  // в столбик, см. splitForColumns/renderEventCard(widthVariant) выше — по
-  // референсу карточки событий распределены между обеими колонками
-  // страницы, а не все сразу в одной.
-  eventsGridLeft: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
-  eventsGridRight: { gap: 32 },
+
+  // Полноширинная сетка "События наставника"/"Прошедшие события" — своя,
+  // отдельная от 2-колоночного desktopGrid выше (текст/фото), см.
+  // renderMentorEventsGrid/renderMentorGridCard. Колонки 1/3/5 — карточки
+  // (см. MENTOR_ROW_COLUMNS), 2/4 — зазоры.
+  mentorEventsSection: { marginTop: 64 },
+  mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  mentorEventsRowSpacing: { marginTop: 254 },
+  mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  // card--d по референсу — третья карточка каждой второй строки уже
+  // остальных (84.4% вместо 100%), только картинка, не весь блок карточки.
+  mentorGridImageNarrow: { width: '84.4%' },
+
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },
   eventCardHalf: { width: '47%' },
