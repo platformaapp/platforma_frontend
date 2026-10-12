@@ -372,12 +372,14 @@ export default function MyEventsScreenWeb() {
     );
   }
 
+  // Мобильная карточка (2 в ряд, flex-wrap) — на десктопе вместо неё
+  // карточки в grid-строках по 3, см. renderBookingGridCard/renderBookingsGrid.
   function renderBookingCard(item: BookingItem, muted = false) {
     const other = otherPartyOf(item);
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
 
     return (
-      <Pressable key={item.id} style={[styles.card, isMobile && styles.cardMobile, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
+      <Pressable key={item.id} style={[styles.card, styles.cardMobile, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
         {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{other.name}</Text>
@@ -387,6 +389,48 @@ export default function MyEventsScreenWeb() {
           </View>
         </View>
       </Pressable>
+    );
+  }
+
+  // Та же асимметричная сетка (403/365/340), что у событий (см.
+  // renderEventGridCard) — "Личные встречи" раньше были равномерной
+  // flex-wrap сеткой (styles.grid/card) на обеих раскладках.
+  function renderBookingGridCard(item: BookingItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
+    const other = otherPartyOf(item);
+    const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
+    return (
+      <Pressable
+        key={item.id}
+        style={[{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any, muted && styles.cardMuted]}
+        onPress={() => setViewingBooking(item)}
+      >
+        {other.avatarUrl ? (
+          <Image source={{ uri: other.avatarUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+        )}
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle}>{other.name}</Text>
+          <View style={styles.cardMetaRow}>
+            <Text style={styles.cardMentorName}>Личная встреча</Text>
+            {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderBookingsGrid(items: BookingItem[], muted = false) {
+    if (items.length === 0) return null;
+    if (isMobile) return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
+    return (
+      <>
+        {chunk3(items).map((row, rowIdx) => (
+          <View key={row.map((b) => b.id).join('-')} style={[styles.cardsGridRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
+            {row.map((b, pos) => renderBookingGridCard(b, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2, muted))}
+          </View>
+        ))}
+      </>
     );
   }
 
@@ -411,13 +455,13 @@ export default function MyEventsScreenWeb() {
 
   function renderBookingGroups(items: BookingItem[], muted = false) {
     if (items.length === 0) return null;
-    if (role !== 'tutor') return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
+    if (role !== 'tutor') return renderBookingsGrid(items, muted);
     const asTutor = items.filter((b) => b._viewerRole === 'tutor');
     const asStudent = items.filter((b) => b._viewerRole === 'student');
     return (
       <>
-        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={styles.grid}>{asTutor.map((b) => renderBookingCard(b, muted))}</View></>}
-        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={styles.grid}>{asStudent.map((b) => renderBookingCard(b, muted))}</View></>}
+        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text>{renderBookingsGrid(asTutor, muted)}</>}
+        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text>{renderBookingsGrid(asStudent, muted)}</>}
       </>
     );
   }
@@ -461,7 +505,7 @@ export default function MyEventsScreenWeb() {
               ) : (
                 <>
                   {chunk3(recommended).map((row, rowIdx) => (
-                    <View key={row.map((r) => r.id).join('-')} style={styles.emptyRecommendedRow}>
+                    <View key={row.map((r) => r.id).join('-')} style={[styles.emptyRecommendedRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
                       {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
                     </View>
                   ))}
@@ -614,7 +658,7 @@ const styles = StyleSheet.create({
   // marginTop:254 на первой строке (список начинается сразу под вкладками,
   // а не после текста "нет записей") — отступ только между строками.
   cardsGridRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
-  cardsGridRowSpacing: { marginTop: 254 },
+  cardsGridRowSpacing: { marginTop: 113 },
   // grid — только для личных встреч (renderBookingGroups), события теперь используют cardsGridRow.
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
   list: { gap: 20, marginBottom: 24 },
