@@ -2,14 +2,20 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
-import { getArticle, type Article } from '@/lib/api/journal';
+import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 
 type RelatedEvent = { id: string; title: string; datetimeStart?: string; coverUrl?: string | null };
+
+// "Окей, что ещё" — до 3 связанных статей вместо баннера в конце (выбраны в
+// админке, см. admin/journal-detail.tsx). Та же сетка-тройка (403/365/340),
+// что и строки на /journal (см. ROW_ASPECTS в journal/index.web.tsx) — тут
+// всегда ровно одна строка, т.к. связанных статей не больше 3.
+const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
@@ -166,6 +172,29 @@ export default function ArticleScreenWeb() {
     </>
   );
 
+  function renderRelatedCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
+    return (
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
+        )}
+        {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
+        <Text style={styles.relatedTitle}>{item.title}</Text>
+      </Pressable>
+    );
+  }
+
+  const relatedBlock = article.relatedArticles.length > 0 ? (
+    <View style={styles.relatedSection}>
+      <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
+      <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
+        {article.relatedArticles.map((a, i) => renderRelatedCard(a, (isMobile ? 0 : i) as 0 | 1 | 2))}
+      </View>
+    </View>
+  ) : null;
+
   const textBlock = (
     <>
       {intro.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
@@ -204,7 +233,7 @@ export default function ArticleScreenWeb() {
           </View>
         )}
 
-        <PromoBanner withTelegramLink />
+        {relatedBlock}
 
         {/* На десктопе блоки "Записаться на событие" и "Скачать приложение" убраны */}
         {isMobile && relatedEvent ? (
@@ -283,6 +312,16 @@ const styles = StyleSheet.create({
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16, marginTop: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
+
+  // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
+  // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
+  relatedSection: { marginTop: 97, marginBottom: 40 },
+  relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 24 } as any,
+  relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  relatedCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, marginTop: 18 },
+  relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },

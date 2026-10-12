@@ -22,6 +22,13 @@ export interface ArticleAuthor {
   shortBio?: string;
 }
 
+export interface RelatedArticle {
+  id: string;
+  title: string;
+  category: string | null;
+  coverUrl: string | null;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -30,6 +37,9 @@ export interface Article {
   coverUrl: string | null;
   gallery: string[];
   author: ArticleAuthor;
+  // "Окей, что ещё" в конце статьи — до 3 статей, выбранных в админке
+  // (см. admin/journal-detail.tsx). Только на findOne (списки отдают []).
+  relatedArticles: RelatedArticle[];
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +72,14 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
       avatarUrl: resolveUrl(author.avatar_url as string | undefined),
       roleTitle: (author.role_title as string) ?? null,
     },
+    relatedArticles: Array.isArray(raw.related_articles)
+      ? (raw.related_articles as Record<string, unknown>[]).map((r) => ({
+          id: String(r.id ?? ''),
+          title: String(r.title ?? ''),
+          category: (r.category as string) ?? null,
+          coverUrl: resolveUrl(r.cover_url as string | undefined),
+        }))
+      : [],
     createdAt: String(raw.created_at ?? ''),
     updatedAt: String(raw.updated_at ?? ''),
   };

@@ -23,6 +23,7 @@ import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 const FORMATS = ['Подкаст', 'Текст', 'Интервью'] as const;
 
 type TutorOption = { id: string; fullName: string; email: string };
+type ArticleOption = { id: string; title: string; category: string | null };
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -110,6 +111,14 @@ export default function AdminJournalDetailScreen() {
   const [authorOptions, setAuthorOptions] = useState<TutorOption[]>([]);
   const [authorSearching, setAuthorSearching] = useState(false);
 
+  // "Окей, что ещё" в конце статьи — до 3 связанных статей, выбранных
+  // здесь при создании/редактировании (см. [id].web.tsx, блок вместо
+  // баннера в конце).
+  const [relatedArticles, setRelatedArticles] = useState<ArticleOption[]>([]);
+  const [relatedQuery, setRelatedQuery] = useState('');
+  const [relatedOptions, setRelatedOptions] = useState<ArticleOption[]>([]);
+  const [relatedSearching, setRelatedSearching] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -138,6 +147,9 @@ export default function AdminJournalDetailScreen() {
         setCoverUri(resolveUrl(a.cover_url));
         setGallery(Array.isArray(a.gallery) ? a.gallery.map((g: string) => resolveUrl(g) ?? g) : []);
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
+        if (Array.isArray(a.related_articles)) {
+          setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
+        }
       } catch {
         if (active) setLoadError('Не удалось загрузить материал');
       } finally {
@@ -166,6 +178,41 @@ export default function AdminJournalDetailScreen() {
     }, 300);
     return () => { active = false; clearTimeout(t); };
   }, [authorQuery]);
+
+  useEffect(() => {
+    if (!relatedQuery.trim()) { setRelatedOptions([]); return; }
+    let active = true;
+    const t = setTimeout(async () => {
+      const token = await getAdminToken();
+      if (!token) return;
+      setRelatedSearching(true);
+      try {
+        const params = new URLSearchParams({ search: relatedQuery.trim(), per_page: '10' });
+        const res = await fetch(`${endpoints.adminArticles}?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data?.data) ? data.data : [];
+        const selectedIds = new Set(relatedArticles.map((r) => r.id));
+        const opts = items
+          .map((a: any) => ({ id: a.id, title: a.title, category: a.category ?? null }))
+          .filter((a: ArticleOption) => a.id !== id && !selectedIds.has(a.id));
+        if (active) setRelatedOptions(opts);
+      } catch { /* ignore */ }
+      finally { if (active) setRelatedSearching(false); }
+    }, 300);
+    return () => { active = false; clearTimeout(t); };
+  }, [relatedQuery, relatedArticles, id]);
+
+  function addRelatedArticle(opt: ArticleOption) {
+    if (relatedArticles.length >= 3) return;
+    setRelatedArticles((prev) => [...prev, opt]);
+    setRelatedQuery('');
+    setRelatedOptions([]);
+  }
+
+  function removeRelatedArticle(articleId: string) {
+    setRelatedArticles((prev) => prev.filter((r) => r.id !== articleId));
+  }
 
   async function handlePickCover() {
     const uri = await pickImage();
@@ -216,6 +263,7 @@ export default function AdminJournalDetailScreen() {
         category,
         cover_url: uploadedCover,
         gallery: uploadedGallery,
+        related_article_ids: relatedArticles.map((r) => r.id),
         author_id: author.id,
       };
 
@@ -365,6 +413,36 @@ export default function AdminJournalDetailScreen() {
           ) : null}
         </View>
 
+        <Text style={styles.label}>«Окей, что ещё» — похожие статьи (до 3, вместо баннера в конце)</Text>
+        {relatedArticles.length > 0 ? (
+          <View style={styles.relatedChipsRow}>
+            {relatedArticles.map((r) => (
+              <View key={r.id} style={styles.relatedChip}>
+                <Text style={styles.relatedChipText} numberOfLines={1}>{r.title}</Text>
+                <Pressable onPress={() => removeRelatedArticle(r.id)}><Text style={styles.relatedChipRemove}>✕</Text></Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {relatedArticles.length < 3 ? (
+          <>
+            <TextInput
+              style={styles.input}
+              value={relatedQuery}
+              onChangeText={setRelatedQuery}
+              placeholder="Поиск статьи по названию"
+              placeholderTextColor="#9B9B9B"
+            />
+            {relatedSearching ? <ActivityIndicator style={{ marginTop: 8 }} color="#181818" /> : null}
+            {relatedOptions.map((opt) => (
+              <Pressable key={opt.id} style={styles.authorOption} onPress={() => addRelatedArticle(opt)}>
+                <Text style={styles.authorOptionName}>{opt.title}</Text>
+                {opt.category ? <Text style={styles.authorOptionEmail}>{opt.category}</Text> : null}
+              </Pressable>
+            ))}
+          </>
+        ) : null}
+
         {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
 
         <Pressable
@@ -429,6 +507,11 @@ const styles = StyleSheet.create({
   authorOption: { borderWidth: 1, borderColor: '#E5E5E5', borderTopWidth: 0, padding: 10 },
   authorOptionName: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   authorOptionEmail: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+
+  relatedChipsRow: { gap: 8, marginBottom: 8 },
+  relatedChip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderWidth: 1, borderColor: '#E5E5E5', paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#FAFAFA' },
+  relatedChipText: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  relatedChipRemove: { fontSize: 13, color: '#9B9B9B' },
 
   galleryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   galleryItem: { width: 96, height: 96, position: 'relative' },
