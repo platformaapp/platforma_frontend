@@ -22,6 +22,21 @@ import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
 const FORMATS = ['Подкаст', 'Текст', 'Интервью'] as const;
 
+// Тулбар над "Текст" — каждая кнопка оборачивает выделенный фрагмент парой
+// маркеров; разбирает их parseInlineMarkdown (lib/markdown-inline.tsx) на
+// странице статьи. Не настоящий markdown — фиксированный набор пар под то,
+// что умеет тулбар (жирный/курсив/подчёркнутый/зачёркнутый/выделение
+// цветом/крупнее/мельче), ссылка — отдельной кнопкой с запросом URL.
+const TOOLBAR_ACTIONS: { label: string; title: string; before: string; after: string }[] = [
+  { label: 'Ж', title: 'Жирный', before: '**', after: '**' },
+  { label: 'К', title: 'Курсив', before: '*', after: '*' },
+  { label: 'Ч', title: 'Подчёркнутый', before: '__', after: '__' },
+  { label: 'З', title: 'Зачёркнутый', before: '~~', after: '~~' },
+  { label: 'Ц', title: 'Выделить цветом', before: '==', after: '==' },
+  { label: 'A+', title: 'Крупнее', before: '{+', after: '+}' },
+  { label: 'A-', title: 'Мельче', before: '{-', after: '-}' },
+];
+
 type TutorOption = { id: string; fullName: string; email: string };
 type ArticleOption = { id: string; title: string; category: string | null };
 
@@ -100,6 +115,7 @@ export default function AdminJournalDetailScreen() {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [contentSelection, setContentSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const [category, setCategory] = useState<string>(FORMATS[1]);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -227,6 +243,22 @@ export default function AdminJournalDetailScreen() {
 
   function removeGalleryImage(idx: number) {
     setGallery((g) => g.filter((_, i) => i !== idx));
+  }
+
+  // Оборачивает текущее выделение в "Текст" парой маркеров тулбара (если
+  // ничего не выделено — вставляет пустую пару на месте курсора).
+  function wrapContentSelection(before: string, after: string) {
+    const { start, end } = contentSelection;
+    const selected = content.slice(start, end);
+    setContent(content.slice(0, start) + before + selected + after + content.slice(end));
+  }
+
+  function insertLink() {
+    const url = typeof window !== 'undefined' ? window.prompt('Ссылка (URL)') : null;
+    if (!url) return;
+    const { start, end } = contentSelection;
+    const label = content.slice(start, end) || 'текст ссылки';
+    setContent(content.slice(0, start) + `[${label}](${url})` + content.slice(end));
   }
 
   async function handleSave() {
@@ -384,11 +416,25 @@ export default function AdminJournalDetailScreen() {
         )}
 
         <Text style={styles.label}>Текст</Text>
-        <Text style={styles.hint}>Строка вида «## Подзаголовок» открывает второй блок статьи (подзаголовок + текст рядом с галереей).</Text>
+        <Text style={styles.hint}>
+          Строка вида «## Подзаголовок» открывает второй блок статьи (подзаголовок + текст рядом с галереей). Выделите
+          фрагмент и нажмите кнопку форматирования ниже — она обернёт выделение нужными символами.
+        </Text>
+        <View style={styles.toolbarRow}>
+          {TOOLBAR_ACTIONS.map((a) => (
+            <Pressable key={a.label} style={styles.toolbarBtn} onPress={() => wrapContentSelection(a.before, a.after)} accessibilityLabel={a.title}>
+              <Text style={styles.toolbarBtnText}>{a.label}</Text>
+            </Pressable>
+          ))}
+          <Pressable style={styles.toolbarBtn} onPress={insertLink} accessibilityLabel="Ссылка">
+            <Text style={styles.toolbarBtnText}>🔗</Text>
+          </Pressable>
+        </View>
         <TextInput
           style={[styles.input, styles.inputMultiline]}
           value={content}
           onChangeText={setContent}
+          onSelectionChange={(e) => setContentSelection(e.nativeEvent.selection)}
           placeholder={'Первый абзац...\n\n## Подзаголовок\n\nТекст второго блока...'}
           placeholderTextColor="#9B9B9B"
           multiline
@@ -490,6 +536,9 @@ const styles = StyleSheet.create({
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
   },
   inputMultiline: { minHeight: 200, textAlignVertical: 'top' },
+  toolbarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  toolbarBtn: { width: 32, height: 32, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
+  toolbarBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   removeLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },
 
   coverBtn: { borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', height: 160, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

@@ -7,6 +7,7 @@ import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
+import { parseInlineMarkdown } from '@/lib/markdown-inline';
 
 type RelatedEvent = { id: string; title: string; datetimeStart?: string; coverUrl?: string | null };
 
@@ -197,11 +198,11 @@ export default function ArticleScreenWeb() {
 
   const textBlock = (
     <>
-      {intro.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
+      {intro.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>)}
       {section ? (
         <>
           <Text style={styles.subheading}>{section.heading}</Text>
-          {section.body.map((p, i) => <Text key={i} style={styles.body}>{p}</Text>)}
+          {section.body.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>)}
         </>
       ) : null}
     </>
