@@ -2,14 +2,15 @@
  * API-клиент для журнала (статьи). Бэкенд: GET/POST/PATCH/DELETE /api/articles
  * (создание/изменение/удаление — только через админку, см. /admin/journal).
  *
- * Поле category хранит формат материала — "Подкаст" | "Текст" | "Интервью"
- * (фильтры "Подкасты"/"Тексты"/"Интервью" в /journal); это переиспользованное
- * поле, отдельного поля "формат" на бэкенде нет.
+ * Поле category хранит формат материала — глагол-действие, а не
+ * существительное ("Послушать"/"Посмотреть"/"Посетить"/"Обсудить"), значения
+ * совпадают с фильтр-пилюлями в /journal один в один, отдельного поля
+ * "формат" на бэкенде нет.
  */
 
 import { API_BASE, endpoints } from '@/constants/env';
 
-export const ARTICLE_FORMATS = ['Подкаст', 'Текст', 'Интервью'] as const;
+export const ARTICLE_FORMATS = ['Послушать', 'Посмотреть', 'Посетить', 'Обсудить'] as const;
 export type ArticleFormat = (typeof ARTICLE_FORMATS)[number];
 
 export interface ArticleAuthor {
@@ -44,6 +45,8 @@ export interface Article {
   category: string | null;
   coverUrl: string | null;
   gallery: string[];
+  // Подпись под второй (правой) фотографией галереи — gallery[1].
+  galleryCaption: string | null;
   author: ArticleAuthor;
   // "Окей, что ещё" в конце статьи — до 3 статей, выбранных в админке
   // (см. admin/journal-detail.tsx). Только на findOne (списки отдают []).
@@ -77,6 +80,7 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
     category: (raw.category as string) ?? null,
     coverUrl: resolveUrl(raw.cover_url as string | undefined),
     gallery: Array.isArray(raw.gallery) ? (raw.gallery as string[]).map((g) => resolveUrl(g) ?? g) : [],
+    galleryCaption: (raw.gallery_caption as string) ?? null,
     author: {
       id: String(author.id ?? ''),
       name: String(author.name ?? ''),

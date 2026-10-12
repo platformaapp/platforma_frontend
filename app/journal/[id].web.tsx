@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
@@ -138,17 +139,28 @@ export default function ArticleScreenWeb() {
   // Обложка и галерея — единый медиа-блок: текст статьи начинается под
   // обложкой, галерея (если есть) идёт сразу под ней же, а не привязана к
   // случайному "## "-подзаголовку (у реальных статей его никогда нет).
+  // Подпись — только под второй (правой) фотографией, см. admin/journal-detail.tsx.
   const mediaBlock = (
     <>
       {article.coverUrl ? <Image source={{ uri: article.coverUrl }} style={styles.coverImage} resizeMode="cover" /> : <View style={styles.coverImage} />}
       {galleryLeft || galleryRight ? (
         <View style={styles.galleryRow}>
           {galleryLeft ? <Image source={{ uri: galleryLeft }} style={styles.galleryImage} resizeMode="cover" /> : null}
-          {galleryRight ? <Image source={{ uri: galleryRight }} style={styles.galleryImage} resizeMode="cover" /> : null}
+          {galleryRight ? (
+            <View style={styles.galleryImageWithCaption}>
+              <Image source={{ uri: galleryRight }} style={styles.galleryImageInner} resizeMode="cover" />
+              {article.galleryCaption ? <Text style={styles.galleryCaption}>{article.galleryCaption}</Text> : null}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </>
   );
+
+  // Баннер — только рядом со вторым подзаголовком (см. ниже, desktop grid
+  // row 2); если в статье нет "## "-блока, баннеру просто не с чем
+  // соседствовать — не показываем его отдельно в конце, как было раньше.
+  const bannerBlock = section ? <PromoBanner withTelegramLink /> : null;
 
   function renderRelatedCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
     return (
@@ -173,17 +185,14 @@ export default function ArticleScreenWeb() {
     </View>
   ) : null;
 
-  const textBlock = (
+  const introBlock = intro.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>);
+
+  const sectionBlock = section ? (
     <>
-      {intro.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>)}
-      {section ? (
-        <>
-          <Text style={styles.subheading}>{section.heading}</Text>
-          {section.body.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>)}
-        </>
-      ) : null}
+      <Text style={styles.subheading}>{section.heading}</Text>
+      {section.body.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>)}
     </>
-  );
+  ) : null;
 
   return (
     <SiteShell>
@@ -191,23 +200,38 @@ export default function ArticleScreenWeb() {
       <View style={styles.pageContent}>
         {isMobile ? (
           // Мобильная раскладка — один столбец: заголовок, затем обложка (+
-          // галерея), затем автор, и только после них текст статьи.
+          // галерея), затем автор, и только после них текст статьи. Баннер
+          // (если есть второй подзаголовок) — сразу после второго блока
+          // текста, "рядом" тут не применимо (один столбец).
           <View style={styles.mobileStack}>
             {titleElement}
             <View style={styles.mobileMediaBlock}>{mediaBlock}</View>
             {authorBlock}
-            {textBlock}
+            {introBlock}
+            {sectionBlock}
+            {bannerBlock}
           </View>
         ) : (
-          <View style={styles.row}>
-            <View style={styles.colText}>
+          // CSS Grid, а не два независимых flex-столбца — нужно, чтобы вторая
+          // строка (подзаголовок+текст / баннер) стартовала на одном уровне в
+          // обеих колонках: баннер должен оказаться напротив второго
+          // подзаголовка, а это достижимо только если это пара прямых детей
+          // грида в одной и той же строке (см. тот же приём на /explore/[id]).
+          <View style={styles.articleGrid}>
+            <View>
               {titleElement}
               {authorBlock}
-              {textBlock}
+              {introBlock}
             </View>
-            <View style={styles.colImage}>
+            <View style={styles.colImageTop}>
               {mediaBlock}
             </View>
+            {section ? (
+              <>
+                <View>{sectionBlock}</View>
+                <View>{bannerBlock}</View>
+              </>
+            ) : null}
           </View>
         )}
 
@@ -262,18 +286,15 @@ const styles = StyleSheet.create({
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  // Десктоп: единая двухколоночная строка — весь текст (заголовок, автор,
-  // абзацы) в одной колонке, обложка+галерея — в другой; так текст и медиа
-  // просто текут каждый в своей колонке, не привязанные построчно друг к
-  // другу. Мобильный: один столбец, порядок задаётся отдельно в JSX
-  // (headerBlock → mediaBlock → textBlock — текст начинается под обложкой).
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, marginBottom: 40 },
+  // Десктоп: CSS Grid (не два независимых flex-столбца) — строка 2
+  // (подзаголовок+текст / баннер) должна стартовать на одном уровне в обеих
+  // колонках, иначе баннер не окажется напротив подзаголовка (см. комментарий
+  // в JSX). Мобильный: один столбец, порядок — отдельно в JSX (titleElement →
+  // mediaBlock → authorBlock → introBlock → sectionBlock → bannerBlock).
+  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, marginBottom: 40 } as any,
   mobileStack: { marginBottom: 40 },
   mobileMediaBlock: { marginBottom: 24 },
-  // flexShrink явно 1 — у RN Web дефолт 0, без этого колонка не сжимается
-  // ниже flexBasis и текст вылезает за край на узких экранах.
-  colText: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 280 },
-  colImage: { flexBasis: 420, flexGrow: 1, flexShrink: 1, minWidth: 240, maxHeight: 494 },
+  colImageTop: { minWidth: 240, maxHeight: 494 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
@@ -291,6 +312,11 @@ const styles = StyleSheet.create({
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   galleryRow: { flexDirection: 'row', gap: 16, marginTop: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
+  // Правая фотография — с подписью под ней, поэтому своя обёртка вместо
+  // flex/maxWidth прямо на Image (как у galleryImage/левой фотографии).
+  galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
+  galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
+  galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).

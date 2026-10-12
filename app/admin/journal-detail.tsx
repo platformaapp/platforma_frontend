@@ -20,7 +20,7 @@ import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
 import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
-const FORMATS = ['Подкаст', 'Текст', 'Интервью'] as const;
+const FORMATS = ['Послушать', 'Посмотреть', 'Посетить', 'Обсудить'] as const;
 
 // Тулбар над "Текст" — каждая кнопка оборачивает выделенный фрагмент парой
 // маркеров; разбирает их parseInlineMarkdown (lib/markdown-inline.tsx) на
@@ -78,7 +78,8 @@ async function uploadAdminImage(uri: string): Promise<string> {
 async function pickImage(): Promise<string | null> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
+    if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert('Необходимо разрешение на доступ к фотографиям'); }
+    else Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
     return null;
   }
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -122,6 +123,7 @@ export default function AdminJournalDetailScreen() {
   const [coverUploading, setCoverUploading] = useState(false);
   const [gallery, setGallery] = useState<string[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryCaption, setGalleryCaption] = useState('');
 
   const [author, setAuthor] = useState<TutorOption | null>(null);
   const [authorQuery, setAuthorQuery] = useState('');
@@ -170,6 +172,7 @@ export default function AdminJournalDetailScreen() {
         setCategory(a.category ?? FORMATS[1]);
         setCoverUri(resolveUrl(a.cover_url));
         setGallery(Array.isArray(a.gallery) ? a.gallery.map((g: string) => resolveUrl(g) ?? g) : []);
+        setGalleryCaption(a.gallery_caption ?? '');
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
         if (Array.isArray(a.related_articles)) {
           setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
@@ -325,6 +328,7 @@ export default function AdminJournalDetailScreen() {
         category,
         cover_url: uploadedCover,
         gallery: uploadedGallery,
+        gallery_caption: galleryCaption.trim() || undefined,
         related_article_ids: relatedArticles.map((r) => r.id),
         event_id: event ? event.id : null,
         author_id: author.id,
@@ -349,7 +353,15 @@ export default function AdminJournalDetailScreen() {
     }
   }
 
+  // Alert.alert с несколькими кнопками — react-native-web это полный no-op
+  // (см. node_modules/react-native-web/.../Alert: static alert() {}), поэтому
+  // окно подтверждения никогда не появлялось и handleDelete не вызывался.
+  // Админка работает на web — используем window.confirm напрямую.
   function confirmDelete() {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Удалить материал «${title}»?`)) handleDelete();
+      return;
+    }
     Alert.alert('Удалить материал?', title, [
       { text: 'Отмена', style: 'cancel' },
       { text: 'Удалить', style: 'destructive', onPress: handleDelete },
@@ -373,7 +385,9 @@ export default function AdminJournalDetailScreen() {
       }
       router.back();
     } catch (e) {
-      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось удалить материал');
+      const msg = (e as Error)?.message ?? 'Не удалось удалить материал';
+      if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert(msg); }
+      else Alert.alert('Ошибка', msg);
     } finally {
       setDeleting(false);
     }
@@ -489,6 +503,18 @@ export default function AdminJournalDetailScreen() {
             </Pressable>
           ) : null}
         </View>
+        {gallery.length > 1 ? (
+          <>
+            <Text style={styles.label}>Подпись под второй фотографией</Text>
+            <TextInput
+              style={styles.input}
+              value={galleryCaption}
+              onChangeText={setGalleryCaption}
+              placeholder="Короткая подпись к фото"
+              placeholderTextColor="#9B9B9B"
+            />
+          </>
+        ) : null}
 
         <Text style={styles.label}>«Окей, что ещё» — похожие статьи (до 3, вместо баннера в конце)</Text>
         {relatedArticles.length > 0 ? (

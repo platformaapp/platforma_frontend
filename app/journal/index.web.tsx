@@ -9,9 +9,9 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 
-// "Подкасты"/"Тексты"/"Интервью" — фильтр-пилюли; значение в БД хранится в
-// единственном числе (см. lib/api/journal.ts).
-const FILTER_LABELS: Record<string, string> = { 'Подкаст': 'Подкасты', 'Текст': 'Тексты', 'Интервью': 'Интервью' };
+// Последний фильтр — отдельно, с выравниванием по правому краю (тот же
+// приём, что "Обсуждение" на /events и "Новые увлечения" на /explore).
+const LAST_FILTER_RIGHT_ALIGNED = 'Обсудить';
 
 // Повторяющийся цикл из 4 строк (пара/тройка/пара/тройка, см. rows ниже) —
 // пропорции колонок из референса (vladyakunin.ru): .proj-featured 649:84:716
@@ -144,14 +144,24 @@ export default function JournalScreenWeb() {
         </Pressable>
 
         <View style={styles.filtersRow}>
-          {ARTICLE_FORMATS.map((f) => {
-            const active = f === category;
-            return (
-              <Pressable key={f} onPress={() => setCategory(active ? null : f)}>
-                <Text style={[styles.filterText, active && styles.filterTextActive]}>{FILTER_LABELS[f] ?? f}</Text>
-              </Pressable>
-            );
-          })}
+          <View style={styles.filtersGroup}>
+            {ARTICLE_FORMATS.filter((f) => f !== LAST_FILTER_RIGHT_ALIGNED).map((f) => {
+              const active = f === category;
+              return (
+                <Pressable key={f} onPress={() => setCategory(active ? null : f)}>
+                  <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {ARTICLE_FORMATS.includes(LAST_FILTER_RIGHT_ALIGNED) ? (
+            <Pressable
+              style={styles.filterPillRight}
+              onPress={() => setCategory(category === LAST_FILTER_RIGHT_ALIGNED ? null : LAST_FILTER_RIGHT_ALIGNED)}
+            >
+              <Text style={[styles.filterText, category === LAST_FILTER_RIGHT_ALIGNED && styles.filterTextActive]}>{LAST_FILTER_RIGHT_ALIGNED}</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {loading ? (
@@ -237,7 +247,9 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  filtersRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, marginBottom: 0, marginTop: 68 },
+  filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, marginTop: 68 },
+  filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
+  filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
