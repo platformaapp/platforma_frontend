@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { ContactsContent } from '@/app/contacts';
 import { OfferContent } from '@/app/offer';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { DocumentModal } from './document-modal';
@@ -90,7 +89,7 @@ function LogoGrid({ logos }: { logos: { name: string; logo: number | string; url
  * и только на десктопе (на мобильном партнёров не показываем нигде вообще).
  */
 export function SiteFooter({ showPartners = false }: { showPartners?: boolean }) {
-  const [openDoc, setOpenDoc] = useState<'none' | 'contacts' | 'offer'>('none');
+  const [openDoc, setOpenDoc] = useState<'none' | 'offer'>('none');
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
   const displayPartners = showPartners && !isMobile;
@@ -132,19 +131,11 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
 
       <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
         <Text style={styles.copyright}>©2026, p(34)</Text>
-        <View style={styles.bottomLinks}>
-          <Pressable onPress={() => setOpenDoc('contacts')}>
-            <Text style={styles.docsLink}>Контакты для связи</Text>
-          </Pressable>
-          <Pressable onPress={() => setOpenDoc('offer')}>
-            <Text style={styles.docsLink}>Официальные документы</Text>
-          </Pressable>
-        </View>
+        <Pressable onPress={() => setOpenDoc('offer')}>
+          <Text style={styles.docsLink}>Официальные документы</Text>
+        </Pressable>
       </View>
 
-      <DocumentModal visible={openDoc === 'contacts'} onClose={() => setOpenDoc('none')} title="Контакты для связи">
-        <ContactsContent />
-      </DocumentModal>
       <DocumentModal visible={openDoc === 'offer'} onClose={() => setOpenDoc('none')} title="Официальные документы">
         <OfferContent />
       </DocumentModal>
@@ -176,6 +167,5 @@ const styles = StyleSheet.create({
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
   bottomRowWithPartners: { marginTop: 258 },
   copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
-  bottomLinks: { flexDirection: 'row', gap: 24 },
   docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', textDecorationLine: 'none' },
 });

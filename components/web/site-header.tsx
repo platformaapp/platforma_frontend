@@ -3,24 +3,29 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { useSiteSettings } from '@/hooks/use-site-settings';
+import { BackArrowIcon } from './back-arrow-icon';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
 // Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png),
 // подписи и порядок пунктов — свои, не менялись. Пункты всегда чёрные —
-// без подсветки активного (по просьбе пользователя).
+// без подсветки активного (по просьбе пользователя). "Личный кабинет" —
+// та же иконка-стрелка (nav-1), что у "События", не отдельная (nav-5) —
+// так на вебе должно быть, как и в нативном приложении.
 const NAV_ITEMS = [
   { key: 'events', label: 'События', href: '/events', icon: require('@/assets/images/nav-1.png') },
   { key: 'explore', label: 'Наставники', href: '/explore', icon: require('@/assets/images/nav-2.png') },
   { key: 'myevents', label: 'Мои записи', href: '/myevents', icon: require('@/assets/images/nav-3.png') },
   { key: 'journal', label: 'Журнал', href: '/journal', icon: require('@/assets/images/nav-4.png') },
-  { key: 'profile', label: 'Личный кабинет', href: '/profile', icon: require('@/assets/images/nav-5.png') },
+  { key: 'profile', label: 'Личный кабинет', href: '/profile', icon: require('@/assets/images/nav-1.png') },
 ] as const;
 
 /**
  * Шапка. На десктопе — иконка+подпись слева, типографический логотип "p(34)"
  * справа. На узких экранах навигация уходит в нижнюю иконочную панель
- * (MobileBottomNav), здесь остаётся только логотип-ссылка на /events сверху
- * справа (см. моб. макеты).
+ * (MobileBottomNav), здесь остаётся только стрелка "назад" слева (без
+ * логотипа p(34) — убран по просьбе пользователя) — на любой странице, не
+ * только на "подстраницах": history.back() работает и между вкладками
+ * (см. моб. макет — стрелка есть даже на самом "Журнале").
  */
 export function SiteHeader() {
   const router = useRouter();
@@ -33,8 +38,8 @@ export function SiteHeader() {
   if (isMobile) {
     return (
       <View style={styles.mobileHeader}>
-        <Pressable onPress={() => router.push('/events' as any)}>
-          <Text style={styles.logo}>p(34)</Text>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.push('/events' as any))} hitSlop={12}>
+          <BackArrowIcon width={20} height={19} />
         </Pressable>
       </View>
     );
@@ -80,11 +85,11 @@ const styles = StyleSheet.create({
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // Иконка 14px, текст line-height:1 (=15px при font-size:15) — строка
-  // пункта навигации высотой 15px, как в макете.
-  navIconImage: { width: 14, height: 14 },
+  navIconImage: { width: 24, height: 24 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 15, color: '#010101' },
   logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#010101', lineHeight: 1
    },
-  mobileHeader: { alignItems: 'flex-end', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
+  // Высота мобильного навбара — 76, стрелка "назад" по левому краю, по
+  // центру по вертикали.
+  mobileHeader: { height: 76, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24 },
 });

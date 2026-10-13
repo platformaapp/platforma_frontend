@@ -154,26 +154,28 @@ export default function JournalScreenWeb() {
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
 
-        <View style={styles.filtersRow}>
-          <View style={styles.filtersGroup}>
-            {ARTICLE_FORMATS.filter((f) => f !== LAST_FILTER_RIGHT_ALIGNED).map((f) => {
-              const active = f === category;
-              return (
-                <Pressable key={f} onPress={() => setCategory(active ? null : f)}>
-                  <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
-                </Pressable>
-              );
-            })}
+        {!isMobile ? (
+          <View style={styles.filtersRow}>
+            <View style={styles.filtersGroup}>
+              {ARTICLE_FORMATS.filter((f) => f !== LAST_FILTER_RIGHT_ALIGNED).map((f) => {
+                const active = f === category;
+                return (
+                  <Pressable key={f} onPress={() => setCategory(active ? null : f)}>
+                    <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {ARTICLE_FORMATS.includes(LAST_FILTER_RIGHT_ALIGNED) ? (
+              <Pressable
+                style={styles.filterPillRight}
+                onPress={() => setCategory(category === LAST_FILTER_RIGHT_ALIGNED ? null : LAST_FILTER_RIGHT_ALIGNED)}
+              >
+                <Text style={[styles.filterText, category === LAST_FILTER_RIGHT_ALIGNED && styles.filterTextActive]}>{LAST_FILTER_RIGHT_ALIGNED}</Text>
+              </Pressable>
+            ) : null}
           </View>
-          {ARTICLE_FORMATS.includes(LAST_FILTER_RIGHT_ALIGNED) ? (
-            <Pressable
-              style={styles.filterPillRight}
-              onPress={() => setCategory(category === LAST_FILTER_RIGHT_ALIGNED ? null : LAST_FILTER_RIGHT_ALIGNED)}
-            >
-              <Text style={[styles.filterText, category === LAST_FILTER_RIGHT_ALIGNED && styles.filterTextActive]}>{LAST_FILTER_RIGHT_ALIGNED}</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        ) : null}
 
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
@@ -192,7 +194,7 @@ export default function JournalScreenWeb() {
               <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
-                  {item.category ? <Text style={styles.cardCategory}>{item.category}</Text> : null}
+                  {item.category ? <Text style={styles.mobileCategory}>{item.category}</Text> : null}
                   <Text style={styles.mobileTitleText}>{item.title}</Text>
                 </View>
               </Pressable>
@@ -238,7 +240,6 @@ export default function JournalScreenWeb() {
         )}
 
         {!isMobile && !loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner withTelegramLink /> : null}
-        {isMobile && !loading && !error && filtered.length > 0 ? <PromoBanner withTelegramLink /> : null}
 
         {!loading && !error && hasMore ? (
           <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
@@ -305,9 +306,13 @@ const styles = StyleSheet.create({
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
 
-  mobileList: { gap: 20 },
-  mobileRow: { flexDirection: 'row', gap: 12 },
-  mobileThumb: { width: 88, height: 64, backgroundColor: '#E5E5E5' },
-  mobileInfo: { flex: 1, justifyContent: 'center' },
-  mobileTitleText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  // Обложка — aspect-ratio 649/360, ~45% ширины строки (как на /events и
+  // как верстка на vladyakunin.ru/journal), а не маленький квадратный
+  // превью-тамбнейл, как раньше.
+  mobileList: { gap: 28 },
+  mobileRow: { flexDirection: 'row', gap: 14 },
+  mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, justifyContent: 'flex-start' },
+  mobileCategory: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 });

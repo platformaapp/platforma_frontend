@@ -5,12 +5,14 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 
 // Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png).
+// "Личный кабинет" — та же иконка-стрелка (nav-1), что у "События", не
+// отдельная (nav-5) — как в SiteHeader (десктоп), см. комментарий там.
 const NAV_ITEMS = [
   { key: 'events', href: '/events', icon: require('@/assets/images/nav-1.png'), match: ['/events'] },
   { key: 'explore', href: '/explore', icon: require('@/assets/images/nav-2.png'), match: ['/explore'] },
   { key: 'myevents', href: '/myevents', icon: require('@/assets/images/nav-3.png'), match: ['/myevents'] },
   { key: 'journal', href: '/journal', icon: require('@/assets/images/nav-4.png'), match: ['/journal'] },
-  { key: 'profile', href: '/profile', icon: require('@/assets/images/nav-5.png'), match: ['/profile'] },
+  { key: 'profile', href: '/profile', icon: require('@/assets/images/nav-1.png'), match: ['/profile'] },
 ] as const;
 
 function isActive(pathname: string, match: readonly string[]) {
@@ -66,6 +68,6 @@ const styles = StyleSheet.create({
   // alignItems:'center' в .bar сдвигает именно его иконку относительно
   // остальных (была ровно эта поломка выравнивания).
   item: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  iconImage: { width: 20, height: 20 },
+  iconImage: { width: 24, height: 24 },
   activeDot: { position: 'absolute', bottom: -8, left: '50%', marginLeft: -2, width: 4, height: 4, borderRadius: 2, backgroundColor: '#E02D2D' },
 });

@@ -315,8 +315,8 @@ export default function EventsScreenWeb() {
                   <View>
                     {item.mentor?.name ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
                     <Text style={styles.mobileTitleText}>{item.title}</Text>
-                    {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                   </View>
+                  {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                 </View>
               </Pressable>
             ))}
@@ -358,7 +358,7 @@ export default function EventsScreenWeb() {
           </View>
         )}
 
-        {!loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner /> : null}
+        {!isMobile && !loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner /> : null}
 
         {!loading && !error && hasMore ? (
           <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
@@ -444,14 +444,14 @@ const styles = StyleSheet.create({
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
-  // Мобильный список — обложка слева (166×149, см. моб. макет), текст
-  // справа: автор+заголовок, по центру колонки (высота которой равна
-  // высоте обложки) — время убрано из карточки по просьбе пользователя.
+  // Мобильный список — обложка слева (aspect-ratio 649/360, ~45% ширины
+  // строки), текст справа: автор+заголовок сверху, дата — снизу и вправо
+  // (см. моб. макет), а не по центру колонки, как раньше.
   mobileList: { gap: 28 },
   mobileRow: { flexDirection: 'row', gap: 14 },
-  mobileThumb: { width: 166, height: 149, backgroundColor: '#E5E5E5' },
-  mobileInfo: { flex: 1, height: 149, justifyContent: 'center' },
+  mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 6 },
   mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  mobileDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 6 },
+  mobileDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });
