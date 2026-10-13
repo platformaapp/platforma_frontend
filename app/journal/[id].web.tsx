@@ -17,9 +17,17 @@ const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 // Баннер рядом со вторым подзаголовком — свой, отдельный от PromoBanner
 // (того, что на /journal и /events): конкретная портретная картинка
-// 720×1280, не админско-настраиваемый промо-баннер списков.
+// 720×1280, не админско-настраиваемый промо-баннер списков. Небольшой,
+// фиксированного размера (как сайдбар-баннер рядом с текстом на
+// theblueprint.ru), а не во всю колонку.
+// Ширина и высота заданы числом явно (не width:'100%' + aspectRatio) — у
+// Image из require() react-native-web подставляет вместо недостающей
+// высоты натуральный пиксельный размер файла (1280), игнорируя aspectRatio
+// и растягивая/искажая картинку; явная числовая высота это перебивает.
 const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
 const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
+const SECTION_BANNER_WIDTH = 300;
+const SECTION_BANNER_HEIGHT = Math.round(SECTION_BANNER_WIDTH / SECTION_BANNER_ASPECT_RATIO);
 const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
 // Маркеры для вставки события/похожей статьи прямо в текст — админ ставит их
@@ -45,28 +53,27 @@ function formatEventTime(iso?: string): string {
   }
 }
 
-/**
- * Контент статьи — обычный текст, абзацы разделены пустой строкой; строка,
- * начинающаяся с "## ", открывает второй блок (подзаголовок + текст) в той
- * же текстовой колонке. Второй "## " и дальше не поддерживаются — в макете
- * такой блок всего один.
- */
+// Строка, начинающаяся с "##" (после обрезки пробелов — любое количество
+// пробельных символов, включая неразрывный пробел и табы, или вообще без
+// них), открывает второй блок (подзаголовок + текст). Раньше детект искал
+// точную подстроку "\n## " — ломался на переносах строк \r\n (частый
+// результат вставки текста из Word/Telegram/Google Docs) и на любом другом
+// пробеле после "##", кроме обычного. Построчный разбор с регуляркой
+// устойчив к обоим случаям. Второй "##" и дальше не поддерживаются — в
+// макете такой блок всего один.
 function parseContent(content: string | null): { intro: string[]; section: { heading: string; body: string[] } | null } {
   if (!content) return { intro: [], section: null };
-  const headingIdx = content.indexOf('\n## ');
-  const headingAtStart = content.startsWith('## ');
-  if (!headingAtStart && headingIdx === -1) {
+  const lines = content.split(/\r\n|\r|\n/);
+  const headingLineIdx = lines.findIndex((l) => /^##(?!#)/.test(l.trim()));
+  if (headingLineIdx === -1) {
     return { intro: content.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean), section: null };
   }
-  const splitAt = headingAtStart ? 0 : headingIdx + 1;
-  const before = content.slice(0, splitAt).trim();
-  const after = content.slice(splitAt + 3).trim();
-  const newlineIdx = after.indexOf('\n');
-  const heading = (newlineIdx === -1 ? after : after.slice(0, newlineIdx)).trim();
-  const body = (newlineIdx === -1 ? '' : after.slice(newlineIdx + 1)).trim();
+  const heading = lines[headingLineIdx].trim().replace(/^##(?!#)\s*/, '').trim();
+  const before = lines.slice(0, headingLineIdx).join('\n').trim();
+  const after = lines.slice(headingLineIdx + 1).join('\n').trim();
   return {
     intro: before.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
-    section: { heading, body: body.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) },
+    section: { heading, body: after.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) },
   };
 }
 
@@ -178,9 +185,12 @@ export default function ArticleScreenWeb() {
   // row 2); если в статье нет "## "-блока, баннеру просто не с чем
   // соседствовать — не показываем его отдельно в конце, как было раньше.
   // Это свой, конкретный баннер (не PromoBanner с /journal и /events).
+  // Небольшой, фиксированной ширины (как сайдбар-баннер рядом с текстом на
+  // theblueprint.ru), а не во всю колонку — alignSelf: 'flex-start' не даёт
+  // ему растянуться на всю ширину грид-ячейки.
   const bannerBlock = section ? (
-    <Pressable onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
-      <Image source={SECTION_BANNER_IMAGE} style={[styles.sectionBanner, { aspectRatio: SECTION_BANNER_ASPECT_RATIO }]} resizeMode="cover" />
+    <Pressable style={styles.sectionBannerWrap} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
+      <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
 
@@ -390,7 +400,8 @@ const styles = StyleSheet.create({
   galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
   galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
-  sectionBanner: { width: '100%', backgroundColor: '#E5E5E5' },
+  sectionBannerWrap: { width: SECTION_BANNER_WIDTH, alignSelf: 'flex-start' },
+  sectionBanner: { width: SECTION_BANNER_WIDTH, height: SECTION_BANNER_HEIGHT, backgroundColor: '#E5E5E5' },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
