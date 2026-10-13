@@ -249,7 +249,11 @@ const styles = StyleSheet.create({
   titleMobile: { fontSize: 25, lineHeight: 28 },
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
-  filterPillRight: { marginLeft: 'auto', paddingLeft: 24 },
+  // 13.4% — тот же отступ от реального правого края контента (не полной
+  // ширины страницы/логотипа), что уже используется в похожих местах
+  // (см. featuredInnerTwo: 72.8% и rowThree с пустой 6-й колонкой — оба
+  // сходятся к тому же ~13.4% отступу).
+  filterPillRight: { marginLeft: 'auto', marginRight: '13.4%', paddingLeft: 24 },
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

@@ -2,7 +2,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
@@ -15,6 +14,13 @@ import { parseInlineMarkdown } from '@/lib/markdown-inline';
 // всегда ровно одна строка, т.к. связанных статей не больше 3.
 const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+
+// Баннер рядом со вторым подзаголовком — свой, отдельный от PromoBanner
+// (того, что на /journal и /events): конкретная портретная картинка
+// 720×1280, не админско-настраиваемый промо-баннер списков.
+const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
+const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
+const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
@@ -160,7 +166,12 @@ export default function ArticleScreenWeb() {
   // Баннер — только рядом со вторым подзаголовком (см. ниже, desktop grid
   // row 2); если в статье нет "## "-блока, баннеру просто не с чем
   // соседствовать — не показываем его отдельно в конце, как было раньше.
-  const bannerBlock = section ? <PromoBanner withTelegramLink /> : null;
+  // Это свой, конкретный баннер (не PromoBanner с /journal и /events).
+  const bannerBlock = section ? (
+    <Pressable onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
+      <Image source={SECTION_BANNER_IMAGE} style={[styles.sectionBanner, { aspectRatio: SECTION_BANNER_ASPECT_RATIO }]} resizeMode="cover" />
+    </Pressable>
+  ) : null;
 
   function renderRelatedCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
     return (
@@ -317,6 +328,7 @@ const styles = StyleSheet.create({
   galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
   galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
+  sectionBanner: { width: '100%', backgroundColor: '#E5E5E5' },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
