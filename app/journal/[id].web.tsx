@@ -45,14 +45,14 @@ const EVENT_CTA_MAX_HEIGHT = 180;
 const EVENT_CTA_HEIGHT = Math.min(EVENT_CTA_MAX_HEIGHT, Math.round(EVENT_CTA_MAX_WIDTH / EVENT_CTA_ASPECT_RATIO));
 const EVENT_CTA_WIDTH = Math.round(EVENT_CTA_HEIGHT * EVENT_CTA_ASPECT_RATIO);
 
-// Маркеры для вставки события/похожей статьи прямо в текст — админ ставит их
-// отдельной "строкой-абзацем" где угодно в "Текст" (см. admin/journal-detail.tsx,
-// кнопки "Вставить в текст" у события/похожей статьи). CTA "Записаться на
-// событие" показывается ТОЛЬКО на месте маркера {{event}} — без него не
-// рендерится вовсе (раньше по умолчанию падал в конец статьи, это было
-// ошибкой: такой CTA должен быть внутри текста, а не оторван от него).
-// Похожие статьи без маркера {{related:<id>}} по-прежнему попадают в блок
-// "Окей, что ещё" в конце — этого поведения просьба не касалась.
+// Маркеры в "Текст" — админ ставит их отдельной "строкой-абзацем" где угодно
+// (см. admin/journal-detail.tsx, кнопки "Вставить в текст" у события/похожей
+// статьи). Маркер НЕ определяет позицию в тексте — он только ВКЛЮЧАЕТ показ
+// соответствующего блока (CTA события / превью похожей статьи) и убирается
+// из текста при рендере. Сам блок всегда уходит в правую колонку (см.
+// sideStack ниже): слева — только текст статьи целиком, непрерывно; справа —
+// обложка, галерея, баннер и эти блоки, фиксированным порядком, друг под
+// другом, никогда не перемежаясь с текстом.
 const EVENT_TOKEN = '{{event}}';
 const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
 
@@ -199,13 +199,11 @@ export default function ArticleScreenWeb() {
     </>
   );
 
-  // Баннер — опционально, выключается в админке (article.showBanner),
-  // по умолчанию показан. Если в статье есть "## "-подзаголовок — встаёт
-  // рядом с ним (см. ниже, desktop grid row 2); если подзаголовка нет,
-  // показываем его всё равно (чекбокс должен работать независимо от
-  // наличия подзаголовка) — сразу после вводного текста. Это свой,
-  // конкретный баннер (не PromoBanner с /journal и /events). Небольшой,
-  // фиксированной ширины (как сайдбар-баннер рядом с текстом на
+  // Баннер — опционально, выключается в админке (article.showBanner), по
+  // умолчанию показан. Часть правой колонки (см. sideStack ниже) — идёт
+  // сразу под обложкой/галереей, независимо от текста и "## "-подзаголовка.
+  // Это свой, конкретный баннер (не PromoBanner с /journal и /events).
+  // Небольшой, фиксированной ширины (как сайдбар-баннер рядом с текстом на
   // theblueprint.ru), а не во всю колонку — alignSelf: 'flex-start' не даёт
   // ему растянуться на всю ширину грид-ячейки.
   const bannerBlock = article.showBanner ? (
@@ -245,8 +243,10 @@ export default function ArticleScreenWeb() {
   // локальной константой с заведомо известным типом.
   const safeArticle: Article = article;
 
-  // CTA "Записаться на событие" — вынесен в функцию, т.к. рендерится на месте
-  // маркера {{event}} в тексте.
+  // CTA "Записаться на событие" — часть правой колонки (см. sideStack ниже),
+  // не текста. Показывается, только если в тексте где-то стоит маркер
+  // {{event}} (админ ставит его через "Вставить в текст" — это выключатель,
+  // не координата) И событие выбрано.
   function renderEventCtaCard() {
     if (!safeArticle.event) return null;
     const event = safeArticle.event;
@@ -268,66 +268,30 @@ export default function ArticleScreenWeb() {
     );
   }
 
-  // Абзацы текста статьи, с подстановкой {{event}}/{{related:<id>}} на их
-  // месте вместо обычного параграфа — так админ может разместить событие или
-  // похожую статью прямо внутри текста, а не только в конце (см. комментарий
-  // у EVENT_TOKEN/RELATED_TOKEN_RE выше).
-  //
-  // CTA события — сбоку от текста (не на всю ширину колонки), на десктопе:
-  // CSS float тут не работает предсказуемо (react-native-web рендерит View
-  // как flex-контейнеры по умолчанию, а float не действует на flex-item —
-  // даже обёртка самого плавающего блока в display:'block' не помогает,
-  // т.к. ПОСЛЕДУЮЩИЕ абзацы всё равно остаются flex-item'ами общей колонки
-  // и не обтекают его). Вместо float — пара "абзац сразу после маркера +
-  // карточка" в одной строке грида (тот же приём, что и подзаголовок+баннер
-  // выше), раз и навсегда предсказуемо работающий способ расположить что-то
-  // рядом с конкретным абзацем. Абзац, идущий СРАЗУ после {{event}},
-  // "жертвуется" на эту пару — остальные абзацы остаются на всю ширину.
-  function renderParagraphs(paragraphs: string[], keyPrefix: string) {
-    const nodes: React.ReactNode[] = [];
-    for (let i = 0; i < paragraphs.length; i++) {
-      const key = `${keyPrefix}-${i}`;
-      const trimmed = paragraphs[i].trim();
-
-      if (trimmed === EVENT_TOKEN) {
-        if (!safeArticle.event) continue;
-        const next = paragraphs[i + 1];
-        const nextIsPlainText = next !== undefined && next.trim() !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(next.trim());
-        if (!isMobile && nextIsPlainText) {
-          nodes.push(
-            <View key={key} style={styles.eventCtaRow}>
-              <Text style={styles.body}>{parseInlineMarkdown(next)}</Text>
-              {renderEventCtaCard()}
-            </View>
-          );
-          i += 1; // абзац-пара уже отрисован выше, не дублируем его обычным текстом
-          continue;
-        }
-        nodes.push(<View key={key}>{renderEventCtaCard()}</View>);
-        continue;
-      }
-
-      const relMatch = trimmed.match(RELATED_TOKEN_RE);
-      if (relMatch) {
-        const item = safeArticle.relatedArticles.find((r) => r.id === relMatch[1]);
-        if (item) nodes.push(<View key={key}>{renderRelatedInlineCard(item)}</View>);
-        continue;
-      }
-
-      nodes.push(<Text key={key} style={styles.body}>{parseInlineMarkdown(paragraphs[i])}</Text>);
-    }
-    return nodes;
+  // Абзацы текста статьи — маркеры {{event}}/{{related:<id>}} из текста
+  // убираются целиком (не рендерятся как текст); соответствующие блоки
+  // рендерятся отдельно, в правой колонке (см. sideStack ниже), а не на
+  // месте маркера — левая колонка остаётся чистым текстом, без единого
+  // non-text блока внутри.
+  function renderTextParagraphs(paragraphs: string[], keyPrefix: string) {
+    return paragraphs
+      .filter((p) => { const t = p.trim(); return t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
+      .map((p, i) => <Text key={`${keyPrefix}-${i}`} style={styles.body}>{parseInlineMarkdown(p)}</Text>);
   }
 
-  // Похожие статьи, уже размещённые маркером внутри текста, не дублируются
-  // блоком в конце — только те, что админ не разместил явно, попадают в
-  // старое поведение (конец статьи). Событие такого запасного варианта не
-  // имеет — см. комментарий у EVENT_TOKEN выше.
+  // Похожие статьи, размещённые маркером {{related:<id>}} где-либо в тексте,
+  // уходят в правую колонку (в порядке маркеров) и не дублируются в блоке
+  // "Окей, что ещё" в конце — туда попадают только те, что админ не отметил
+  // маркером явно (старое поведение).
   const allParagraphs = [...intro, ...(section?.body ?? [])];
-  const relatedInlineIds = new Set(
+  const hasEventMarker = allParagraphs.some((p) => p.trim() === EVENT_TOKEN);
+  const relatedInlineIds = Array.from(new Set(
     allParagraphs.map((p) => p.trim().match(RELATED_TOKEN_RE)?.[1]).filter((x): x is string => !!x)
-  );
-  const relatedArticlesForEnd = article.relatedArticles.filter((r) => !relatedInlineIds.has(r.id));
+  ));
+  const relatedInlineItems = relatedInlineIds
+    .map((rid) => article.relatedArticles.find((r) => r.id === rid))
+    .filter((r): r is RelatedArticle => !!r);
+  const relatedArticlesForEnd = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
 
   const relatedBlock = relatedArticlesForEnd.length > 0 ? (
     <View style={styles.relatedSection}>
@@ -338,54 +302,58 @@ export default function ArticleScreenWeb() {
     </View>
   ) : null;
 
-  const introBlock = renderParagraphs(intro, 'intro');
+  const introBlock = renderTextParagraphs(intro, 'intro');
 
   const sectionBlock = section ? (
     <>
       <Text style={styles.subheading}>{parseInlineMarkdown(section.heading)}</Text>
-      {renderParagraphs(section.body, 'section')}
+      {renderTextParagraphs(section.body, 'section')}
     </>
   ) : null;
+
+  // Правая колонка — обложка, галерея, баннер, CTA события, превью похожих
+  // статей, в этом фиксированном порядке, друг под другом. Никогда не текст:
+  // над любым из этих блоков стоит либо другой такой же блок, либо ничего.
+  const sideStack = (
+    <>
+      {mediaBlock}
+      {bannerBlock}
+      {hasEventMarker ? renderEventCtaCard() : null}
+      {relatedInlineItems.map((item) => <View key={item.id}>{renderRelatedInlineCard(item)}</View>)}
+    </>
+  );
 
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         {isMobile ? (
-          // Мобильная раскладка — один столбец: заголовок, затем обложка (+
-          // галерея), затем автор, и только после них текст статьи. Баннер
-          // (если есть второй подзаголовок) — сразу после второго блока
-          // текста, "рядом" тут не применимо (один столбец).
+          // Мобильная раскладка — один столбец: заголовок, затем вся "правая
+          // колонка" (обложка/галерея/баннер/CTA/похожие — см. sideStack),
+          // затем автор, и только потом текст статьи целиком.
           <View style={styles.mobileStack}>
             {titleElement}
-            <View style={styles.mobileMediaBlock}>{mediaBlock}</View>
+            <View style={styles.mobileMediaBlock}>{sideStack}</View>
             {authorBlock}
             {introBlock}
             {sectionBlock}
-            {bannerBlock}
           </View>
         ) : (
-          // CSS Grid, а не два независимых flex-столбца — нужно, чтобы вторая
-          // строка (подзаголовок+текст / баннер) стартовала на одном уровне в
-          // обеих колонках: баннер должен оказаться напротив второго
-          // подзаголовка, а это достижимо только если это пара прямых детей
-          // грида в одной и той же строке (см. тот же приём на /explore/[id]).
+          // Две независимые колонки: слева — весь текст статьи целиком и
+          // непрерывно (заголовок, автор, абзацы, подзаголовок), справа —
+          // sideStack. Никакой построчной синхронизации между ними не нужно:
+          // в правой колонке никогда нет текста, только обложка/галерея/
+          // баннер/карточки, поэтому колонки просто текут независимо рядом.
           <View style={styles.articleGrid}>
             <View>
               {titleElement}
               {authorBlock}
               {introBlock}
-              {!section ? bannerBlock : null}
+              {sectionBlock}
             </View>
             <View style={styles.colImageTop}>
-              {mediaBlock}
+              {sideStack}
             </View>
-            {section ? (
-              <>
-                <View>{sectionBlock}</View>
-                <View>{bannerBlock}</View>
-              </>
-            ) : null}
           </View>
         )}
 
@@ -424,24 +392,22 @@ const styles = StyleSheet.create({
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  // Десктоп: CSS Grid (не два независимых flex-столбца) — строка 2
-  // (подзаголовок+текст / баннер) должна стартовать на одном уровне в обеих
-  // колонках, иначе баннер не окажется напротив подзаголовка (см. комментарий
-  // в JSX). Мобильный: один столбец, порядок — отдельно в JSX (titleElement →
-  // mediaBlock → authorBlock → introBlock → sectionBlock → bannerBlock).
-  // rowGap обязателен: без него вторая строка грида (подзаголовок+текст /
-  // баннер) стартует вплотную к первой — при длинной галерее это выглядит
-  // как "баннер наезжает на картинки" (визуально ноль отступа между ними).
-  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, rowGap: 40, marginBottom: 40 } as any,
+  // Две независимые колонки (не построчная пара строк, как раньше) — слева
+  // весь текст целиком, справа sideStack (обложка/галерея/баннер/CTA/похожие).
+  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, marginBottom: 40 } as any,
   mobileStack: { marginBottom: 40 },
-  mobileMediaBlock: { marginBottom: 24 },
+  // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
+  // события / карточки похожих статей), когда их несколько сразу.
+  mobileMediaBlock: { marginBottom: 24, gap: 40 },
   // Раньше здесь был maxHeight: 494 — зажимал высоту колонки с обложкой и
   // галереей жёстким потолком. Когда под второй фоткой появлялась подпись,
   // суммарная высота содержимого (обложка + галерея + подпись) превышала
   // этот потолок, и flexbox сжимал саму фотографию, чтобы уместиться —
   // "подпись уменьшала высоту фотографии". Колонка должна просто занимать
   // столько места, сколько нужно её содержимому.
-  colImageTop: { minWidth: 240 },
+  // gap — см. mobileMediaBlock выше, тот же смысл (отступ между элементами
+  // sideStack, теперь находящимися друг под другом в этой колонке).
+  colImageTop: { minWidth: 240, gap: 40 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   // ~2x исходного размера (был 25/30) — иначе подзаголовок визуально
@@ -492,11 +458,6 @@ const styles = StyleSheet.create({
   inlineRelatedImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
-  // CTA события внутри текста статьи — сбоку от абзаца, идущего сразу после
-  // маркера {{event}} (см. renderParagraphs): простая CSS-grid строка в две
-  // колонки, тот же приём, что и у подзаголовка с баннером выше. Правая
-  // колонка — под размер самой карточки (365), левая забирает остаток.
-  eventCtaRow: { display: 'grid', gridTemplateColumns: '1fr 365px', columnGap: 24, marginBottom: 24 } as any,
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
