@@ -25,6 +25,17 @@ const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 const PER_PAGE = 20;
 
+// Колонки тройки (rowThree) — те же 6 чисел, что и в её gridTemplateColumns
+// ниже, но тут как массив, чтобы точно (не на глаз) посчитать, на сколько
+// процентов от общей ширины строки нужно сдвинуть правый фильтр-пилюлю
+// влево, чтобы её правый край совпал с правым краем карточек в тройке —
+// пустая 6-я колонка (191) и есть этот отступ. filtersRow и обёртка тройки —
+// оба прямые дети pageContent с одинаковой доступной шириной, поэтому
+// процент совпадёт пиксель в пиксель, а не приблизительно.
+const ROW_THREE_COLUMNS = [403, 75, 365, 76, 340, 191];
+const ROW_THREE_TOTAL = ROW_THREE_COLUMNS.reduce((sum, n) => sum + n, 0);
+const ROW_THREE_RIGHT_INSET = `${((ROW_THREE_COLUMNS[5] / ROW_THREE_TOTAL) * 100).toFixed(4)}%`;
+
 export default function JournalScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
@@ -249,11 +260,12 @@ const styles = StyleSheet.create({
   titleMobile: { fontSize: 25, lineHeight: 28 },
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
-  // 13.4% — тот же отступ от реального правого края контента (не полной
-  // ширины страницы/логотипа), что уже используется в похожих местах
-  // (см. featuredInnerTwo: 72.8% и rowThree с пустой 6-й колонкой — оба
-  // сходятся к тому же ~13.4% отступу).
-  filterPillRight: { marginLeft: 'auto', marginRight: '13.4%', paddingLeft: 24 },
+  // ROW_THREE_RIGHT_INSET — точный процент (не на глаз), см. его расчёт выше.
+  // as any: RN типизирует marginRight как ограниченный набор строк вида
+  // `${number}%`, а не произвольный string — тот же приём, что и у grid-стилей
+  // в этом файле (gridTemplateColumns и т.п.), иначе ошибка каскадом ломает
+  // типизацию всего объекта StyleSheet.create().
+  filterPillRight: { marginLeft: 'auto', marginRight: ROW_THREE_RIGHT_INSET, paddingLeft: 24 } as any,
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
@@ -285,7 +297,7 @@ const styles = StyleSheet.create({
   featuredTitleOne: { marginTop: 13 },
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
 
-  rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
+  rowThree: { display: 'grid', gridTemplateColumns: ROW_THREE_COLUMNS.map((n) => `${n}fr`).join(' ') } as any,
   // Баннер — только колонки 1..5 той же сетки (не заезжает в пустую 6-ю),
   // чтобы его правый край совпадал с правым краем карточек в тройке.
   promoBannerCell: { gridColumn: '1 / 6' } as any,

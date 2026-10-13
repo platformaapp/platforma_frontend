@@ -288,7 +288,7 @@ export default function ArticleScreenWeb() {
 
   const sectionBlock = section ? (
     <>
-      <Text style={styles.subheading}>{section.heading}</Text>
+      <Text style={styles.subheading}>{parseInlineMarkdown(section.heading)}</Text>
       {renderParagraphs(section.body, 'section')}
     </>
   ) : null;
@@ -374,10 +374,19 @@ const styles = StyleSheet.create({
   // колонках, иначе баннер не окажется напротив подзаголовка (см. комментарий
   // в JSX). Мобильный: один столбец, порядок — отдельно в JSX (titleElement →
   // mediaBlock → authorBlock → introBlock → sectionBlock → bannerBlock).
-  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, marginBottom: 40 } as any,
+  // rowGap обязателен: без него вторая строка грида (подзаголовок+текст /
+  // баннер) стартует вплотную к первой — при длинной галерее это выглядит
+  // как "баннер наезжает на картинки" (визуально ноль отступа между ними).
+  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, rowGap: 40, marginBottom: 40 } as any,
   mobileStack: { marginBottom: 40 },
   mobileMediaBlock: { marginBottom: 24 },
-  colImageTop: { minWidth: 240, maxHeight: 494 },
+  // Раньше здесь был maxHeight: 494 — зажимал высоту колонки с обложкой и
+  // галереей жёстким потолком. Когда под второй фоткой появлялась подпись,
+  // суммарная высота содержимого (обложка + галерея + подпись) превышала
+  // этот потолок, и flexbox сжимал саму фотографию, чтобы уместиться —
+  // "подпись уменьшала высоту фотографии". Колонка должна просто занимать
+  // столько места, сколько нужно её содержимому.
+  colImageTop: { minWidth: 240 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
@@ -393,7 +402,14 @@ const styles = StyleSheet.create({
   authorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, maxWidth: 280 },
   body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
-  galleryRow: { flexDirection: 'row', gap: 16, marginTop: 16 },
+  // alignItems: 'flex-start' обязателен — без него flexbox по умолчанию
+  // растягивает (stretch) оба элемента ряда до высоты самого высокого: когда
+  // под правой фоткой есть подпись, её обёртка становится "выше" левой
+  // фотографии по натуральному контенту, и левая фотография насильно
+  // растягивается (теряя квадратную aspectRatio), либо наоборот сжимается —
+  // в любом случае перестаёт быть квадратной. С flex-start каждая картинка
+  // остаётся своего естественного (aspectRatio) размера независимо от подписи.
+  galleryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginTop: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
   // Правая фотография — с подписью под ней, поэтому своя обёртка вместо
   // flex/maxWidth прямо на Image (как у galleryImage/левой фотографии).
