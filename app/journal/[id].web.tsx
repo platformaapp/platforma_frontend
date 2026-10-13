@@ -47,12 +47,16 @@ const EVENT_CTA_WIDTH = Math.round(EVENT_CTA_HEIGHT * EVENT_CTA_ASPECT_RATIO);
 
 // Маркеры в "Текст" — админ ставит их отдельной "строкой-абзацем" где угодно
 // (см. admin/journal-detail.tsx, кнопки "Вставить в текст" у события/похожей
-// статьи). Маркер НЕ определяет позицию в тексте — он только ВКЛЮЧАЕТ показ
-// соответствующего блока (CTA события / превью похожей статьи) и убирается
-// из текста при рендере. Сам блок всегда уходит в правую колонку (см.
-// sideStack ниже): слева — только текст статьи целиком, непрерывно; справа —
-// обложка, галерея, баннер и эти блоки, фиксированным порядком, друг под
-// другом, никогда не перемежаясь с текстом.
+// статьи), сам текст маркера убирается при рендере (никогда не виден). Два
+// РАЗНЫХ случая:
+// - {{event}} — позиция ИМЕЕТ значение: CTA события всегда оказывается
+//   напротив того места, где стоит маркер (текст до него — одна строка
+//   грида с обложкой/галереей/баннером, текст после — следующая строка с
+//   самой карточкой). Баннер, для сравнения, НЕ позиционируется так —
+//   он простой фиксированный элемент сразу после обложки/галереи,
+//   независимо от текста.
+// - {{related:<id>}} — позиция не важна, только факт: такая похожая статья
+//   уходит в правую колонку (без привязки к конкретному абзацу).
 const EVENT_TOKEN = '{{event}}';
 const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
 
@@ -200,9 +204,11 @@ export default function ArticleScreenWeb() {
   );
 
   // Баннер — опционально, выключается в админке (article.showBanner), по
-  // умолчанию показан. Часть правой колонки (см. sideStack ниже) — идёт
-  // сразу под обложкой/галереей, независимо от текста и "## "-подзаголовка.
-  // Это свой, конкретный баннер (не PromoBanner с /journal и /events).
+  // умолчанию показан. Фиксированный элемент правой колонки — идёт сразу
+  // под обложкой/галереей, независимо от текста и позиции маркера события
+  // (см. комментарий у EVENT_TOKEN выше — баннер не позиционируется, в
+  // отличие от CTA события). Это свой, конкретный баннер (не PromoBanner
+  // с /journal и /events).
   // Небольшой, фиксированной ширины (как сайдбар-баннер рядом с текстом на
   // theblueprint.ru), а не во всю колонку — alignSelf: 'flex-start' не даёт
   // ему растянуться на всю ширину грид-ячейки.
@@ -243,10 +249,9 @@ export default function ArticleScreenWeb() {
   // локальной константой с заведомо известным типом.
   const safeArticle: Article = article;
 
-  // CTA "Записаться на событие" — часть правой колонки (см. sideStack ниже),
-  // не текста. Показывается, только если в тексте где-то стоит маркер
-  // {{event}} (админ ставит его через "Вставить в текст" — это выключатель,
-  // не координата) И событие выбрано.
+  // CTA "Записаться на событие" — показывается, только если событие выбрано
+  // И в тексте стоит маркер {{event}}; позиция самого маркера здесь как раз
+  // ЯВЛЯЕТСЯ координатой — см. eventMarkerIdx ниже.
   function renderEventCtaCard() {
     if (!safeArticle.event) return null;
     const event = safeArticle.event;
@@ -268,30 +273,51 @@ export default function ArticleScreenWeb() {
     );
   }
 
-  // Абзацы текста статьи — маркеры {{event}}/{{related:<id>}} из текста
-  // убираются целиком (не рендерятся как текст); соответствующие блоки
-  // рендерятся отдельно, в правой колонке (см. sideStack ниже), а не на
-  // месте маркера — левая колонка остаётся чистым текстом, без единого
-  // non-text блока внутри.
-  function renderTextParagraphs(paragraphs: string[], keyPrefix: string) {
-    return paragraphs
-      .filter((p) => { const t = p.trim(); return t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
-      .map((p, i) => <Text key={`${keyPrefix}-${i}`} style={styles.body}>{parseInlineMarkdown(p)}</Text>);
+  // Весь текст статьи как плоский упорядоченный список (абзацы intro, затем,
+  // если есть "## "-подзаголовок, сам подзаголовок и абзацы после него) —
+  // чтобы найти позицию маркера {{event}} В ТЕКСТЕ ЦЕЛИКОМ, а не только
+  // внутри intro или только внутри section.
+  type TextItem = { heading: boolean; text: string };
+  const textItems: TextItem[] = [
+    ...intro.map((text) => ({ heading: false, text })),
+    ...(section ? [{ heading: true, text: section.heading }, ...section.body.map((text) => ({ heading: false, text }))] : []),
+  ];
+
+  function renderTextItems(items: TextItem[], keyPrefix: string) {
+    return items
+      .filter((it) => { const t = it.text.trim(); return t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
+      .map((it, i) => (
+        <Text key={`${keyPrefix}-${i}`} style={it.heading ? styles.subheading : styles.body}>
+          {parseInlineMarkdown(it.text)}
+        </Text>
+      ));
   }
+
+  // CTA события — не фиксированная позиция в стопке справа (как баннер,
+  // который всегда просто идёт следом за галереей), а именно НАПРОТИВ того
+  // абзаца, где админ поставил маркер {{event}} (см. "Вставить в текст" в
+  // admin/journal-detail.tsx) — так же, как раньше работала пара
+  // подзаголовок+баннер: текст до маркера и "правая колонка до этого места"
+  // — одна строка грида, текст после маркера и сама карточка — следующая.
+  const eventMarkerIdx = article.event ? textItems.findIndex((it) => it.text.trim() === EVENT_TOKEN) : -1;
+  const hasEventMarker = eventMarkerIdx !== -1;
+  const beforeEventItems = hasEventMarker ? textItems.slice(0, eventMarkerIdx) : textItems;
+  const afterEventItems = hasEventMarker ? textItems.slice(eventMarkerIdx + 1) : [];
 
   // Похожие статьи, размещённые маркером {{related:<id>}} где-либо в тексте,
   // уходят в правую колонку (в порядке маркеров) и не дублируются в блоке
   // "Окей, что ещё" в конце — туда попадают только те, что админ не отметил
-  // маркером явно (старое поведение).
-  const allParagraphs = [...intro, ...(section?.body ?? [])];
-  const hasEventMarker = allParagraphs.some((p) => p.trim() === EVENT_TOKEN);
+  // маркером явно (старое поведение). В отличие от события — без
+  // привязки к конкретному абзацу, просто следом за остальным содержимым
+  // правой колонки (с этим усложнять не просили).
   const relatedInlineIds = Array.from(new Set(
-    allParagraphs.map((p) => p.trim().match(RELATED_TOKEN_RE)?.[1]).filter((x): x is string => !!x)
+    textItems.map((it) => it.text.trim().match(RELATED_TOKEN_RE)?.[1]).filter((x): x is string => !!x)
   ));
   const relatedInlineItems = relatedInlineIds
     .map((rid) => article.relatedArticles.find((r) => r.id === rid))
     .filter((r): r is RelatedArticle => !!r);
   const relatedArticlesForEnd = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
+  const relatedInlineBlock = relatedInlineItems.map((item) => <View key={item.id}>{renderRelatedInlineCard(item)}</View>);
 
   const relatedBlock = relatedArticlesForEnd.length > 0 ? (
     <View style={styles.relatedSection}>
@@ -302,58 +328,50 @@ export default function ArticleScreenWeb() {
     </View>
   ) : null;
 
-  const introBlock = renderTextParagraphs(intro, 'intro');
-
-  const sectionBlock = section ? (
-    <>
-      <Text style={styles.subheading}>{parseInlineMarkdown(section.heading)}</Text>
-      {renderTextParagraphs(section.body, 'section')}
-    </>
-  ) : null;
-
-  // Правая колонка — обложка, галерея, баннер, CTA события, превью похожих
-  // статей, в этом фиксированном порядке, друг под другом. Никогда не текст:
-  // над любым из этих блоков стоит либо другой такой же блок, либо ничего.
-  const sideStack = (
-    <>
-      {mediaBlock}
-      {bannerBlock}
-      {hasEventMarker ? renderEventCtaCard() : null}
-      {relatedInlineItems.map((item) => <View key={item.id}>{renderRelatedInlineCard(item)}</View>)}
-    </>
-  );
+  const beforeEventBlock = renderTextItems(beforeEventItems, 'before');
+  const afterEventBlock = hasEventMarker ? renderTextItems(afterEventItems, 'after') : null;
 
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         {isMobile ? (
-          // Мобильная раскладка — один столбец: заголовок, затем вся "правая
-          // колонка" (обложка/галерея/баннер/CTA/похожие — см. sideStack),
-          // затем автор, и только потом текст статьи целиком.
+          // Мобильная раскладка — один столбец: заголовок, обложка/галерея/
+          // баннер, автор, текст до маркера события, сама карточка (если
+          // маркер есть) ровно на его месте, текст после — "рядом" тут не
+          // применимо (один столбец), зато позиция в тексте сохраняется.
           <View style={styles.mobileStack}>
             {titleElement}
-            <View style={styles.mobileMediaBlock}>{sideStack}</View>
+            <View style={styles.mobileMediaBlock}>{mediaBlock}{bannerBlock}</View>
             {authorBlock}
-            {introBlock}
-            {sectionBlock}
+            {beforeEventBlock}
+            {hasEventMarker ? renderEventCtaCard() : null}
+            {afterEventBlock}
+            {relatedInlineBlock}
           </View>
         ) : (
-          // Две независимые колонки: слева — весь текст статьи целиком и
-          // непрерывно (заголовок, автор, абзацы, подзаголовок), справа —
-          // sideStack. Никакой построчной синхронизации между ними не нужно:
-          // в правой колонке никогда нет текста, только обложка/галерея/
-          // баннер/карточки, поэтому колонки просто текут независимо рядом.
+          // CSS Grid — строка 1: заголовок+автор+текст-до-маркера слева,
+          // обложка+галерея+баннер справа. Если есть маркер события — строка
+          // 2: текст-после-маркера слева, сама карточка справа, на одном
+          // уровне (та же техника, что раньше была у подзаголовка с
+          // баннером — пара прямых детей грида в одной строке).
           <View style={styles.articleGrid}>
             <View>
               {titleElement}
               {authorBlock}
-              {introBlock}
-              {sectionBlock}
+              {beforeEventBlock}
             </View>
             <View style={styles.colImageTop}>
-              {sideStack}
+              {mediaBlock}
+              {bannerBlock}
+              {!hasEventMarker ? relatedInlineBlock : null}
             </View>
+            {hasEventMarker ? (
+              <>
+                <View>{afterEventBlock}</View>
+                <View>{renderEventCtaCard()}{relatedInlineBlock}</View>
+              </>
+            ) : null}
           </View>
         )}
 
@@ -392,12 +410,13 @@ const styles = StyleSheet.create({
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  // Две независимые колонки (не построчная пара строк, как раньше) — слева
-  // весь текст целиком, справа sideStack (обложка/галерея/баннер/CTA/похожие).
-  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, marginBottom: 40 } as any,
+  // Обычно одна строка (весь текст слева, обложка/галерея/баннер справа).
+  // Вторая строка появляется, только если в тексте есть маркер {{event}} —
+  // rowGap нужен именно на этот случай (без него вторая строка стартует
+  // вплотную к первой).
+  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, rowGap: 40, marginBottom: 40 } as any,
   mobileStack: { marginBottom: 40 },
-  // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
-  // события / карточки похожих статей), когда их несколько сразу.
+  // gap — отступ между обложкой/галереей и баннером, когда оба есть.
   mobileMediaBlock: { marginBottom: 24, gap: 40 },
   // Раньше здесь был maxHeight: 494 — зажимал высоту колонки с обложкой и
   // галереей жёстким потолком. Когда под второй фоткой появлялась подпись,
@@ -405,8 +424,8 @@ const styles = StyleSheet.create({
   // этот потолок, и flexbox сжимал саму фотографию, чтобы уместиться —
   // "подпись уменьшала высоту фотографии". Колонка должна просто занимать
   // столько места, сколько нужно её содержимому.
-  // gap — см. mobileMediaBlock выше, тот же смысл (отступ между элементами
-  // sideStack, теперь находящимися друг под другом в этой колонке).
+  // gap — отступ между обложкой/галереей, баннером и (если маркера события
+  // нет) карточками похожих статей — всем, что оказалось в этой строке.
   colImageTop: { minWidth: 240, gap: 40 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
