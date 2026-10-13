@@ -30,6 +30,21 @@ const SECTION_BANNER_WIDTH = 300;
 const SECTION_BANNER_HEIGHT = Math.round(SECTION_BANNER_WIDTH / SECTION_BANNER_ASPECT_RATIO);
 const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
+// Размер картинки CTA события внутри статьи — как в статье про советский
+// самиздат (aspect-ratio 1.72986, max-width 365, max-height 180). Высота —
+// связывающее ограничение (365/1.72986 ≈ 211 > 180), поэтому реальная
+// ширина меньше 365. Явные числа, а не aspectRatio+maxWidth+maxHeight —
+// та же причина, что и у SECTION_BANNER_* выше: react-native-web сам
+// переводит aspectRatio в явную высоту ДО применения max-height, из-за чего
+// max-height обрезает картинку, а ширина обратно не пересчитывается (должна
+// бы по спеке CSS, но для Image из react-native-web — нет), и картинка
+// просто растягивается не в тех пропорциях.
+const EVENT_CTA_ASPECT_RATIO = 1.72986;
+const EVENT_CTA_MAX_WIDTH = 365;
+const EVENT_CTA_MAX_HEIGHT = 180;
+const EVENT_CTA_HEIGHT = Math.min(EVENT_CTA_MAX_HEIGHT, Math.round(EVENT_CTA_MAX_WIDTH / EVENT_CTA_ASPECT_RATIO));
+const EVENT_CTA_WIDTH = Math.round(EVENT_CTA_HEIGHT * EVENT_CTA_ASPECT_RATIO);
+
 // Маркеры для вставки события/похожей статьи прямо в текст — админ ставит их
 // отдельной "строкой-абзацем" где угодно в "Текст" (см. admin/journal-detail.tsx,
 // кнопки "Вставить в текст" у события/похожей статьи). CTA "Записаться на
@@ -43,11 +58,14 @@ const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
-function formatEventTime(iso?: string): string {
+// Только дата, без времени и без имени автора в карточке события внутри
+// статьи (см. renderEventCtaCard) — это CTA события, а не материала, автору
+// там делать нечего.
+function formatEventDate(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
   } catch {
     return '';
   }
@@ -225,8 +243,8 @@ export default function ArticleScreenWeb() {
   // локальной константой с заведомо известным типом.
   const safeArticle: Article = article;
 
-  // CTA "Записаться на событие" — вынесен в функцию, т.к. рендерится либо на
-  // месте маркера {{event}} в тексте, либо (если маркера нет) в конце статьи.
+  // CTA "Записаться на событие" — вынесен в функцию, т.к. рендерится на месте
+  // маркера {{event}} в тексте.
   function renderEventCtaCard() {
     if (!safeArticle.event) return null;
     const event = safeArticle.event;
@@ -236,10 +254,13 @@ export default function ArticleScreenWeb() {
           <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
         </Pressable>
         <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
-          {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
-          <Text style={styles.ctaCardLabel} numberOfLines={1}>{safeArticle.author.name}</Text>
-          <Text style={styles.ctaCardTitle}>{event.title}</Text>
-          <Text style={styles.ctaCardMeta}>{formatEventTime(event.datetimeStart ?? undefined)}</Text>
+          {event.coverUrl ? (
+            <Image source={{ uri: event.coverUrl }} style={isMobile ? styles.ctaCardImage : styles.eventCtaImage} resizeMode="cover" />
+          ) : (
+            <View style={isMobile ? styles.ctaCardImage : styles.eventCtaImage} />
+          )}
+          <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{event.title}</Text>
+          <Text style={styles.ctaCardMeta}>{formatEventDate(event.datetimeStart ?? undefined)}</Text>
         </Pressable>
       </View>
     );
@@ -249,20 +270,51 @@ export default function ArticleScreenWeb() {
   // месте вместо обычного параграфа — так админ может разместить событие или
   // похожую статью прямо внутри текста, а не только в конце (см. комментарий
   // у EVENT_TOKEN/RELATED_TOKEN_RE выше).
+  //
+  // CTA события — сбоку от текста (не на всю ширину колонки), на десктопе:
+  // CSS float тут не работает предсказуемо (react-native-web рендерит View
+  // как flex-контейнеры по умолчанию, а float не действует на flex-item —
+  // даже обёртка самого плавающего блока в display:'block' не помогает,
+  // т.к. ПОСЛЕДУЮЩИЕ абзацы всё равно остаются flex-item'ами общей колонки
+  // и не обтекают его). Вместо float — пара "абзац сразу после маркера +
+  // карточка" в одной строке грида (тот же приём, что и подзаголовок+баннер
+  // выше), раз и навсегда предсказуемо работающий способ расположить что-то
+  // рядом с конкретным абзацем. Абзац, идущий СРАЗУ после {{event}},
+  // "жертвуется" на эту пару — остальные абзацы остаются на всю ширину.
   function renderParagraphs(paragraphs: string[], keyPrefix: string) {
-    return paragraphs.map((p, i) => {
+    const nodes: React.ReactNode[] = [];
+    for (let i = 0; i < paragraphs.length; i++) {
       const key = `${keyPrefix}-${i}`;
-      const trimmed = p.trim();
+      const trimmed = paragraphs[i].trim();
+
       if (trimmed === EVENT_TOKEN) {
-        return safeArticle.event ? <View key={key}>{renderEventCtaCard()}</View> : null;
+        if (!safeArticle.event) continue;
+        const next = paragraphs[i + 1];
+        const nextIsPlainText = next !== undefined && next.trim() !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(next.trim());
+        if (!isMobile && nextIsPlainText) {
+          nodes.push(
+            <View key={key} style={styles.eventCtaRow}>
+              <Text style={styles.body}>{parseInlineMarkdown(next)}</Text>
+              {renderEventCtaCard()}
+            </View>
+          );
+          i += 1; // абзац-пара уже отрисован выше, не дублируем его обычным текстом
+          continue;
+        }
+        nodes.push(<View key={key}>{renderEventCtaCard()}</View>);
+        continue;
       }
+
       const relMatch = trimmed.match(RELATED_TOKEN_RE);
       if (relMatch) {
         const item = safeArticle.relatedArticles.find((r) => r.id === relMatch[1]);
-        return item ? <View key={key}>{renderRelatedInlineCard(item)}</View> : null;
+        if (item) nodes.push(<View key={key}>{renderRelatedInlineCard(item)}</View>);
+        continue;
       }
-      return <Text key={key} style={styles.body}>{parseInlineMarkdown(p)}</Text>;
-    });
+
+      nodes.push(<Text key={key} style={styles.body}>{parseInlineMarkdown(paragraphs[i])}</Text>);
+    }
+    return nodes;
   }
 
   // Похожие статьи, уже размещённые маркером внутри текста, не дублируются
@@ -437,13 +489,20 @@ const styles = StyleSheet.create({
   inlineRelatedImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
+  // CTA события внутри текста статьи — сбоку от абзаца, идущего сразу после
+  // маркера {{event}} (см. renderParagraphs): простая CSS-grid строка в две
+  // колонки, тот же приём, что и у подзаголовка с баннером выше. Правая
+  // колонка — под размер самой карточки (365), левая забирает остаток.
+  eventCtaRow: { display: 'grid', gridTemplateColumns: '1fr 365px', columnGap: 24, marginBottom: 24 } as any,
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
   // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
   ctaCard: {},
   ctaCardImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
-  ctaCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 20 },
+  // Размер как у карточки события в статье про советский самиздат — см.
+  // расчёт EVENT_CTA_WIDTH/HEIGHT выше.
+  eventCtaImage: { width: EVENT_CTA_WIDTH, height: EVENT_CTA_HEIGHT, backgroundColor: '#E5E5E5' },
   ctaCardTitle: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 13 },
   // У блока "Скачать приложение" нет строки-подписи над заголовком — сдвигаем
   // заголовок так же, как если бы подпись была (20 её marginTop + 13 обычный).
