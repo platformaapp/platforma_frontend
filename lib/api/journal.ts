@@ -54,6 +54,9 @@ export interface Article {
   // Событие, явно привязанное к статье в админке (CTA "Записаться на
   // событие") — null, если не выбрано.
   event: ArticleEvent | null;
+  // Баннер рядом со вторым подзаголовком — опционально, настраивается в
+  // админке (см. admin/journal-detail.tsx).
+  showBanner: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +110,7 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
           };
         })()
       : null,
+    showBanner: raw.show_banner !== false,
     createdAt: String(raw.created_at ?? ''),
     updatedAt: String(raw.updated_at ?? ''),
   };

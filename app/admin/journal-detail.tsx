@@ -124,6 +124,9 @@ export default function AdminJournalDetailScreen() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const [galleryCaption, setGalleryCaption] = useState('');
+  // Баннер рядом со вторым подзаголовком — опционально, по умолчанию
+  // включён (старое поведение для уже существующих статей).
+  const [showBanner, setShowBanner] = useState(true);
 
   const [author, setAuthor] = useState<TutorOption | null>(null);
   const [authorQuery, setAuthorQuery] = useState('');
@@ -173,6 +176,7 @@ export default function AdminJournalDetailScreen() {
         setCoverUri(resolveUrl(a.cover_url));
         setGallery(Array.isArray(a.gallery) ? a.gallery.map((g: string) => resolveUrl(g) ?? g) : []);
         setGalleryCaption(a.gallery_caption ?? '');
+        setShowBanner(a.show_banner ?? true);
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
         if (Array.isArray(a.related_articles)) {
           setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
@@ -280,10 +284,19 @@ export default function AdminJournalDetailScreen() {
 
   // Оборачивает текущее выделение в "Текст" парой маркеров тулбара (если
   // ничего не выделено — вставляет пустую пару на месте курсора).
+  //
+  // После вставки обязательно обновляем contentSelection на новые индексы
+  // (там, где теперь лежит тот же исходный фрагмент, сдвинутый на длину
+  // before) — без этого второй клик по тулбару (второе форматирование той
+  // же фразы, напр. "A+" затем "Ж") использует СТАРЫЕ индексы уже на НОВОЙ
+  // (более длинной) строке текста, и маркеры попадают внутрь слова, а не
+  // вокруг него (ровно на длину первой вставленной пары символов).
   function wrapContentSelection(before: string, after: string) {
     const { start, end } = contentSelection;
     const selected = content.slice(start, end);
     setContent(content.slice(0, start) + before + selected + after + content.slice(end));
+    const newStart = start + before.length;
+    setContentSelection({ start: newStart, end: newStart + selected.length });
   }
 
   function insertLink() {
@@ -344,6 +357,7 @@ export default function AdminJournalDetailScreen() {
         cover_url: uploadedCover,
         gallery: uploadedGallery,
         gallery_caption: galleryCaption.trim() || undefined,
+        show_banner: showBanner,
         related_article_ids: relatedArticles.map((r) => r.id),
         event_id: event ? event.id : null,
         author_id: author.id,
@@ -497,12 +511,20 @@ export default function AdminJournalDetailScreen() {
           value={content}
           onChangeText={setContent}
           onSelectionChange={(e) => setContentSelection(e.nativeEvent.selection)}
+          selection={contentSelection}
           placeholder={'Первый абзац...\n\n## Подзаголовок\n\nТекст второго блока...'}
           placeholderTextColor="#9B9B9B"
           multiline
           numberOfLines={10}
           textAlignVertical="top"
         />
+
+        <Pressable style={styles.checkboxRow} onPress={() => setShowBanner((v) => !v)}>
+          <View style={[styles.checkboxBox, showBanner && styles.checkboxBoxChecked]}>
+            {showBanner ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkboxLabel}>Показывать баннер рядом со вторым подзаголовком</Text>
+        </Pressable>
 
         <Text style={styles.label}>Галерея (до 2 изображений)</Text>
         <View style={styles.galleryRow}>
@@ -650,6 +672,12 @@ const styles = StyleSheet.create({
   toolbarBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   removeLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },
   insertLinkText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818', textDecorationLine: 'underline' },
+
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
+  checkboxBox: { width: 20, height: 20, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
+  checkboxBoxChecked: { backgroundColor: '#181818' },
+  checkboxMark: { fontSize: 13, color: '#fff', lineHeight: 14 },
+  checkboxLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   coverBtn: { borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', height: 160, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   coverPreview: { width: '100%', height: 160 },

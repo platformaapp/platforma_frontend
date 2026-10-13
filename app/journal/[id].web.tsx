@@ -202,11 +202,12 @@ export default function ArticleScreenWeb() {
   // Баннер — только рядом со вторым подзаголовком (см. ниже, desktop grid
   // row 2); если в статье нет "## "-блока, баннеру просто не с чем
   // соседствовать — не показываем его отдельно в конце, как было раньше.
-  // Это свой, конкретный баннер (не PromoBanner с /journal и /events).
+  // Опционально — выключается в админке (article.showBanner), по умолчанию
+  // показан. Это свой, конкретный баннер (не PromoBanner с /journal и /events).
   // Небольшой, фиксированной ширины (как сайдбар-баннер рядом с текстом на
   // theblueprint.ru), а не во всю колонку — alignSelf: 'flex-start' не даёт
   // ему растянуться на всю ширину грид-ячейки.
-  const bannerBlock = section ? (
+  const bannerBlock = section && article.showBanner ? (
     <Pressable style={styles.sectionBannerWrap} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
       <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
