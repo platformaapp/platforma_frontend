@@ -22,6 +22,14 @@ const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg
 const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
 const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
+// Маркеры для вставки события/похожей статьи прямо в текст (а не только в
+// конце) — админ ставит их отдельной "строкой-абзацем" где угодно в "Текст"
+// (см. admin/journal-detail.tsx, кнопки "Вставить в текст" у события/похожей
+// статьи). Если маркера нет нигде в статье — старое поведение сохраняется:
+// блок показывается в конце (см. relatedArticlesForEnd/eventInlineUsed ниже).
+const EVENT_TOKEN = '{{event}}';
+const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
+
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 function formatEventTime(iso?: string): string {
@@ -187,21 +195,88 @@ export default function ArticleScreenWeb() {
     );
   }
 
-  const relatedBlock = article.relatedArticles.length > 0 ? (
+  // Одна похожая статья, вставленная маркером {{related:<id>}} прямо в текст
+  // — компактная карточка в ширину текстовой колонки, а не строка грида-тройки.
+  function renderRelatedInlineCard(item: RelatedArticle) {
+    return (
+      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.id}` as any)}>
+        {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.inlineRelatedImage} resizeMode="cover" /> : <View style={styles.inlineRelatedImage} />}
+        {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
+        <Text style={styles.relatedTitle}>{item.title}</Text>
+      </Pressable>
+    );
+  }
+
+  // TS не умеет протащить сужение "article не null" (проверено выше, при
+  // раннем return) внутрь вложенных function-деклараций — фиксируем это
+  // локальной константой с заведомо известным типом.
+  const safeArticle: Article = article;
+
+  // CTA "Записаться на событие" — вынесен в функцию, т.к. рендерится либо на
+  // месте маркера {{event}} в тексте, либо (если маркера нет) в конце статьи.
+  function renderEventCtaCard() {
+    if (!safeArticle.event) return null;
+    const event = safeArticle.event;
+    return (
+      <View style={styles.ctaBlock}>
+        <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+          <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+        </Pressable>
+        <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+          {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
+          <Text style={styles.ctaCardLabel} numberOfLines={1}>{safeArticle.author.name}</Text>
+          <Text style={styles.ctaCardTitle}>{event.title}</Text>
+          <Text style={styles.ctaCardMeta}>{formatEventTime(event.datetimeStart ?? undefined)}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // Абзацы текста статьи, с подстановкой {{event}}/{{related:<id>}} на их
+  // месте вместо обычного параграфа — так админ может разместить событие или
+  // похожую статью прямо внутри текста, а не только в конце (см. комментарий
+  // у EVENT_TOKEN/RELATED_TOKEN_RE выше).
+  function renderParagraphs(paragraphs: string[], keyPrefix: string) {
+    return paragraphs.map((p, i) => {
+      const key = `${keyPrefix}-${i}`;
+      const trimmed = p.trim();
+      if (trimmed === EVENT_TOKEN) {
+        return safeArticle.event ? <View key={key}>{renderEventCtaCard()}</View> : null;
+      }
+      const relMatch = trimmed.match(RELATED_TOKEN_RE);
+      if (relMatch) {
+        const item = safeArticle.relatedArticles.find((r) => r.id === relMatch[1]);
+        return item ? <View key={key}>{renderRelatedInlineCard(item)}</View> : null;
+      }
+      return <Text key={key} style={styles.body}>{parseInlineMarkdown(p)}</Text>;
+    });
+  }
+
+  // Статьи/событие, уже размещённые маркером внутри текста, не дублируются
+  // блоком в конце — только те, что админ не разместил явно, попадают в
+  // старое поведение (конец статьи).
+  const allParagraphs = [...intro, ...(section?.body ?? [])];
+  const eventInlineUsed = allParagraphs.some((p) => p.trim() === EVENT_TOKEN);
+  const relatedInlineIds = new Set(
+    allParagraphs.map((p) => p.trim().match(RELATED_TOKEN_RE)?.[1]).filter((x): x is string => !!x)
+  );
+  const relatedArticlesForEnd = article.relatedArticles.filter((r) => !relatedInlineIds.has(r.id));
+
+  const relatedBlock = relatedArticlesForEnd.length > 0 ? (
     <View style={styles.relatedSection}>
       <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
-        {article.relatedArticles.map((a, i) => renderRelatedCard(a, (isMobile ? 0 : i) as 0 | 1 | 2))}
+        {relatedArticlesForEnd.map((a, i) => renderRelatedCard(a, (isMobile ? 0 : i) as 0 | 1 | 2))}
       </View>
     </View>
   ) : null;
 
-  const introBlock = intro.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>);
+  const introBlock = renderParagraphs(intro, 'intro');
 
   const sectionBlock = section ? (
     <>
       <Text style={styles.subheading}>{section.heading}</Text>
-      {section.body.map((p, i) => <Text key={i} style={styles.body}>{parseInlineMarkdown(p)}</Text>)}
+      {renderParagraphs(section.body, 'section')}
     </>
   ) : null;
 
@@ -248,21 +323,10 @@ export default function ArticleScreenWeb() {
 
         {relatedBlock}
 
-        {/* Событие, явно привязанное к статье в админке (не эвристика по
-            автору, как раньше) — теперь и на десктопе, не только на мобильном. */}
-        {article.event ? (
-          <View style={styles.ctaBlock}>
-            <Pressable onPress={() => router.push(`/(tabs)/events/${article.event!.id}` as any)}>
-              <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
-            </Pressable>
-            <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${article.event!.id}` as any)}>
-              {article.event.coverUrl ? <Image source={{ uri: article.event.coverUrl }} style={styles.ctaCardImage} resizeMode="cover" /> : <View style={styles.ctaCardImage} />}
-              <Text style={styles.ctaCardLabel} numberOfLines={1}>{article.author.name}</Text>
-              <Text style={styles.ctaCardTitle}>{article.event.title}</Text>
-              <Text style={styles.ctaCardMeta}>{formatEventTime(article.event.datetimeStart ?? undefined)}</Text>
-            </Pressable>
-          </View>
-        ) : null}
+        {/* Событие, явно привязанное к статье в админке — показываем тут,
+            только если админ не вставил маркер {{event}} внутри текста (см.
+            renderParagraphs выше); иначе оно уже отрендерено на своём месте. */}
+        {article.event && !eventInlineUsed ? renderEventCtaCard() : null}
 
         {isMobile ? (
           <View style={styles.ctaBlock}>
@@ -339,6 +403,11 @@ const styles = StyleSheet.create({
   relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   relatedCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, marginTop: 18 },
   relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
+
+  // Похожая статья, вставленная маркером прямо в текст — в ширину текстовой
+  // колонки (maxWidth 420, как у ctaBlock), а не грид-тройка как в конце статьи.
+  inlineRelatedCard: { marginVertical: 24, maxWidth: 420 },
+  inlineRelatedImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },

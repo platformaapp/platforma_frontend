@@ -294,6 +294,21 @@ export default function AdminJournalDetailScreen() {
     setContent(content.slice(0, start) + `[${label}](${url})` + content.slice(end));
   }
 
+  // Вставляет маркер в позицию курсора в "Текст" — на странице статьи он
+  // заменяется на сам блок (CTA события / карточку похожей статьи) в этом же
+  // месте, а не в конце статьи (см. renderParagraphs в [id].web.tsx). Если
+  // маркер нигде не вставлен — блок всё равно показывается в конце (старое
+  // поведение, для уже существующих статей).
+  function insertEventToken() {
+    const { start, end } = contentSelection;
+    setContent(content.slice(0, start) + `\n\n{{event}}\n\n` + content.slice(end));
+  }
+
+  function insertRelatedToken(articleId: string) {
+    const { start, end } = contentSelection;
+    setContent(content.slice(0, start) + `\n\n{{related:${articleId}}}\n\n` + content.slice(end));
+  }
+
   async function handleSave() {
     if (!title.trim()) { setSaveError('Укажите название'); return; }
     if (!author) { setSaveError('Выберите автора'); return; }
@@ -516,12 +531,17 @@ export default function AdminJournalDetailScreen() {
           </>
         ) : null}
 
-        <Text style={styles.label}>«Окей, что ещё» — похожие статьи (до 3, вместо баннера в конце)</Text>
+        <Text style={styles.label}>«Окей, что ещё» — похожие статьи (до 3)</Text>
+        <Text style={styles.hint}>
+          По умолчанию показываются блоком в конце статьи. Чтобы разместить статью внутри текста — поставьте курсор в
+          нужное место в поле «Текст» и нажмите «Вставить в текст» у статьи ниже.
+        </Text>
         {relatedArticles.length > 0 ? (
           <View style={styles.relatedChipsRow}>
             {relatedArticles.map((r) => (
               <View key={r.id} style={styles.relatedChip}>
                 <Text style={styles.relatedChipText} numberOfLines={1}>{r.title}</Text>
+                <Pressable onPress={() => insertRelatedToken(r.id)}><Text style={styles.insertLinkText}>Вставить в текст</Text></Pressable>
                 <Pressable onPress={() => removeRelatedArticle(r.id)}><Text style={styles.relatedChipRemove}>✕</Text></Pressable>
               </View>
             ))}
@@ -547,9 +567,14 @@ export default function AdminJournalDetailScreen() {
         ) : null}
 
         <Text style={styles.label}>Событие — CTA «Записаться на событие» на странице статьи</Text>
+        <Text style={styles.hint}>
+          По умолчанию показывается блоком в конце статьи. Чтобы разместить его внутри текста — поставьте курсор в
+          нужное место в поле «Текст» и нажмите «Вставить в текст» ниже.
+        </Text>
         {event ? (
           <View style={styles.authorSelected}>
             <Text style={styles.authorSelectedText}>{event.title}</Text>
+            <Pressable onPress={() => insertEventToken()}><Text style={styles.insertLinkText}>Вставить в текст</Text></Pressable>
             <Pressable onPress={() => setEvent(null)}><Text style={styles.removeLink}>Изменить</Text></Pressable>
           </View>
         ) : (
@@ -622,6 +647,7 @@ const styles = StyleSheet.create({
   toolbarBtn: { width: 32, height: 32, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
   toolbarBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   removeLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },
+  insertLinkText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818', textDecorationLine: 'underline' },
 
   coverBtn: { borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', height: 160, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   coverPreview: { width: '100%', height: 160 },
