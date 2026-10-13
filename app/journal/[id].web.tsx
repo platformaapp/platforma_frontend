@@ -389,7 +389,9 @@ const styles = StyleSheet.create({
   colImageTop: { minWidth: 240 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  subheading: { fontSize: 25, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  // ~2x исходного размера (был 25/30) — иначе подзаголовок визуально
+  // сливается с обычным текстом статьи.
+  subheading: { fontSize: 50, lineHeight: 56, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   // Имя+роль+био — текстом сверху, квадратное (не круглое) фото под ним;
   // большой отступ снизу перед первым абзацем — см. референс (десктоп-макет).
   // На мобильном тот же отступ выглядит пустым провалом без картинки рядом —
@@ -400,7 +402,7 @@ const styles = StyleSheet.create({
   author: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   authorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, maxWidth: 280 },
-  body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 16 },
+  body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   // alignItems: 'flex-start' обязателен — без него flexbox по умолчанию
   // растягивает (stretch) оба элемента ряда до высоты самого высокого: когда
