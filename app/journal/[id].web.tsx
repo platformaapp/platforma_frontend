@@ -22,11 +22,14 @@ const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg
 const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
 const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
-// Маркеры для вставки события/похожей статьи прямо в текст (а не только в
-// конце) — админ ставит их отдельной "строкой-абзацем" где угодно в "Текст"
-// (см. admin/journal-detail.tsx, кнопки "Вставить в текст" у события/похожей
-// статьи). Если маркера нет нигде в статье — старое поведение сохраняется:
-// блок показывается в конце (см. relatedArticlesForEnd/eventInlineUsed ниже).
+// Маркеры для вставки события/похожей статьи прямо в текст — админ ставит их
+// отдельной "строкой-абзацем" где угодно в "Текст" (см. admin/journal-detail.tsx,
+// кнопки "Вставить в текст" у события/похожей статьи). CTA "Записаться на
+// событие" показывается ТОЛЬКО на месте маркера {{event}} — без него не
+// рендерится вовсе (раньше по умолчанию падал в конец статьи, это было
+// ошибкой: такой CTA должен быть внутри текста, а не оторван от него).
+// Похожие статьи без маркера {{related:<id>}} по-прежнему попадают в блок
+// "Окей, что ещё" в конце — этого поведения просьба не касалась.
 const EVENT_TOKEN = '{{event}}';
 const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
 
@@ -252,11 +255,11 @@ export default function ArticleScreenWeb() {
     });
   }
 
-  // Статьи/событие, уже размещённые маркером внутри текста, не дублируются
+  // Похожие статьи, уже размещённые маркером внутри текста, не дублируются
   // блоком в конце — только те, что админ не разместил явно, попадают в
-  // старое поведение (конец статьи).
+  // старое поведение (конец статьи). Событие такого запасного варианта не
+  // имеет — см. комментарий у EVENT_TOKEN выше.
   const allParagraphs = [...intro, ...(section?.body ?? [])];
-  const eventInlineUsed = allParagraphs.some((p) => p.trim() === EVENT_TOKEN);
   const relatedInlineIds = new Set(
     allParagraphs.map((p) => p.trim().match(RELATED_TOKEN_RE)?.[1]).filter((x): x is string => !!x)
   );
@@ -322,11 +325,6 @@ export default function ArticleScreenWeb() {
         )}
 
         {relatedBlock}
-
-        {/* Событие, явно привязанное к статье в админке — показываем тут,
-            только если админ не вставил маркер {{event}} внутри текста (см.
-            renderParagraphs выше); иначе оно уже отрендерено на своём месте. */}
-        {article.event && !eventInlineUsed ? renderEventCtaCard() : null}
 
         {isMobile ? (
           <View style={styles.ctaBlock}>
