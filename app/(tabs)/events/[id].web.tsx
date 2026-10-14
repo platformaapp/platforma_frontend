@@ -10,7 +10,15 @@ import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/ev
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthToken, getUserProfile } from '@/lib/auth';
-import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
+import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
+
+// "Окей, что ещё" внизу страницы события — та же сетка-тройка (403/365/340),
+// что у похожих статей на /journal/[id] (см. RELATED_ASPECTS там).
+const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+const RELATED_EVENTS_COUNT = 3;
+
+type RelatedEventItem = { id: string; title: string; coverUrl: string | null };
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 // Тот же лимит, что у нативной формы редактирования события (edit-event.tsx)
@@ -146,6 +154,8 @@ export default function EventDetailScreenWeb() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
+  const [recentEvents, setRecentEvents] = useState<RelatedEventItem[]>([]);
+
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -206,6 +216,32 @@ export default function EventDetailScreenWeb() {
       } finally {
         if (active) setLoading(false);
       }
+    })();
+    return () => { active = false; };
+  }, [id]);
+
+  // "Окей, что ещё" — 3 последних события (по ленте, из неё же берутся
+  // карточки на /events), кроме текущего.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=${RELATED_EVENTS_COUNT + 1}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = parseFeedItems(data) as Record<string, unknown>[];
+        if (!active) return;
+        setRecentEvents(
+          raw
+            .filter((r) => String(r.id ?? '') !== id)
+            .slice(0, RELATED_EVENTS_COUNT)
+            .map((r) => ({
+              id: String(r.id ?? ''),
+              title: String(r.title ?? ''),
+              coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
+            })),
+        );
+      } catch { /* тихо — просто не показываем секцию */ }
     })();
     return () => { active = false; };
   }, [id]);
@@ -426,6 +462,28 @@ export default function EventDetailScreenWeb() {
     </View>
   );
 
+  function renderRelatedEventCard(item: RelatedEventItem, posInRow: 0 | 1 | 2) {
+    return (
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
+        )}
+        <Text style={styles.relatedTitle}>{item.title}</Text>
+      </Pressable>
+    );
+  }
+
+  const relatedBlock = recentEvents.length > 0 ? (
+    <View style={styles.relatedSection}>
+      <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
+      <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
+        {recentEvents.map((e, i) => renderRelatedEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
+      </View>
+    </View>
+  ) : null;
+
   const mentorRow = event?.mentor ? (
     <Pressable style={styles.mentorRow} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
       <View style={styles.mentorInfo}>
@@ -442,7 +500,7 @@ export default function EventDetailScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={styles.pageContent}>
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
@@ -452,16 +510,11 @@ export default function EventDetailScreenWeb() {
           <View>
             <Text style={[styles.title, styles.titleMobile]}>{event.title}</Text>
 
-            {event.coverUrl ? (
-              <View style={styles.mobileHeaderRow}>
-                <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" />
-                <View style={styles.mobileMetaCol}>
-                  {event.format ? <Text style={styles.mobileMetaValue}>{event.format}</Text> : null}
-                  <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
-                  <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
-                </View>
-              </View>
-            ) : metaBlock}
+            <View style={styles.mobileMetaRow}>
+              <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
+              <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
+            </View>
+            {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
             {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
 
@@ -558,6 +611,8 @@ export default function EventDetailScreenWeb() {
             </View>
           </View>
         )}
+
+        {relatedBlock}
       </View>
 
         <SiteFooter />
@@ -758,6 +813,7 @@ export default function EventDetailScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
@@ -788,17 +844,16 @@ const styles = StyleSheet.create({
   // всю ширину колонки вместо компактной подписи рядом с аватаром.
   mentorInfo: { flex: 1, maxWidth: 360 },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
-  mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
+  mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
 
-  // Mobile: широкая обложка (не квадратная миниатюра) слева, дата/цена
-  // справа по верхнему краю — см. референс мобильной карточки события.
-  mobileHeaderRow: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginBottom: 16 },
-  mobileThumb: { flex: 1, height: 160, backgroundColor: '#E5E5E5' },
-  mobileMetaCol: { gap: 6, paddingTop: 4 },
-  mobileMetaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
+  // Mobile: дата/цена над картинкой (не сбоку), картинка — на всю ширину
+  // (не доля строки рядом с текстом, как раньше).
+  mobileMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
+  mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 16 },
+  mobileMetaValue: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   // Заметный отступ перед блоком наставника — см. референс.
   mobileMentorBlock: { marginTop: 56 },
   chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
@@ -840,4 +895,13 @@ const styles = StyleSheet.create({
   editFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   editCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
   editSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+
+  // "Окей, что ещё" — та же сетка-тройка (403/365/340), что у похожих статей
+  // на /journal/[id] (см. RELATED_ASPECTS там).
+  relatedSection: { marginTop: 97, marginBottom: 40 },
+  relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 24 } as any,
+  relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
 });
