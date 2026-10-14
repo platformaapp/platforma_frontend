@@ -183,24 +183,31 @@ export default function TutorSlotsScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={styles.backdrop}>
         <View style={[styles.modalCard, isMobile && styles.modalCardMobile]}>
-          <Pressable style={styles.closeButton} onPress={handleClose} hitSlop={8}>
-            <Text style={styles.closeText}>✕</Text>
-          </Pressable>
-
-          {step === 'pick' ? (
-            <>
-              <Text style={[styles.title, isMobile && styles.titleMobile]}>{mentorName || 'Наставник'}</Text>
-              <Text style={styles.subtitle}>Запись на встречу</Text>
-              {mentorPrice ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
-            </>
-          ) : (
-            <Text style={[styles.title, isMobile && styles.titleMobile, step === 'failed' && styles.titleError]}>
-              {step === 'confirm' ? 'Подтверждение записи'
-                : step === 'addCard' ? 'Новая карта'
-                : step === 'failed' ? 'Оплата не прошла'
-                : 'Оплата прошла'}
-            </Text>
-          )}
+          {/* Заголовок и ✕ — flex-ряд (не absolute + паддинг-компенсация,
+              как было): так они физически не могут перекрыться, независимо
+              от длины текста заголовка — старая раскладка давала баг
+              "крестик не закрывает", когда DOM-бокс заголовка (даже с
+              резервирующим paddingRight) всё равно перехватывал клик по ✕
+              на узких экранах. */}
+          <View style={styles.modalHeaderRow}>
+            {step === 'pick' ? (
+              <View style={styles.modalHeaderTextCol}>
+                <Text style={[styles.title, isMobile && styles.titleMobile]}>{mentorName || 'Наставник'}</Text>
+                <Text style={styles.subtitle}>Запись на встречу</Text>
+                {mentorPrice ? <Text style={styles.price}>Стоимость консультации: {mentorPrice} в час</Text> : null}
+              </View>
+            ) : (
+              <Text style={[styles.title, isMobile && styles.titleMobile, step === 'failed' && styles.titleError]}>
+                {step === 'confirm' ? 'Подтверждение записи'
+                  : step === 'addCard' ? 'Новая карта'
+                  : step === 'failed' ? 'Оплата не прошла'
+                  : 'Оплата прошла'}
+              </Text>
+            )}
+            <Pressable onPress={handleClose} hitSlop={8}>
+              <Text style={styles.closeText}>✕</Text>
+            </Pressable>
+          </View>
 
           {loading ? (
             <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
@@ -297,10 +304,17 @@ const styles = StyleSheet.create({
   backdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 16, backgroundColor: 'rgba(24,24,24,0.45)' },
   modalCard: { width: '100%', maxWidth: 560, backgroundColor: '#fff', padding: 32 },
   modalCardMobile: { maxWidth: 420, padding: 20 },
-  closeButton: { position: 'absolute', top: 16, right: 16, padding: 4 },
-  closeText: { fontSize: 18, color: '#687076' },
+  // Заголовок и ✕ — flex-ряд, не absolute-позиционирование (см. комментарий
+  // в JSX) — physически не могут перекрыться независимо от длины заголовка.
+  modalHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  modalHeaderTextCol: { flex: 1 },
+  closeText: { fontSize: 18, color: '#687076', padding: 4 },
 
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  // flex:1/minWidth:0 — на шагах без modalHeaderTextCol (confirm/addCard/
+  // success/failed) title рендерится прямо в modalHeaderRow, рядом с ✕, и
+  // должен сжиматься/переноситься в оставшееся место, а не выталкивать ✕
+  // за пределы ряда.
+  title: { flex: 1, minWidth: 0, fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
   price: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },

@@ -1672,7 +1672,10 @@ const styles = StyleSheet.create({
   tutorInfoContainer: { position: 'relative', height: '100%' },
   tutorAvatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', height: 345 },
   tutorAvatarImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
-  avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
+  // На всю ширину (была мелкая 90×90) — тот же квадратный aspectRatio:1, что
+  // и у десктопной bigAvatar/tutorAvatarBox, просто без фикс. высоты 345
+  // (на узком экране высота подстраивается под ширину).
+  avatarMobile: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
