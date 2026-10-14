@@ -4,12 +4,13 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { useSiteSettings } from '@/hooks/use-site-settings';
 
-// Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png).
-// "Личный кабинет" — та же иконка-стрелка (nav-1), что у "События", не
-// отдельная (nav-5) — как в SiteHeader (десктоп), см. комментарий там.
+// Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png) — то
+// же распределение, что в SiteHeader (десктоп), см. комментарий там:
+// "События" — цветок (nav-2), "Наставники" — освободившаяся nav-5,
+// "Личный кабинет" — стрелка (nav-1).
 const NAV_ITEMS = [
-  { key: 'events', href: '/events', icon: require('@/assets/images/nav-1.png'), match: ['/events'] },
-  { key: 'explore', href: '/explore', icon: require('@/assets/images/nav-2.png'), match: ['/explore'] },
+  { key: 'events', href: '/events', icon: require('@/assets/images/nav-2.png'), match: ['/events'] },
+  { key: 'explore', href: '/explore', icon: require('@/assets/images/nav-5.png'), match: ['/explore'] },
   { key: 'myevents', href: '/myevents', icon: require('@/assets/images/nav-3.png'), match: ['/myevents'] },
   { key: 'journal', href: '/journal', icon: require('@/assets/images/nav-4.png'), match: ['/journal'] },
   { key: 'profile', href: '/profile', icon: require('@/assets/images/nav-1.png'), match: ['/profile'] },

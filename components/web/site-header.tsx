@@ -8,12 +8,13 @@ import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
 // Иконки — с навбара vladyakunin.ru (см. assets/images/nav-1..5.png),
 // подписи и порядок пунктов — свои, не менялись. Пункты всегда чёрные —
-// без подсветки активного (по просьбе пользователя). "Личный кабинет" —
-// та же иконка-стрелка (nav-1), что у "События", не отдельная (nav-5) —
-// так на вебе должно быть, как и в нативном приложении.
+// без подсветки активного (по просьбе пользователя). "События" — иконка-
+// цветок (nav-2, её прислал пользователь явно для этого пункта), не
+// стрелка. "Наставники" — освободившаяся nav-5 (цветок другого рисунка).
+// "Личный кабинет" — иконка-стрелка (nav-1).
 const NAV_ITEMS = [
-  { key: 'events', label: 'События', href: '/events', icon: require('@/assets/images/nav-1.png') },
-  { key: 'explore', label: 'Наставники', href: '/explore', icon: require('@/assets/images/nav-2.png') },
+  { key: 'events', label: 'События', href: '/events', icon: require('@/assets/images/nav-2.png') },
+  { key: 'explore', label: 'Наставники', href: '/explore', icon: require('@/assets/images/nav-5.png') },
   { key: 'myevents', label: 'Мои записи', href: '/myevents', icon: require('@/assets/images/nav-3.png') },
   { key: 'journal', label: 'Журнал', href: '/journal', icon: require('@/assets/images/nav-4.png') },
   { key: 'profile', label: 'Личный кабинет', href: '/profile', icon: require('@/assets/images/nav-1.png') },
