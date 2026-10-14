@@ -266,7 +266,7 @@ export default function EventsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.titleRow}>
           <Pressable onPress={() => setFormat(null)}>
@@ -377,6 +377,7 @@ const styles = StyleSheet.create({
   // Отступы страницы — как .container/.page-head на vladyakunin.ru/projects/
   // (--pad:31px, заголовок 106px от шапки).
   scrollContent: { paddingTop: 63, paddingBottom: 24 },
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 31, paddingRight: 31 },
   // paddingRight:240 у десктопной версии — оставляет поле под decor справа
   // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
@@ -444,12 +445,12 @@ const styles = StyleSheet.create({
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
-  // Мобильный список — обложка слева (aspect-ratio 649/360, ~45% ширины
-  // строки), текст справа: автор+заголовок сверху, дата — снизу и вправо
-  // (см. моб. макет), а не по центру колонки, как раньше.
+  // Мобильный список — обложка слева, фиксированная высота 120 с
+  // aspect-ratio 649/360 (ширина получается из высоты и пропорции, а не
+  // наоборот), текст справа: автор+заголовок сверху, дата — снизу и вправо.
   mobileList: { gap: 28 },
   mobileRow: { flexDirection: 'row', gap: 14 },
-  mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileThumb: { height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 6 },
   mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },

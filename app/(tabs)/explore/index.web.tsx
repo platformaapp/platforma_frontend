@@ -36,6 +36,35 @@ function avatarHeightRatio(index: number, columns: number): number {
   return AVATAR_HEIGHT_RATIO_ROWS[row][col];
 }
 
+// Вынесена в отдельный компонент просто для читаемости (была инлайн в .map).
+// Чб/цветной переключается настоящим CSS ":hover" (см. [data-mentor-avatar]
+// в app/+html.tsx), а не React-состоянием: react-native-web не пробрасывает
+// произвольные CSS-свойства вроде "filter" через style — отбрасывает их
+// молча (проверено — атрибут dataSet пробрасывается, а style.filter нет),
+// и у него в принципе нет ":hover" на уровне StyleSheet. CSS-хover заодно
+// бесплатно не трогает тач-устройства — там filter остаётся chb всегда.
+function TutorCard({
+  tutor, isOwn, ratio, isMobile, onPress,
+}: {
+  tutor: PublicTutor; isOwn: boolean; ratio: number; isMobile: boolean; onPress: () => void;
+}) {
+  const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
+  return (
+    <Pressable style={[styles.card, isMobile && styles.cardMobile]} onPress={onPress}>
+      <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
+        <Image
+          source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
+          style={styles.avatar}
+          resizeMode="cover"
+          {...({ dataSet: { mentorAvatar: 'true' } } as any)}
+        />
+      </View>
+      {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
+      <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
+    </Pressable>
+  );
+}
+
 export default function MentorsScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
@@ -83,24 +112,13 @@ export default function MentorsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={styles.pageContent}>
         <Pressable onPress={() => setCategory(null)}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
         </Pressable>
 
-        {isMobile ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filtersRowMobile}>
-            {topicsList.map((c) => {
-              const active = c === category;
-              return (
-                <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
-                  <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{c}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : (
+        {isMobile ? null : (
           <View style={styles.filtersRow}>
             <View style={styles.filtersGroup}>
               {topicsList.filter((c) => c !== LAST_TOPIC_RIGHT_ALIGNED).map((c) => {
@@ -133,24 +151,16 @@ export default function MentorsScreenWeb() {
           <View style={styles.grid}>
             {filteredTutors.map((tutor, index) => {
               const isOwn = tutor.id === myId && myRole === 'tutor';
-              const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
               const ratio = avatarHeightRatio(index, isMobile ? 2 : 4);
               return (
-                <Pressable
+                <TutorCard
                   key={tutor.id}
-                  style={[styles.card, isMobile && styles.cardMobile]}
+                  tutor={tutor}
+                  isOwn={isOwn}
+                  ratio={ratio}
+                  isMobile={isMobile}
                   onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
-                >
-                  <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
-                    <Image
-                      source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
-                      style={styles.avatar}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
-                  <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
-                </Pressable>
+                />
               );
             })}
           </View>
@@ -165,6 +175,7 @@ export default function MentorsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12 },
@@ -175,8 +186,6 @@ const styles = StyleSheet.create({
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 86, marginTop: 50 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
   filterPillRight: { marginLeft: 'auto', marginRight: 0, paddingLeft: 24 },
-  filtersScroll: { marginBottom: 32 },
-  filtersRowMobile: { flexDirection: 'row', gap: 20, paddingRight: 16 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

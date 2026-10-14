@@ -30,6 +30,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
             #root { display: flex; }
             [data-site-content="true"] { scrollbar-width: none; -ms-overflow-style: none; }
             [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
+            [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
+            [data-mentor-avatar="true"]:hover { filter: none; }
           `
         }} />
       </head>
