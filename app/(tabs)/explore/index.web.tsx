@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16, marginTop: 62 },
-  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12 },
+  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12, marginTop: 30 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
   // кликабельны, активная — чёрная и жирная, остальные — серые. Последняя
   // ("Новые увлечения") — отдельно и прижата вправо по логотипу (см.

@@ -310,7 +310,7 @@ export default function TutorCardScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={isMobile ? styles.scrollContentMobile : styles.scrollContent}>
       <View style={styles.pageContent}>
         {isMobile ? (
           <View>
@@ -384,6 +384,7 @@ export default function TutorCardScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 0, paddingBottom: 24,     marginTop: 106 },
+  scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 30 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
