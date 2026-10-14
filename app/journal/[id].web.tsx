@@ -25,6 +25,11 @@ const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 // высоты натуральный пиксельный размер файла (1280), игнорируя aspectRatio
 // и растягивая/искажая картинку; явная числовая высота это перебивает.
 const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
+
+// Картинка в блоке "Скачать приложение" (мобильный, низ статьи) — раньше
+// был просто серый плейсхолдер без картинки, взята с vladyakunin.ru (та же
+// чб-портретная эстетика, что и у section-banner выше).
+const APP_DOWNLOAD_IMAGE = require('@/assets/images/app-download-photo.png');
 const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
 const SECTION_BANNER_WIDTH = 300;
 const SECTION_BANNER_HEIGHT = Math.round(SECTION_BANNER_WIDTH / SECTION_BANNER_ASPECT_RATIO);
@@ -436,7 +441,7 @@ export default function ArticleScreenWeb() {
           <View style={styles.ctaBlock}>
             <Text style={styles.actionLinkText}>Скачать приложение</Text>
             <View style={styles.ctaCard}>
-              <View style={styles.ctaCardImage} />
+              <Image source={APP_DOWNLOAD_IMAGE} style={styles.ctaCardImage} resizeMode="cover" />
               <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
               <View style={styles.appCardStores}>
                 <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
