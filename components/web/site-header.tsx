@@ -85,7 +85,9 @@ const styles = StyleSheet.create({
   },
   nav: { flexDirection: 'row', flexWrap: 'wrap', gap: 28 },
   navItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  navIconImage: { width: 24, height: 24 },
+  // 24×24 — только в мобильной версии (MobileBottomNav), здесь (десктоп) —
+  // прежний размер 14×14.
+  navIconImage: { width: 14, height: 14 },
   navLabel: { fontFamily: 'Gramatika-Regular', fontSize: 15, lineHeight: 15, color: '#010101' },
   logo: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#010101', lineHeight: 1
    },

@@ -52,12 +52,14 @@ export function MobileBottomNav() {
 }
 
 const styles = StyleSheet.create({
+  // Высота навбара в мобилке — 76px (как у верхней шапки, см. mobileHeader
+  // в site-header.tsx), а не произвольная по паддингам.
   bar: {
+    height: 76,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 16,
     borderTopWidth: 1,
     borderColor: '#E5E5E5',
     backgroundColor: '#fff',

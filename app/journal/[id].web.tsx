@@ -161,6 +161,17 @@ export default function ArticleScreenWeb() {
   const { intro, section } = parseContent(article.content);
   const [galleryLeft, galleryRight] = article.gallery;
 
+  // "Мало текста" — считаем по суммарной длине настоящих абзацев (маркеры
+  // {{event}}/{{related:<id>}} не в счёт), не по их количеству: один длинный
+  // абзац — это не "мало текста", а несколько однословных — да. Влияет
+  // только на форму баннера ниже (bannerBlock) — квадратом вместо длинной
+  // портретной картинки, когда текста при ней было бы слишком мало.
+  const LITTLE_TEXT_THRESHOLD = 600;
+  const totalTextLength = [...intro, ...(section?.body ?? [])]
+    .filter((p) => { const t = p.trim(); return t !== '' && t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
+    .reduce((sum, p) => sum + p.length, 0);
+  const hasLittleText = totalTextLength < LITTLE_TEXT_THRESHOLD;
+
   const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{article.title}</Text>;
 
   // На десктопе идёт сразу под заголовком (см. колонку текста); на мобильном
@@ -225,8 +236,14 @@ export default function ArticleScreenWeb() {
   // Небольшой, фиксированной ширины (как сайдбар-баннер рядом с текстом на
   // theblueprint.ru), а не во всю колонку — alignSelf: 'flex-start' не даёт
   // ему растянуться на всю ширину грид-ячейки.
+  // Когда текста в статье мало (hasLittleText) — длинная портретная картинка
+  // смотрится несоразмерно рядом с коротким текстом, поэтому показываем её
+  // квадратом: сама картинка не меняется (не искажается, та же ширина и
+  // натуральная пропорциональная высота), просто обёртка обрезает её по
+  // квадрату через overflow:'hidden', оставляя видимой верхнюю часть — ровно
+  // ту, где текст ("Собираем личные рекомендации...").
   const bannerBlock = article.showBanner ? (
-    <Pressable style={styles.sectionBannerWrap} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
+    <Pressable style={[styles.sectionBannerWrap, hasLittleText && styles.sectionBannerWrapSquare]} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
       <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
@@ -266,22 +283,29 @@ export default function ArticleScreenWeb() {
   // И в тексте стоит маркер {{event}}; позиция самого маркера, как правило,
   // ЯВЛЯЕТСЯ координатой — см. eventMarkerIdx/hasEventSplit ниже (и
   // комментарий у EVENT_TOKEN выше про случай "текста мало").
+  // "+ Записаться на событие" — под заголовком, в одной строке с датой (на
+  // противоположных концах), а не отдельной строкой-ссылкой над картинкой,
+  // как раньше. Заголовок (ctaCardTitle) не должен быть шире картинки — на
+  // десктопе у картинки фиксированная ширина (EVENT_CTA_WIDTH), поэтому
+  // ограничиваем ею весь блок (eventCtaCardDesktop); на мобильном картинка
+  // и так на всю ширину блока (ctaCardImage), ограничивать нечем.
   function renderEventCtaCard() {
     if (!safeArticle.event) return null;
     const event = safeArticle.event;
+    const dateText = formatEventDate(event.datetimeStart ?? undefined);
     return (
       <View style={styles.ctaBlock}>
-        <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
-          <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
-        </Pressable>
-        <Pressable style={styles.ctaCard} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+        <Pressable style={[styles.ctaCard, !isMobile && styles.eventCtaCardDesktop]} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
           {event.coverUrl ? (
             <Image source={{ uri: event.coverUrl }} style={isMobile ? styles.ctaCardImage : styles.eventCtaImage} resizeMode="cover" />
           ) : (
             <View style={isMobile ? styles.ctaCardImage : styles.eventCtaImage} />
           )}
           <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{event.title}</Text>
-          <Text style={styles.ctaCardMeta}>{formatEventDate(event.datetimeStart ?? undefined)}</Text>
+          <View style={styles.eventCtaFooterRow}>
+            <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+            {dateText ? <Text style={styles.ctaCardMeta}>{dateText}</Text> : null}
+          </View>
         </Pressable>
       </View>
     );
@@ -460,9 +484,9 @@ const styles = StyleSheet.create({
   colImageTop: { minWidth: 240, gap: 40 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  // ~2x исходного размера (был 25/30) — иначе подзаголовок визуально
-  // сливается с обычным текстом статьи.
-  subheading: { fontSize: 50, lineHeight: 56, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  // Тот же размер, что у заголовка статьи (title) — был заметно крупнее
+  // (50/56) и выглядел слишком большим.
+  subheading: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
   // Имя+роль+био — текстом сверху, квадратное (не круглое) фото под ним;
   // большой отступ снизу перед первым абзацем — см. референс (десктоп-макет).
   // На мобильном тот же отступ выглядит пустым провалом без картинки рядом —
@@ -490,6 +514,11 @@ const styles = StyleSheet.create({
   galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
   sectionBannerWrap: { width: SECTION_BANNER_WIDTH, alignSelf: 'flex-start' },
+  // "Мало текста" — квадратная обёртка обрезает картинку снизу (overflow),
+  // сама картинка (sectionBanner) не меняется — остаётся во всю свою
+  // натуральную пропорциональную высоту, просто видна только верхняя
+  // квадратная часть (см. комментарий у bannerBlock выше).
+  sectionBannerWrapSquare: { height: SECTION_BANNER_WIDTH, overflow: 'hidden' },
   sectionBanner: { width: SECTION_BANNER_WIDTH, height: SECTION_BANNER_HEIGHT, backgroundColor: '#E5E5E5' },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
@@ -513,6 +542,10 @@ const styles = StyleSheet.create({
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
   // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
   ctaCard: {},
+  // CTA события на десктопе — заголовок не должен быть шире картинки
+  // (EVENT_CTA_WIDTH её фиксирует), иначе текст растягивается до maxWidth
+  // ctaBlock (420), шире самой картинки под ним.
+  eventCtaCardDesktop: { maxWidth: EVENT_CTA_WIDTH },
   ctaCardImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   // Размер как у карточки события в статье про советский самиздат — см.
   // расчёт EVENT_CTA_WIDTH/HEIGHT выше.
@@ -521,7 +554,11 @@ const styles = StyleSheet.create({
   // У блока "Скачать приложение" нет строки-подписи над заголовком — сдвигаем
   // заголовок так же, как если бы подпись была (20 её marginTop + 13 обычный).
   ctaCardTitleNoLabel: { marginTop: 33 },
-  ctaCardMeta: { width: '100%', fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000', textAlign: 'right', marginTop: 20 },
+  // "+ Записаться на событие" слева, дата справа — одна строка под
+  // заголовком (было: ссылка отдельной строкой над картинкой, дата отдельной
+  // строкой под заголовком).
+  eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
+  ctaCardMeta: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000' },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
   storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
 });
