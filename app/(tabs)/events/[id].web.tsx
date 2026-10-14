@@ -758,7 +758,7 @@ export default function EventDetailScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
-  pageContent: { paddingHorizontal: 32 },
+  pageContent: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
 

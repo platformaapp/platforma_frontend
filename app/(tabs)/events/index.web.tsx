@@ -447,11 +447,11 @@ const styles = StyleSheet.create({
   // Мобильный список — обложка слева (aspect-ratio 649/360, ~45% ширины
   // строки), текст справа: автор+заголовок сверху, дата — снизу и вправо
   // (см. моб. макет), а не по центру колонки, как раньше.
-  mobileList: { gap: 28 },
+  mobileList: { gap: 28, marginTop: 30 },
   mobileRow: { flexDirection: 'row', gap: 14 },
   mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
-  mobileAuthor: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 6 },
-  mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  mobileDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0 },
+  mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 13 },
+  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });

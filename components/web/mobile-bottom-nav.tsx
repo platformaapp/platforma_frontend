@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E5E5',
     backgroundColor: '#fff',
   },
-  group: { flexDirection: 'row', alignItems: 'center', gap: 38 },
+  group: { flexDirection: 'row', alignItems: 'center', gap: 24 },
   // Контейнер иконки — 32×32 (сама иконка внутри — 24×24, см. iconImage).
   // position:'relative' + абсолютная точка ниже — точка не должна добавлять
   // высоту в поток: иначе активный пункт становится выше остальных и
