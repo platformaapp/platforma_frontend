@@ -52,24 +52,27 @@ export function MobileBottomNav() {
 }
 
 const styles = StyleSheet.create({
-  // Высота навбара в мобилке — 76px (как у верхней шапки, см. mobileHeader
-  // в site-header.tsx), а не произвольная по паддингам.
+  // Высота навбара — не фиксированное число, а паддинги (8 сверху, 35
+  // снизу — под safe area домашнего индикатора) вокруг 32×32 контейнеров
+  // иконок: 8 + 32 + 35 = 75px по факту.
   bar: {
-    height: 76,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingBottom: 35,
     borderTopWidth: 1,
     borderColor: '#E5E5E5',
     backgroundColor: '#fff',
   },
   group: { flexDirection: 'row', alignItems: 'center', gap: 38 },
+  // Контейнер иконки — 32×32 (сама иконка внутри — 24×24, см. iconImage).
   // position:'relative' + абсолютная точка ниже — точка не должна добавлять
   // высоту в поток: иначе активный пункт становится выше остальных и
   // alignItems:'center' в .bar сдвигает именно его иконку относительно
   // остальных (была ровно эта поломка выравнивания).
-  item: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  item: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   iconImage: { width: 24, height: 24 },
   activeDot: { position: 'absolute', bottom: -8, left: '50%', marginLeft: -2, width: 4, height: 4, borderRadius: 2, backgroundColor: '#E02D2D' },
 });
