@@ -449,10 +449,10 @@ const styles = StyleSheet.create({
   // строки), текст справа: автор+заголовок сверху, дата — снизу и вправо
   // (см. моб. макет), а не по центру колонки, как раньше.
   mobileList: { gap: 28, marginTop: 30 },
-  mobileRow: { flexDirection: 'row', gap: 14 },
-  mobileThumb: { height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileRow: { flexDirection: 'row', gap: 20 },
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
-  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0 },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
   mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 13 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });
