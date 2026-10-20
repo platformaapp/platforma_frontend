@@ -113,7 +113,12 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
   const centerGap = Math.max(0, (windowWidth - CONTENT_MAX_WIDTH) / 2);
 
   return (
-    <View style={[styles.footer, { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL }]}>
+    <View
+      style={[
+        styles.footer,
+        { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL, marginTop: isMobile ? 48 : 305 },
+      ]}
+    >
       {displayPartners ? (
         <>
           {strategicPartners.length > 0 ? (
@@ -144,7 +149,7 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
 }
 
 const styles = StyleSheet.create({
-  footer: { paddingVertical: 0, borderTopWidth: 0, borderColor: '#E5E5E5', marginTop: 305 },
+  footer: { paddingVertical: 0, borderTopWidth: 0, borderColor: '#E5E5E5' },
   // .partners__block: слева подпись фиксированной ширины, справа сетка лого.
   section: { flexDirection: 'row', alignItems: 'flex-start' },
   // .partners__block + .partners__block { margin-top: 120px }
