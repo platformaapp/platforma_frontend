@@ -20,7 +20,7 @@ import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
 import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
-const FORMATS = ['Послушать', 'Посмотреть', 'Посетить', 'Обсудить'] as const;
+const FORMATS = ['Обсудить', 'Посмотреть', 'Посетить'] as const;
 
 // Тулбар над "Текст" — каждая кнопка оборачивает выделенный фрагмент парой
 // маркеров; разбирает их parseInlineMarkdown (lib/markdown-inline.tsx) на

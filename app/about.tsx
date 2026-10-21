@@ -112,6 +112,9 @@ export default function AboutScreen() {
             <Pressable onPress={() => openInNewTab('/privacy')}>
               <Text style={styles.legalLink}>Политика конфиденциальности →</Text>
             </Pressable>
+            <Pressable onPress={() => openInNewTab('/tutor-offer')}>
+              <Text style={styles.legalLink}>Оферта для наставников →</Text>
+            </Pressable>
           </View>
         </View>
 

@@ -171,9 +171,18 @@ export default function TutorCardScreenWeb() {
   // Mobile: одно событие — одна полноширинная строка (миниатюра слева,
   // текст справа, дата/цена прижаты к низу справа) — не карточка в сетке
   // 2 в ряд, см. референс мобильной страницы наставника.
-  function renderEventCardMobile(ev: MentorEvent) {
+  // Прошедшие события — полностью осветлённые (тот же opacity:0.5, что у
+  // глобального hover-затемнения любого Pressable, см. app/_layout.tsx
+  // HoverDimCalibrator, но здесь — постоянно, не по hover) и некликабельные
+  // (disabled снимает курсор/hover у Pressable, см. тот же _layout.tsx).
+  function renderEventCardMobile(ev: MentorEvent, isPast = false) {
     return (
-      <Pressable key={ev.id} style={styles.eventRowMobile} onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}>
+      <Pressable
+        key={ev.id}
+        style={[styles.eventRowMobile, isPast && styles.eventDimmed]}
+        disabled={isPast}
+        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+      >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventRowBodyMobile}>
           <View>
@@ -189,7 +198,7 @@ export default function TutorCardScreenWeb() {
     );
   }
 
-  function renderEventCard(ev: MentorEvent, widthVariant: 'grid3' | 'half' | 'full' = 'grid3') {
+  function renderEventCard(ev: MentorEvent, widthVariant: 'grid3' | 'half' | 'full' = 'grid3', isPast = false) {
     return (
       <Pressable
         key={ev.id}
@@ -198,8 +207,10 @@ export default function TutorCardScreenWeb() {
           isMobile && styles.eventCardMobile,
           !isMobile && widthVariant === 'half' && styles.eventCardHalf,
           !isMobile && widthVariant === 'full' && styles.eventCardFull,
+          isPast && styles.eventDimmed,
         ]}
-        onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}
+        disabled={isPast}
+        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventCardBody}>
@@ -231,18 +242,23 @@ export default function TutorCardScreenWeb() {
         <View style={styles.eventsSection}>
           <Text style={[styles.eventsSectionTitle, isMobile && styles.eventsSectionTitleMobile]}>Прошедшие события</Text>
           {isMobile ? (
-            <View style={styles.eventsListMobile}>{pastEvents.map((e) => renderEventCardMobile(e))}</View>
+            <View style={styles.eventsListMobile}>{pastEvents.map((e) => renderEventCardMobile(e, true))}</View>
           ) : (
-            <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e))}</View>
+            <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e, 'grid3', true))}</View>
           )}
         </View>
       ) : null}
     </>
   );
 
-  function renderMentorGridCard(ev: MentorEvent, posInRow: 0 | 1 | 2, narrowImage: boolean) {
+  function renderMentorGridCard(ev: MentorEvent, posInRow: 0 | 1 | 2, narrowImage: boolean, isPast = false) {
     return (
-      <Pressable key={ev.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}>
+      <Pressable
+        key={ev.id}
+        style={[{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any, isPast && styles.eventDimmed]}
+        disabled={isPast}
+        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+      >
         {ev.coverUrl ? (
           <Image
             source={{ uri: ev.coverUrl }}
@@ -261,7 +277,7 @@ export default function TutorCardScreenWeb() {
     );
   }
 
-  function renderMentorEventsGrid(title: string, events: MentorEvent[]) {
+  function renderMentorEventsGrid(title: string, events: MentorEvent[], isPast = false) {
     if (events.length === 0) return null;
     const rows = buildMentorEventRows(events);
     return (
@@ -273,7 +289,7 @@ export default function TutorCardScreenWeb() {
           const narrowLast = rowIdx % 2 === 1;
           return (
             <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
-              {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, narrowLast && pos === 2))}
+              {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, narrowLast && pos === 2, isPast))}
             </View>
           );
         })}
@@ -371,7 +387,7 @@ export default function TutorCardScreenWeb() {
         {!isMobile ? (
           <>
             {renderMentorEventsGrid('События наставника', upcomingEvents)}
-            {renderMentorEventsGrid('Прошедшие события', pastEvents)}
+            {renderMentorEventsGrid('Прошедшие события', pastEvents, true)}
           </>
         ) : null}
       </View>
@@ -459,6 +475,10 @@ const styles = StyleSheet.create({
   eventCardFull: { width: '100%' },
   eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
+  // Прошедшие события наставника — постоянно в том же затемнении, что и
+  // hover-эффект любого кликабельного блока сайта (opacity:0.5, см.
+  // app/_layout.tsx), но навсегда, не только при наведении.
+  eventDimmed: { opacity: 0.5 },
   eventCardBody: { paddingTop: 10 },
   eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4, marginTop: 12, lineHeight: 0.9 },
   eventCardTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4, marginTop: 12, lineHeight: 25 },

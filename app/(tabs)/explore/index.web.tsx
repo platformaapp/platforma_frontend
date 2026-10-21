@@ -116,14 +116,9 @@ export default function MentorsScreenWeb() {
                 );
               })}
             </View>
-            {topicsList.includes(LAST_TOPIC_RIGHT_ALIGNED) ? (
-              <Pressable
-                style={styles.filterPillRight}
-                onPress={() => setCategory(category === LAST_TOPIC_RIGHT_ALIGNED ? null : LAST_TOPIC_RIGHT_ALIGNED)}
-              >
-                <Text style={[styles.filterPillText, category === LAST_TOPIC_RIGHT_ALIGNED && styles.filterPillTextActive]}>{LAST_TOPIC_RIGHT_ALIGNED}</Text>
-              </Pressable>
-            ) : null}
+            <Pressable style={styles.filterPillRight} onPress={() => router.push('/register-tutor' as any)}>
+              <Text style={styles.filterPillText}>Стать наставником</Text>
+            </Pressable>
           </View>
         )}
 
@@ -149,9 +144,15 @@ export default function MentorsScreenWeb() {
             })}
           </View>
         )}
+
+        {isMobile ? (
+          <Pressable style={styles.becomeTutorButton} onPress={() => router.push('/register-tutor' as any)}>
+            <Text style={styles.becomeTutorButtonText}>Стать наставником</Text>
+          </Pressable>
+        ) : null}
       </View>
 
-        <SiteFooter showPartners />
+        <SiteFooter showPartners showDocsRow={false} />
       </ScrollView>
     </SiteShell>
   );
@@ -176,6 +177,11 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 24, rowGap: 48 },
+  // Та же чёрная кнопка на всю ширину, что и «Создать событие» на /events
+  // (мобильный список) — здесь даёт доступ к «Стать наставником», раз
+  // десктопная пилюля рубрикатора на мобильном скрыта целиком.
+  becomeTutorButton: { backgroundColor: '#111', alignItems: 'center', paddingVertical: 16, marginTop: 24 },
+  becomeTutorButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
   // Без рамки, крупное фото на всю ширину карточки (~0.83 портретный кадр
   // вместо круглого аватара) — см. референс. Ровно 4 колонки на десктопе
   // (не auto-fit — flexGrow:1 при полной ширине CONTENT_MAX_WIDTH давал 5),

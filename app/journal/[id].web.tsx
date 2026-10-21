@@ -179,37 +179,20 @@ export default function ArticleScreenWeb() {
 
   const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{article.title}</Text>;
 
-  // На десктопе идёт сразу под заголовком (см. колонку текста); на мобильном
-  // — после обложки, а не перед ней (см. референс: заголовок → обложка →
-  // автор → текст).
-  const authorNameAndRole = (
-    <>
-      {article.author.name ? <Text style={styles.author}>{article.author.name}</Text> : null}
-      {article.author.roleTitle ? <Text style={styles.role}>{article.author.roleTitle}</Text> : null}
-    </>
-  );
-
-  // ФИО, фото и био наставника — кликабельны целиком (раньше только
-  // имя+роль), ведут на страницу наставника.
-  const authorContent = (
-    <>
-      <View>
-        {authorNameAndRole}
-        {article.author.shortBio ? <Text style={styles.authorBio}>{article.author.shortBio}</Text> : null}
-      </View>
-      {article.author.avatarUrl ? <Image source={{ uri: article.author.avatarUrl }} style={styles.authorAvatar} /> : <View style={styles.authorAvatar} />}
-    </>
-  );
-
-  const authorBlock = (
-    <View style={[styles.authorRow, isMobile && styles.authorRowMobile]}>
+  // Под заголовком — только имя, серым, без фото и без роли/био (раньше
+  // был целый блок с фото+имя+роль+био, см. git history), кликабельно на
+  // страницу наставника, если он известен.
+  const authorBlock = article.author.name ? (
+    <View style={styles.authorRow}>
       {article.author.id ? (
         <Pressable onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}>
-          {authorContent}
+          <Text style={styles.author}>{article.author.name}</Text>
         </Pressable>
-      ) : authorContent}
+      ) : (
+        <Text style={styles.author}>{article.author.name}</Text>
+      )}
     </View>
-  );
+  ) : null;
 
   // Обложка и галерея — единый медиа-блок: текст статьи начинается под
   // обложкой, галерея (если есть) идёт сразу под ней же, а не привязана к
@@ -335,7 +318,7 @@ export default function ArticleScreenWeb() {
     return items
       .filter((it) => { const t = it.text.trim(); return t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
       .map((it, i) => (
-        <Text key={`${keyPrefix}-${i}`} style={it.heading ? styles.subheading : styles.body}>
+        <Text key={`${keyPrefix}-${i}`} style={it.heading ? [styles.subheading, isMobile && styles.subheadingMobile] : styles.body}>
           {parseInlineMarkdown(it.text)}
         </Text>
       ));
@@ -388,21 +371,22 @@ export default function ArticleScreenWeb() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.pageContent}>
         {isMobile ? (
-          // Мобильная раскладка — один столбец: заголовок, обложка/галерея/
-          // баннер, автор, затем текст до маркера события; если он есть и
+          // Мобильная раскладка — один столбец: заголовок, автор (под ним,
+          // см. десктопную колонку — там тот же порядок), обложка/галерея/
+          // баннер, затем текст до маркера события; если он есть и
           // текста после хватает (hasEventSplit) — сама карточка ровно на
           // его месте в тексте, затем текст после. Иначе (нет маркера или
           // "текста мало") — carточка (если маркер всё же есть) и похожие
           // статьи идут после баннера, а текст — один непрерывный поток.
           <View style={styles.mobileStack}>
             {titleElement}
+            {authorBlock}
             <View style={styles.mobileMediaBlock}>
               {mediaBlock}
               {bannerBlock}
               {!hasEventSplit && hasEventMarker ? renderEventCtaCard() : null}
               {!hasEventSplit ? relatedInlineBlock : null}
             </View>
-            {authorBlock}
             {beforeEventBlock}
             {hasEventSplit ? renderEventCtaCard() : null}
             {afterEventBlock}
@@ -489,19 +473,17 @@ const styles = StyleSheet.create({
   colImageTop: { minWidth: 240, gap: 40 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  // Тот же размер, что у заголовка статьи (title) — был заметно крупнее
-  // (50/56) и выглядел слишком большим.
+  // Тот же размер, что у заголовка статьи (title/titleMobile) — тем же
+  // способом (общий стиль + мобильный оверрайд), раньше на мобильном
+  // подзаголовок оставался в десктопном размере (40/36), крупнее заголовка
+  // (25/28).
   subheading: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
-  // Имя+роль+био — текстом сверху, квадратное (не круглое) фото под ним;
-  // большой отступ снизу перед первым абзацем — см. референс (десктоп-макет).
-  // На мобильном тот же отступ выглядит пустым провалом без картинки рядом —
-  // сокращаем его.
-  authorRow: { marginBottom: 240 },
-  authorRowMobile: { marginBottom: 32 },
-  authorAvatar: { width: 48, height: 48, marginTop: 12, backgroundColor: '#E5E5E5' },
-  author: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  authorBio: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8, maxWidth: 280 },
+  subheadingMobile: { fontSize: 25, lineHeight: 28 },
+  // Только имя под заголовком, серым — раньше тут был целый блок (фото +
+  // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
+  // как у прежнего authorBio (14/18), а не у прежнего имени (18).
+  authorRow: { marginBottom: 24 },
+  author: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
   body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   // alignItems: 'flex-start' обязателен — без него flexbox по умолчанию
