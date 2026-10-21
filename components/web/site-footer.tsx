@@ -88,7 +88,7 @@ function LogoGrid({ logos }: { logos: { name: string; logo: number | string; url
  * блоки партнёров/друзей — только там, где это явно запрошено (showPartners),
  * и только на десктопе (на мобильном партнёров не показываем нигде вообще).
  */
-export function SiteFooter({ showPartners = false }: { showPartners?: boolean }) {
+export function SiteFooter({ showPartners = false, showDocsRow = true }: { showPartners?: boolean; showDocsRow?: boolean }) {
   const [openDoc, setOpenDoc] = useState<'none' | 'offer'>('none');
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
@@ -134,12 +134,14 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
         </>
       ) : null}
 
-      <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
-        <Text style={styles.copyright}>©2026, p(34)</Text>
-        <Pressable onPress={() => setOpenDoc('offer')}>
-          <Text style={styles.docsLink}>Официальные документы</Text>
-        </Pressable>
-      </View>
+      {showDocsRow ? (
+        <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
+          <Text style={styles.copyright}>©2026, p(34)</Text>
+          <Pressable onPress={() => setOpenDoc('offer')}>
+            <Text style={styles.docsLink}>Официальные документы</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <DocumentModal visible={openDoc === 'offer'} onClose={() => setOpenDoc('none')} title="Официальные документы">
         <OfferContent />

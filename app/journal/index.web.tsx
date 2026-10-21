@@ -9,10 +9,6 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 
-// Последний фильтр — отдельно, с выравниванием по правому краю (тот же
-// приём, что "Обсуждение" на /events и "Новые увлечения" на /explore).
-const LAST_FILTER_RIGHT_ALIGNED = 'Обсудить';
-
 // Повторяющийся цикл из 4 строк (пара/тройка/пара/тройка, см. rows ниже) —
 // пропорции колонок из референса (vladyakunin.ru): .proj-featured 649:84:716
 // и вторая пара 481:165:611:193 (у второй карточки в обеих — картинка+текст
@@ -157,7 +153,7 @@ export default function JournalScreenWeb() {
         {!isMobile ? (
           <View style={styles.filtersRow}>
             <View style={styles.filtersGroup}>
-              {ARTICLE_FORMATS.filter((f) => f !== LAST_FILTER_RIGHT_ALIGNED).map((f) => {
+              {ARTICLE_FORMATS.map((f) => {
                 const active = f === category;
                 return (
                   <Pressable key={f} onPress={() => setCategory(active ? null : f)}>
@@ -166,14 +162,9 @@ export default function JournalScreenWeb() {
                 );
               })}
             </View>
-            {ARTICLE_FORMATS.includes(LAST_FILTER_RIGHT_ALIGNED) ? (
-              <Pressable
-                style={styles.filterPillRight}
-                onPress={() => setCategory(category === LAST_FILTER_RIGHT_ALIGNED ? null : LAST_FILTER_RIGHT_ALIGNED)}
-              >
-                <Text style={[styles.filterText, category === LAST_FILTER_RIGHT_ALIGNED && styles.filterTextActive]}>{LAST_FILTER_RIGHT_ALIGNED}</Text>
-              </Pressable>
-            ) : null}
+            <Pressable style={styles.filterPillRight} onPress={() => router.push('/register-tutor' as any)}>
+              <Text style={styles.filterText}>Написать текст</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -199,6 +190,9 @@ export default function JournalScreenWeb() {
                 </View>
               </Pressable>
             ))}
+            <Pressable style={styles.writeTextButton} onPress={() => router.push('/register-tutor' as any)}>
+              <Text style={styles.writeTextButtonText}>Написать текст</Text>
+            </Pressable>
           </View>
         ) : (
           <View>
@@ -310,6 +304,11 @@ const styles = StyleSheet.create({
   // как верстка на vladyakunin.ru/journal), а не маленький квадратный
   // превью-тамбнейл, как раньше.
   mobileList: { gap: 28 },
+  // Та же чёрная кнопка на всю ширину, что и «Создать событие»/«Стать
+  // наставником» на /events, /explore (мобильный список) — десктопная
+  // пилюля рубрикатора на мобильном скрыта целиком.
+  writeTextButton: { backgroundColor: '#111', alignItems: 'center', paddingVertical: 16, marginTop: 8 },
+  writeTextButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
   mobileRow: { flexDirection: 'row', gap: 14 },
   mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'flex-start' },

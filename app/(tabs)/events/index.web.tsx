@@ -43,9 +43,6 @@ type EventFeedItem = {
 };
 
 const FORMATS = ['Трансляция', 'Лекция', 'Практика', 'Встреча'];
-// "Обсуждение" визуально отделён от остальных фильтров (см. макет — большой
-// отступ, пилюля прижата к правому краю), но работает как обычный фильтр.
-const DISCUSSION_FORMAT = 'Обсуждение';
 
 /**
  * Событие хранит формат в поле category (enum EventCategory на бэкенде —
@@ -293,9 +290,9 @@ export default function EventsScreenWeb() {
             </View>
             <Pressable
               style={[styles.filterPill, styles.filterPillRight]}
-              onPress={() => setFormat(format === DISCUSSION_FORMAT ? null : DISCUSSION_FORMAT)}
+              onPress={() => router.push('/register-tutor' as any)}
             >
-              <Text style={[styles.filterPillText, format === DISCUSSION_FORMAT && styles.filterPillTextActive]}>{DISCUSSION_FORMAT}</Text>
+              <Text style={styles.filterPillText}>Создать событие</Text>
             </Pressable>
           </View>
         ) : null}
@@ -317,14 +314,17 @@ export default function EventsScreenWeb() {
               <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
-                  <Text style={styles.mobileTitleText}>{item.title}</Text>
+                  <View>
+                    {item.mentor?.name ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
+                    <Text style={styles.mobileTitleText}>{item.title}</Text>
+                  </View>
                   {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                 </View>
               </Pressable>
             ))}
             <Pressable
               style={styles.createEventButton}
-              onPress={() => router.push('/(tabs)/profile/new-event' as any)}
+              onPress={() => router.push('/register-tutor' as any)}
             >
               <Text style={styles.createEventButtonText}>Создать событие</Text>
             </Pressable>
@@ -375,7 +375,7 @@ export default function EventsScreenWeb() {
         ) : null}
       </View>
 
-        <SiteFooter showPartners />
+        <SiteFooter showPartners showDocsRow={false} />
       </ScrollView>
     </SiteShell>
   );
@@ -467,7 +467,8 @@ const styles = StyleSheet.create({
   mobileRow: { flexDirection: 'row', gap: 14 },
   mobileThumb: { height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
-  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', fontSize: 13, lineHeight: 13 },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0 },
+  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 13 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   // Та же заливка, что у «Создать событие» в нативном профиле наставника
   // (app/(tabs)/profile/[id].tsx: actionPrimary/actionPrimaryText) — чёрная
