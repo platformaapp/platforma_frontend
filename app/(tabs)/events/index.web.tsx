@@ -268,10 +268,15 @@ export default function EventsScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
-        <View style={styles.titleRow}>
+        <View style={[styles.titleRow, isMobile && styles.titleRowMobile]}>
           <Pressable onPress={() => setFormat(null)}>
             <Text style={[styles.title, isMobile && styles.titleMobile]}>Ближайшие события</Text>
           </Pressable>
+          {isMobile ? (
+            <Pressable onPress={() => router.push('/about' as any)}>
+              <Text style={styles.aboutLink}>О сервисе</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {!isMobile ? (
@@ -312,14 +317,17 @@ export default function EventsScreenWeb() {
               <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
-                  <View>
-                    {item.mentor?.name ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
-                    <Text style={styles.mobileTitleText}>{item.title}</Text>
-                  </View>
+                  <Text style={styles.mobileTitleText}>{item.title}</Text>
                   {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                 </View>
               </Pressable>
             ))}
+            <Pressable
+              style={styles.createEventButton}
+              onPress={() => router.push('/(tabs)/profile/new-event' as any)}
+            >
+              <Text style={styles.createEventButtonText}>Создать событие</Text>
+            </Pressable>
           </View>
         ) : (
           <View>
@@ -383,8 +391,15 @@ const styles = StyleSheet.create({
   // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
   pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
   titleRow: {},
+  // Напротив заголовка — «О сервисе» тем же приёмом, что в нативном
+  // приложении (app/(tabs)/events/index.tsx: titleRow + aboutLink).
+  titleRowMobile: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginTop: 23 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
+  aboutLink: {
+    fontSize: 13, lineHeight: 28, fontFamily: 'Gramatika-Regular', color: '#010101',
+    textDecorationLine: 'underline',
+  },
   // .proj-tabs: margin-top:68, gap:46 от заголовка.
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 46, flexShrink: 1 },
@@ -455,4 +470,9 @@ const styles = StyleSheet.create({
   mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
   mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 13 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  // Та же заливка, что у «Создать событие» в нативном профиле наставника
+  // (app/(tabs)/profile/[id].tsx: actionPrimary/actionPrimaryText) — чёрная
+  // кнопка на всю ширину в конце списка, как «Все советы в Сетке» на референсе.
+  createEventButton: { backgroundColor: '#111', alignItems: 'center', paddingVertical: 16, marginTop: 8 },
+  createEventButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
 });
