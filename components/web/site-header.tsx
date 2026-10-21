@@ -94,5 +94,5 @@ const styles = StyleSheet.create({
    },
   // Высота мобильного навбара — 76, стрелка "назад" по левому краю, по
   // центру по вертикали.
-  mobileHeader: { height: 76, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24 },
+  mobileHeader: { height: 76, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
 });
