@@ -17,10 +17,24 @@ const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 // шапке), как "Обсуждение" на /events (см. filterPillRight).
 const LAST_TOPIC_RIGHT_ALIGNED = 'Новые увлечения';
 
-// Фото у карточки — всегда квадрат (ширина = высота), одинаково у всех
-// карточек в сетке (раньше высота менялась по позиции в сетке — 410/340/
-// 341/358 — по референсу-скриншоту теперь все карточки одного размера).
-const AVATAR_RATIO = 1;
+/**
+ * Высота фото у карточки — не унифицированный кроп и не реальная пропорция
+ * самого фото (та у наставников почти всегда ~квадратная, разницы не видно),
+ * а заданный по позиции в сетке паттерн — ровно как на референсе (карточки
+ * 410/340/341/358 в первом ряду, 358/341/410/340 — во втором, значения даны
+ * пользователем при базовой ширине карточки 340). Ratio = height/width.
+ * Чётные и нечётные ряды (по 4 колонки на десктопе, по 2 на мобильном)
+ * используют разный порядок, паттерн просто повторяется построчно.
+ */
+const AVATAR_HEIGHT_RATIO_ROWS: number[][] = [
+  [410 / 340, 340 / 340, 341 / 340, 358 / 340],
+  [358 / 340, 341 / 340, 410 / 340, 340 / 340],
+];
+function avatarHeightRatio(index: number, columns: number): number {
+  const row = Math.floor(index / columns) % 2;
+  const col = index % columns % AVATAR_HEIGHT_RATIO_ROWS[row].length;
+  return AVATAR_HEIGHT_RATIO_ROWS[row][col];
+}
 
 // Вынесена в отдельный компонент просто для читаемости (была инлайн в .map).
 // Чб/цветной переключается настоящим CSS ":hover" (см. [data-mentor-avatar]
@@ -30,14 +44,14 @@ const AVATAR_RATIO = 1;
 // и у него в принципе нет ":hover" на уровне StyleSheet. CSS-хover заодно
 // бесплатно не трогает тач-устройства — там filter остаётся chb всегда.
 function TutorCard({
-  tutor, isOwn, isMobile, onPress,
+  tutor, isOwn, ratio, isMobile, onPress,
 }: {
-  tutor: PublicTutor; isOwn: boolean; isMobile: boolean; onPress: () => void;
+  tutor: PublicTutor; isOwn: boolean; ratio: number; isMobile: boolean; onPress: () => void;
 }) {
   const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
   return (
     <Pressable style={[styles.card, isMobile && styles.cardMobile]} onPress={onPress}>
-      <View style={[styles.avatarBox, { paddingBottom: `${AVATAR_RATIO * 100}%` }]}>
+      <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
         <Image
           source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
           style={styles.avatar}
@@ -149,13 +163,15 @@ export default function MentorsScreenWeb() {
         ) : (
           <>
             <View style={styles.grid}>
-              {pageTutors.map((tutor) => {
+              {pageTutors.map((tutor, index) => {
                 const isOwn = tutor.id === myId && myRole === 'tutor';
+                const ratio = avatarHeightRatio(index, isMobile ? COLS_MOBILE : COLS_DESKTOP);
                 return (
                   <TutorCard
                     key={tutor.id}
                     tutor={tutor}
                     isOwn={isOwn}
+                    ratio={ratio}
                     isMobile={isMobile}
                     onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
                   />
@@ -251,7 +267,6 @@ const styles = StyleSheet.create({
   // высоте (проверено: воспроизводится стабильно для этого случая, но не
   // для featuredImage на /events — там aspect-ratio >1, альбомный кадр).
   // paddingBottom % всегда считается от ширины элемента, поэтому надёжен.
-  // AVATAR_RATIO — одинаковый квадрат у всех карточек (см. референс-скриншот).
   avatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', marginBottom: 14 },
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },

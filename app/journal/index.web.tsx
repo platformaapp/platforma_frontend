@@ -70,24 +70,40 @@ export default function JournalScreenWeb() {
     setPage(1);
   }
 
-  function renderFeaturedCard(item: Article, index: 0 | 1) {
+  // variant: 'A' — первая пара цикла (pairA), 'B' — третья строка цикла
+  // (pairB) — у неё свои классы, не переиспользует стили pairA (см.
+  // featuredCardOneB/featuredCardTwoB/featuredInnerTwoB и т.д. ниже):
+  // второй блок pairA — 72.8% ширины колонки, второй блок pairB — 100%.
+  function renderFeaturedCard(item: Article, index: 0 | 1, variant: 'A' | 'B') {
     const isSecond = index === 1;
+    const cardStyle = variant === 'B'
+      ? (isSecond ? styles.featuredCardTwoB : styles.featuredCardOneB)
+      : (isSecond ? styles.featuredCardTwo : styles.featuredCardOne);
+    const innerStyle = isSecond
+      ? (variant === 'B' ? styles.featuredInnerTwoB : styles.featuredInnerTwo)
+      : undefined;
+    const labelStyle = variant === 'B'
+      ? (isSecond ? styles.featuredLabelTwoB : styles.featuredLabelOneB)
+      : (isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne);
+    const titleStyle = variant === 'B'
+      ? (isSecond ? styles.featuredTitleTwoB : styles.featuredTitleOneB)
+      : (isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne);
     return (
       <Pressable
         key={item.id}
-        style={isSecond ? styles.featuredCardTwo : styles.featuredCardOne}
+        style={cardStyle}
         onPress={() => router.push(`/journal/${item.id}` as any)}
       >
-        <View style={isSecond ? styles.featuredInnerTwo : undefined}>
+        <View style={innerStyle}>
           {item.coverUrl ? (
             <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
           ) : (
             <View style={[styles.featuredImage, { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
           {item.category ? (
-            <Text style={[styles.cardCategory, isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne]}>{item.category}</Text>
+            <Text style={[styles.cardCategory, labelStyle]}>{item.category}</Text>
           ) : null}
-          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]}>{item.title}</Text>
+          <Text style={[styles.cardTitleText, titleStyle]}>{item.title}</Text>
         </View>
       </Pressable>
     );
@@ -215,16 +231,19 @@ export default function JournalScreenWeb() {
               // Отступ сверху — единая чередующаяся последовательность для
               // ВСЕХ строк подряд (не только троек): первая строка — 80
               // (отступ от фильтров), дальше 254/120/254/120...
-              const marginTop = rowIdx === 0 ? 80 : rowIdx % 2 === 1 ? 254 : 120;
+              // idxInPage === 0, не rowIdx === 0 — первая строка должна быть
+              // с отступом 80 на КАЖДОЙ странице (как на первой), а не только
+              // когда это первая строка всего списка.
+              const marginTop = idxInPage === 0 ? 80 : rowIdx % 2 === 1 ? 254 : 120;
               const rowEl = row.type === 'triple' ? (
                 <View style={[styles.rowThree, { marginTop }]}>
                   {row.items.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
                 </View>
               ) : (
                 <View style={[row.type === 'pairA' ? styles.featuredRow : styles.pairBRow, { marginTop }]}>
-                  {renderFeaturedCard(row.items[0], 0)}
+                  {renderFeaturedCard(row.items[0], 0, row.type === 'pairB' ? 'B' : 'A')}
                   {row.items.length > 1 ? <View /> : null}
-                  {row.items.length > 1 ? renderFeaturedCard(row.items[1], 1) : null}
+                  {row.items.length > 1 ? renderFeaturedCard(row.items[1], 1, row.type === 'pairB' ? 'B' : 'A') : null}
                 </View>
               );
               return (
@@ -298,14 +317,25 @@ const styles = StyleSheet.create({
   // 254/120/254/120... (см. marginTop в рендере).
   featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
   pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
+  // pairA (строка 1).
   featuredCardOne: { width: '100%' },
   featuredCardTwo: { width: '100%' },
   featuredInnerTwo: { width: '72.8%' },
-  featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13 },
   featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
+  // pairB (строка 3) — отдельные классы, не переиспользуют стили pairA:
+  // второй блок строки 3 — на всю ширину колонки (100%), а не 72.8%, как
+  // у второго блока строки 1.
+  featuredCardOneB: { width: '100%' },
+  featuredCardTwoB: { width: '100%' },
+  featuredInnerTwoB: { width: '100%' },
+  featuredLabelOneB: { marginTop: 20 },
+  featuredLabelTwoB: { marginTop: 23 },
+  featuredTitleOneB: { marginTop: 13 },
+  featuredTitleTwoB: { marginTop: 15, lineHeight: 25 },
+  featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
 
   rowThree: { display: 'grid', gridTemplateColumns: ROW_THREE_COLUMNS.map((n) => `${n}fr`).join(' ') } as any,
   // Баннер — только колонки 1..5 той же сетки (не заезжает в пустую 6-ю),
