@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { getSiteSettings, type SiteSettings } from '@/lib/api/site-settings';
 
-const EMPTY: SiteSettings = { navItems: [], banner: {}, partners: [], topics: [] };
+const EMPTY: SiteSettings = { navItems: [], banner: {}, partners: [], topics: [], aboutUs: {} };
 
 // Модульный кэш — один фетч на всю сессию вкладки, а не по разу на каждый
 // компонент (шапка, футер, баннер и т.д. монтируются одновременно).

@@ -60,7 +60,7 @@ export function SiteHeader() {
             );
           })}
         </View>
-        <Pressable onPress={() => router.push('/events' as any)}>
+        <Pressable onPress={() => router.push('/about-us' as any)}>
           <Text style={styles.logo}>p(34)</Text>
         </Pressable>
       </View>

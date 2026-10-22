@@ -225,11 +225,11 @@ export default function ArticleScreenWeb() {
   const authorBlock = article.author.name ? (
     <View style={styles.authorRow}>
       {article.author.id ? (
-        <Pressable onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}>
+        <Pressable style={styles.authorNameShrink} onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}>
           <Text style={styles.author}>{article.author.name}</Text>
         </Pressable>
       ) : (
-        <Text style={styles.author}>{article.author.name}</Text>
+        <Text style={[styles.author, styles.authorNameShrink]}>{article.author.name}</Text>
       )}
       <TagList tags={article.tags} textStyle={styles.author} />
     </View>
@@ -546,6 +546,10 @@ const styles = StyleSheet.create({
   // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
   // как у прежнего authorBio (14/18), а не у прежнего имени (18).
   authorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  // minWidth:0 — см. тот же приём в events/[id].web.tsx/explore/[id].web.tsx:
+  // при нехватке места сжимается имя автора, а не теги (TagList сам
+  // flexShrink:0 — никогда не обрезается троеточием).
+  authorNameShrink: { flexShrink: 1, minWidth: 0 },
   author: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
   body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },

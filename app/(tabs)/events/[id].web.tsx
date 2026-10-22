@@ -517,7 +517,7 @@ export default function EventDetailScreenWeb() {
         ) : isMobile ? (
           <View>
             <View style={styles.titleRow}>
-              <Text style={[styles.title, styles.titleMobile]}>{event.title}</Text>
+              <Text style={[styles.title, styles.titleMobile, styles.titleShrink]}>{event.title}</Text>
               <TagList tags={event.tags} textStyle={[styles.title, styles.titleMobile]} />
             </View>
 
@@ -571,7 +571,7 @@ export default function EventDetailScreenWeb() {
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
               <View style={styles.titleRow}>
-                <Text style={styles.title}>{event.title}</Text>
+                <Text style={[styles.title, styles.titleShrink]}>{event.title}</Text>
                 <TagList tags={event.tags} textStyle={styles.title} />
               </View>
               {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
@@ -837,7 +837,11 @@ const styles = StyleSheet.create({
   titleMobile: { fontSize: 25, lineHeight: 28 },
   // Теги (#хэштег) — напротив названия события, тем же размером шрифта,
   // по правому краю заголовка (строка — на всю ширину колонки заголовка).
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+  // minWidth:0 — без него flex-item по умолчанию не сжимается уже самого
+  // контента (min-width:auto в CSS flexbox), и при нехватке места сжимает
+  // теги вместо заголовка (та же проблема, что и ниже на /explore).
+  titleShrink: { flexShrink: 1, minWidth: 0 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 18 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },

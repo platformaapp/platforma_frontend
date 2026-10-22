@@ -20,6 +20,7 @@ import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 import {
   getAdminSiteSettings,
   updateSiteSettings,
+  type AboutUsSetting,
   type BannerSetting,
   type NavItemSetting,
   type PartnerSetting,
@@ -112,6 +113,7 @@ export default function AdminSiteSettingsScreen() {
   const [partners, setPartners] = useState<PartnerSetting[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
   const [newTopic, setNewTopic] = useState('');
+  const [aboutUs, setAboutUs] = useState<AboutUsSetting>({});
 
   useEffect(() => {
     (async () => {
@@ -123,6 +125,7 @@ export default function AdminSiteSettingsScreen() {
         setBanner(s.banner ?? {});
         setPartners(s.partners ?? []);
         setTopics(s.topics ?? []);
+        setAboutUs(s.aboutUs ?? {});
       } catch {
         setError('Не удалось загрузить настройки');
       } finally {
@@ -155,7 +158,13 @@ export default function AdminSiteSettingsScreen() {
         );
         setPartners(finalPartners);
       }
-      await updateSiteSettings({ navItems, banner: finalBanner, partners: finalPartners, topics });
+      let finalAboutUs = aboutUs;
+      if (isLocalUri(aboutUs.photoUrl)) {
+        const url = await uploadAdminImage(aboutUs.photoUrl as string);
+        finalAboutUs = { ...aboutUs, photoUrl: url };
+        setAboutUs(finalAboutUs);
+      }
+      await updateSiteSettings({ navItems, banner: finalBanner, partners: finalPartners, topics, aboutUs: finalAboutUs });
       setSaveSuccess(true);
     } catch (e: any) {
       if (e?.message?.toLowerCase?.().includes('unauthorized')) {
@@ -184,6 +193,11 @@ export default function AdminSiteSettingsScreen() {
   async function handlePickBannerImage() {
     const uri = await pickImage();
     if (uri) setBanner((b) => ({ ...b, imageUrl: uri }));
+  }
+
+  async function handlePickAboutUsPhoto() {
+    const uri = await pickImage();
+    if (uri) setAboutUs((a) => ({ ...a, photoUrl: uri }));
   }
 
   async function handlePickPartnerLogo(index: number) {
@@ -343,6 +357,41 @@ export default function AdminSiteSettingsScreen() {
             </View>
           </View>
 
+          {/* О нас — страница по ссылке p(34) в шапке: большое фото, заголовок, текст. */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>О нас</Text>
+            <Text style={styles.sectionSubtitle}>Страница по клику на p(34) в шапке — большое фото, заголовок, текст.</Text>
+            <Pressable style={styles.imagePickBtn} onPress={handlePickAboutUsPhoto}>
+              {aboutUs.photoUrl ? (
+                <Image source={{ uri: aboutUs.photoUrl }} style={styles.imagePickPreview} resizeMode="cover" />
+              ) : (
+                <Text style={styles.imagePickBtnText}>Выбрать изображение</Text>
+              )}
+            </Pressable>
+            {aboutUs.photoUrl ? (
+              <Pressable onPress={() => setAboutUs((a) => ({ ...a, photoUrl: '' }))}>
+                <Text style={styles.removeLink}>Удалить картинку</Text>
+              </Pressable>
+            ) : null}
+            <TextInput
+              style={[styles.input, { marginTop: 8 }]}
+              placeholder="Заголовок"
+              placeholderTextColor="#9B9B9B"
+              value={aboutUs.heading ?? ''}
+              onChangeText={(t) => setAboutUs((a) => ({ ...a, heading: t }))}
+            />
+            <TextInput
+              style={[styles.input, styles.inputMultiline, { marginTop: 8 }]}
+              placeholder="Текст"
+              placeholderTextColor="#9B9B9B"
+              value={aboutUs.text ?? ''}
+              onChangeText={(t) => setAboutUs((a) => ({ ...a, text: t }))}
+              multiline
+              numberOfLines={8}
+              textAlignVertical="top"
+            />
+          </View>
+
           {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
           {saveSuccess ? <Text style={styles.successText}>Сохранено</Text> : null}
           <Pressable style={[styles.saveBtn, isSaving && styles.btnDisabled]} onPress={handleSave} disabled={isSaving}>
@@ -366,6 +415,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 6 },
   sectionSubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 16, lineHeight: 18 },
   input: { borderWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  inputMultiline: { minHeight: 160, textAlignVertical: 'top' },
   navRow: { marginBottom: 14, gap: 6 },
   navSlotLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },
   partnerRow: { marginBottom: 14, gap: 6, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 14 },

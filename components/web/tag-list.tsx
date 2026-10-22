@@ -22,6 +22,9 @@ export function TagList({ tags, textStyle }: { tags?: string[] | null; textStyle
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, justifyContent: 'flex-end', flexShrink: 1 },
+  // flexShrink:0 — теги никогда не сжимаются/не обрезаются текстом с
+  // троеточием: при нехватке места сжимается соседнее имя/заголовок (см.
+  // flexShrink:1 на нём в каждом месте использования), не теги.
+  row: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, justifyContent: 'flex-end', flexShrink: 0 },
   tag: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 });

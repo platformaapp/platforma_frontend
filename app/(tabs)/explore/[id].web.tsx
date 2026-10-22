@@ -403,7 +403,7 @@ export default function TutorCardScreenWeb() {
         {isMobile ? (
           <View>
             <View style={styles.nameRow}>
-              <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
+              <Text style={[styles.name, styles.nameMobile, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
               <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} />
             </View>
 
@@ -437,7 +437,7 @@ export default function TutorCardScreenWeb() {
           <View style={styles.desktopGrid}>
             <View style={styles.actionsRowContainer}>
               <View style={styles.nameRow}>
-                <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+                <Text style={[styles.name, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
                 <TagList tags={tags} textStyle={styles.name} />
               </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
@@ -520,7 +520,11 @@ const styles = StyleSheet.create({
   nameMobile: { fontSize: 25, lineHeight: 28 },
   // Теги (#хэштег) — напротив имени, тем же размером шрифта, выровнены по
   // правому краю (строка full-width, как и само имя-заголовок).
-  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  nameRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+  // minWidth:0 — без него имя (как flex-item) не сжимается уже своего
+  // контента (min-width:auto в CSS flexbox) и при нехватке места сжимает
+  // теги вместо себя — см. тот же приём в events/[id].web.tsx.
+  nameShrink: { flexShrink: 1, minWidth: 0 },
   // Короткое био (shortBio) — серым (см. displayRole/styles.role: несмотря
   // на название, сюда попадает именно shortBio, не роль/должность).
   role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },

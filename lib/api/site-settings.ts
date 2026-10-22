@@ -17,14 +17,22 @@ export interface PartnerSetting {
   linkUrl?: string;
 }
 
+/** Страница "О нас" (ссылка p(34) в шапке) — большое фото/заголовок/текст. */
+export interface AboutUsSetting {
+  photoUrl?: string;
+  heading?: string;
+  text?: string;
+}
+
 export interface SiteSettings {
   navItems: NavItemSetting[];
   banner: BannerSetting;
   partners: PartnerSetting[];
   topics: string[];
+  aboutUs: AboutUsSetting;
 }
 
-const EMPTY_SETTINGS: SiteSettings = { navItems: [], banner: {}, partners: [], topics: [] };
+const EMPTY_SETTINGS: SiteSettings = { navItems: [], banner: {}, partners: [], topics: [], aboutUs: {} };
 
 /** GET /api/settings/site — публично, без авторизации. */
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -37,6 +45,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       banner: data?.banner ?? {},
       partners: Array.isArray(data?.partners) ? data.partners : [],
       topics: Array.isArray(data?.topics) ? data.topics : [],
+      aboutUs: data?.aboutUs ?? {},
     };
   } catch {
     return EMPTY_SETTINGS;
