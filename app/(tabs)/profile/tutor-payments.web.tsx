@@ -287,7 +287,7 @@ export default function TutorPaymentsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
@@ -476,6 +476,7 @@ export default function TutorPaymentsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
+  scrollContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },

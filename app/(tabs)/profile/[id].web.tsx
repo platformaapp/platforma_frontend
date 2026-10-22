@@ -860,7 +860,7 @@ export default function ProfileScreenWeb() {
     return (
       <SiteShell>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.pageContent}>
+        <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
           {isMobile ? (
             <View>
               <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
@@ -960,7 +960,7 @@ export default function ProfileScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
             <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
@@ -1627,6 +1627,7 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, referenc
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // Выйти/удалить аккаунт — общие для студента и наставника, тот же стиль

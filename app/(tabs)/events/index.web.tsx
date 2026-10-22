@@ -366,8 +366,6 @@ export default function EventsScreenWeb() {
           </View>
         )}
 
-        {!isMobile && !loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner /> : null}
-
         {!loading && !error && hasMore ? (
           <Pressable style={[styles.loadMoreButton, isMobile && styles.chipButton]} onPress={loadMore} disabled={loadingMore}>
             {loadingMore ? <ActivityIndicator color="#010101" /> : <Text style={[styles.loadMoreButtonText, isMobile && styles.chipButtonText]}>Показать ещё</Text>}

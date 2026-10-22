@@ -2,14 +2,15 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 
 /** Веб-версия пользовательского соглашения (см. user-agreement.tsx для нативной). */
 export default function UserAgreementScreenWeb() {
+  const isMobile = useIsMobileWeb();
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.content}>
           <Text style={styles.title}>Пользовательское соглашение</Text>
 
@@ -34,6 +35,7 @@ export default function UserAgreementScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   content: { maxWidth: 720, gap: 16 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
   heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },

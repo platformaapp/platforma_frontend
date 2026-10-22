@@ -184,7 +184,11 @@ export default function MyEventsScreenWeb() {
           mergedBookings.push({
             id: eid, date: e.start_at?.split('T')[0], time: e.start_at?.split('T')[1]?.slice(0, 5),
             scheduled_at: e.start_at, status: e.status, price: e.price,
-            tutor: ta ? { id: String(ta.id ?? ''), name: (ta.name ?? ta.fullName ?? ta.full_name ?? '') as string } : undefined,
+            tutor: ta ? {
+              id: String(ta.id ?? ''),
+              name: (ta.name ?? ta.fullName ?? ta.full_name ?? '') as string,
+              avatarUrl: resolveUploadUrl((ta.avatarUrl ?? ta.avatar_url) as string | undefined),
+            } : undefined,
             _viewerRole: sessionRole,
           });
         }
@@ -300,7 +304,7 @@ export default function MyEventsScreenWeb() {
     return {
       id: obj?.id ?? fallbackId,
       name: obj?.fullName ?? obj?.full_name ?? obj?.name ?? (isViewerTutor ? 'Ученик' : 'Наставник'),
-      avatarUrl: obj?.avatarUrl ?? obj?.avatar_url ?? null,
+      avatarUrl: resolveUploadUrl(obj?.avatarUrl ?? obj?.avatar_url) ?? null,
       isViewerTutor,
     };
   }
@@ -469,7 +473,7 @@ export default function MyEventsScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Мои записи</Text>
           {nextBooking && !isMobile ? (
@@ -625,6 +629,7 @@ export default function MyEventsScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
