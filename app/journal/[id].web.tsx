@@ -17,22 +17,18 @@ const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 // Баннер рядом со вторым подзаголовком — свой, отдельный от PromoBanner
 // (того, что на /journal и /events): конкретная портретная картинка
-// 720×1280, не админско-настраиваемый промо-баннер списков. Небольшой,
-// фиксированного размера (как сайдбар-баннер рядом с текстом на
-// theblueprint.ru), а не во всю колонку.
-// Ширина и высота заданы числом явно (не width:'100%' + aspectRatio) — у
-// Image из require() react-native-web подставляет вместо недостающей
-// высоты натуральный пиксельный размер файла (1280), игнорируя aspectRatio
-// и растягивая/искажая картинку; явная числовая высота это перебивает.
+// 720×1280 (текст сверху, фото снизу), не админско-настраиваемый промо-
+// баннер списков. Квадратная обёртка (см. sectionBannerWrap) показывает
+// только верхнюю (текстовую) часть, см. комментарий у bannerBlock.
 const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
 
 // Картинка в блоке "Скачать приложение" (мобильный, низ статьи) — раньше
 // был просто серый плейсхолдер без картинки, взята с vladyakunin.ru (та же
 // чб-портретная эстетика, что и у section-banner выше).
 const APP_DOWNLOAD_IMAGE = require('@/assets/images/app-download-photo.png');
+// Натуральная пропорция картинки баннера (720×1280) — высота Image внутри
+// квадратной обёртки задаётся в процентах именно от неё (см. sectionBanner).
 const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
-const SECTION_BANNER_WIDTH = 300;
-const SECTION_BANNER_HEIGHT = Math.round(SECTION_BANNER_WIDTH / SECTION_BANNER_ASPECT_RATIO);
 const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
 // Размер картинки CTA события внутри статьи — как в статье про советский
@@ -166,17 +162,6 @@ export default function ArticleScreenWeb() {
   const { intro, section } = parseContent(article.content);
   const [galleryLeft, galleryRight] = article.gallery;
 
-  // "Мало текста" — считаем по суммарной длине настоящих абзацев (маркеры
-  // {{event}}/{{related:<id>}} не в счёт), не по их количеству: один длинный
-  // абзац — это не "мало текста", а несколько однословных — да. Влияет
-  // только на форму баннера ниже (bannerBlock) — квадратом вместо длинной
-  // портретной картинки, когда текста при ней было бы слишком мало.
-  const LITTLE_TEXT_THRESHOLD = 600;
-  const totalTextLength = [...intro, ...(section?.body ?? [])]
-    .filter((p) => { const t = p.trim(); return t !== '' && t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
-    .reduce((sum, p) => sum + p.length, 0);
-  const hasLittleText = totalTextLength < LITTLE_TEXT_THRESHOLD;
-
   const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{article.title}</Text>;
 
   // Под заголовком — только имя, серым, без фото и без роли/био (раньше
@@ -215,23 +200,21 @@ export default function ArticleScreenWeb() {
     </>
   );
 
-  // Баннер — опционально, выключается в админке (article.showBanner), по
-  // умолчанию показан. Фиксированный элемент правой колонки — идёт сразу
-  // под обложкой/галереей, независимо от текста и позиции маркера события
-  // (см. комментарий у EVENT_TOKEN выше — баннер не позиционируется, в
-  // отличие от CTA события). Это свой, конкретный баннер (не PromoBanner
-  // с /journal и /events).
-  // Небольшой, фиксированной ширины (как сайдбар-баннер рядом с текстом на
-  // theblueprint.ru), а не во всю колонку — alignSelf: 'flex-start' не даёт
-  // ему растянуться на всю ширину грид-ячейки.
-  // Когда текста в статье мало (hasLittleText) — длинная портретная картинка
-  // смотрится несоразмерно рядом с коротким текстом, поэтому показываем её
-  // квадратом: сама картинка не меняется (не искажается, та же ширина и
-  // натуральная пропорциональная высота), просто обёртка обрезает её по
-  // квадрату через overflow:'hidden', оставляя видимой верхнюю часть — ровно
-  // ту, где текст ("Собираем личные рекомендации...").
+  // Баннер — опционально, выключается в админке (article.showBanner). Это
+  // свой, конкретный баннер (не PromoBanner с /journal и /events).
+  // Квадрат шириной 50% родительского блока, по центру — всегда обрезан
+  // так, что видна только верхняя (текстовая) часть картинки, без фото
+  // снизу. Сама картинка (sectionBanner) не искажается — её обёртка
+  // (sectionBannerWrap) квадратная (паддинг-трюк: paddingBottom — тот же
+  // процент, что и width, см. тот же приём у avatarBox на /explore), а
+  // картинка внутри — position:'absolute', во всю ширину обёртки и в её
+  // натуральную пропорциональную высоту (height в процентах от 720×1280 —
+  // не aspectRatio: react-native-web игнорирует aspectRatio для Image из
+  // require(), подставляя вместо недостающей высоты натуральный пиксельный
+  // размер файла, см. git history) — картинка выше квадрата, лишнее снизу
+  // просто обрезается overflow:'hidden' на обёртке.
   const bannerBlock = article.showBanner ? (
-    <Pressable style={[styles.sectionBannerWrap, hasLittleText && styles.sectionBannerWrapSquare]} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
+    <Pressable style={styles.sectionBannerWrap} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
       <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
@@ -318,7 +301,7 @@ export default function ArticleScreenWeb() {
     return items
       .filter((it) => { const t = it.text.trim(); return t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
       .map((it, i) => (
-        <Text key={`${keyPrefix}-${i}`} style={it.heading ? [styles.subheading, isMobile && styles.subheadingMobile] : styles.body}>
+        <Text key={`${keyPrefix}-${i}`} style={it.heading ? styles.subheading : styles.body}>
           {parseInlineMarkdown(it.text)}
         </Text>
       ));
@@ -366,6 +349,22 @@ export default function ArticleScreenWeb() {
   const beforeEventBlock = renderTextItems(beforeEventItems, 'before');
   const afterEventBlock = hasEventSplit ? renderTextItems(afterEventItems, 'after') : null;
 
+  // Баннер напротив подзаголовка (desktop only — на мобильном всё и так
+  // одной колонкой): та же техника грид-сплита, что у CTA события выше
+  // ("так же, как раньше работала пара подзаголовок+баннер"), но держим её
+  // независимой от события — только когда маркера {{event}} в статье нет
+  // вовсе, чтобы не пришлось сводить два независимых разбиения на строки
+  // в одной сетке. sectionHeadingIdx — позиция подзаголовка (второй
+  // "заголовок" статьи после самого title) в textItems; "от него и дальше"
+  // уходит во вторую строку вместе с баннером, который там встаёт по
+  // верхнему краю строки (там же, где начинается сам подзаголовок) — без
+  // лишних стилей, просто по дефолтному выравниванию грид-ячейки.
+  const hasSection = !!section;
+  const sectionHeadingIdx = hasSection ? intro.length : -1;
+  const bannerOpposesHeading = !isMobile && hasSection && !hasEventMarker;
+  const beforeHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(0, sectionHeadingIdx), 'beforeHeading') : null;
+  const fromHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(sectionHeadingIdx), 'fromHeading') : null;
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -395,18 +394,20 @@ export default function ArticleScreenWeb() {
         ) : (
           // CSS Grid — обычно одна строка: заголовок+автор+весь текст слева,
           // обложка+галерея+баннер(+CTA, если не hasEventSplit)+похожие
-          // справа. Если hasEventSplit — вторая строка: текст после маркера
-          // слева, сама карточка справа, на одном уровне (та же техника, что
-          // у пары подзаголовок+баннер) — похожие статьи переезжают в неё же.
+          // справа. Вторая строка — если hasEventSplit (текст после маркера
+          // слева, карточка события справа) ИЛИ bannerOpposesHeading (текст
+          // от подзаголовка слева, баннер справа, по верхнему краю строки —
+          // там же, где начинается сам подзаголовок) — варианты взаимно
+          // исключают друг друга (см. bannerOpposesHeading выше).
           <View style={styles.articleGrid}>
             <View>
               {titleElement}
               {authorBlock}
-              {beforeEventBlock}
+              {bannerOpposesHeading ? beforeHeadingBlock : beforeEventBlock}
             </View>
             <View style={styles.colImageTop}>
               {mediaBlock}
-              {bannerBlock}
+              {bannerOpposesHeading ? null : bannerBlock}
               {!hasEventSplit && hasEventMarker ? renderEventCtaCard() : null}
               {!hasEventSplit ? relatedInlineBlock : null}
             </View>
@@ -414,6 +415,11 @@ export default function ArticleScreenWeb() {
               <>
                 <View>{afterEventBlock}</View>
                 <View>{renderEventCtaCard()}{relatedInlineBlock}</View>
+              </>
+            ) : bannerOpposesHeading ? (
+              <>
+                <View>{fromHeadingBlock}</View>
+                <View>{bannerBlock}</View>
               </>
             ) : null}
           </View>
@@ -474,12 +480,7 @@ const styles = StyleSheet.create({
   colImageTop: { minWidth: 240, gap: 40 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  // Тот же размер, что у заголовка статьи (title/titleMobile) — тем же
-  // способом (общий стиль + мобильный оверрайд), раньше на мобильном
-  // подзаголовок оставался в десктопном размере (40/36), крупнее заголовка
-  // (25/28).
-  subheading: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
-  subheadingMobile: { fontSize: 25, lineHeight: 28 },
+  subheading: { fontSize: 30, lineHeight: 34, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
   // Только имя под заголовком, серым — раньше тут был целый блок (фото +
   // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
   // как у прежнего authorBio (14/18), а не у прежнего имени (18).
@@ -501,13 +502,18 @@ const styles = StyleSheet.create({
   galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
   galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
   galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
-  sectionBannerWrap: { width: SECTION_BANNER_WIDTH, alignSelf: 'flex-start' },
-  // "Мало текста" — квадратная обёртка обрезает картинку снизу (overflow),
-  // сама картинка (sectionBanner) не меняется — остаётся во всю свою
-  // натуральную пропорциональную высоту, просто видна только верхняя
-  // квадратная часть (см. комментарий у bannerBlock выше).
-  sectionBannerWrapSquare: { height: SECTION_BANNER_WIDTH, overflow: 'hidden' },
-  sectionBanner: { width: SECTION_BANNER_WIDTH, height: SECTION_BANNER_HEIGHT, backgroundColor: '#E5E5E5' },
+  // Квадрат шириной 50% родителя, по центру — paddingBottom тем же
+  // процентом, что и width, даёт height = width (тот же приём, что у
+  // avatarBox на /explore: AVATAR_RATIO*100% при width:'100%' там, здесь
+  // 50%/50% — паддинг-проценты всегда считаются от ширины родителя, то есть
+  // при собственной width:50% это и есть квадрат).
+  sectionBannerWrap: { width: '50%', alignSelf: 'center', position: 'relative', overflow: 'hidden', paddingBottom: '50%' } as any,
+  // Обрезает картинку снизу (overflow на обёртке), сама картинка не
+  // искажается — ширина 100% обёртки, высота в процентах от НЕЁ ЖЕ (не от
+  // родителя: position:'absolute' внутри обёртки с position:'relative'
+  // резолвит % высоты от высоты обёртки) — натуральная пропорция 720:1280,
+  // т.е. выше квадрата, лишнее снизу просто не видно.
+  sectionBanner: { position: 'absolute', top: 0, left: 0, width: '100%', height: `${(100 / SECTION_BANNER_ASPECT_RATIO).toFixed(2)}%`, backgroundColor: '#E5E5E5' } as any,
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
@@ -524,12 +530,24 @@ const styles = StyleSheet.create({
   inlineRelatedCard: { marginVertical: 24, maxWidth: 420 },
   inlineRelatedImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
-  ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
+  // marginTop убран (была лишняя "двойная" вставка между текстом и CTA —
+  // React Native не схлопывает соседние margin, как в обычном CSS, поэтому
+  // marginBottom:24 предыдущего абзаца (styles.body) и marginTop:8 этого
+  // блока складывались, а не схлопывались в больший из двух).
+  // width:'100%' + alignItems:'center' (не alignSelf на самой карточке —
+  // проверено рендером: карточка с maxWidth и без явного width не сжимается
+  // по контенту сама по себе, остаётся прижатой к левому краю) — сам блок на
+  // всю ширину родителя, а узкую (maxWidth) карточку внутри центрирует как
+  // обычный flex-контейнер.
+  ctaBlock: { marginBottom: 40, width: '100%', alignItems: 'center' },
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
   // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
-  ctaCard: {},
+  // maxWidth — тот, что раньше был на ctaBlock (сам блок теперь на всю
+  // ширину ради центрирования, см. выше), width:'100%' — чтобы на узких
+  // экранах карточка занимала всю доступную ширину, а не только maxWidth.
+  ctaCard: { width: '100%', maxWidth: 420 },
   // CTA события на десктопе — заголовок не должен быть шире картинки
   // (EVENT_CTA_WIDTH её фиксирует), иначе текст растягивается до maxWidth
   // ctaBlock (420), шире самой картинки под ним.
