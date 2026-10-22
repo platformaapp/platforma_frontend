@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Tex
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TagList } from '@/components/web/tag-list';
 import { API_BASE, endpoints } from '@/constants/env';
 import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
@@ -43,6 +44,7 @@ type EventDetail = {
   isRegistered?: boolean;
   maxParticipants?: number;
   hasPaidRegistrations?: boolean;
+  tags?: string[];
 };
 
 // Тип события — показывается только здесь (страница события) и в
@@ -94,6 +96,7 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
     isRegistered: isRegisteredOnEventItem(r) || registeredFromCup,
     maxParticipants: Number.isFinite(maxParticipants) ? maxParticipants : undefined,
     hasPaidRegistrations,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
   };
 }
 
@@ -513,7 +516,10 @@ export default function EventDetailScreenWeb() {
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
         ) : isMobile ? (
           <View>
-            <Text style={[styles.title, styles.titleMobile]}>{event.title}</Text>
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, styles.titleMobile]}>{event.title}</Text>
+              <TagList tags={event.tags} textStyle={[styles.title, styles.titleMobile]} />
+            </View>
 
             <View style={styles.mobileMetaRow}>
               <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
@@ -564,7 +570,10 @@ export default function EventDetailScreenWeb() {
         ) : (
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
-              <Text style={styles.title}>{event.title}</Text>
+              <View style={styles.titleRow}>
+                <Text style={styles.title}>{event.title}</Text>
+                <TagList tags={event.tags} textStyle={styles.title} />
+              </View>
               {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
               {metaBlock}
 
@@ -826,6 +835,9 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
+  // Теги (#хэштег) — напротив названия события, тем же размером шрифта,
+  // по правому краю заголовка (строка — на всю ширину колонки заголовка).
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 18 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },

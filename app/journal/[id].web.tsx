@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, T
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TagList } from '@/components/web/tag-list';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
@@ -230,6 +231,7 @@ export default function ArticleScreenWeb() {
       ) : (
         <Text style={styles.author}>{article.author.name}</Text>
       )}
+      <TagList tags={article.tags} textStyle={styles.author} />
     </View>
   ) : null;
 
@@ -543,7 +545,7 @@ const styles = StyleSheet.create({
   // Только имя под заголовком, серым — раньше тут был целый блок (фото +
   // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
   // как у прежнего authorBio (14/18), а не у прежнего имени (18).
-  authorRow: { marginBottom: 24 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
   author: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
   body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },

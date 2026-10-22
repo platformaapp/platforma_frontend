@@ -5,13 +5,19 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Tex
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TagList } from '@/components/web/tag-list';
 import { API_BASE, endpoints } from '@/constants/env';
+import { getArticles } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
 type MentorEvent = { id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
+// "О чём пишет" — статьи этого наставника в журнале (см. GET
+// /api/articles?author_id=...), тот же формат блоков, что у "События
+// наставника" ниже, см. renderMentorArticlesGrid/renderArticleCardMobile.
+type MentorArticle = { id: string; title: string; coverUrl: string | null; category: string | null };
 
 function resolveCover(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -74,6 +80,8 @@ export default function TutorCardScreenWeb() {
   const [isMentorVerified, setIsMentorVerified] = useState(true);
   const [telegramHandle, setTelegramHandle] = useState('');
   const [mentorEvents, setMentorEvents] = useState<MentorEvent[]>([]);
+  const [mentorArticles, setMentorArticles] = useState<MentorArticle[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -101,6 +109,7 @@ export default function TutorCardScreenWeb() {
           if (!isNaN(rate) && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} Р в час`);
           setTelegramHandle(((tutor as any).telegram ?? (tutor as any).telegramUsername ?? '').replace(/^@/, ''));
           setIsMentorVerified((tutor as any).isVerified !== false);
+          setTags(Array.isArray((tutor as any).tags) ? (tutor as any).tags : []);
         }
 
         try {
@@ -130,6 +139,11 @@ export default function TutorCardScreenWeb() {
             if (active) setMentorEvents(events);
           }
         } catch { /* events section stays empty */ }
+
+        try {
+          const { items } = await getArticles({ authorId: String(id), perPage: 50 });
+          if (active) setMentorArticles(items.map((a) => ({ id: a.id, title: a.title, coverUrl: a.coverUrl, category: a.category })));
+        } catch { /* articles section stays empty */ }
       } catch { /* network failure — show empty/placeholder profile instead of crashing */ }
       finally {
         if (active) setLoadingProfile(false);
@@ -162,8 +176,8 @@ export default function TutorCardScreenWeb() {
   // 1/3/5, 2 и 4 — зазоры). Строки по 3 карточки, две строки образуют
   // повторяющийся блок: во второй строке каждой пары третья карточка уже
   // (84.4% вместо 100% по ширине) — см. MENTOR_ROW_ASPECTS/renderMentorGridCard.
-  function buildMentorEventRows(events: MentorEvent[]): MentorEvent[][] {
-    const rows: MentorEvent[][] = [];
+  function buildMentorEventRows<T>(events: T[]): T[][] {
+    const rows: T[][] = [];
     for (let i = 0; i < events.length; i += 3) rows.push(events.slice(i, i + 3));
     return rows;
   }
@@ -294,6 +308,67 @@ export default function TutorCardScreenWeb() {
     );
   }
 
+  // "О чём пишет" — тот же формат блоков (карточка/сетка), что у "События
+  // наставника" выше, но статьи ведут на /journal/:id, не "прошедших" нет.
+  function renderArticleCardMobile(a: MentorArticle) {
+    return (
+      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.id}` as any)}>
+        {a.coverUrl ? <Image source={{ uri: a.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
+        <View style={styles.eventRowBodyMobile}>
+          <View>
+            <Text style={styles.eventCardTitleMobile}>{a.title}</Text>
+          </View>
+          {a.category ? <Text style={styles.eventRowMetaMobile}>{a.category}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderMentorArticleGridCard(a: MentorArticle, posInRow: 0 | 1 | 2, narrowImage: boolean) {
+    return (
+      <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.id}` as any)}>
+        {a.coverUrl ? (
+          <Image
+            source={{ uri: a.coverUrl }}
+            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]} />
+        )}
+        <View style={styles.eventCardBody}>
+          <Text style={styles.eventCardTitle}>{a.title}</Text>
+          {a.category ? <Text style={styles.eventCardMeta}>{a.category}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderMentorArticlesGrid() {
+    if (mentorArticles.length === 0) return null;
+    const rows = buildMentorEventRows(mentorArticles);
+    return (
+      <View style={styles.mentorEventsSection}>
+        <Text style={styles.eventsSectionTitle}>О чём пишет</Text>
+        {rows.map((row, rowIdx) => {
+          const narrowLast = rowIdx % 2 === 1;
+          return (
+            <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
+              {row.map((a, pos) => renderMentorArticleGridCard(a, pos as 0 | 1 | 2, narrowLast && pos === 2))}
+            </View>
+          );
+        })}
+      </View>
+    );
+  }
+
+  const articlesSectionMobile = mentorArticles.length > 0 ? (
+    <View style={styles.eventsSection}>
+      <Text style={[styles.eventsSectionTitle, isMobile && styles.eventsSectionTitleMobile]}>О чём пишет</Text>
+      <View style={styles.eventsListMobile}>{mentorArticles.map((a) => renderArticleCardMobile(a))}</View>
+    </View>
+  ) : null;
+
   const actions = (
     <>
       {!isOwnProfile && isMentorVerified ? (
@@ -327,7 +402,10 @@ export default function TutorCardScreenWeb() {
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
-            <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
+              <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} />
+            </View>
 
             <View style={styles.headerRowMobile}>
               <Image source={imageSource} style={styles.avatarMobile} />
@@ -349,6 +427,7 @@ export default function TutorCardScreenWeb() {
             ) : null}
 
             {eventsSections}
+            {articlesSectionMobile}
           </View>
         ) : (
           // Пустая полоса между текстом и фото (по референсу, не баг) — это
@@ -357,7 +436,10 @@ export default function TutorCardScreenWeb() {
           // renderMentorEventsGrid.
           <View style={styles.desktopGrid}>
             <View style={styles.actionsRowContainer}>
-              <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+                <TagList tags={tags} textStyle={styles.name} />
+              </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
 
@@ -385,6 +467,7 @@ export default function TutorCardScreenWeb() {
           <>
             {renderMentorEventsGrid('События наставника', upcomingEvents)}
             {renderMentorEventsGrid('Прошедшие события', pastEvents, true)}
+            {renderMentorArticlesGrid()}
           </>
         ) : null}
       </View>
@@ -435,6 +518,9 @@ const styles = StyleSheet.create({
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   nameMobile: { fontSize: 25, lineHeight: 28 },
+  // Теги (#хэштег) — напротив имени, тем же размером шрифта, выровнены по
+  // правому краю (строка full-width, как и само имя-заголовок).
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   // Короткое био (shortBio) — серым (см. displayRole/styles.role: несмотря
   // на название, сюда попадает именно shortBio, не роль/должность).
   role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },

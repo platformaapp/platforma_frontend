@@ -399,6 +399,8 @@ export interface PublicTutor {
   isVerified?: boolean;
   /** Рубрикатор — тема специализации (см. constants/topics.ts) */
   specialization?: string;
+  /** Хэштеги (без "#") — задаются в админке, показываются рядом с именем. */
+  tags?: string[];
 }
 
 /**
@@ -418,6 +420,7 @@ export interface PublicTutorBasic {
   bio?: string;
   shortBio?: string;
   specialization?: string;
+  tags?: string[];
 }
 
 /**
@@ -442,6 +445,7 @@ export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
       bio: (u.bio ?? undefined) as string | undefined,
       shortBio: (u.shortBio ?? u.short_bio ?? u.roleLabel ?? u.role_label ?? u.specialty ?? undefined) as string | undefined,
       specialization: (u.specialization ?? undefined) as string | undefined,
+      tags: Array.isArray(u.tags) ? (u.tags as string[]) : undefined,
     }));
   } catch {
     return [];

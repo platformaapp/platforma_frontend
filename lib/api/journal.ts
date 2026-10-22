@@ -62,6 +62,9 @@ export interface Article {
   // Баннер рядом со вторым подзаголовком — опционально, настраивается в
   // админке (см. admin/journal-detail.tsx).
   showBanner: boolean;
+  // Хэштеги (без "#") — показываются напротив имени автора на странице
+  // статьи, задаются в админке.
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -117,16 +120,18 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
         })()
       : null,
     showBanner: raw.show_banner !== false,
+    tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
     createdAt: String(raw.created_at ?? ''),
     updatedAt: String(raw.updated_at ?? ''),
   };
 }
 
-export async function getArticles(params?: { page?: number; perPage?: number; category?: string }): Promise<ArticlesPage> {
+export async function getArticles(params?: { page?: number; perPage?: number; category?: string; authorId?: string }): Promise<ArticlesPage> {
   const search = new URLSearchParams();
   search.set('page', String(params?.page ?? 1));
   search.set('per_page', String(params?.perPage ?? 20));
   if (params?.category) search.set('category', params.category);
+  if (params?.authorId) search.set('author_id', params.authorId);
 
   const res = await fetch(`${endpoints.articles}?${search.toString()}`);
   if (!res.ok) throw new Error(`Не удалось загрузить журнал (${res.status})`);
