@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
@@ -64,6 +64,7 @@ export default function MentorsScreenWeb() {
   const [category, setCategory] = useState<string | null>(null);
   const { topics: adminTopics } = useSiteSettings();
   const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     try {
@@ -96,11 +97,28 @@ export default function MentorsScreenWeb() {
 
   const filteredTutors = category ? tutors.filter((t) => t.specialization === category) : tutors;
 
+  // Пагинация — 4 строки контента на страницу. Колонок в строке разное
+  // число на десктопе/мобильном (см. card/cardMobile: flexBasis 23.5%/46%,
+  // т.е. 4 и 2 в ряд), поэтому и размер страницы разный.
+  const COLS_DESKTOP = 4;
+  const COLS_MOBILE = 2;
+  const ROWS_PER_PAGE = 4;
+  const pageSize = (isMobile ? COLS_MOBILE : COLS_DESKTOP) * ROWS_PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil(filteredTutors.length / pageSize));
+  // Фильтр/смена раскладки могли сделать текущую страницу несуществующей.
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+  const pageTutors = filteredTutors.slice((page - 1) * pageSize, page * pageSize);
+
+  function selectCategory(next: string | null) {
+    setCategory(next);
+    setPage(1);
+  }
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
-      <View style={styles.pageContent}>
-        <Pressable onPress={() => setCategory(null)}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
+        <Pressable onPress={() => selectCategory(null)}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
         </Pressable>
 
@@ -110,7 +128,7 @@ export default function MentorsScreenWeb() {
               {topicsList.filter((c) => c !== LAST_TOPIC_RIGHT_ALIGNED).map((c) => {
                 const active = c === category;
                 return (
-                  <Pressable key={c} onPress={() => setCategory(active ? null : c)}>
+                  <Pressable key={c} onPress={() => selectCategory(active ? null : c)}>
                     <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{c}</Text>
                   </Pressable>
                 );
@@ -129,20 +147,46 @@ export default function MentorsScreenWeb() {
         ) : filteredTutors.length === 0 ? (
           <View style={styles.centered}><Text style={styles.emptyText}>Наставники не найдены</Text></View>
         ) : (
-          <View style={styles.grid}>
-            {filteredTutors.map((tutor) => {
-              const isOwn = tutor.id === myId && myRole === 'tutor';
-              return (
-                <TutorCard
-                  key={tutor.id}
-                  tutor={tutor}
-                  isOwn={isOwn}
-                  isMobile={isMobile}
-                  onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
-                />
-              );
-            })}
-          </View>
+          <>
+            <View style={styles.grid}>
+              {pageTutors.map((tutor) => {
+                const isOwn = tutor.id === myId && myRole === 'tutor';
+                return (
+                  <TutorCard
+                    key={tutor.id}
+                    tutor={tutor}
+                    isOwn={isOwn}
+                    isMobile={isMobile}
+                    onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
+                  />
+                );
+              })}
+            </View>
+
+            {totalPages > 1 ? (
+              <View style={styles.pagination}>
+                <Pressable
+                  style={[styles.paginationArrow, page === 1 && styles.paginationArrowDisabled]}
+                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <Text style={styles.paginationArrowText}>‹</Text>
+                </Pressable>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => setPage(n)}>
+                    <Text style={[styles.paginationPageText, n === page && styles.paginationPageTextActive]}>{n}</Text>
+                  </Pressable>
+                ))}
+                <Pressable
+                  style={[styles.paginationArrow, page === totalPages && styles.paginationArrowDisabled]}
+                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <Text style={styles.paginationArrowText}>›</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </>
         )}
 
         {isMobile ? (
@@ -162,6 +206,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12, marginTop: 30 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
@@ -177,6 +222,14 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 24, rowGap: 48 },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 40 },
+  paginationArrow: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  paginationArrowDisabled: { opacity: 0.3 },
+  paginationArrowText: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  paginationPage: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  paginationPageActive: { backgroundColor: '#111' },
+  paginationPageText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  paginationPageTextActive: { color: '#FAFAFA' },
   // Та же чёрная кнопка на всю ширину, что и «Создать событие» на /events
   // (мобильный список) — здесь даёт доступ к «Стать наставником», раз
   // десктопная пилюля рубрикатора на мобильном скрыта целиком.

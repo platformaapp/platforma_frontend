@@ -186,7 +186,6 @@ export default function TutorCardScreenWeb() {
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventRowBodyMobile}>
           <View>
-            {ev.format ? <Text style={styles.eventFormatMobile}>{ev.format}</Text> : null}
             <Text style={styles.eventCardTitleMobile}>{ev.title}</Text>
           </View>
           <Text style={styles.eventRowMetaMobile}>
@@ -214,7 +213,6 @@ export default function TutorCardScreenWeb() {
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventCardBody}>
-          {ev.format ? <Text style={styles.eventFormat}>{ev.format}</Text> : null}
           <Text style={styles.eventCardTitle}>{ev.title}</Text>
           <Text style={styles.eventCardMeta}>
             {formatEventDate(ev.datetimeStart)}
@@ -269,7 +267,6 @@ export default function TutorCardScreenWeb() {
           <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]} />
         )}
         <View style={styles.eventCardBody}>
-          {ev.format ? <Text style={styles.eventFormat}>{ev.format}</Text> : null}
           <Text style={styles.eventCardTitle}>{ev.title}</Text>
           <Text style={styles.eventCardMeta}>{formatEventDate(ev.datetimeStart)}</Text>
         </View>
@@ -327,7 +324,7 @@ export default function TutorCardScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={isMobile ? styles.scrollContentMobile : styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
             <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
@@ -402,6 +399,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingTop: 0, paddingBottom: 24,     marginTop: 106 },
   scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 30 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // Desktop: настоящий CSS Grid, а не два независимых flex-столбца — нужно,
@@ -410,7 +408,13 @@ const styles = StyleSheet.create({
   // между текстом/фото по референсу (не баг). display:'grid' — не входит в
   // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
   // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
-  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, alignItems: 'start', position: 'relative' } as any,
+  // alignItems убран (был 'start'): без него работает дефолт CSS Grid —
+  // 'stretch' — только тогда actionsRowContainer реально получает высоту
+  // строки (фото avatarLargeBox с его фиксированными 345px), и actionsRow
+  // (position:'absolute', bottom:0) внутри него садится ровно на нижний
+  // край фото, а не куда попало (раньше actionsRowContainer с height:'100%'
+  // ничего не наследовал — alignItems:'start' не растягивает ячейки).
+  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, position: 'relative' } as any,
   // 339×409 по референсу (339/1512 от общей ширины страницы = 22.42%) —
   // прямоугольное портретное фото вместо квадратного. paddingBottom-в-%
   // вместо aspectRatio — тот ломается для RN Image с локальным
@@ -431,7 +435,9 @@ const styles = StyleSheet.create({
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   nameMobile: { fontSize: 25, lineHeight: 28 },
-  role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
+  // Короткое био (shortBio) — серым (см. displayRole/styles.role: несмотря
+  // на название, сюда попадает именно shortBio, не роль/должность).
+  role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
   roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
   bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   // Стоимость — на отдельной строке под подписью (не в один ряд).
@@ -480,7 +486,6 @@ const styles = StyleSheet.create({
   // app/_layout.tsx), но навсегда, не только при наведении.
   eventDimmed: { opacity: 0.5 },
   eventCardBody: { paddingTop: 10 },
-  eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4, marginTop: 12, lineHeight: 0.9 },
   eventCardTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4, marginTop: 12, lineHeight: 25 },
   eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', marginTop: 27, lineHeight: 1, textAlign: 'right' },
 
@@ -490,7 +495,6 @@ const styles = StyleSheet.create({
   eventRowMobile: { flexDirection: 'row', gap: 16 },
   eventThumbMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', flexShrink: 0 },
   eventRowBodyMobile: { flex: 1, minHeight: 90, justifyContent: 'space-between' },
-  eventFormatMobile: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4 },
   eventCardTitleMobile: { fontSize: 16, lineHeight: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   eventRowMetaMobile: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
 });

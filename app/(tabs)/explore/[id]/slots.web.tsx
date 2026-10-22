@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PlusField } from '@/components/web/plus-field';
-import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { bindPaymentMethod, getPaymentMethods } from '@/lib/api/student-payments';
 import { getPublicTutorList, getPublicTutors, getStudentTutorSlots } from '@/lib/api/tutor';
@@ -180,8 +180,7 @@ export default function TutorSlotsScreenWeb() {
   }
 
   return (
-    <SiteShell>
-      <ScrollView contentContainerStyle={styles.backdrop}>
+    <ScrollView style={styles.root} contentContainerStyle={styles.backdrop}>
         <View style={[styles.modalCard, isMobile && styles.modalCardMobile]}>
           {/* Заголовок и ✕ — flex-ряд (не absolute + паддинг-компенсация,
               как было): так они физически не могут перекрыться, независимо
@@ -296,12 +295,17 @@ export default function TutorSlotsScreenWeb() {
           )}
         </View>
       </ScrollView>
-    </SiteShell>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 16, backgroundColor: 'rgba(24,24,24,0.45)' },
+  // Без SiteShell (раньше была его шапка над подложкой — из-за неё
+  // затемнение выглядело "в контенте", а не поверх всей страницы): root —
+  // высота ScrollView = весь экран, flexGrow:1 на contentContainerStyle
+  // растягивает затемнение на всю эту высоту, даже если карточка меньше
+  // вьюпорта.
+  root: { flex: 1 },
+  backdrop: { flexGrow: 1, minHeight: '100%', alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 16, backgroundColor: 'rgba(24,24,24,0.45)' } as any,
   modalCard: { width: '100%', maxWidth: 560, backgroundColor: '#fff', padding: 32 },
   modalCardMobile: { maxWidth: 420, padding: 20 },
   // Заголовок и ✕ — flex-ряд, не absolute-позиционирование (см. комментарий

@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PromoBanner } from '@/components/web/promo-banner';
@@ -19,7 +19,6 @@ import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
-const PER_PAGE = 20;
 
 // Колонки тройки (rowThree) — те же 6 чисел, что и в её gridTemplateColumns
 // ниже, но тут как массив, чтобы точно (не на глаз) посчитать, на сколько
@@ -32,55 +31,44 @@ const ROW_THREE_COLUMNS = [403, 75, 365, 76, 340, 191];
 const ROW_THREE_TOTAL = ROW_THREE_COLUMNS.reduce((sum, n) => sum + n, 0);
 const ROW_THREE_RIGHT_INSET = `${((ROW_THREE_COLUMNS[5] / ROW_THREE_TOTAL) * 100).toFixed(4)}%`;
 
+// Пагинация — 5 строк контента на страницу (см. ROWS_PER_PAGE ниже). Вместо
+// подгрузки с бэкенда по мере скролла (как было — "Показать ещё") теперь
+// просто берём разом весь журнал одним запросом и листаем уже загруженный
+// список постранично на клиенте — проще и не завязано на то, как бэкендная
+// страница (per_page) соотносится со "строками" вёрстки (пара/тройка/пара).
+const ARTICLES_FETCH_LIMIT = 200;
+const ROWS_PER_PAGE = 5;
+
 export default function JournalScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setError('');
-      const { items, total } = await getArticles({ page: 1, perPage: PER_PAGE });
+      const { items } = await getArticles({ page: 1, perPage: ARTICLES_FETCH_LIMIT });
       setArticles(items);
-      setPage(1);
-      setHasMore(items.length < total);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить журнал');
       setArticles([]);
-      setHasMore(false);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
-    try {
-      const nextPage = page + 1;
-      const { items, total } = await getArticles({ page: nextPage, perPage: PER_PAGE });
-      setArticles((prev) => {
-        const seen = new Set(prev.map((a) => a.id));
-        return [...prev, ...items.filter((a) => !seen.has(a.id))];
-      });
-      setPage(nextPage);
-      setHasMore(nextPage * PER_PAGE < total);
-    } catch {
-      // Оставляем hasMore как есть — пользователь может нажать "Показать ещё" снова.
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadingMore, hasMore, page]);
-
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
   const filtered = category ? articles.filter((a) => a.category === category) : articles;
+
+  function selectCategory(next: string | null) {
+    setCategory(next);
+    setPage(1);
+  }
 
   function renderFeaturedCard(item: Article, index: 0 | 1) {
     const isSecond = index === 1;
@@ -142,11 +130,36 @@ export default function JournalScreenWeb() {
     }
   }
 
+  // Пагинация: на десктопе страница — ROWS_PER_PAGE строк сетки (rows), на
+  // мобильном (1 карточка = 1 "строка" в mobileList) — то же число карточек.
+  const totalUnits = isMobile ? filtered.length : rows.length;
+  const totalPages = Math.max(1, Math.ceil(totalUnits / ROWS_PER_PAGE));
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+  const rowOffset = (page - 1) * ROWS_PER_PAGE;
+  const pageRows = isMobile ? [] : rows.slice(rowOffset, rowOffset + ROWS_PER_PAGE);
+  const pageMobileItems = isMobile ? filtered.slice(rowOffset, rowOffset + ROWS_PER_PAGE) : [];
+
+  const paginationEl = totalPages > 1 ? (
+    <View style={styles.pagination}>
+      <Pressable style={[styles.paginationArrow, page === 1 && styles.paginationArrowDisabled]} onPress={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+        <Text style={styles.paginationArrowText}>‹</Text>
+      </Pressable>
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+        <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => setPage(n)}>
+          <Text style={[styles.paginationPageText, n === page && styles.paginationPageTextActive]}>{n}</Text>
+        </Pressable>
+      ))}
+      <Pressable style={[styles.paginationArrow, page === totalPages && styles.paginationArrowDisabled]} onPress={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+        <Text style={styles.paginationArrowText}>›</Text>
+      </Pressable>
+    </View>
+  ) : null;
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
-        <Pressable onPress={() => setCategory(null)}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
+        <Pressable onPress={() => selectCategory(null)}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
 
@@ -156,7 +169,7 @@ export default function JournalScreenWeb() {
               {ARTICLE_FORMATS.map((f) => {
                 const active = f === category;
                 return (
-                  <Pressable key={f} onPress={() => setCategory(active ? null : f)}>
+                  <Pressable key={f} onPress={() => selectCategory(active ? null : f)}>
                     <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
                   </Pressable>
                 );
@@ -181,7 +194,7 @@ export default function JournalScreenWeb() {
           <View style={styles.centered}><Text style={styles.emptyText}>Материалов пока нет</Text></View>
         ) : isMobile ? (
           <View style={styles.mobileList}>
-            {filtered.map((item) => (
+            {pageMobileItems.map((item) => (
               <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
@@ -193,10 +206,12 @@ export default function JournalScreenWeb() {
             <Pressable style={styles.writeTextButton} onPress={() => router.push('/register-tutor' as any)}>
               <Text style={styles.writeTextButtonText}>Написать текст</Text>
             </Pressable>
+            {paginationEl}
           </View>
         ) : (
           <View>
-            {rows.map((row, rowIdx) => {
+            {pageRows.map((row, idxInPage) => {
+              const rowIdx = rowOffset + idxInPage;
               // Отступ сверху — единая чередующаяся последовательность для
               // ВСЕХ строк подряд (не только троек): первая строка — 80
               // (отступ от фильтров), дальше 254/120/254/120...
@@ -230,16 +245,9 @@ export default function JournalScreenWeb() {
                 </React.Fragment>
               );
             })}
+            {paginationEl}
           </View>
         )}
-
-        {!isMobile && !loading && !error && filtered.length > 0 && rows.length % 3 !== 0 ? <PromoBanner withTelegramLink /> : null}
-
-        {!loading && !error && hasMore ? (
-          <Pressable style={styles.loadMoreButton} onPress={loadMore} disabled={loadingMore}>
-            {loadingMore ? <ActivityIndicator color="#010101" /> : <Text style={styles.loadMoreButtonText}>Показать ещё</Text>}
-          </Pressable>
-        ) : null}
       </View>
 
         <SiteFooter />
@@ -251,6 +259,7 @@ export default function JournalScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, marginTop: 68 },
@@ -268,8 +277,14 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
-  loadMoreButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 40 },
+  paginationArrow: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  paginationArrowDisabled: { opacity: 0.3 },
+  paginationArrowText: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  paginationPage: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  paginationPageActive: { backgroundColor: '#111' },
+  paginationPageText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  paginationPageTextActive: { color: '#FAFAFA' },
 
   cardCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18 },
   cardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },

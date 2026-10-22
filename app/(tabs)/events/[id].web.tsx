@@ -445,12 +445,6 @@ export default function EventDetailScreenWeb() {
 
   const metaBlock = (
     <View style={styles.metaRow}>
-      {event?.format ? (
-        <View>
-          <Text style={styles.metaLabel}>Тип:</Text>
-          <Text style={styles.metaValue}>{event.format}</Text>
-        </View>
-      ) : null}
       <View>
         <Text style={styles.metaLabel}>Дата:</Text>
         <Text style={styles.metaValue}>{formatDatetime(event?.datetimeStart)}</Text>

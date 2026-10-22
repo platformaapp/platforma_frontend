@@ -1,7 +1,10 @@
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,7 +14,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 import {
   getAdminSiteSettings,
   updateSiteSettings,
@@ -24,6 +29,72 @@ const NAV_SLOT_LABELS = ['События', 'Наставники', 'Мои за�
 
 function emptyNavItems(): NavItemSetting[] {
   return NAV_SLOT_LABELS.map((label) => ({ label, iconUrl: '' }));
+}
+
+// Тот же приём, что в admin/journal-detail.tsx (handlePickCover/uploadAdminImage):
+// выбор из галереи кладёт локальный uri (data:/blob) для превью сразу, сама
+// загрузка на сервер происходит только при "Сохранить" — там же заменяем
+// локальный uri на настоящий URL перед отправкой (см. handleSave).
+async function pickImage(): Promise<string | null> {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert('Необходимо разрешение на доступ к фотографиям'); }
+    return null;
+  }
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    quality: 0.8,
+  });
+  if (result.canceled || !result.assets[0]) return null;
+  const uri = result.assets[0].uri;
+  if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+    try {
+      const resp = await fetch(uri);
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return uri;
+    }
+  }
+  return uri;
+}
+
+async function uploadAdminImage(uri: string): Promise<string> {
+  const token = await getAdminToken();
+  if (!token) throw new Error('Требуется авторизация');
+  const resizedUri = await resizeImageForUpload(uri);
+  const formData = new FormData();
+  const filename = `site_${Date.now()}.jpg`;
+  if (Platform.OS === 'web') {
+    const resp = await fetch(resizedUri);
+    const blob = await resp.blob();
+    formData.append('file', blob, filename);
+  } else {
+    formData.append('file', { uri: resizedUri, name: filename, type: 'image/jpeg' } as any);
+  }
+  const res = await fetch(endpoints.uploadImage, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.message ?? `Ошибка загрузки изображения (${res.status})`);
+  }
+  const data = await res.json();
+  if (!data?.url) throw new Error('Сервер не вернул URL изображения');
+  const url = data.url as string;
+  return url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function isLocalUri(uri: string | undefined): boolean {
+  return !!uri && (uri.startsWith('data:') || uri.startsWith('blob:') || uri.startsWith('file:'));
 }
 
 export default function AdminSiteSettingsScreen() {
@@ -68,7 +139,23 @@ export default function AdminSiteSettingsScreen() {
     setSaveError('');
     setSaveSuccess(false);
     try {
-      await updateSiteSettings({ navItems, banner, partners, topics });
+      // Локальные превью (data:/blob: — только что выбранные через "Выбрать
+      // изображение", ещё не на сервере) загружаем прямо перед сохранением,
+      // заменяя на настоящие URL — та же логика, что в admin/journal-detail.tsx.
+      let finalBanner = banner;
+      if (isLocalUri(banner.imageUrl)) {
+        const url = await uploadAdminImage(banner.imageUrl as string);
+        finalBanner = { ...banner, imageUrl: url };
+        setBanner(finalBanner);
+      }
+      let finalPartners = partners;
+      if (partners.some((p) => isLocalUri(p.logoUrl))) {
+        finalPartners = await Promise.all(
+          partners.map(async (p) => (isLocalUri(p.logoUrl) ? { ...p, logoUrl: await uploadAdminImage(p.logoUrl) } : p))
+        );
+        setPartners(finalPartners);
+      }
+      await updateSiteSettings({ navItems, banner: finalBanner, partners: finalPartners, topics });
       setSaveSuccess(true);
     } catch (e: any) {
       if (e?.message?.toLowerCase?.().includes('unauthorized')) {
@@ -92,6 +179,16 @@ export default function AdminSiteSettingsScreen() {
 
   function addPartner() {
     setPartners((prev) => [...prev, { name: '', logoUrl: '', linkUrl: '' }]);
+  }
+
+  async function handlePickBannerImage() {
+    const uri = await pickImage();
+    if (uri) setBanner((b) => ({ ...b, imageUrl: uri }));
+  }
+
+  async function handlePickPartnerLogo(index: number) {
+    const uri = await pickImage();
+    if (uri) updatePartner(index, { logoUrl: uri });
   }
 
   function removePartner(index: number) {
@@ -152,18 +249,22 @@ export default function AdminSiteSettingsScreen() {
             ))}
           </View>
 
-          {/* Баннер */}
+          {/* Баннер — используется между строками на /events и /journal. */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Баннер</Text>
-            <Text style={styles.sectionSubtitle}>Картинка и ссылка баннера на главной. Если не заполнено — стандартный баннер.</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ссылка на картинку баннера"
-              placeholderTextColor="#9B9B9B"
-              value={banner.imageUrl ?? ''}
-              onChangeText={(t) => setBanner((b) => ({ ...b, imageUrl: t }))}
-              autoCapitalize="none"
-            />
+            <Text style={styles.sectionSubtitle}>Картинка и ссылка баннера между событиями/статьями. Если не заполнено — стандартный баннер.</Text>
+            <Pressable style={styles.imagePickBtn} onPress={handlePickBannerImage}>
+              {banner.imageUrl ? (
+                <Image source={{ uri: banner.imageUrl }} style={styles.imagePickPreview} resizeMode="cover" />
+              ) : (
+                <Text style={styles.imagePickBtnText}>Выбрать изображение</Text>
+              )}
+            </Pressable>
+            {banner.imageUrl ? (
+              <Pressable onPress={() => setBanner((b) => ({ ...b, imageUrl: '' }))}>
+                <Text style={styles.removeLink}>Удалить картинку</Text>
+              </Pressable>
+            ) : null}
             <TextInput
               style={[styles.input, { marginTop: 8 }]}
               placeholder="Ссылка при клике на баннер"
@@ -189,14 +290,13 @@ export default function AdminSiteSettingsScreen() {
                   value={p.name}
                   onChangeText={(t) => updatePartner(i, { name: t })}
                 />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ссылка на лого"
-                  placeholderTextColor="#9B9B9B"
-                  value={p.logoUrl}
-                  onChangeText={(t) => updatePartner(i, { logoUrl: t })}
-                  autoCapitalize="none"
-                />
+                <Pressable style={styles.imagePickBtnSmall} onPress={() => handlePickPartnerLogo(i)}>
+                  {p.logoUrl ? (
+                    <Image source={{ uri: p.logoUrl }} style={styles.imagePickPreviewSmall} resizeMode="contain" />
+                  ) : (
+                    <Text style={styles.imagePickBtnText}>Выбрать лого</Text>
+                  )}
+                </Pressable>
                 <TextInput
                   style={styles.input}
                   placeholder="Ссылка (необязательно)"
@@ -271,6 +371,12 @@ const styles = StyleSheet.create({
   partnerRow: { marginBottom: 14, gap: 6, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingBottom: 14 },
   removeBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
   removeBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  removeLink: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6, alignSelf: 'flex-start' },
+  imagePickBtn: { borderWidth: 1, borderColor: '#1E1E1E', borderStyle: 'dashed', height: 120, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAFAFA', overflow: 'hidden' },
+  imagePickPreview: { width: '100%', height: '100%' },
+  imagePickBtnSmall: { borderWidth: 1, borderColor: '#1E1E1E', borderStyle: 'dashed', height: 56, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FAFAFA', overflow: 'hidden' },
+  imagePickPreviewSmall: { width: '100%', height: '100%' },
+  imagePickBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
   addBtn: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start' },
   addBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   topicsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },

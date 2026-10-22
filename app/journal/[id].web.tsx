@@ -369,7 +369,7 @@ export default function ArticleScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           // Мобильная раскладка — один столбец: заголовок, автор (под ним,
           // см. десктопную колонку — там тот же порядок), обложка/галерея/
@@ -449,6 +449,7 @@ export default function ArticleScreenWeb() {
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
