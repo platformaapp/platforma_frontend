@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   emptyRecommendedDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
-  pastSeparator: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
+  pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
   // Настоящий список записей (не пустое состояние) — та же асимметричная
   // сетка 403/75/365/266/340, что и emptyRecommendedRow, но без её
   // marginTop:254 на первой строке (список начинается сразу под вкладками,

@@ -483,6 +483,9 @@ export default function EventDetailScreenWeb() {
       <View style={styles.mentorInfo}>
         <Text style={styles.mentorName}>{event.mentor.name}</Text>
         {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+        <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                    <Text style={styles.actionLink}>Перейти в профиль</Text>
+                  </Pressable>
       </View>
       <Image
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
@@ -580,11 +583,11 @@ export default function EventDetailScreenWeb() {
                         </Pressable>
                       )
                     ) : (
-                      <Pressable onPress={handleRegister} disabled={isRegistering}>
+                      <Pressable style={styles.actionLinkWrapper} onPress={handleRegister} disabled={isRegistering}>
                         <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
                       </Pressable>
                     )}
-                    <Pressable onPress={handleShare}>
+                    <Pressable style={styles.actionLinkWrapper} onPress={handleShare}>
                       <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться'}</Text>
                     </Pressable>
                   </>
@@ -597,9 +600,9 @@ export default function EventDetailScreenWeb() {
               {event.mentor ? (
                 <View>
                   {mentorRow}
-                  <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                  {/* <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
                     <Text style={styles.actionLink}>Перейти в профиль</Text>
-                  </Pressable>
+                  </Pressable> */}
                 </View>
               ) : null}
             </View>
@@ -806,33 +809,34 @@ export default function EventDetailScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
   scrollContentMobile: { paddingTop: 0 },
-  pageContent: { paddingHorizontal: 20 },
+  pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
 
   // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
   // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)
   // + карточка наставника — в широкой колонке справа.
-  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between' },
-  leftCol: { flexBasis: 420, maxWidth: 420, flexShrink: 1 },
-  rightCol: { flex: 1, minWidth: 0, maxWidth: 565 },
+  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 },
+  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%' },
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
+  description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24,     marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 18, display: 'block' },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 280, marginTop: 0,     position: 'absolute', bottom: 0 },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
+  actionLinkWrapper: { justifyContent: 'flex-end' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
-  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 0 },
   // maxWidth обязателен: rightCol — flex:1 (под широкое фото), без него
   // текстовый блок (особенно с добавленным bio) растягивался бы почти на
   // всю ширину колонки вместо компактной подписи рядом с аватаром.
