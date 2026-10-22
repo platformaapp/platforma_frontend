@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   // flex/maxWidth прямо на Image (как у galleryImage/левой фотографии).
   galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
   galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
-  galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
+  galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8, textAlign: 'right' },
   sectionBannerWrap: { width: SECTION_BANNER_WIDTH, alignSelf: 'flex-start' },
   // "Мало текста" — квадратная обёртка обрезает картинку снизу (overflow),
   // сама картинка (sectionBanner) не меняется — остаётся во всю свою
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   inlineRelatedImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
 
   ctaBlock: { marginTop: 8, marginBottom: 40, maxWidth: 420 },
-  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
+  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 0 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
   // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
