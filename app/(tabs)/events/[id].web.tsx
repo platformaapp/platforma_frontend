@@ -478,11 +478,22 @@ export default function EventDetailScreenWeb() {
     </View>
   ) : null;
 
+  // "Перейти в профиль" (десктоп) — внутри mentorInfo, прижат к низу через
+  // justifyContent:'space-between' на колонке + alignItems:'stretch' на
+  // mentorRow (сама строка растягивается на высоту фото, 132px) — ровно по
+  // нижнему краю фотки наставника. Раньше был отдельным Pressable строкой
+  // ниже mentorRow (обычный поток, без привязки к фото); сейчас — просто
+  // текст внутри уже кликабельного mentorRow (ведёт туда же). На мобильном
+  // своя отдельная кнопка-чип под mentorRow (см. mobileMentorBlock ниже) —
+  // здесь её не дублируем.
   const mentorRow = event?.mentor ? (
     <Pressable style={styles.mentorRow} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
       <View style={styles.mentorInfo}>
-        <Text style={styles.mentorName}>{event.mentor.name}</Text>
-        {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+        <View>
+          <Text style={styles.mentorName}>{event.mentor.name}</Text>
+          {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+        </View>
+        {!isMobile ? <Text style={styles.actionLink}>Перейти в профиль</Text> : null}
       </View>
       <Image
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
@@ -594,14 +605,7 @@ export default function EventDetailScreenWeb() {
 
             <View style={styles.rightCol}>
               {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
-              {event.mentor ? (
-                <View>
-                  {mentorRow}
-                  <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                    <Text style={styles.actionLink}>Перейти в профиль</Text>
-                  </Pressable>
-                </View>
-              ) : null}
+              {event.mentor ? <View>{mentorRow}</View> : null}
             </View>
           </View>
         )}
@@ -832,11 +836,18 @@ const styles = StyleSheet.create({
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
-  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  // alignItems убран (был 'flex-start'): дефолт CSS flexbox — 'stretch' —
+  // растягивает mentorInfo на высоту строки (132px, задаёт mentorAvatar),
+  // иначе justifyContent:'space-between' на mentorInfo (ниже) прижимать
+  // "Перейти в профиль" было бы не к чему — колонка была бы ровно по
+  // высоте своего контента (имя+био), а не по высоте фото рядом.
+  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   // maxWidth обязателен: rightCol — flex:1 (под широкое фото), без него
   // текстовый блок (особенно с добавленным bio) растягивался бы почти на
   // всю ширину колонки вместо компактной подписи рядом с аватаром.
-  mentorInfo: { flex: 1, maxWidth: 360 },
+  // justifyContent:'space-between' — имя+био сверху, "Перейти в профиль"
+  // снизу (по нижнему краю фото, см. mentorRow выше).
+  mentorInfo: { flex: 1, maxWidth: 360, justifyContent: 'space-between' },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный

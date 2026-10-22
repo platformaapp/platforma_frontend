@@ -187,7 +187,10 @@ export default function MyEventsScreenWeb() {
             tutor: ta ? {
               id: String(ta.id ?? ''),
               name: (ta.name ?? ta.fullName ?? ta.full_name ?? '') as string,
-              avatarUrl: resolveUploadUrl((ta.avatarUrl ?? ta.avatar_url) as string | undefined),
+              // Поле наставника из /api/events/my — UserInfoDto {id, name, avatar}
+              // (см. backend/src/events/dto/my-events-response.dto.ts), не
+              // avatarUrl/avatar_url — те оставлены фолбэком на случай другой формы.
+              avatarUrl: resolveUploadUrl((ta.avatar ?? ta.avatarUrl ?? ta.avatar_url) as string | undefined),
             } : undefined,
             _viewerRole: sessionRole,
           });

@@ -4,9 +4,24 @@ import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, T
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { API_BASE, endpoints } from '@/constants/env';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
+import { parseFeedItems } from '@/lib/event-feed';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
+
+// "Окей, что ещё" — ближайшие события той же категории, что у события,
+// привязанного к статье (article.event.category) — только когда оно есть;
+// без привязанного события показывать "из той же категории" не из чего,
+// блок просто не рендерится (см. categoryEvents/relatedBlock).
+type UpcomingCategoryEvent = { id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
+const UPCOMING_EVENTS_LIMIT = 3;
+
+function resolveEventCoverUrl(url: unknown): string | null {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
 
 // "Окей, что ещё" — до 3 связанных статей вместо баннера в конце (выбраны в
 // админке, см. admin/journal-detail.tsx). Та же сетка-тройка (403/365/340),
@@ -113,6 +128,7 @@ export default function ArticleScreenWeb() {
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [categoryEvents, setCategoryEvents] = useState<UpcomingCategoryEvent[]>([]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -143,6 +159,44 @@ export default function ArticleScreenWeb() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Ближайшие события той же категории, что у привязанного к статье события
+  // (см. UpcomingCategoryEvent выше) — для "Окей, что ещё" в конце статьи.
+  // Серверной фильтрации по категории у /events/feed нет (см. events-feed-
+  // query.dto.ts бэкенда), поэтому берём одну страницу фида и фильтруем на
+  // клиенте — тот же приём, что уже используется в explore/[id].web.tsx для
+  // "Событий наставника".
+  useEffect(() => {
+    const linkedEvent = article?.event;
+    if (!linkedEvent?.category) { setCategoryEvents([]); return; }
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = parseFeedItems(data) as Record<string, unknown>[];
+        const now = Date.now();
+        const matches: UpcomingCategoryEvent[] = raw
+          .filter((r) => String(r.id ?? '') !== linkedEvent.id && r.category === linkedEvent.category)
+          .map((r) => ({
+            id: String(r.id ?? ''),
+            title: String(r.title ?? ''),
+            coverUrl: resolveEventCoverUrl(r.coverUrl ?? r.cover_url),
+            datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined ?? null,
+          }))
+          .filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now)
+          .sort((a, b) => (a.datetimeStart ?? '').localeCompare(b.datetimeStart ?? ''))
+          .slice(0, UPCOMING_EVENTS_LIMIT);
+        if (active) setCategoryEvents(matches);
+      } catch { /* блок "Окей, что ещё" просто не покажется */ }
+    })();
+    return () => { active = false; };
+    // Нарочно зависим только от id/category, а не от всего article.event:
+    // остальные его поля (cover_url/price/...) не влияют на подборку "той
+    // же категории".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article?.event?.id, article?.event?.category]);
 
   if (loading) {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
@@ -219,16 +273,19 @@ export default function ArticleScreenWeb() {
     </Pressable>
   ) : null;
 
-  function renderRelatedCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
+  // "Окей, что ещё" — те же токены карточки, что раньше были у похожих
+  // статей (relatedCategory/relatedTitle), плюс дата события.
+  function renderUpcomingEventCard(item: UpcomingCategoryEvent, posInRow: 0 | 1 | 2) {
+    const dateText = formatEventDate(item.datetimeStart ?? undefined);
     return (
-      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
           <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
         )}
-        {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
         <Text style={styles.relatedTitle}>{item.title}</Text>
+        {dateText ? <Text style={styles.relatedCategory}>{dateText}</Text> : null}
       </Pressable>
     );
   }
@@ -334,14 +391,16 @@ export default function ArticleScreenWeb() {
   const relatedInlineItems = relatedInlineIds
     .map((rid) => article.relatedArticles.find((r) => r.id === rid))
     .filter((r): r is RelatedArticle => !!r);
-  const relatedArticlesForEnd = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
   const relatedInlineBlock = relatedInlineItems.map((item) => <View key={item.id}>{renderRelatedInlineCard(item)}</View>);
 
-  const relatedBlock = relatedArticlesForEnd.length > 0 ? (
+  // "Окей, что ещё" — ближайшие события той же категории, что у привязанного
+  // к статье события (см. categoryEvents выше); без привязанного события
+  // блок не рендерится вовсе — "та же категория" не из чего вывести.
+  const relatedBlock = categoryEvents.length > 0 ? (
     <View style={styles.relatedSection}>
-      <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
+      <Text style={styles.relatedSectionTitle}>Ближайшие события</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
-        {relatedArticlesForEnd.map((a, i) => renderRelatedCard(a, (isMobile ? 0 : i) as 0 | 1 | 2))}
+        {categoryEvents.map((e, i) => renderUpcomingEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
       </View>
     </View>
   ) : null;

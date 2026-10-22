@@ -34,7 +34,16 @@ function diffClass(styledEl: HTMLElement | null, blankEl: HTMLElement | null): s
 }
 
 function buildHoverDimCss(cursorClass: string, redClass: string | null): string {
+  // Красные кнопки/ссылки — не тускнеют при наведении, только подчёркивание
+  // (ни частичного, ни полного затемнения, см. ":has()" — сбрасывает
+  // opacity:0.5 с самого cursorClass, если он красный сам по себе ИЛИ
+  // содержит красный текст внутри; второе правило ставит подчёркивание на
+  // сам красный узел — он может быть и тем же элементом, и вложенным).
   const redRule = redClass ? `
+    .${cursorClass}:hover.${redClass},
+    .${cursorClass}:hover:has(.${redClass}) {
+      opacity: 1;
+    }
     .${cursorClass}:hover.${redClass},
     .${cursorClass}:hover .${redClass} {
       text-decoration: underline;

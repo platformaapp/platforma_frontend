@@ -37,6 +37,10 @@ export interface ArticleEvent {
   coverUrl: string | null;
   datetimeStart: string | null;
   price: number;
+  // Категория привязанного события (enum EventCategory бэкенда — см.
+  // CATEGORY_LABELS в events/index.web.tsx) — для блока "Окей, что ещё" на
+  // странице статьи: ближайшие события той же категории.
+  category: string | null;
 }
 
 export interface Article {
@@ -108,6 +112,7 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
             coverUrl: resolveUrl(e.cover_url as string | undefined),
             datetimeStart: (e.datetime_start as string) ?? null,
             price: typeof e.price === 'number' ? e.price : Number(e.price ?? 0),
+            category: (e.category as string) ?? null,
           };
         })()
       : null,

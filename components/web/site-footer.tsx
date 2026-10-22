@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
-import { OfferContent } from '@/app/offer';
 import { useSiteSettings } from '@/hooks/use-site-settings';
-import { DocumentModal } from './document-modal';
 import { CONTENT_MAX_WIDTH, MOBILE_BREAKPOINT } from './layout-constants';
 
 // Горизонтальный паддинг контента страниц, использующих SiteFooter (см. их
@@ -84,12 +82,13 @@ function LogoGrid({ logos }: { logos: { name: string; logo: number | string; url
 }
 
 /**
- * Футер веб-версии: копирайт + ссылки на документы — на всех страницах;
- * блоки партнёров/друзей — только там, где это явно запрошено (showPartners),
- * и только на десктопе (на мобильном партнёров не показываем нигде вообще).
+ * Футер веб-версии: блоки партнёров/друзей — только там, где это явно
+ * запрошено (showPartners), и только на десктопе (на мобильном партнёров не
+ * показываем нигде вообще). Копирайт и "Официальные документы" убраны из
+ * веба целиком (раньше была нижняя строка — см. git history); документы
+ * по-прежнему доступны напрямую с /about ("Правовая информация").
  */
-export function SiteFooter({ showPartners = false, showDocsRow = true }: { showPartners?: boolean; showDocsRow?: boolean }) {
-  const [openDoc, setOpenDoc] = useState<'none' | 'offer'>('none');
+export function SiteFooter({ showPartners = false }: { showPartners?: boolean }) {
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
   const displayPartners = showPartners && !isMobile;
@@ -116,7 +115,16 @@ export function SiteFooter({ showPartners = false, showDocsRow = true }: { showP
     <View
       style={[
         styles.footer,
-        { marginHorizontal: -centerGap, paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL, marginTop: isMobile ? 48 : 305 },
+        {
+          marginHorizontal: -centerGap,
+          paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL,
+          marginTop: isMobile ? 48 : 305,
+          // Раньше нижнюю строку (копирайт+документы, см. git history)
+          // замыкал paddingBottom футера не нужен был — теперь, когда
+          // партнёры — последнее, что есть в футере, добавляем отступ
+          // снизу сами, чтобы сетка лого не упиралась в край страницы.
+          paddingBottom: displayPartners ? 64 : 0,
+        },
       ]}
     >
       {displayPartners ? (
@@ -133,19 +141,6 @@ export function SiteFooter({ showPartners = false, showDocsRow = true }: { showP
           </View>
         </>
       ) : null}
-
-      {showDocsRow ? (
-        <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
-          <Text style={styles.copyright}>©2026, p(34)</Text>
-          <Pressable onPress={() => setOpenDoc('offer')}>
-            <Text style={styles.docsLink}>Официальные документы</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <DocumentModal visible={openDoc === 'offer'} onClose={() => setOpenDoc('none')} title="Официальные документы">
-        <OfferContent />
-      </DocumentModal>
     </View>
   );
 }
@@ -169,10 +164,4 @@ const styles = StyleSheet.create({
     gridTemplateColumns: 'repeat(5, 1fr)',
   } as any,
   logoImage: { width: '100%', height: PARTNER_LOGO_HEIGHT },
-  // Без партнёров сверху — небольшой отступ вместо огромного (тот нужен был,
-  // только чтобы отбить копирайт от сетки лого).
-  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 40 },
-  bottomRowWithPartners: { marginTop: 258 },
-  copyright: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
-  docsLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', textDecorationLine: 'none' },
 });

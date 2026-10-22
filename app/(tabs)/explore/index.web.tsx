@@ -196,7 +196,7 @@ export default function MentorsScreenWeb() {
         ) : null}
       </View>
 
-        <SiteFooter showPartners showDocsRow={false} />
+        <SiteFooter showPartners />
       </ScrollView>
     </SiteShell>
   );

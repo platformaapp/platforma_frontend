@@ -373,7 +373,7 @@ export default function EventsScreenWeb() {
         ) : null}
       </View>
 
-        <SiteFooter showPartners showDocsRow={false} />
+        <SiteFooter showPartners />
       </ScrollView>
     </SiteShell>
   );
