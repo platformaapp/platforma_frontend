@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   // flex/maxWidth прямо на Image (как у galleryImage/левой фотографии).
   galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
   galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
-  galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8 },
+  galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8, textAlign: 'right' },
   // Квадрат шириной 50% родителя, по центру — paddingBottom тем же
   // процентом, что и width, даёт height = width (тот же приём, что у
   // avatarBox на /explore: AVATAR_RATIO*100% при width:'100%' там, здесь
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   // всю ширину родителя, а узкую (maxWidth) карточку внутри центрирует как
   // обычный flex-контейнер.
   ctaBlock: { marginBottom: 40, width: '100%', alignItems: 'center' },
-  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 4 },
+  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 0 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
   // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.

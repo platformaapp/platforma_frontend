@@ -585,7 +585,7 @@ export default function EventDetailScreenWeb() {
                       </Pressable>
                     )}
                     <Pressable onPress={handleShare}>
-                      <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+                      <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться'}</Text>
                     </Pressable>
                   </>
                 )}

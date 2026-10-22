@@ -21,7 +21,7 @@ const RULES: InlineRule[] = [
   { re: /\*\*([^*]+?)\*\*/, style: { fontWeight: 'bold' } },
   { re: /__([^_]+?)__/, style: { textDecorationLine: 'underline' } },
   { re: /~~([^~]+?)~~/, style: { textDecorationLine: 'line-through' } },
-  { re: /==([^=]+?)==/, style: { backgroundColor: '#FDE1E1', color: '#E02D2D' } },
+  { re: /==([^=]+?)==/, style: { backgroundColor: '#FDE1E1', color: '#000' } },
   { re: /\{\+([^+]+?)\+\}/, style: { fontSize: 22 } },
   { re: /\{-([^-]+?)-\}/, style: { fontSize: 14 } },
   { re: /\*([^*]+?)\*/, style: { fontStyle: 'italic' } },
