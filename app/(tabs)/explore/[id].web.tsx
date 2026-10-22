@@ -304,12 +304,12 @@ export default function TutorCardScreenWeb() {
           style={isMobile && styles.chipHalf}
           onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
         >
-          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться на встречу</Text>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться</Text>
         </Pressable>
       ) : null}
       {!isOwnProfile ? (
         <Pressable style={isMobile && styles.chipHalf} onPress={handleWrite}>
-          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>{isMobile ? 'Связаться' : 'Написать наставнику'}</Text>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>{isMobile ? 'Связаться' : 'Написать'}</Text>
         </Pressable>
       ) : null}
       {instagramUrl ? (
