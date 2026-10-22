@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
@@ -67,6 +68,7 @@ type EventDetail = {
   sessionId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  tags?: string[];
   mentor?: { id: string; fullName: string; email: string; avatarUrl?: string | null } | null;
   videoRoom?: {
     id?: string;
@@ -143,6 +145,7 @@ export default function AdminEventDetailScreen() {
 
   const [modVisible, setModVisible] = useState(false);
   const [modFields, setModFields] = useState({ title: '', description: '', comment: '' });
+  const [modTags, setModTags] = useState<string[]>([]);
   const [modCoverUri, setModCoverUri] = useState<string | null>(null);
   const [modCoverUploading, setModCoverUploading] = useState(false);
   const [modSaving, setModSaving] = useState(false);
@@ -188,6 +191,7 @@ export default function AdminEventDetailScreen() {
           datetimeStart: r.datetimeStart ?? r.datetime_start ?? null,
           datetimeEnd: r.datetimeEnd ?? r.datetime_end ?? null,
           coverUrl: resolveUrl(r.coverUrl ?? r.cover_url),
+          tags: Array.isArray(r.tags) ? r.tags : [],
           recordingUrl: r.recordingUrl ?? r.recording_url ?? null,
           sessionId: r.sessionId ?? r.session_id ?? null,
           createdAt: r.createdAt ?? r.created_at,
@@ -201,6 +205,7 @@ export default function AdminEventDetailScreen() {
           videoRoom: r.videoRoom ?? r.video_room ?? null,
           participants: r.participants ?? null,
         });
+        if (active) setModTags(Array.isArray(r.tags) ? r.tags : []);
       } catch {
         if (active) setError('Не удалось загрузить данные');
       } finally {
@@ -252,7 +257,7 @@ export default function AdminEventDetailScreen() {
       const token = await getAdminToken();
       if (!token) { router.replace('/admin/login'); return; }
 
-      const body: Record<string, string> = {};
+      const body: Record<string, string | string[]> = {};
 
       if (modCoverUri) {
         setModCoverUploading(true);
@@ -269,6 +274,7 @@ export default function AdminEventDetailScreen() {
 
       if (modFields.title.trim()) body.title = modFields.title.trim();
       if (modFields.description.trim()) body.description = modFields.description.trim();
+      body.tags = modTags;
       const adminComment = modFields.comment.trim();
       body.comment = adminComment
         ? `${TEAM_COMMENT}\n\n${adminComment}`
@@ -368,6 +374,7 @@ export default function AdminEventDetailScreen() {
             </View>
           ) : null}
           <Row label="sessionId" value={event.sessionId} />
+          {event.tags && event.tags.length > 0 ? <Row label="Теги" value={event.tags.map((t) => `#${t}`).join(' ')} /> : null}
         </Section>
 
         {/* Schedule */}
@@ -469,6 +476,9 @@ export default function AdminEventDetailScreen() {
                   <Text style={styles.modCoverRemove}>Удалить выбранное фото</Text>
                 </Pressable>
               ) : null}
+
+              <Text style={styles.modLabel}>Теги</Text>
+              <AdminTagsInput tags={modTags} onChange={setModTags} />
 
               <Text style={styles.modLabel}>Название</Text>
               <TextInput

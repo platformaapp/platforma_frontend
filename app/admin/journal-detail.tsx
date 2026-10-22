@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
@@ -127,6 +128,7 @@ export default function AdminJournalDetailScreen() {
   // Баннер рядом со вторым подзаголовком — опционально, по умолчанию
   // включён (старое поведение для уже существующих статей).
   const [showBanner, setShowBanner] = useState(true);
+  const [tags, setTags] = useState<string[]>([]);
 
   const [author, setAuthor] = useState<TutorOption | null>(null);
   const [authorQuery, setAuthorQuery] = useState('');
@@ -177,6 +179,7 @@ export default function AdminJournalDetailScreen() {
         setGallery(Array.isArray(a.gallery) ? a.gallery.map((g: string) => resolveUrl(g) ?? g) : []);
         setGalleryCaption(a.gallery_caption ?? '');
         setShowBanner(a.show_banner ?? true);
+        setTags(Array.isArray(a.tags) ? a.tags : []);
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
         if (Array.isArray(a.related_articles)) {
           setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
@@ -358,6 +361,7 @@ export default function AdminJournalDetailScreen() {
         gallery: uploadedGallery,
         gallery_caption: galleryCaption.trim() || undefined,
         show_banner: showBanner,
+        tags,
         related_article_ids: relatedArticles.map((r) => r.id),
         event_id: event ? event.id : null,
         author_id: author.id,
@@ -525,6 +529,10 @@ export default function AdminJournalDetailScreen() {
           </View>
           <Text style={styles.checkboxLabel}>Показывать баннер рядом со вторым подзаголовком</Text>
         </Pressable>
+
+        <Text style={styles.label}>Теги</Text>
+        <Text style={styles.hint}>Показываются на странице статьи напротив имени автора (#тег).</Text>
+        <AdminTagsInput tags={tags} onChange={setTags} />
 
         <Text style={styles.label}>Галерея (до 2 изображений)</Text>
         <View style={styles.galleryRow}>

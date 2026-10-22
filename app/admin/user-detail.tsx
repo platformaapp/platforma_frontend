@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
@@ -94,6 +95,11 @@ export default function AdminUserDetailScreen() {
   const [isActioning, setActioning] = useState(false);
   const [actionError, setActionError] = useState('');
 
+  const [tags, setTags] = useState<string[]>([]);
+  const [savingTags, setSavingTags] = useState(false);
+  const [tagsError, setTagsError] = useState('');
+  const [tagsSaved, setTagsSaved] = useState(false);
+
   useEffect(() => {
     if (!id) return;
     let active = true;
@@ -118,6 +124,7 @@ export default function AdminUserDetailScreen() {
         }
         const data = await res.json();
         const raw = data?.data ?? data?.user ?? data;
+        if (active) setTags(Array.isArray(raw.tags) ? raw.tags : []);
         if (active) setUser({
           id: String(raw.id ?? ''),
           email: raw.email ?? '',
@@ -202,6 +209,32 @@ export default function AdminUserDetailScreen() {
     }
   }
 
+  async function handleSaveTags() {
+    if (!id) return;
+    setSavingTags(true);
+    setTagsError('');
+    setTagsSaved(false);
+    try {
+      const token = await getAdminToken();
+      if (!token) { router.replace('/admin/login'); return; }
+      const res = await fetch(`${endpoints.adminUsers}/${id}/tags`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tags }),
+      });
+      if (res.status === 401 || res.status === 403) { await clearAdminToken(); router.replace('/admin/login'); return; }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.message ?? `Ошибка ${res.status}`);
+      }
+      setTagsSaved(true);
+    } catch (e) {
+      setTagsError((e as Error)?.message ?? 'Не удалось сохранить теги');
+    } finally {
+      setSavingTags(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
@@ -281,6 +314,18 @@ export default function AdminUserDetailScreen() {
               label="Стоимость часа"
               value={user.hourlyRate != null ? `${Number(user.hourlyRate).toLocaleString('ru-RU')} Р` : null}
             />
+          </Section>
+        )}
+
+        {/* Теги — показываются на странице наставника напротив имени
+            (#тег), редактируются только из админки. */}
+        {hasTutorProfile && (
+          <Section title="Теги">
+            <AdminTagsInput tags={tags} onChange={(next) => { setTags(next); setTagsSaved(false); }} />
+            {tagsError ? <Text style={styles.actionErrorText}>{tagsError}</Text> : null}
+            <Pressable style={[styles.approveActionBtn, savingTags && styles.btnDisabled]} onPress={handleSaveTags} disabled={savingTags}>
+              {savingTags ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.approveActionBtnText}>{tagsSaved ? 'Сохранено' : 'Сохранить теги'}</Text>}
+            </Pressable>
           </Section>
         )}
 
