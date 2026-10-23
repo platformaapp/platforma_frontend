@@ -199,24 +199,39 @@ export default function EventsScreenWeb() {
 
   const filtered = events.filter((e) => !format || e.format === format);
 
-  function renderFeaturedCard(item: EventFeedItem, index: 0 | 1) {
+  // variant: 'A' — первая пара цикла (pairA), 'B' — третья строка цикла
+  // (pairB) — у неё свои классы, не переиспользует стили pairA: второй
+  // блок pairA — 72.8% ширины колонки, второй блок pairB — 100%.
+  function renderFeaturedCard(item: EventFeedItem, index: 0 | 1, variant: 'A' | 'B') {
     const isSecond = index === 1;
+    const cardStyle = variant === 'B'
+      ? (isSecond ? styles.featuredCardTwoB : styles.featuredCardOneB)
+      : (isSecond ? styles.featuredCardTwo : styles.featuredCardOne);
+    const innerStyle = isSecond
+      ? (variant === 'B' ? styles.featuredInnerTwoB : styles.featuredInnerTwo)
+      : undefined;
+    const labelStyle = variant === 'B'
+      ? (isSecond ? styles.featuredLabelTwoB : styles.featuredLabelOneB)
+      : (isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne);
+    const titleStyle = variant === 'B'
+      ? (isSecond ? styles.featuredTitleTwoB : styles.featuredTitleOneB)
+      : (isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne);
     return (
       <Pressable
         key={item.id}
-        style={isSecond ? styles.featuredCardTwo : styles.featuredCardOne}
+        style={cardStyle}
         onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
       >
-        <View style={isSecond ? styles.featuredInnerTwo : undefined}>
+        <View style={innerStyle}>
           {item.coverUrl ? (
             <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
           ) : (
             <View style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
-          <View style={isSecond ? styles.featuredLabelTwo : styles.featuredLabelOne}>
+          <View style={labelStyle}>
             {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
-          <Text style={[styles.cardTitleText, isSecond ? styles.featuredTitleTwo : styles.featuredTitleOne]}>{item.title}</Text>
+          <Text style={[styles.cardTitleText, titleStyle]}>{item.title}</Text>
           {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
         </View>
       </Pressable>
@@ -342,9 +357,9 @@ export default function EventsScreenWeb() {
                 </View>
               ) : (
                 <View style={[row.type === 'pairA' ? styles.featuredRow : styles.pairBRow, { marginTop }]}>
-                  {renderFeaturedCard(row.items[0], 0)}
+                  {renderFeaturedCard(row.items[0], 0, row.type === 'pairB' ? 'B' : 'A')}
                   {row.items.length > 1 ? <View /> : null}
-                  {row.items.length > 1 ? renderFeaturedCard(row.items[1], 1) : null}
+                  {row.items.length > 1 ? renderFeaturedCard(row.items[1], 1, row.type === 'pairB' ? 'B' : 'A') : null}
                 </View>
               );
               return (
@@ -435,18 +450,29 @@ const styles = StyleSheet.create({
   // 254/120/254/120... (см. marginTop в рендере).
   featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
   pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
+  // pairA (строка 1).
   featuredCardOne: { width: '100%' },
   featuredCardTwo: { width: '100%' },
   featuredInnerTwo: { width: '72.8%' },
+  featuredLabelOne: { marginTop: 20 },
+  featuredLabelTwo: { marginTop: 23 },
+  featuredTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25},
+  featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
+  // pairB (строка 3) — отдельные классы, не переиспользуют стили pairA:
+  // второй блок строки 3 — на всю ширину колонки (100%), а не 72.8%, как
+  // у второго блока строки 1.
+  featuredCardOneB: { width: '100%' },
+  featuredCardTwoB: { width: '100%' },
+  featuredInnerTwoB: { width: '100%' },
+  featuredLabelOneB: { marginTop: 20 },
+  featuredLabelTwoB: { marginTop: 23 },
+  featuredTitleOneB: { marginTop: 13, fontSize: 25, lineHeight: 25 },
+  featuredTitleTwoB: { marginTop: 15, lineHeight: 25 },
   featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
   // Высота второй картинки фиксированная (248px), а не по aspect-ratio. У
   // пары B отдельных размеров картинок не дано — переиспользуем те же, что
   // и у пары A, чтобы не выдумывать новые числа.
   featuredImageTwo: { height: 248 },
-  featuredLabelOne: { marginTop: 20 },
-  featuredLabelTwo: { marginTop: 23 },
-  featuredTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25},
-  featuredTitleTwo: { marginTop: 15, lineHeight: 25 },
 
   // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают
   // колонки 1/3/5 (см. ROW_GRID_COLUMNS), 2/4 — зазоры, 6 (191fr) — пустая

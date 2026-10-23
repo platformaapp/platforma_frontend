@@ -257,7 +257,7 @@ export default function JournalScreenWeb() {
                     // баннер на колонки 1..5, не на всю ширину.
                     <View style={styles.rowThree}>
                       <View style={styles.promoBannerCell}>
-                        <PromoBanner withTelegramLink />
+                        <PromoBanner />
                       </View>
                     </View>
                   ) : null}

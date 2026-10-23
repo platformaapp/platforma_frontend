@@ -42,9 +42,6 @@ const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg
 // был просто серый плейсхолдер без картинки, взята с vladyakunin.ru (та же
 // чб-портретная эстетика, что и у section-banner выше).
 const APP_DOWNLOAD_IMAGE = require('@/assets/images/app-download-photo.png');
-// Натуральная пропорция картинки баннера (720×1280) — высота Image внутри
-// квадратной обёртки задаётся в процентах именно от неё (см. sectionBanner).
-const SECTION_BANNER_ASPECT_RATIO = 720 / 1280;
 const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
 
 // Размер картинки CTA события внутри статьи — как в статье про советский
@@ -258,17 +255,13 @@ export default function ArticleScreenWeb() {
 
   // Баннер — опционально, выключается в админке (article.showBanner). Это
   // свой, конкретный баннер (не PromoBanner с /journal и /events).
-  // Квадрат шириной 50% родительского блока, по центру — всегда обрезан
-  // так, что видна только верхняя (текстовая) часть картинки, без фото
-  // снизу. Сама картинка (sectionBanner) не искажается — её обёртка
-  // (sectionBannerWrap) квадратная (паддинг-трюк: paddingBottom — тот же
-  // процент, что и width, см. тот же приём у avatarBox на /explore), а
-  // картинка внутри — position:'absolute', во всю ширину обёртки и в её
-  // натуральную пропорциональную высоту (height в процентах от 720×1280 —
-  // не aspectRatio: react-native-web игнорирует aspectRatio для Image из
-  // require(), подставляя вместо недостающей высоты натуральный пиксельный
-  // размер файла, см. git history) — картинка выше квадрата, лишнее снизу
-  // просто обрезается overflow:'hidden' на обёртке.
+  // Квадрат шириной 50% родительского блока, по центру (паддинг-трюк:
+  // paddingBottom — тот же процент, что и width, см. тот же приём у
+  // avatarBox на /explore). Картинка внутри — inset:0 (top/left/right/
+  // bottom:0, см. тот же приём у avatar там же) и resizeMode="cover" —
+  // заполняет квадрат целиком и обрезается по центру независимо от
+  // исходных пропорций картинки (не aspectRatio: react-native-web
+  // игнорирует aspectRatio для Image из require(), см. git history).
   const bannerBlock = article.showBanner ? (
     <Pressable style={styles.sectionBannerWrap} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
       <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
@@ -573,12 +566,7 @@ const styles = StyleSheet.create({
   // 50%/50% — паддинг-проценты всегда считаются от ширины родителя, то есть
   // при собственной width:50% это и есть квадрат).
   sectionBannerWrap: { width: '50%', alignSelf: 'center', position: 'relative', overflow: 'hidden', paddingBottom: '50%' } as any,
-  // Обрезает картинку снизу (overflow на обёртке), сама картинка не
-  // искажается — ширина 100% обёртки, высота в процентах от НЕЁ ЖЕ (не от
-  // родителя: position:'absolute' внутри обёртки с position:'relative'
-  // резолвит % высоты от высоты обёртки) — натуральная пропорция 720:1280,
-  // т.е. выше квадрата, лишнее снизу просто не видно.
-  sectionBanner: { position: 'absolute', top: 0, left: 0, width: '100%', height: `${(100 / SECTION_BANNER_ASPECT_RATIO).toFixed(2)}%`, backgroundColor: '#E5E5E5' } as any,
+  sectionBanner: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
