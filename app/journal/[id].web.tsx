@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -221,7 +222,17 @@ export default function ArticleScreenWeb() {
   const { intro, sections } = parseContent(article.content);
   const [galleryLeft, galleryRight] = article.gallery;
 
-  const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{article.title}</Text>;
+  // H1 — видимый заголовок на странице, заменяет обычный title, только
+  // если задан в админке (SEO-блок, admin/journal-detail.tsx); seoTitle/
+  // metaDescription ни на что в разметке страницы не влияют, кроме <head>.
+  const visibleTitle = article.h1 || article.title;
+  const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{visibleTitle}</Text>;
+  const headElement = (
+    <Head>
+      <title>{article.seoTitle || article.title}</title>
+      {article.metaDescription ? <meta name="description" content={article.metaDescription} /> : null}
+    </Head>
+  );
 
   // Под заголовком — только имя, серым, без фото и без роли/био (раньше
   // был целый блок с фото+имя+роль+био, см. git history), кликабельно на
@@ -235,7 +246,7 @@ export default function ArticleScreenWeb() {
       ) : (
         <Text style={[styles.author, styles.authorNameShrink]}>{article.author.name}</Text>
       )}
-      <TagList tags={article.tags} textStyle={styles.author} />
+      <TagList tags={article.tags} textStyle={styles.author} onTagPress={(t) => router.push(`/journal?tag=${encodeURIComponent(t)}` as any)} />
     </View>
   ) : null;
 
@@ -431,6 +442,7 @@ export default function ArticleScreenWeb() {
 
   return (
     <SiteShell>
+      {headElement}
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (

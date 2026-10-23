@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -68,6 +68,10 @@ function TutorCard({
 export default function MentorsScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
+  // ?tag=... — переход по клику на хэштег на странице наставника (см.
+  // TagList/onTagPress там) — список наставников с этим тегом.
+  const { tag: tagParam } = useLocalSearchParams<{ tag?: string }>();
+  const activeTag = typeof tagParam === 'string' ? tagParam : Array.isArray(tagParam) ? tagParam[0] : null;
   const [tutors, setTutors] = useState<PublicTutor[]>([]);
   const [myId, setMyId] = useState<string | null>(null);
   const [myRole, setMyRole] = useState<string | null>(null);
@@ -108,8 +112,11 @@ export default function MentorsScreenWeb() {
   }, []);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
+  useEffect(() => { setPage(1); }, [activeTag]);
 
-  const filteredTutors = category ? tutors.filter((t) => t.specialization === category) : tutors;
+  const filteredTutors = tutors
+    .filter((t) => !category || t.specialization === category)
+    .filter((t) => !activeTag || t.tags?.includes(activeTag));
 
   // Пагинация — 4 строки контента на страницу. Колонок в строке разное
   // число на десктопе/мобильном (см. card/cardMobile: flexBasis 23.5%/46%,
@@ -128,6 +135,11 @@ export default function MentorsScreenWeb() {
     setPage(1);
   }
 
+  function clearTagFilter() {
+    router.replace('/explore' as any);
+    setPage(1);
+  }
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
@@ -135,6 +147,12 @@ export default function MentorsScreenWeb() {
         <Pressable onPress={() => selectCategory(null)}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Наставники</Text>
         </Pressable>
+
+        {activeTag ? (
+          <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
+            <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
+          </Pressable>
+        ) : null}
 
         {isMobile ? null : (
           <View style={styles.filtersRow}>
@@ -229,6 +247,10 @@ const styles = StyleSheet.create({
   // кликабельны, активная — чёрная и жирная, остальные — серые. Последняя
   // ("Новые увлечения") — отдельно и прижата вправо по логотипу (см.
   // filterPillRight на /events — то же значение marginRight).
+  // Активный фильтр по тегу (переход по клику на #хэштег на странице
+  // наставника, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
+  activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },
+  activeTagChipText: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#687076' },
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 86, marginTop: 50 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
   filterPillRight: { marginLeft: 'auto', marginRight: 0, paddingLeft: 24 },

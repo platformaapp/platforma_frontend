@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -42,6 +42,10 @@ const ROWS_PER_PAGE = 5;
 export default function JournalScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
+  // ?tag=... — переход по клику на хэштег (см. TagList/onTagPress на
+  // странице статьи) — список статей с этим тегом, см. filtered ниже.
+  const { tag: tagParam } = useLocalSearchParams<{ tag?: string }>();
+  const activeTag = typeof tagParam === 'string' ? tagParam : Array.isArray(tagParam) ? tagParam[0] : null;
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,11 +66,19 @@ export default function JournalScreenWeb() {
   }, []);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
+  useEffect(() => { setPage(1); }, [activeTag]);
 
-  const filtered = category ? articles.filter((a) => a.category === category) : articles;
+  const filtered = articles
+    .filter((a) => !category || a.category === category)
+    .filter((a) => !activeTag || a.tags.includes(activeTag));
 
   function selectCategory(next: string | null) {
     setCategory(next);
+    setPage(1);
+  }
+
+  function clearTagFilter() {
+    router.replace('/journal' as any);
     setPage(1);
   }
 
@@ -179,6 +191,12 @@ export default function JournalScreenWeb() {
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
 
+        {activeTag ? (
+          <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
+            <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
+          </Pressable>
+        ) : null}
+
         {!isMobile ? (
           <View style={styles.filtersRow}>
             <View style={styles.filtersGroup}>
@@ -281,6 +299,10 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
+  // Активный фильтр по тегу (переход по клику на #хэштег на странице
+  // статьи, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
+  activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },
+  activeTagChipText: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#687076' },
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },
   // ROW_THREE_RIGHT_INSET — точный процент (не на глаз), см. его расчёт выше.

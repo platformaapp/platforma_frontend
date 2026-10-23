@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 
 /**
  * Хэштеги контента (статья/наставник/событие) — рендерятся напротив имени
@@ -9,13 +9,26 @@ import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-na
  * justifyContent:'space-between' на всю ширину блока заголовка) — этот
  * компонент сам по себе только рендерит теги, выровненные по правому краю
  * СВОЕГО контейнера.
+ *
+ * Кликабельны (onTagPress) — ведут на соответствующий список (/journal,
+ * /explore, /events), отфильтрованный по этому тегу, см. использования.
  */
-export function TagList({ tags, textStyle }: { tags?: string[] | null; textStyle?: StyleProp<TextStyle> }) {
+export function TagList({
+  tags, textStyle, onTagPress,
+}: {
+  tags?: string[] | null; textStyle?: StyleProp<TextStyle>; onTagPress?: (tag: string) => void;
+}) {
   if (!tags || tags.length === 0) return null;
   return (
     <View style={styles.row}>
       {tags.map((t) => (
-        <Text key={t} style={[styles.tag, textStyle]} numberOfLines={1}>#{t}</Text>
+        onTagPress ? (
+          <Pressable key={t} onPress={() => onTagPress(t)}>
+            <Text style={[styles.tag, textStyle]} numberOfLines={1}>#{t}</Text>
+          </Pressable>
+        ) : (
+          <Text key={t} style={[styles.tag, textStyle]} numberOfLines={1}>#{t}</Text>
+        )
       ))}
     </View>
   );

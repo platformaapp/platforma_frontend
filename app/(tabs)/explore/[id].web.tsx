@@ -174,8 +174,8 @@ export default function TutorCardScreenWeb() {
   // 2-колоночного desktopGrid (текст/фото), а отдельная полноширинная
   // 3-колоночная сетка: 403fr 75fr 365fr 266fr 340fr (карточки в колонках
   // 1/3/5, 2 и 4 — зазоры). Строки по 3 карточки, две строки образуют
-  // повторяющийся блок: во второй строке каждой пары третья карточка уже
-  // (84.4% вместо 100% по ширине) — см. MENTOR_ROW_ASPECTS/renderMentorGridCard.
+  // повторяющийся блок — картинки везде 100% по ширине (раньше у третьей
+  // карточки второй строки была уже, 84.4%, по просьбе пользователя убрано).
   function buildMentorEventRows<T>(events: T[]): T[][] {
     const rows: T[][] = [];
     for (let i = 0; i < events.length; i += 3) rows.push(events.slice(i, i + 3));
@@ -294,16 +294,11 @@ export default function TutorCardScreenWeb() {
     return (
       <View style={styles.mentorEventsSection}>
         <Text style={styles.eventsSectionTitle}>{title}</Text>
-        {rows.map((row, rowIdx) => {
-          // Вторая строка каждой пары — та, где у третьей карточки узкая
-          // картинка (card--d на референсе).
-          const narrowLast = rowIdx % 2 === 1;
-          return (
-            <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
-              {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, narrowLast && pos === 2, isPast))}
-            </View>
-          );
-        })}
+        {rows.map((row, rowIdx) => (
+          <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
+            {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, false, isPast))}
+          </View>
+        ))}
       </View>
     );
   }
@@ -404,7 +399,7 @@ export default function TutorCardScreenWeb() {
           <View>
             <View style={styles.nameRow}>
               <Text style={[styles.name, styles.nameMobile, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
-              <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} />
+              <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
             </View>
 
             <View style={styles.headerRowMobile}>
@@ -438,7 +433,7 @@ export default function TutorCardScreenWeb() {
             <View style={styles.actionsRowContainer}>
               <View style={styles.nameRow}>
                 <Text style={[styles.name, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
-                <TagList tags={tags} textStyle={styles.name} />
+                <TagList tags={tags} textStyle={styles.name} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
               </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
