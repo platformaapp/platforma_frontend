@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   // "подпись уменьшала высоту фотографии". Колонка должна просто занимать
   // столько места, сколько нужно её содержимому.
   // gap — см. mobileMediaBlock выше, тот же смысл.
-  colImageTop: { minWidth: 240, gap: 40 },
+  colImageTop: { minWidth: 240, gap: 0 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 30, lineHeight: 34, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
