@@ -502,6 +502,7 @@ export default function EventDetailScreenWeb() {
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
         style={styles.mentorAvatar}
         resizeMode="cover"
+        {...({ dataSet: { mentorAvatar: 'true' } } as any)}
       />
     </Pressable>
   ) : null;

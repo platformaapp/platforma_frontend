@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Tex
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { TagList } from '@/components/web/tag-list';
+import { TutorSlotsModal } from '@/components/web/tutor-slots-modal';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getArticles } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
@@ -82,6 +83,10 @@ export default function TutorCardScreenWeb() {
   const [mentorEvents, setMentorEvents] = useState<MentorEvent[]>([]);
   const [mentorArticles, setMentorArticles] = useState<MentorArticle[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  // "Записаться" открывает TutorSlotsModal прямо здесь (не переходом по
+  // ссылке на /explore/:id/slots) — страница наставника остаётся
+  // смонтированной и видна затемнённой позади модалки.
+  const [showSlotsModal, setShowSlotsModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -369,7 +374,7 @@ export default function TutorCardScreenWeb() {
       {!isOwnProfile && isMentorVerified ? (
         <Pressable
           style={isMobile && styles.chipHalf}
-          onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
+          onPress={() => setShowSlotsModal(true)}
         >
           <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться</Text>
         </Pressable>
@@ -403,7 +408,7 @@ export default function TutorCardScreenWeb() {
             </View>
 
             <View style={styles.headerRowMobile}>
-              <Image source={imageSource} style={styles.avatarMobile} />
+              <Image source={imageSource} style={styles.avatarMobile} {...({ dataSet: { mentorAvatar: 'true' } } as any)} />
               <View style={styles.headerInfoMobile}>
                 {displayRole ? <Text style={[styles.role, styles.roleMobile]}>{displayRole}</Text> : null}
                 {displayPrice ? (
@@ -453,7 +458,7 @@ export default function TutorCardScreenWeb() {
               ) : null}
             </View>
             <View style={styles.avatarLargeBox}>
-              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" />
+              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" {...({ dataSet: { mentorAvatar: 'true' } } as any)} />
             </View>
           </View>
         )}
@@ -469,6 +474,7 @@ export default function TutorCardScreenWeb() {
 
         <SiteFooter />
       </ScrollView>
+      {id ? <TutorSlotsModal tutorId={id} visible={showSlotsModal} onClose={() => setShowSlotsModal(false)} /> : null}
     </SiteShell>
   );
 }

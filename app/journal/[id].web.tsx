@@ -95,6 +95,23 @@ function formatEventDate(iso?: string): string {
   }
 }
 
+// Дата+время — тот же формат, что и на самой странице события
+// (events/[id].web.tsx formatDatetime), для мобильного CTA (renderEventCtaCard):
+// там он "в точности как событие на мобильном", с временем, а не только датой.
+function formatEventDatetime(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const day = d.getDate();
+    const month = MONTHS_GEN[d.getMonth()];
+    const hh = d.getHours();
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${month} ${hh}:${mm}`;
+  } catch {
+    return iso ?? '';
+  }
+}
+
 // Строка, начинающаяся с "##" (после обрезки пробелов — любое количество
 // пробельных символов, включая неразрывный пробел и табы, или вообще без
 // них), открывает подзаголовок + текст после него. Раньше детект искал
@@ -280,8 +297,12 @@ export default function ArticleScreenWeb() {
   // заполняет квадрат целиком и обрезается по центру независимо от
   // исходных пропорций картинки (не aspectRatio: react-native-web
   // игнорирует aspectRatio для Image из require(), см. git history).
+  // На мобильном баннер — первым перед статьёй (см. mobileStack ниже) и по
+  // ширине как обложка (100%, не 50%-квадрат по центру, как на десктопе) —
+  // sectionBannerWrapMobile меняет только width/paddingBottom, крупность
+  // кропа (квадрат) остаётся та же, т.к. картинка-источник уже квадратная.
   const bannerBlock = article.showBanner ? (
-    <Pressable style={styles.sectionBannerWrap} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
+    <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
       <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
@@ -324,23 +345,48 @@ export default function ArticleScreenWeb() {
   // И в тексте стоит маркер {{event}}; позиция самого маркера, как правило,
   // ЯВЛЯЕТСЯ координатой — см. eventMarkerIdx/hasEventSplit ниже (и
   // комментарий у EVENT_TOKEN выше про случай "текста мало").
-  // "+ Записаться на событие" — под заголовком, в одной строке с датой (на
-  // противоположных концах), а не отдельной строкой-ссылкой над картинкой,
-  // как раньше. Заголовок (ctaCardTitle) не должен быть шире картинки — на
-  // десктопе у картинки фиксированная ширина (EVENT_CTA_WIDTH), поэтому
-  // ограничиваем ею весь блок (eventCtaCardDesktop); на мобильном картинка
-  // и так на всю ширину блока (ctaCardImage), ограничивать нечем.
+  // Мобильный CTA — в точности как страница самого события на мобильном
+  // (events/[id].web.tsx: titleMobile → дата/цена в ряд → обложка → кнопка
+  // "Зарегистрироваться" в chipButton). Десктопный — своя компактная
+  // карточка: картинка, заголовок, "+ Записаться на событие" в одной
+  // строке с датой; ширина ограничена картинкой (EVENT_CTA_WIDTH), чтобы
+  // заголовок не был шире неё.
   function renderEventCtaCard() {
     if (!safeArticle.event) return null;
     const event = safeArticle.event;
+
+    if (isMobile) {
+      const datetimeText = formatEventDatetime(event.datetimeStart ?? undefined);
+      const priceText = event.price != null ? `${event.price.toLocaleString('ru-RU')} Р` : 'Бесплатно';
+      return (
+        <View style={styles.ctaBlock}>
+          <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+            <Text style={[styles.title, styles.titleMobile, styles.ctaEventTitleMobile]}>{event.title}</Text>
+            <View style={styles.ctaEventMetaRow}>
+              {datetimeText ? <Text style={styles.ctaEventMetaValue}>{datetimeText}</Text> : null}
+              <Text style={styles.ctaEventMetaValue}>{priceText}</Text>
+            </View>
+            {event.coverUrl ? (
+              <Image source={{ uri: event.coverUrl }} style={styles.ctaEventThumbMobile} resizeMode="cover" />
+            ) : (
+              <View style={styles.ctaEventThumbMobile} />
+            )}
+            <View style={styles.chipButton}>
+              <Text style={styles.chipButtonText}>Зарегистрироваться</Text>
+            </View>
+          </Pressable>
+        </View>
+      );
+    }
+
     const dateText = formatEventDate(event.datetimeStart ?? undefined);
     return (
       <View style={styles.ctaBlock}>
-        <Pressable style={[styles.ctaCard, !isMobile && styles.eventCtaCardDesktop]} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+        <Pressable style={[styles.ctaCard, styles.eventCtaCardDesktop]} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
           {event.coverUrl ? (
-            <Image source={{ uri: event.coverUrl }} style={isMobile ? styles.ctaCardImage : styles.eventCtaImage} resizeMode="cover" />
+            <Image source={{ uri: event.coverUrl }} style={styles.eventCtaImage} resizeMode="cover" />
           ) : (
-            <View style={isMobile ? styles.ctaCardImage : styles.eventCtaImage} />
+            <View style={styles.eventCtaImage} />
           )}
           <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{event.title}</Text>
           <View style={styles.eventCtaFooterRow}>
@@ -454,11 +500,11 @@ export default function ArticleScreenWeb() {
           // "текста мало") — carточка (если маркер всё же есть) и похожие
           // статьи идут после баннера, а текст — один непрерывный поток.
           <View style={styles.mobileStack}>
+            {bannerBlock}
             {titleElement}
             {authorBlock}
             <View style={styles.mobileMediaBlock}>
               {mediaBlock}
-              {bannerBlock}
               {!hasEventSplit && hasEventMarker ? renderEventCtaCard() : null}
               {!hasEventSplit ? relatedInlineBlock : null}
             </View>
@@ -588,6 +634,9 @@ const styles = StyleSheet.create({
   // 50%/50% — паддинг-проценты всегда считаются от ширины родителя, то есть
   // при собственной width:50% это и есть квадрат).
   sectionBannerWrap: { width: '50%', alignSelf: 'center', position: 'relative', overflow: 'hidden', paddingBottom: '50%' } as any,
+  // Мобильный вариант — по ширине как обложка (100%, не центрированный
+  // 50%-квадрат), см. комментарий у bannerBlock.
+  sectionBannerWrapMobile: { width: '100%', alignSelf: 'stretch', paddingBottom: '100%', marginBottom: 24 } as any,
   sectionBanner: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
@@ -640,6 +689,15 @@ const styles = StyleSheet.create({
   // строкой под заголовком).
   eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
   ctaCardMeta: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000' },
+  // Мобильный CTA события — в точности как сама страница события на
+  // мобильном (events/[id].web.tsx: titleMobile, mobileMetaRow/Value,
+  // mobileThumb, chipButton/chipButtonText) — значения скопированы оттуда.
+  ctaEventTitleMobile: { marginBottom: 8 },
+  ctaEventMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
+  ctaEventMetaValue: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  ctaEventThumbMobile: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 16 },
+  chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#68717A' },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
   storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
 });
