@@ -96,25 +96,32 @@ function formatEventDate(iso?: string): string {
 
 // Строка, начинающаяся с "##" (после обрезки пробелов — любое количество
 // пробельных символов, включая неразрывный пробел и табы, или вообще без
-// них), открывает второй блок (подзаголовок + текст). Раньше детект искал
+// них), открывает подзаголовок + текст после него. Раньше детект искал
 // точную подстроку "\n## " — ломался на переносах строк \r\n (частый
 // результат вставки текста из Word/Telegram/Google Docs) и на любом другом
 // пробеле после "##", кроме обычного. Построчный разбор с регуляркой
-// устойчив к обоим случаям. Второй "##" и дальше не поддерживаются — в
-// макете такой блок всего один.
-function parseContent(content: string | null): { intro: string[]; section: { heading: string; body: string[] } | null } {
-  if (!content) return { intro: [], section: null };
+// устойчив к обоим случаям. Поддерживается ЛЮБОЕ число "##"-подзаголовков
+// подряд (не только один, как раньше) — баннер в статье встаёт именно
+// напротив ВТОРОГО из них (см. hasSecondHeading/secondHeadingIdx ниже),
+// первый подзаголовок баннером не затрагивается.
+function parseContent(content: string | null): { intro: string[]; sections: { heading: string; body: string[] }[] } {
+  if (!content) return { intro: [], sections: [] };
   const lines = content.split(/\r\n|\r|\n/);
-  const headingLineIdx = lines.findIndex((l) => /^##(?!#)/.test(l.trim()));
-  if (headingLineIdx === -1) {
-    return { intro: content.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean), section: null };
+  const headingLineIdxs: number[] = [];
+  lines.forEach((l, i) => { if (/^##(?!#)/.test(l.trim())) headingLineIdxs.push(i); });
+  if (headingLineIdxs.length === 0) {
+    return { intro: content.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean), sections: [] };
   }
-  const heading = lines[headingLineIdx].trim().replace(/^##(?!#)\s*/, '').trim();
-  const before = lines.slice(0, headingLineIdx).join('\n').trim();
-  const after = lines.slice(headingLineIdx + 1).join('\n').trim();
+  const before = lines.slice(0, headingLineIdxs[0]).join('\n').trim();
+  const sections = headingLineIdxs.map((startIdx, i) => {
+    const endIdx = i + 1 < headingLineIdxs.length ? headingLineIdxs[i + 1] : lines.length;
+    const heading = lines[startIdx].trim().replace(/^##(?!#)\s*/, '').trim();
+    const bodyText = lines.slice(startIdx + 1, endIdx).join('\n').trim();
+    return { heading, body: bodyText.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) };
+  });
   return {
     intro: before.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
-    section: { heading, body: after.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) },
+    sections,
   };
 }
 
@@ -211,7 +218,7 @@ export default function ArticleScreenWeb() {
     );
   }
 
-  const { intro, section } = parseContent(article.content);
+  const { intro, sections } = parseContent(article.content);
   const [galleryLeft, galleryRight] = article.gallery;
 
   const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{article.title}</Text>;
@@ -341,7 +348,7 @@ export default function ArticleScreenWeb() {
   type TextItem = { heading: boolean; text: string };
   const textItems: TextItem[] = [
     ...intro.map((text) => ({ heading: false, text })),
-    ...(section ? [{ heading: true, text: section.heading }, ...section.body.map((text) => ({ heading: false, text }))] : []),
+    ...sections.flatMap((s) => [{ heading: true, text: s.heading }, ...s.body.map((text) => ({ heading: false, text }))]),
   ];
 
   function isRealTextItem(it: TextItem) {
@@ -403,21 +410,24 @@ export default function ArticleScreenWeb() {
   const beforeEventBlock = renderTextItems(beforeEventItems, 'before');
   const afterEventBlock = hasEventSplit ? renderTextItems(afterEventItems, 'after') : null;
 
-  // Баннер напротив подзаголовка (desktop only — на мобильном всё и так
-  // одной колонкой): та же техника грид-сплита, что у CTA события выше
-  // ("так же, как раньше работала пара подзаголовок+баннер"), но держим её
-  // независимой от события — только когда маркера {{event}} в статье нет
-  // вовсе, чтобы не пришлось сводить два независимых разбиения на строки
-  // в одной сетке. sectionHeadingIdx — позиция подзаголовка (второй
-  // "заголовок" статьи после самого title) в textItems; "от него и дальше"
-  // уходит во вторую строку вместе с баннером, который там встаёт по
-  // верхнему краю строки (там же, где начинается сам подзаголовок) — без
-  // лишних стилей, просто по дефолтному выравниванию грид-ячейки.
-  const hasSection = !!section;
-  const sectionHeadingIdx = hasSection ? intro.length : -1;
-  const bannerOpposesHeading = !isMobile && hasSection && !hasEventMarker;
-  const beforeHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(0, sectionHeadingIdx), 'beforeHeading') : null;
-  const fromHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(sectionHeadingIdx), 'fromHeading') : null;
+  // Баннер напротив ВТОРОГО подзаголовка (desktop only — на мобильном всё и
+  // так одной колонкой), не первого: та же техника грид-сплита, что у CTA
+  // события выше ("так же, как раньше работала пара подзаголовок+баннер"),
+  // но держим её независимой от события — только когда маркера {{event}} в
+  // статье нет вовсе, чтобы не пришлось сводить два независимых разбиения
+  // на строки в одной сетке. secondHeadingIdx — позиция ВТОРОГО по счёту
+  // "##"-подзаголовка в textItems (первый подзаголовок баннер не трогает);
+  // "от него и дальше" уходит во вторую строку вместе с баннером, который
+  // там встаёт по верхнему краю строки (там же, где начинается сам
+  // подзаголовок) — без лишних стилей, просто по дефолтному выравниванию
+  // грид-ячейки. Если в статье меньше двух подзаголовков — сплита нет,
+  // баннер идёт своим обычным порядком в sideStack (см. bannerBlock ниже).
+  const headingIndices = textItems.reduce<number[]>((acc, it, i) => { if (it.heading) acc.push(i); return acc; }, []);
+  const hasSecondHeading = headingIndices.length >= 2;
+  const secondHeadingIdx = hasSecondHeading ? headingIndices[1] : -1;
+  const bannerOpposesHeading = !isMobile && hasSecondHeading && !hasEventMarker;
+  const beforeHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(0, secondHeadingIdx), 'beforeHeading') : null;
+  const fromHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(secondHeadingIdx), 'fromHeading') : null;
 
   return (
     <SiteShell>
@@ -534,7 +544,7 @@ const styles = StyleSheet.create({
   colImageTop: { minWidth: 240, gap: 0 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  subheading: { fontSize: 30, lineHeight: 34, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
+  subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
   // Только имя под заголовком, серым — раньше тут был целый блок (фото +
   // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
   // как у прежнего authorBio (14/18), а не у прежнего имени (18).
