@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
   // success/failed) title рендерится прямо в modalHeaderRow, рядом с ✕, и
   // должен сжиматься/переноситься в оставшееся место, а не выталкивать ✕
   // за пределы ряда.
-  title: { flex: 1, minWidth: 0, fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  title: { flex: 1, minWidth: 0, fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 35 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  subtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4, marginBottom: 8 },
+  subtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 0, marginBottom: 8 },
   price: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48 },
   errorText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 12, marginBottom: 4 },

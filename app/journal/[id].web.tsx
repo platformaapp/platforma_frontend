@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
   // растягивается (теряя квадратную aspectRatio), либо наоборот сжимается —
   // в любом случае перестаёт быть квадратной. С flex-start каждая картинка
   // остаётся своего естественного (aspectRatio) размера независимо от подписи.
-  galleryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginTop: 16 },
+  galleryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginTop: 16, marginBottom: 16 },
   galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
   // Правая фотография — с подписью под ней, поэтому своя обёртка вместо
   // flex/maxWidth прямо на Image (как у galleryImage/левой фотографии).
