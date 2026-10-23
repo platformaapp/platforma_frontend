@@ -347,10 +347,10 @@ export default function EventsScreenWeb() {
         ) : (
           <View>
             {rows.map((row, rowIdx) => {
-              // Отступ сверху — единая чередующаяся последовательность для
-              // ВСЕХ строк подряд (не только троек): первая строка — 80
-              // (отступ от фильтров), дальше 254/120/254/120...
-              const marginTop = rowIdx === 0 ? 80 : rowIdx % 2 === 1 ? 120 : 120;
+              // Отступ сверху — одинаковый для ВСЕХ строк подряд (не только
+              // троек): первая строка — 80 (отступ от фильтров), дальше 120
+              // между каждой следующей парой строк.
+              const marginTop = rowIdx === 0 ? 80 : 120;
               const rowEl = row.type === 'triple' ? (
                 <View style={[styles.rowThree, { marginTop }]}>
                   {row.items.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}

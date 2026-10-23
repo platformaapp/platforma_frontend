@@ -228,13 +228,13 @@ export default function JournalScreenWeb() {
           <View>
             {pageRows.map((row, idxInPage) => {
               const rowIdx = rowOffset + idxInPage;
-              // Отступ сверху — единая чередующаяся последовательность для
-              // ВСЕХ строк подряд (не только троек): первая строка — 80
-              // (отступ от фильтров), дальше 254/120/254/120...
+              // Отступ сверху — одинаковый для ВСЕХ строк подряд (не только
+              // троек): первая строка — 80 (отступ от фильтров), дальше 120
+              // между каждой следующей парой строк.
               // idxInPage === 0, не rowIdx === 0 — первая строка должна быть
               // с отступом 80 на КАЖДОЙ странице (как на первой), а не только
               // когда это первая строка всего списка.
-              const marginTop = idxInPage === 0 ? 80 : rowIdx % 2 === 1 ? 254 : 120;
+              const marginTop = idxInPage === 0 ? 80 : 120;
               const rowEl = row.type === 'triple' ? (
                 <View style={[styles.rowThree, { marginTop }]}>
                   {row.items.map((item, pos) => renderRowCard(item, pos as 0 | 1 | 2))}
@@ -340,7 +340,8 @@ const styles = StyleSheet.create({
   rowThree: { display: 'grid', gridTemplateColumns: ROW_THREE_COLUMNS.map((n) => `${n}fr`).join(' ') } as any,
   // Баннер — только колонки 1..5 той же сетки (не заезжает в пустую 6-ю),
   // чтобы его правый край совпадал с правым краем карточек в тройке.
-  promoBannerCell: { gridColumn: '1 / 6' } as any,
+  // marginTop:120 — тот же отступ, что и между остальными строками.
+  promoBannerCell: { gridColumn: '1 / 6', marginTop: 120 } as any,
   rowImage: { width: '100%', backgroundColor: '#E5E5E5' },
   rowLabel: { marginTop: 18 },
   rowTitle: { marginTop: 12 },
