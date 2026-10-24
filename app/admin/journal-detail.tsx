@@ -29,13 +29,13 @@ const FORMATS = ['Обсудить', 'Посмотреть', 'Посетить']
 // что умеет тулбар (жирный/курсив/подчёркнутый/зачёркнутый/выделение
 // цветом/крупнее/мельче), ссылка — отдельной кнопкой с запросом URL.
 const TOOLBAR_ACTIONS: { label: string; title: string; before: string; after: string }[] = [
-  { label: 'Ж', title: 'Жирный', before: '**', after: '**' },
-  { label: 'К', title: 'Курсив', before: '*', after: '*' },
-  { label: 'Ч', title: 'Подчёркнутый', before: '__', after: '__' },
-  { label: 'З', title: 'Зачёркнутый', before: '~~', after: '~~' },
-  { label: 'Ц', title: 'Выделить цветом', before: '==', after: '==' },
-  { label: 'A+', title: 'Крупнее', before: '{+', after: '+}' },
-  { label: 'A-', title: 'Мельче', before: '{-', after: '-}' },
+  { label: 'Жирный', title: 'Жирный', before: '**', after: '**' },
+  { label: 'Курсив', title: 'Курсив', before: '*', after: '*' },
+  { label: 'Подчёркнутый', title: 'Подчёркнутый', before: '__', after: '__' },
+  { label: 'Зачёркнутый', title: 'Зачёркнутый', before: '~~', after: '~~' },
+  { label: 'Выделить цветом', title: 'Выделить цветом', before: '==', after: '==' },
+  { label: 'Крупнее', title: 'Крупнее', before: '{+', after: '+}' },
+  { label: 'Мельче', title: 'Мельче', before: '{-', after: '-}' },
 ];
 
 type TutorOption = { id: string; fullName: string; email: string };
@@ -319,6 +319,19 @@ export default function AdminJournalDetailScreen() {
     setContent(content.slice(0, start) + `[${label}](${url})` + content.slice(end));
   }
 
+  // Вставляет строку «## Подзаголовок» (см. parseContent в [id].web.tsx) —
+  // отдельной кнопкой, а не парой маркеров вокруг выделения, т.к. это не
+  // инлайн-форматирование, а отдельный блок текста на своей строке.
+  function insertSubheading() {
+    const { start, end } = contentSelection;
+    const selected = content.slice(start, end);
+    const headingText = selected || 'Подзаголовок';
+    const prefix = '\n\n## ';
+    setContent(content.slice(0, start) + prefix + headingText + '\n\n' + content.slice(end));
+    const headingStart = start + prefix.length;
+    setContentSelection({ start: headingStart, end: headingStart + headingText.length });
+  }
+
   // Вставляет маркер в позицию курсора в "Текст" — на странице статьи он
   // заменяется на сам блок (CTA события / карточку похожей статьи) в этом же
   // месте, а не в конце статьи (см. renderParagraphs в [id].web.tsx). Если
@@ -514,13 +527,16 @@ export default function AdminJournalDetailScreen() {
           нескольких абзацев сразу не сработает ни у одного из них.
         </Text>
         <View style={styles.toolbarRow}>
+          <Pressable style={styles.toolbarBtn} onPress={insertSubheading} accessibilityLabel="Подзаголовок">
+            <Text style={styles.toolbarBtnText}>Подзаголовок</Text>
+          </Pressable>
           {TOOLBAR_ACTIONS.map((a) => (
             <Pressable key={a.label} style={styles.toolbarBtn} onPress={() => wrapContentSelection(a.before, a.after)} accessibilityLabel={a.title}>
               <Text style={styles.toolbarBtnText}>{a.label}</Text>
             </Pressable>
           ))}
           <Pressable style={styles.toolbarBtn} onPress={insertLink} accessibilityLabel="Ссылка">
-            <Text style={styles.toolbarBtnText}>🔗</Text>
+            <Text style={styles.toolbarBtnText}>Ссылка</Text>
           </Pressable>
         </View>
         <TextInput
@@ -723,8 +739,11 @@ const styles = StyleSheet.create({
   },
   inputMultiline: { minHeight: 200, textAlignVertical: 'top' },
   toolbarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
-  toolbarBtn: { width: 32, height: 32, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
-  toolbarBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  // Раньше кнопки были 32x32 с однобуквенной подписью (Ж/К/Ч/...) —
+  // заменены на словесные подписи, поэтому ширина теперь по контенту
+  // (paddingHorizontal), а не фиксированная.
+  toolbarBtn: { height: 32, paddingHorizontal: 10, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
+  toolbarBtnText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818' },
   removeLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },
   insertLinkText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818', textDecorationLine: 'underline' },
 
