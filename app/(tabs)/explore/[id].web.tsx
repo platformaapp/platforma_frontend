@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Tex
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { TagList } from '@/components/web/tag-list';
+import { TutorSlotsModal } from '@/components/web/tutor-slots-modal';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getArticles } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
@@ -82,6 +83,10 @@ export default function TutorCardScreenWeb() {
   const [mentorEvents, setMentorEvents] = useState<MentorEvent[]>([]);
   const [mentorArticles, setMentorArticles] = useState<MentorArticle[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  // "Записаться" открывает TutorSlotsModal прямо здесь (не переходом по
+  // ссылке на /explore/:id/slots) — страница наставника остаётся
+  // смонтированной и видна затемнённой позади модалки.
+  const [showSlotsModal, setShowSlotsModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -174,8 +179,8 @@ export default function TutorCardScreenWeb() {
   // 2-колоночного desktopGrid (текст/фото), а отдельная полноширинная
   // 3-колоночная сетка: 403fr 75fr 365fr 266fr 340fr (карточки в колонках
   // 1/3/5, 2 и 4 — зазоры). Строки по 3 карточки, две строки образуют
-  // повторяющийся блок: во второй строке каждой пары третья карточка уже
-  // (84.4% вместо 100% по ширине) — см. MENTOR_ROW_ASPECTS/renderMentorGridCard.
+  // повторяющийся блок — картинки везде 100% по ширине (раньше у третьей
+  // карточки второй строки была уже, 84.4%, по просьбе пользователя убрано).
   function buildMentorEventRows<T>(events: T[]): T[][] {
     const rows: T[][] = [];
     for (let i = 0; i < events.length; i += 3) rows.push(events.slice(i, i + 3));
@@ -294,16 +299,11 @@ export default function TutorCardScreenWeb() {
     return (
       <View style={styles.mentorEventsSection}>
         <Text style={styles.eventsSectionTitle}>{title}</Text>
-        {rows.map((row, rowIdx) => {
-          // Вторая строка каждой пары — та, где у третьей карточки узкая
-          // картинка (card--d на референсе).
-          const narrowLast = rowIdx % 2 === 1;
-          return (
-            <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
-              {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, narrowLast && pos === 2, isPast))}
-            </View>
-          );
-        })}
+        {rows.map((row, rowIdx) => (
+          <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
+            {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, false, isPast))}
+          </View>
+        ))}
       </View>
     );
   }
@@ -374,7 +374,7 @@ export default function TutorCardScreenWeb() {
       {!isOwnProfile && isMentorVerified ? (
         <Pressable
           style={isMobile && styles.chipHalf}
-          onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
+          onPress={() => setShowSlotsModal(true)}
         >
           <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться</Text>
         </Pressable>
@@ -404,11 +404,11 @@ export default function TutorCardScreenWeb() {
           <View>
             <View style={styles.nameRow}>
               <Text style={[styles.name, styles.nameMobile, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
-              <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} />
+              <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
             </View>
 
             <View style={styles.headerRowMobile}>
-              <Image source={imageSource} style={styles.avatarMobile} />
+              <Image source={imageSource} style={styles.avatarMobile} {...({ dataSet: { mentorAvatar: 'true' } } as any)} />
               <View style={styles.headerInfoMobile}>
                 {displayRole ? <Text style={[styles.role, styles.roleMobile]}>{displayRole}</Text> : null}
                 {displayPrice ? (
@@ -438,7 +438,7 @@ export default function TutorCardScreenWeb() {
             <View style={styles.actionsRowContainer}>
               <View style={styles.nameRow}>
                 <Text style={[styles.name, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
-                <TagList tags={tags} textStyle={styles.name} />
+                <TagList tags={tags} textStyle={styles.name} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
               </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
               {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
@@ -458,7 +458,7 @@ export default function TutorCardScreenWeb() {
               ) : null}
             </View>
             <View style={styles.avatarLargeBox}>
-              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" />
+              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" {...({ dataSet: { mentorAvatar: 'true' } } as any)} />
             </View>
           </View>
         )}
@@ -474,6 +474,7 @@ export default function TutorCardScreenWeb() {
 
         <SiteFooter />
       </ScrollView>
+      {id ? <TutorSlotsModal tutorId={id} visible={showSlotsModal} onClose={() => setShowSlotsModal(false)} /> : null}
     </SiteShell>
   );
 }

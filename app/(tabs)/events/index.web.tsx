@@ -1,6 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -38,6 +38,7 @@ type EventFeedItem = {
   coverUrl?: string | null;
   format?: string;
   topic?: string;
+  tags?: string[];
   mentor?: { id: string; name: string; avatarUrl?: string | null };
   [key: string]: unknown;
 };
@@ -82,6 +83,12 @@ const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 export default function EventsScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
+  // ?tag=... — переход по клику на хэштег на странице события (см.
+  // TagList/onTagPress там) — список событий с этим тегом. Фильтрует
+  // только уже загруженную страницу фида (как и обычный фильтр по
+  // формату ниже — сервер по тегам не фильтрует).
+  const { tag: tagParam } = useLocalSearchParams<{ tag?: string }>();
+  const activeTag = typeof tagParam === 'string' ? tagParam : Array.isArray(tagParam) ? tagParam[0] : null;
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -131,6 +138,7 @@ export default function EventsScreenWeb() {
       coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url),
       format: resolveFormat(r),
       topic: (r.topic as string) ?? undefined,
+      tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
       mentor: r.mentor ? {
         id: String((r.mentor as any).id ?? ''),
         name: String((r.mentor as any).name ?? (r.mentor as any).fullName ?? (r.mentor as any).full_name ?? ''),
@@ -197,7 +205,13 @@ export default function EventsScreenWeb() {
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
-  const filtered = events.filter((e) => !format || e.format === format);
+  const filtered = events
+    .filter((e) => !format || e.format === format)
+    .filter((e) => !activeTag || e.tags?.includes(activeTag));
+
+  function clearTagFilter() {
+    router.replace('/events' as any);
+  }
 
   // variant: 'A' — первая пара цикла (pairA), 'B' — третья строка цикла
   // (pairB) — у неё свои классы, не переиспользует стили pairA: второй
@@ -290,6 +304,12 @@ export default function EventsScreenWeb() {
             </Pressable>
           ) : null}
         </View>
+
+        {activeTag ? (
+          <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
+            <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
+          </Pressable>
+        ) : null}
 
         {!isMobile ? (
           <View style={styles.filtersRow}>
@@ -404,6 +424,10 @@ const styles = StyleSheet.create({
   // (.proj-mosaic), на мобильном экране просто съедает всю ширину контента.
   pageContentMobile: { paddingHorizontal: 20, paddingRight: 20 },
   titleRow: {},
+  // Активный фильтр по тегу (переход по клику на #хэштег на странице
+  // события, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
+  activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },
+  activeTagChipText: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#687076' },
   // Напротив заголовка — «О сервисе» тем же приёмом, что в нативном
   // приложении (app/(tabs)/events/index.tsx: titleRow + aboutLink).
   titleRowMobile: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },

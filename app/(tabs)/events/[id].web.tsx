@@ -502,6 +502,7 @@ export default function EventDetailScreenWeb() {
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
         style={styles.mentorAvatar}
         resizeMode="cover"
+        {...({ dataSet: { mentorAvatar: 'true' } } as any)}
       />
     </Pressable>
   ) : null;
@@ -518,7 +519,7 @@ export default function EventDetailScreenWeb() {
           <View>
             <View style={styles.titleRow}>
               <Text style={[styles.title, styles.titleMobile, styles.titleShrink]}>{event.title}</Text>
-              <TagList tags={event.tags} textStyle={[styles.title, styles.titleMobile]} />
+              <TagList tags={event.tags} textStyle={[styles.title, styles.titleMobile]} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
             </View>
 
             <View style={styles.mobileMetaRow}>
@@ -572,7 +573,7 @@ export default function EventDetailScreenWeb() {
             <View style={styles.leftCol}>
               <View style={styles.titleRow}>
                 <Text style={[styles.title, styles.titleShrink]}>{event.title}</Text>
-                <TagList tags={event.tags} textStyle={styles.title} />
+                <TagList tags={event.tags} textStyle={styles.title} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
               </View>
               {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
               {metaBlock}

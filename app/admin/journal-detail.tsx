@@ -129,6 +129,12 @@ export default function AdminJournalDetailScreen() {
   // включён (старое поведение для уже существующих статей).
   const [showBanner, setShowBanner] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
+  // SEO — необязательные поля, не влияют на вид статьи на сайте: seoTitle
+  // идёт в <title>, metaDescription — в <meta name="description">, h1 —
+  // видимый заголовок статьи ВМЕСТО обычного title (если задан).
+  const [seoTitle, setSeoTitle] = useState('');
+  const [h1, setH1] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
 
   const [author, setAuthor] = useState<TutorOption | null>(null);
   const [authorQuery, setAuthorQuery] = useState('');
@@ -180,6 +186,9 @@ export default function AdminJournalDetailScreen() {
         setGalleryCaption(a.gallery_caption ?? '');
         setShowBanner(a.show_banner ?? true);
         setTags(Array.isArray(a.tags) ? a.tags : []);
+        setSeoTitle(a.seo_title ?? '');
+        setH1(a.h1 ?? '');
+        setMetaDescription(a.meta_description ?? '');
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
         if (Array.isArray(a.related_articles)) {
           setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
@@ -362,6 +371,9 @@ export default function AdminJournalDetailScreen() {
         gallery_caption: galleryCaption.trim() || undefined,
         show_banner: showBanner,
         tags,
+        seo_title: seoTitle.trim() || undefined,
+        h1: h1.trim() || undefined,
+        meta_description: metaDescription.trim() || undefined,
         related_article_ids: relatedArticles.map((r) => r.id),
         event_id: event ? event.id : null,
         author_id: author.id,
@@ -629,6 +641,39 @@ export default function AdminJournalDetailScreen() {
           </>
         )}
 
+        <Text style={styles.sectionDivider}>SEO-оформление</Text>
+        <Text style={styles.hint}>Необязательные поля, на вид статьи на сайте не влияют (кроме H1 — если задан, заменяет собой видимый заголовок статьи).</Text>
+
+        <Text style={styles.label}>SEO Title</Text>
+        <TextInput
+          style={styles.input}
+          value={seoTitle}
+          onChangeText={setSeoTitle}
+          placeholder="Заголовок для <title> — по умолчанию обычное название статьи"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Text style={styles.label}>H1</Text>
+        <TextInput
+          style={styles.input}
+          value={h1}
+          onChangeText={setH1}
+          placeholder="Видимый заголовок на странице — по умолчанию обычное название статьи"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Text style={styles.label}>Meta Description</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline, { minHeight: 88 }]}
+          value={metaDescription}
+          onChangeText={setMetaDescription}
+          placeholder="Короткое описание для поисковой выдачи"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+
         {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
 
         <Pressable
@@ -671,6 +716,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
   hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
+  sectionDivider: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 32, paddingTop: 18, borderTopWidth: 1, borderColor: '#1E1E1E' },
   input: {
     borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',

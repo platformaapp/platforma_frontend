@@ -65,6 +65,13 @@ export interface Article {
   // Хэштеги (без "#") — показываются напротив имени автора на странице
   // статьи, задаются в админке.
   tags: string[];
+  // SEO-поля (см. admin/journal-detail.tsx, секция "SEO") — все опциональные,
+  // страница статьи использует фолбэк на title/content, если не заданы.
+  // seoTitle → <title>, metaDescription → <meta name="description">,
+  // h1 → видимый заголовок на странице статьи вместо title.
+  seoTitle: string | null;
+  h1: string | null;
+  metaDescription: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -121,6 +128,9 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
       : null,
     showBanner: raw.show_banner !== false,
     tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
+    seoTitle: (raw.seo_title as string) ?? null,
+    h1: (raw.h1 as string) ?? null,
+    metaDescription: (raw.meta_description as string) ?? null,
     createdAt: String(raw.created_at ?? ''),
     updatedAt: String(raw.updated_at ?? ''),
   };
