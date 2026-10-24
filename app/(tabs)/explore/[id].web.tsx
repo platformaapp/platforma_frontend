@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -396,8 +397,27 @@ export default function TutorCardScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
+  // og:* — см. подробный комментарий у headElement в journal/[id].web.tsx:
+  // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
+  // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
+  const pageDescription = displayRole || displayBio;
+  const headElement = displayName ? (
+    <Head>
+      <title>{displayName}</title>
+      {pageDescription ? <meta name="description" content={pageDescription.slice(0, 160)} /> : null}
+      <meta property="og:type" content="profile" />
+      <meta property="og:title" content={displayName} />
+      {pageDescription ? <meta property="og:description" content={pageDescription.slice(0, 160)} /> : null}
+      <meta property="og:url" content={`https://platformaapp.ru/explore/${id}`} />
+      {avatarUrl && !avatarUrl.startsWith('blob:') ? <meta property="og:image" content={avatarUrl} /> : null}
+      <meta name="twitter:card" content={avatarUrl && !avatarUrl.startsWith('blob:') ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={displayName} />
+    </Head>
+  ) : null;
+
   return (
     <SiteShell>
+      {headElement}
       <ScrollView contentContainerStyle={isMobile ? styles.scrollContentMobile : styles.scrollContent}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (

@@ -80,6 +80,24 @@ const EVENT_CTA_WIDTH = Math.round(EVENT_CTA_HEIGHT * EVENT_CTA_ASPECT_RATIO);
 const EVENT_TOKEN = '{{event}}';
 const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
 
+// Фолбэк для og:description/meta description, когда в админке не заполнено
+// SEO-поле "Meta Description" — берём начало текста статьи, убираем
+// markdown-маркеры тулбара (см. TOOLBAR_ACTIONS в admin/journal-detail.tsx) и
+// служебные токены ({{event}}/{{related:...}}/"## "), схлопываем пробелы.
+function excerptFromContent(content: string | null, maxLen = 160): string {
+  if (!content) return '';
+  const plain = content
+    .replace(/\{\{event\}\}/g, '')
+    .replace(/\{\{related:[0-9a-fA-F-]+\}\}/g, '')
+    .replace(/^##\s*/gm, '')
+    .replace(/[*_~=]{1,2}|\{[+-]|[+-]\}/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (plain.length <= maxLen) return plain;
+  return `${plain.slice(0, maxLen).trimEnd()}…`;
+}
+
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 // Только дата, без времени и без имени автора в карточке события внутри
@@ -244,10 +262,31 @@ export default function ArticleScreenWeb() {
   // metaDescription ни на что в разметке страницы не влияют, кроме <head>.
   const visibleTitle = article.h1 || article.title;
   const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{visibleTitle}</Text>;
+  const pageTitle = article.seoTitle || article.title;
+  const pageDescription = article.metaDescription || excerptFromContent(article.content);
+  const pageUrl = `https://platformaapp.ru/journal/${article.id}`;
+  // og:* — превью при расшаривании ссылки (Telegram и т.п.). ВАЖНО: сайт
+  // собирается как статический SPA-шелл без SSR (app.json: web.output =
+  // "static", .htaccess/_redirects переписывают любой путь на /index.html),
+  // поэтому <head>, который сюда попадает через expo-router/head, рисуется
+  // уже В БРАУЗЕРЕ после загрузки JS и данных статьи. Боты соцсетей (в т.ч.
+  // Telegram) JS не исполняют — эти теги они не увидят, превью будет
+  // дефолтным/пустым, пока сайт не получит серверный рендер для этих
+  // маршрутов. Google и Яндекс дорендеривают JS (с задержкой), им эти
+  // теги всё же помогают — поэтому оставляем.
   const headElement = (
     <Head>
-      <title>{article.seoTitle || article.title}</title>
-      {article.metaDescription ? <meta name="description" content={article.metaDescription} /> : null}
+      <title>{pageTitle}</title>
+      {pageDescription ? <meta name="description" content={pageDescription} /> : null}
+      <meta property="og:type" content="article" />
+      <meta property="og:title" content={pageTitle} />
+      {pageDescription ? <meta property="og:description" content={pageDescription} /> : null}
+      <meta property="og:url" content={pageUrl} />
+      {article.coverUrl ? <meta property="og:image" content={article.coverUrl} /> : null}
+      <meta name="twitter:card" content={article.coverUrl ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={pageTitle} />
+      {pageDescription ? <meta name="twitter:description" content={pageDescription} /> : null}
+      {article.coverUrl ? <meta name="twitter:image" content={article.coverUrl} /> : null}
     </Head>
   );
 

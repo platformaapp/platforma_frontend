@@ -1,6 +1,7 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
@@ -163,6 +164,28 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={DefaultTheme}>
+      {/* Сайтовый дефолт <title>/description/og:* — на случай, если
+          конкретный экран не задаёт свой через expo-router/head (сейчас так
+          задаёт только app/journal/[id].web.tsx). Без этого на остальных
+          страницах (включая главную) в <head> вообще нет <title> — см.
+          разбор экспортированного HTML (`npx expo export`), там
+          `<title data-rh="true"></title>` пустой что на /, что на /journal/*.
+          ВАЖНО: эти теги рисует expo-router/head (react-helmet) уже в
+          браузере, после загрузки JS — сайт собран как статический SPA-шелл
+          без SSR (app.json: web.output="static", .htaccess/_redirects
+          переписывают любой путь на /index.html). Поисковики (Google/
+          Яндекс), которые дорендеривают JS, эти теги всё же увидят; боты
+          соцсетей (Telegram и т.п.) — нет, им нужен серверный рендер
+          конкретного маршрута, которого пока нет. */}
+      <Head>
+        <title>p(34) — платформа для поиска наставников и событий</title>
+        <meta name="description" content="Находите наставников, записывайтесь на индивидуальные встречи и культурные события — p(34)." />
+        <meta property="og:site_name" content="p(34)" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="p(34) — платформа для поиска наставников и событий" />
+        <meta property="og:description" content="Находите наставников, записывайтесь на индивидуальные встречи и культурные события — p(34)." />
+        <meta property="og:url" content="https://platformaapp.ru" />
+      </Head>
       <HoverDimCalibrator />
       <View style={styles.pageBackground}>
         <View style={styles.contentFrame}>

@@ -41,6 +41,17 @@ jobs:
           npx expo export --platform web --clear
 
       ###################################
+      # Generate sitemap.xml (site is a static SPA shell without SSR — see
+      # scripts/generate-sitemap.js — so it's built once here from the live
+      # API and shipped as a static file alongside the rest of dist/).
+      ###################################
+      - name: Generate sitemap.xml
+        env:
+          EXPO_PUBLIC_API_BASE: https://platformaapp.ru
+        run: |
+          node scripts/generate-sitemap.js dist
+
+      ###################################
       # Deploy dist folder via SCP (SSH key pair)
       ###################################
       - name: Upload dist via scp

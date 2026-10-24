@@ -1,5 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -507,8 +508,26 @@ export default function EventDetailScreenWeb() {
     </Pressable>
   ) : null;
 
+  // og:* — см. подробный комментарий у headElement в journal/[id].web.tsx:
+  // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
+  // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
+  const headElement = event ? (
+    <Head>
+      <title>{event.title}</title>
+      {event.description ? <meta name="description" content={event.description.slice(0, 160)} /> : null}
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content={event.title} />
+      {event.description ? <meta property="og:description" content={event.description.slice(0, 160)} /> : null}
+      <meta property="og:url" content={`https://platformaapp.ru/events/${id}`} />
+      {event.coverUrl ? <meta property="og:image" content={event.coverUrl} /> : null}
+      <meta name="twitter:card" content={event.coverUrl ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={event.title} />
+    </Head>
+  ) : null;
+
   return (
     <SiteShell>
+      {headElement}
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={styles.pageContent}>
         {loading ? (
