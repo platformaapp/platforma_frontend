@@ -66,7 +66,10 @@ export default function JournalScreenWeb() {
   }, []);
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
-  useEffect(() => { setPage(1); }, [activeTag]);
+  // При переходе по хэштегу рубрики скрыты (см. filtersRow ниже) — сбрасываем
+  // ранее выбранную рубрику, иначе она молча продолжит фильтровать список,
+  // а сбросить её способа не будет видно (пилюли не отрисованы).
+  useEffect(() => { setPage(1); setCategory(null); }, [activeTag]);
 
   const filtered = articles
     .filter((a) => !category || a.category === category)
@@ -191,7 +194,7 @@ export default function JournalScreenWeb() {
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
 
-        {activeTag ? (
+        {activeTag && isMobile ? (
           <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
             <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
           </Pressable>
@@ -200,14 +203,24 @@ export default function JournalScreenWeb() {
         {!isMobile ? (
           <View style={styles.filtersRow}>
             <View style={styles.filtersGroup}>
-              {ARTICLE_FORMATS.map((f) => {
-                const active = f === category;
-                return (
-                  <Pressable key={f} onPress={() => selectCategory(active ? null : f)}>
-                    <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
-                  </Pressable>
-                );
-              })}
+              {activeTag ? (
+                // Переход по хэштегу со страницы статьи (TagList/onTagPress) —
+                // вместо пилюль рубрик (Обсудить/Посмотреть/Посетить) здесь
+                // сам хэштег, тем же стилем, что и выбранная рубрика; клик
+                // сбрасывает фильтр и возвращает обычный журнал с рубриками.
+                <Pressable onPress={clearTagFilter}>
+                  <Text style={[styles.filterText, styles.filterTextActive]}>#{activeTag} ✕</Text>
+                </Pressable>
+              ) : (
+                ARTICLE_FORMATS.map((f) => {
+                  const active = f === category;
+                  return (
+                    <Pressable key={f} onPress={() => selectCategory(active ? null : f)}>
+                      <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
+                    </Pressable>
+                  );
+                })
+              )}
             </View>
             <Pressable style={styles.filterPillRight} onPress={() => router.push('/register-tutor' as any)}>
               <Text style={styles.filterText}>Написать текст</Text>
