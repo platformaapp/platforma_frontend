@@ -15,7 +15,7 @@ import { getAuthToken, getUserProfile } from '@/lib/auth';
 import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
 
 // "Окей, что ещё" внизу страницы события — та же сетка-тройка (403/365/340),
-// что у похожих статей на /journal/[id] (см. RELATED_ASPECTS там).
+// что у похожих статей на /journal/[slug] (см. RELATED_ASPECTS там).
 const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 const RELATED_EVENTS_COUNT = 3;
@@ -508,7 +508,7 @@ export default function EventDetailScreenWeb() {
     </Pressable>
   ) : null;
 
-  // og:* — см. подробный комментарий у headElement в journal/[id].web.tsx:
+  // og:* — см. подробный комментарий у headElement в journal/[slug].web.tsx:
   // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
   // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
   const headElement = event ? (
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
   editSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 
   // "Окей, что ещё" — та же сетка-тройка (403/365/340), что у похожих статей
-  // на /journal/[id] (см. RELATED_ASPECTS там).
+  // на /journal/[slug] (см. RELATED_ASPECTS там).
   relatedSection: { marginTop: 97, marginBottom: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,

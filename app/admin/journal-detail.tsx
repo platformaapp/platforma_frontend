@@ -117,14 +117,24 @@ export default function AdminJournalDetailScreen() {
   const [loadError, setLoadError] = useState('');
 
   const [title, setTitle] = useState('');
+  // Человекочитаемый URL (/journal/<slug>) — единственный публичный путь к
+  // статье. Пусто при создании = бэкенд сгенерирует сам из title; при
+  // редактировании пусто значит "не менять" (слаг НЕ пересчитывается из
+  // title автоматически — иначе правка заголовка молча ломала бы уже
+  // расшаренные ссылки).
+  const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
   const [contentSelection, setContentSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
   const [category, setCategory] = useState<string>(FORMATS[1]);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
+  // Alt-текст обложки — картиночный поиск и доступность.
+  const [coverAlt, setCoverAlt] = useState('');
   const [gallery, setGallery] = useState<string[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
   const [galleryCaption, setGalleryCaption] = useState('');
+  // Alt-текст для каждой картинки галереи — galleryAlt[i] ↔ gallery[i].
+  const [galleryAlt, setGalleryAlt] = useState<string[]>([]);
   // Баннер рядом со вторым подзаголовком — опционально, по умолчанию
   // включён (старое поведение для уже существующих статей).
   const [showBanner, setShowBanner] = useState(true);
@@ -135,6 +145,22 @@ export default function AdminJournalDetailScreen() {
   const [seoTitle, setSeoTitle] = useState('');
   const [h1, setH1] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
+  // Краткое описание для карточек в ленте/журнале — ОТДЕЛЬНО от Meta
+  // Description (та — сниппет в выдаче поиска).
+  const [excerpt, setExcerpt] = useState('');
+  // <link rel="canonical"> — для дублей/пересекающихся по теме статей.
+  const [canonicalUrl, setCanonicalUrl] = useState('');
+  // og:title/og:description — превью при шаринге, опционально
+  // переопределяют SEO Title/Meta Description.
+  const [ogTitle, setOgTitle] = useState('');
+  const [ogDescription, setOgDescription] = useState('');
+  // noindex/nofollow — точечно закрыть статью от индексации (черновики,
+  // слабый контент, дубли), не убирая её с сайта.
+  const [noindex, setNoindex] = useState(false);
+  const [nofollow, setNofollow] = useState(false);
+  // Дата публикации (YYYY-MM-DD) — для schema.org datePublished и сигнала
+  // свежести контента; по умолчанию при создании бэкенд ставит "сейчас".
+  const [publishedAt, setPublishedAt] = useState('');
 
   const [author, setAuthor] = useState<TutorOption | null>(null);
   const [authorQuery, setAuthorQuery] = useState('');
@@ -179,16 +205,26 @@ export default function AdminJournalDetailScreen() {
         const a = await res.json();
         if (!active) return;
         setTitle(a.title ?? '');
+        setSlug(a.slug ?? '');
         setContent(a.content ?? '');
         setCategory(a.category ?? FORMATS[1]);
         setCoverUri(resolveUrl(a.cover_url));
+        setCoverAlt(a.cover_alt ?? '');
         setGallery(Array.isArray(a.gallery) ? a.gallery.map((g: string) => resolveUrl(g) ?? g) : []);
         setGalleryCaption(a.gallery_caption ?? '');
+        setGalleryAlt(Array.isArray(a.gallery_alt) ? a.gallery_alt : []);
         setShowBanner(a.show_banner ?? true);
         setTags(Array.isArray(a.tags) ? a.tags : []);
         setSeoTitle(a.seo_title ?? '');
         setH1(a.h1 ?? '');
         setMetaDescription(a.meta_description ?? '');
+        setExcerpt(a.excerpt ?? '');
+        setCanonicalUrl(a.canonical_url ?? '');
+        setOgTitle(a.og_title ?? '');
+        setOgDescription(a.og_description ?? '');
+        setNoindex(a.noindex ?? false);
+        setNofollow(a.nofollow ?? false);
+        setPublishedAt(a.published_at ? String(a.published_at).slice(0, 10) : '');
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
         if (Array.isArray(a.related_articles)) {
           setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
@@ -292,6 +328,16 @@ export default function AdminJournalDetailScreen() {
 
   function removeGalleryImage(idx: number) {
     setGallery((g) => g.filter((_, i) => i !== idx));
+    setGalleryAlt((a) => a.filter((_, i) => i !== idx));
+  }
+
+  function setGalleryAltAt(idx: number, value: string) {
+    setGalleryAlt((a) => {
+      const next = [...a];
+      while (next.length <= idx) next.push('');
+      next[idx] = value;
+      return next;
+    });
   }
 
   // Оборачивает текущее выделение в "Текст" парой маркеров тулбара (если
@@ -377,16 +423,31 @@ export default function AdminJournalDetailScreen() {
 
       const body: Record<string, unknown> = {
         title: title.trim(),
+        // Пусто — не отправляем вовсе: бэкенд сам сгенерирует slug из title
+        // при создании, а при редактировании undefined значит "не менять"
+        // (см. UpdateArticleDto.slug на бэкенде).
+        slug: slug.trim() || undefined,
         content: content.trim() || undefined,
         category,
         cover_url: uploadedCover,
+        cover_alt: coverAlt.trim() || undefined,
         gallery: uploadedGallery,
         gallery_caption: galleryCaption.trim() || undefined,
+        gallery_alt: galleryAlt.map((a) => a.trim()),
         show_banner: showBanner,
         tags,
         seo_title: seoTitle.trim() || undefined,
         h1: h1.trim() || undefined,
         meta_description: metaDescription.trim() || undefined,
+        excerpt: excerpt.trim() || undefined,
+        canonical_url: canonicalUrl.trim() || undefined,
+        og_title: ogTitle.trim() || undefined,
+        og_description: ogDescription.trim() || undefined,
+        noindex,
+        nofollow,
+        // YYYY-MM-DD из <input type="date"> — бэкенду нужен валидный
+        // ISO-datetime (@IsDateString), достраиваем время в полночь UTC.
+        published_at: publishedAt.trim() ? `${publishedAt.trim()}T00:00:00.000Z` : undefined,
         related_article_ids: relatedArticles.map((r) => r.id),
         event_id: event ? event.id : null,
         author_id: author.id,
@@ -480,9 +541,34 @@ export default function AdminJournalDetailScreen() {
           {coverUri ? <Image source={{ uri: coverUri }} style={styles.coverPreview} resizeMode="cover" /> : <Text style={styles.coverBtnText}>Выбрать изображение</Text>}
         </Pressable>
         {coverUri ? <Pressable onPress={() => setCoverUri(null)}><Text style={styles.removeLink}>Удалить обложку</Text></Pressable> : null}
+        {coverUri ? (
+          <TextInput
+            style={[styles.input, { marginTop: 8 }]}
+            value={coverAlt}
+            onChangeText={setCoverAlt}
+            placeholder="Alt-текст обложки (для картиночного поиска)"
+            placeholderTextColor="#9B9B9B"
+          />
+        ) : null}
 
         <Text style={styles.label}>Название</Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Название материала" placeholderTextColor="#9B9B9B" />
+
+        <Text style={styles.label}>Слаг (URL)</Text>
+        <Text style={styles.hint}>
+          Адрес статьи — platformaapp.ru/journal/<Text style={styles.hintStrong}>{slug.trim() || '...'}</Text>. Если оставить пустым — сгенерируется
+          автоматически из названия. Только строчные латинские буквы, цифры и дефисы. При смене названия уже сохранённый
+          слаг сам не меняется — ссылки на статью не ломаются.
+        </Text>
+        <TextInput
+          style={styles.input}
+          value={slug}
+          onChangeText={setSlug}
+          placeholder="kak-chitat-kritiku-na-kino"
+          placeholderTextColor="#9B9B9B"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
         <Text style={styles.label}>Формат</Text>
         <View style={styles.formatRow}>
@@ -571,6 +657,13 @@ export default function AdminJournalDetailScreen() {
               <Pressable style={styles.galleryRemove} onPress={() => removeGalleryImage(i)}>
                 <Text style={styles.galleryRemoveText}>✕</Text>
               </Pressable>
+              <TextInput
+                style={[styles.input, styles.galleryAltInput]}
+                value={galleryAlt[i] ?? ''}
+                onChangeText={(v) => setGalleryAltAt(i, v)}
+                placeholder="Alt-текст"
+                placeholderTextColor="#9B9B9B"
+              />
             </View>
           ))}
           {gallery.length < 2 ? (
@@ -679,6 +772,7 @@ export default function AdminJournalDetailScreen() {
         />
 
         <Text style={styles.label}>Meta Description</Text>
+        <Text style={styles.hint}>Сниппет в выдаче поиска — 150–160 символов. Если оставить пустым, Google сам вырежет кусок текста статьи (часто криво).</Text>
         <TextInput
           style={[styles.input, styles.inputMultiline, { minHeight: 88 }]}
           value={metaDescription}
@@ -689,6 +783,81 @@ export default function AdminJournalDetailScreen() {
           numberOfLines={3}
           textAlignVertical="top"
         />
+
+        <Text style={styles.label}>Excerpt</Text>
+        <Text style={styles.hint}>Отдельно от Meta Description — этот текст показывается в карточках на /journal и в блоках похожих статей, а не в поисковой выдаче.</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline, { minHeight: 66 }]}
+          value={excerpt}
+          onChangeText={setExcerpt}
+          placeholder="Краткое описание для карточки статьи"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          numberOfLines={2}
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Canonical URL</Text>
+        <Text style={styles.hint}>
+          Для статей, пересекающихся по теме с другой — укажите здесь адрес «главной» версии, и поисковик будет
+          считать эту статью её дублем (не покажет обе в выдаче). Обычно не нужно — по умолчанию статья canonical сама на себя.
+        </Text>
+        <TextInput
+          style={styles.input}
+          value={canonicalUrl}
+          onChangeText={setCanonicalUrl}
+          placeholder="https://platformaapp.ru/journal/drugaya-statya"
+          placeholderTextColor="#9B9B9B"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>OG Title</Text>
+        <Text style={styles.hint}>Заголовок превью при шаринге в соцсети/мессенджеры — если пусто, берётся SEO Title.</Text>
+        <TextInput
+          style={styles.input}
+          value={ogTitle}
+          onChangeText={setOgTitle}
+          placeholder="По умолчанию — SEO Title"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Text style={styles.label}>OG Description</Text>
+        <Text style={styles.hint}>Описание превью при шаринге — если пусто, берётся Meta Description.</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline, { minHeight: 66 }]}
+          value={ogDescription}
+          onChangeText={setOgDescription}
+          placeholder="По умолчанию — Meta Description"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          numberOfLines={2}
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Дата публикации</Text>
+        <Text style={styles.hint}>Для даты «опубликовано»/«обновлено» в поисковой выдаче. Если оставить пустым — при создании ставится сегодняшняя дата.</Text>
+        <TextInput
+          style={styles.input}
+          value={publishedAt}
+          onChangeText={setPublishedAt}
+          placeholder="ГГГГ-ММ-ДД"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Pressable style={styles.checkboxRow} onPress={() => setNoindex((v) => !v)}>
+          <View style={[styles.checkboxBox, noindex && styles.checkboxBoxChecked]}>
+            {noindex ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkboxLabel}>noindex — закрыть статью от индексации (черновик/слабый контент/дубль). Статья остаётся на сайте как обычно.</Text>
+        </Pressable>
+
+        <Pressable style={styles.checkboxRow} onPress={() => setNofollow((v) => !v)}>
+          <View style={[styles.checkboxBox, nofollow && styles.checkboxBoxChecked]}>
+            {nofollow ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkboxLabel}>nofollow — не передавать вес по ссылкам с этой страницы</Text>
+        </Pressable>
 
         {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
 
@@ -732,6 +901,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
   hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
+  hintStrong: { color: '#181818' },
   sectionDivider: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 32, paddingTop: 18, borderTopWidth: 1, borderColor: '#1E1E1E' },
   input: {
     borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
@@ -774,11 +944,14 @@ const styles = StyleSheet.create({
   relatedChipText: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   relatedChipRemove: { fontSize: 13, color: '#9B9B9B' },
 
-  galleryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  galleryItem: { width: 96, height: 96, position: 'relative' },
-  galleryImage: { width: '100%', height: '100%' },
+  galleryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' },
+  // height убран (раньше был 96, как и ширина) — теперь под картинкой ещё
+  // инпут alt-текста, высота по контенту.
+  galleryItem: { width: 96, position: 'relative' },
+  galleryImage: { width: 96, height: 96 },
   galleryRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   galleryRemoveText: { fontSize: 11, color: '#fff' },
+  galleryAltInput: { width: 96, marginTop: 6, fontSize: 11, paddingHorizontal: 6, paddingVertical: 6 },
   galleryAdd: { width: 96, height: 96, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
   galleryAddText: { fontSize: 24, color: '#9B9B9B' },
 

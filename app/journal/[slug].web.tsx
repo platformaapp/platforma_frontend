@@ -8,7 +8,6 @@ import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { TagList } from '@/components/web/tag-list';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
-import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { parseFeedItems } from '@/lib/event-feed';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 
@@ -164,7 +163,7 @@ function parseContent(content: string | null): { intro: string[]; sections: { he
 export default function ArticleScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,32 +171,19 @@ export default function ArticleScreenWeb() {
   const [categoryEvents, setCategoryEvents] = useState<UpcomingCategoryEvent[]>([]);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!slug) return;
     setLoading(true);
     try {
       setError('');
-      const a = await getArticle(id);
+      const a = await getArticle(slug);
       setArticle(a);
-
-      // Объект author в ответе статьи не содержит shortBio — подтягиваем его
-      // через список наставников (тот же приём, что и на странице события).
-      if (!a.author.shortBio) {
-        try {
-          const [authList, publicList] = await Promise.all([getPublicTutorList(), getPublicTutors()]);
-          const tutor = authList.find((t) => t.id === a.author.id) ?? publicList.find((t) => t.id === a.author.id);
-          const shortBio = (tutor as any)?.shortBio ?? (tutor as any)?.short_bio;
-          if (shortBio) {
-            setArticle((prev) => (prev ? { ...prev, author: { ...prev.author, shortBio } } : prev));
-          }
-        } catch { /* короткое био необязательно — блок автора остаётся без него */ }
-      }
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось загрузить материал');
       setArticle(null);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -264,7 +250,30 @@ export default function ArticleScreenWeb() {
   const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{visibleTitle}</Text>;
   const pageTitle = article.seoTitle || article.title;
   const pageDescription = article.metaDescription || excerptFromContent(article.content);
-  const pageUrl = `https://platformaapp.ru/journal/${article.id}`;
+  // og:title/og:description — отдельные поля (могут отличаться от
+  // формулировки сниппета в поиске), фолбэк на seoTitle/metaDescription,
+  // если не заданы — см. комментарий у Article.ogTitle на бэкенде.
+  const ogTitle = article.ogTitle || pageTitle;
+  const ogDescription = article.ogDescription || pageDescription;
+  const pageUrl = `https://platformaapp.ru/journal/${article.slug}`;
+  // canonical — явно заданный в админке (для дублей/пересекающихся по теме
+  // статей) или собственный URL статьи по умолчанию.
+  const canonicalUrl = article.canonicalUrl || pageUrl;
+  // robots — noindex/nofollow настраиваются в админке точечно на статью
+  // (черновики/слабый контент/дубли), не убирая её с самого сайта.
+  const robotsParts = [article.noindex ? 'noindex' : 'index', article.nofollow ? 'nofollow' : 'follow'];
+  // Structured data (schema.org Article) — datePublished/dateModified и
+  // автор, сигнал E-E-A-T и свежести контента для поисковика.
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: pageTitle,
+    description: pageDescription || undefined,
+    image: article.coverUrl || undefined,
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt,
+    author: { '@type': 'Person', name: article.author.name },
+  };
   // og:* — превью при расшаривании ссылки (Telegram и т.п.). ВАЖНО: сайт
   // собирается как статический SPA-шелл без SSR (app.json: web.output =
   // "static", .htaccess/_redirects переписывают любой путь на /index.html),
@@ -278,15 +287,18 @@ export default function ArticleScreenWeb() {
     <Head>
       <title>{pageTitle}</title>
       {pageDescription ? <meta name="description" content={pageDescription} /> : null}
+      <meta name="robots" content={robotsParts.join(', ')} />
+      <link rel="canonical" href={canonicalUrl} />
       <meta property="og:type" content="article" />
-      <meta property="og:title" content={pageTitle} />
-      {pageDescription ? <meta property="og:description" content={pageDescription} /> : null}
+      <meta property="og:title" content={ogTitle} />
+      {ogDescription ? <meta property="og:description" content={ogDescription} /> : null}
       <meta property="og:url" content={pageUrl} />
       {article.coverUrl ? <meta property="og:image" content={article.coverUrl} /> : null}
       <meta name="twitter:card" content={article.coverUrl ? 'summary_large_image' : 'summary'} />
-      <meta name="twitter:title" content={pageTitle} />
-      {pageDescription ? <meta name="twitter:description" content={pageDescription} /> : null}
+      <meta name="twitter:title" content={ogTitle} />
+      {ogDescription ? <meta name="twitter:description" content={ogDescription} /> : null}
       {article.coverUrl ? <meta name="twitter:image" content={article.coverUrl} /> : null}
+      <script type="application/ld+json">{JSON.stringify(articleJsonLd)}</script>
     </Head>
   );
 
@@ -312,13 +324,19 @@ export default function ArticleScreenWeb() {
   // Подпись — только под второй (правой) фотографией, см. admin/journal-detail.tsx.
   const mediaBlock = (
     <>
-      {article.coverUrl ? <Image source={{ uri: article.coverUrl }} style={styles.coverImage} resizeMode="cover" /> : <View style={styles.coverImage} />}
+      {article.coverUrl ? (
+        <Image source={{ uri: article.coverUrl }} style={styles.coverImage} resizeMode="cover" accessibilityLabel={article.coverAlt || article.title} />
+      ) : (
+        <View style={styles.coverImage} />
+      )}
       {galleryLeft || galleryRight ? (
         <View style={styles.galleryRow}>
-          {galleryLeft ? <Image source={{ uri: galleryLeft }} style={styles.galleryImage} resizeMode="cover" /> : null}
+          {galleryLeft ? (
+            <Image source={{ uri: galleryLeft }} style={styles.galleryImage} resizeMode="cover" accessibilityLabel={article.galleryAlt[0] || article.title} />
+          ) : null}
           {galleryRight ? (
             <View style={styles.galleryImageWithCaption}>
-              <Image source={{ uri: galleryRight }} style={styles.galleryImageInner} resizeMode="cover" />
+              <Image source={{ uri: galleryRight }} style={styles.galleryImageInner} resizeMode="cover" accessibilityLabel={article.galleryAlt[1] || article.galleryCaption || article.title} />
               {article.galleryCaption ? <Text style={styles.galleryCaption}>{article.galleryCaption}</Text> : null}
             </View>
           ) : null}
@@ -367,7 +385,7 @@ export default function ArticleScreenWeb() {
   // — компактная карточка в ширину текстовой колонки, а не строка грида-тройки.
   function renderRelatedInlineCard(item: RelatedArticle) {
     return (
-      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.id}` as any)}>
+      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.slug}` as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.inlineRelatedImage} resizeMode="cover" /> : <View style={styles.inlineRelatedImage} />}
         {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
         <Text style={styles.relatedTitle}>{item.title}</Text>

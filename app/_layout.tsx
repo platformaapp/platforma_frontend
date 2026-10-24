@@ -166,7 +166,7 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       {/* Сайтовый дефолт <title>/description/og:* — на случай, если
           конкретный экран не задаёт свой через expo-router/head (сейчас так
-          задаёт только app/journal/[id].web.tsx). Без этого на остальных
+          задаёт только app/journal/[slug].web.tsx). Без этого на остальных
           страницах (включая главную) в <head> вообще нет <title> — см.
           разбор экспортированного HTML (`npx expo export`), там
           `<title data-rh="true"></title>` пустой что на /, что на /journal/*.

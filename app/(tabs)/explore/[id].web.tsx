@@ -19,7 +19,7 @@ type MentorEvent = { id: string; title: string; datetimeStart?: string; price?: 
 // "О чём пишет" — статьи этого наставника в журнале (см. GET
 // /api/articles?author_id=...), тот же формат блоков, что у "События
 // наставника" ниже, см. renderMentorArticlesGrid/renderArticleCardMobile.
-type MentorArticle = { id: string; title: string; coverUrl: string | null; category: string | null };
+type MentorArticle = { id: string; slug: string; title: string; coverUrl: string | null; category: string | null };
 
 function resolveCover(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -148,7 +148,7 @@ export default function TutorCardScreenWeb() {
 
         try {
           const { items } = await getArticles({ authorId: String(id), perPage: 50 });
-          if (active) setMentorArticles(items.map((a) => ({ id: a.id, title: a.title, coverUrl: a.coverUrl, category: a.category })));
+          if (active) setMentorArticles(items.map((a) => ({ id: a.id, slug: a.slug, title: a.title, coverUrl: a.coverUrl, category: a.category })));
         } catch { /* articles section stays empty */ }
       } catch { /* network failure — show empty/placeholder profile instead of crashing */ }
       finally {
@@ -313,7 +313,7 @@ export default function TutorCardScreenWeb() {
   // наставника" выше, но статьи ведут на /journal/:id, не "прошедших" нет.
   function renderArticleCardMobile(a: MentorArticle) {
     return (
-      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.id}` as any)}>
+      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.slug}` as any)}>
         {a.coverUrl ? <Image source={{ uri: a.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventRowBodyMobile}>
           <View>
@@ -327,7 +327,7 @@ export default function TutorCardScreenWeb() {
 
   function renderMentorArticleGridCard(a: MentorArticle, posInRow: 0 | 1 | 2, narrowImage: boolean) {
     return (
-      <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.id}` as any)}>
+      <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.slug}` as any)}>
         {a.coverUrl ? (
           <Image
             source={{ uri: a.coverUrl }}
@@ -397,7 +397,7 @@ export default function TutorCardScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
-  // og:* — см. подробный комментарий у headElement в journal/[id].web.tsx:
+  // og:* — см. подробный комментарий у headElement в journal/[slug].web.tsx:
   // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
   // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
   const pageDescription = displayRole || displayBio;

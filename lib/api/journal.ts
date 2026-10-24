@@ -19,9 +19,9 @@ export interface ArticleAuthor {
   name: string;
   avatarUrl: string | null;
   roleTitle: string | null;
-  // Бэкенд не отдаёт короткое био в объекте author статьи — заполняется на
-  // странице статьи через кросс-референс со списком наставников (см. lib/api/tutor.ts).
-  shortBio?: string;
+  // Короткое био автора — сигнал E-E-A-T, бэкенд отдаёт его напрямую в
+  // объекте author статьи (см. ArticleAuthorDto.short_bio на бэкенде).
+  shortBio: string | null;
 }
 
 export interface RelatedArticle {
@@ -29,6 +29,7 @@ export interface RelatedArticle {
   title: string;
   category: string | null;
   coverUrl: string | null;
+  slug: string;
 }
 
 export interface ArticleEvent {
@@ -72,6 +73,31 @@ export interface Article {
   seoTitle: string | null;
   h1: string | null;
   metaDescription: string | null;
+  // Человекочитаемый URL — ЕДИНСТВЕННЫЙ публичный путь к статье
+  // (/journal/<slug>), см. комментарий у getArticle ниже. Никогда не
+  // пустой (бэкенд гарантирует NOT NULL + UNIQUE).
+  slug: string;
+  // <link rel="canonical"> — если задан, используется вместо собственного
+  // URL статьи (см. комментарий у Article.canonicalUrl на бэкенде).
+  canonicalUrl: string | null;
+  // noindex/nofollow → <meta name="robots">; статья остаётся на сайте как
+  // обычно, просто закрыта от индексации конкретным поисковиком.
+  noindex: boolean;
+  nofollow: boolean;
+  // Дата публикации — для schema.org datePublished и сигнала свежести
+  // контента; отдельно от createdAt/updatedAt (см. бэкенд).
+  publishedAt: string;
+  // Краткое описание для карточек в ленте/журнале — ОТДЕЛЬНО от
+  // metaDescription (тот — сниппет в выдаче поиска), см. комментарий у
+  // Article.excerpt на бэкенде.
+  excerpt: string | null;
+  // og:title/og:description — превью при шаринге, опционально
+  // переопределяют seoTitle/metaDescription (фолбэк на них же, если не заданы).
+  ogTitle: string | null;
+  ogDescription: string | null;
+  // Alt-текст обложки и галереи (coverAlt ↔ coverUrl, galleryAlt[i] ↔ gallery[i]).
+  coverAlt: string | null;
+  galleryAlt: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -104,6 +130,7 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
       name: String(author.name ?? ''),
       avatarUrl: resolveUrl(author.avatar_url as string | undefined),
       roleTitle: (author.role_title as string) ?? null,
+      shortBio: (author.short_bio as string) ?? null,
     },
     relatedArticles: Array.isArray(raw.related_articles)
       ? (raw.related_articles as Record<string, unknown>[]).map((r) => ({
@@ -111,6 +138,7 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
           title: String(r.title ?? ''),
           category: (r.category as string) ?? null,
           coverUrl: resolveUrl(r.cover_url as string | undefined),
+          slug: String(r.slug ?? ''),
         }))
       : [],
     event: raw.event && typeof raw.event === 'object'
@@ -131,6 +159,16 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
     seoTitle: (raw.seo_title as string) ?? null,
     h1: (raw.h1 as string) ?? null,
     metaDescription: (raw.meta_description as string) ?? null,
+    slug: String(raw.slug ?? ''),
+    canonicalUrl: (raw.canonical_url as string) ?? null,
+    noindex: raw.noindex === true,
+    nofollow: raw.nofollow === true,
+    publishedAt: String(raw.published_at ?? raw.created_at ?? ''),
+    excerpt: (raw.excerpt as string) ?? null,
+    ogTitle: (raw.og_title as string) ?? null,
+    ogDescription: (raw.og_description as string) ?? null,
+    coverAlt: (raw.cover_alt as string) ?? null,
+    galleryAlt: Array.isArray(raw.gallery_alt) ? (raw.gallery_alt as string[]) : [],
     createdAt: String(raw.created_at ?? ''),
     updatedAt: String(raw.updated_at ?? ''),
   };
@@ -155,8 +193,13 @@ export async function getArticles(params?: { page?: number; perPage?: number; ca
   };
 }
 
-export async function getArticle(id: string): Promise<Article> {
-  const res = await fetch(`${endpoints.articles}/${id}`);
+// Единственный публичный путь к статье — /api/articles/<slug> (slug —
+// человекочитаемый URL, см. комментарий у Article.slug выше). Бэкенд
+// резолвит ЭТОТ маршрут по slug, не по id — GET по старому uuid отвечает
+// 404 (осознанное решение, не временная мера, см. ArticlesController на
+// бэкенде).
+export async function getArticle(slug: string): Promise<Article> {
+  const res = await fetch(`${endpoints.articles}/${slug}`);
   if (!res.ok) throw new Error(`Не удалось загрузить материал (${res.status})`);
   const data = await res.json();
   return normalizeArticle(data);

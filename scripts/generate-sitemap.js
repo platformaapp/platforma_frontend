@@ -88,7 +88,18 @@ async function main() {
   const entries = STATIC_ROUTES.map((r) => urlEntry(r.loc, r));
 
   const sections = [
-    { name: 'статьи журнала', listUrl: `${API_BASE}/api/articles`, perPage: 100, toEntry: (a) => urlEntry(`/journal/${a.id}`, { changefreq: 'monthly', priority: '0.6', lastmod: isoDate(a.updated_at) }) },
+    {
+      name: 'статьи журнала',
+      listUrl: `${API_BASE}/api/articles`,
+      perPage: 100,
+      // noindex — статья намеренно закрыта от индексации в админке
+      // (черновик/слабый контент/дубль), не попадает в sitemap, но остаётся
+      // на сайте как обычно (см. комментарий у Article.noindex на бэкенде).
+      skip: (a) => a.noindex === true,
+      // slug, не id — человекочитаемый URL, ЕДИНСТВЕННЫЙ публичный путь к
+      // статье (см. ArticlesController.findOne на бэкенде).
+      toEntry: (a) => urlEntry(`/journal/${a.slug}`, { changefreq: 'monthly', priority: '0.6', lastmod: isoDate(a.updated_at) }),
+    },
     { name: 'события', listUrl: `${API_BASE}/api/events/feed`, perPage: 100, toEntry: (e) => urlEntry(`/events/${e.id}`, { changefreq: 'weekly', priority: '0.6', lastmod: isoDate(e.updated_at) }) },
     { name: 'наставники', listUrl: `${API_BASE}/api/users/tutors`, perPage: 200, toEntry: (t) => urlEntry(`/explore/${t.id}`, { changefreq: 'monthly', priority: '0.5' }) },
   ];
@@ -96,11 +107,13 @@ async function main() {
   for (const section of sections) {
     try {
       const items = await fetchAllPages(section.listUrl, section.perPage);
+      let skipped = 0;
       for (const item of items) {
         if (!item?.id) continue;
+        if (section.skip?.(item)) { skipped++; continue; }
         entries.push(section.toEntry(item));
       }
-      console.log(`[sitemap] ${section.name}: ${items.length}`);
+      console.log(`[sitemap] ${section.name}: ${items.length}${skipped ? ` (пропущено noindex: ${skipped})` : ''}`);
     } catch (err) {
       // Не валим сборку из-за недоступности бэкенда в момент деплоя —
       // лучше sitemap без одного раздела, чем сорванный деплой сайта.
