@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
   bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   // Стоимость — на отдельной строке под подписью (не в один ряд).
-  priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24 },
+  priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24, marginTop: 24 },
   priceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18 },
   priceValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', lineHeight: 18 },
 
