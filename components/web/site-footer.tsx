@@ -125,7 +125,7 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
           marginTop: isMobile ? 48 : 305,
           // На мобильном (без нижней строки и без партнёров) отступа снизу
           // не нужно вообще.
-          paddingBottom: isMobile ? 0 : 64,
+          paddingBottom: isMobile ? 0 : 0,
         },
       ]}
     >
