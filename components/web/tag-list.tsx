@@ -23,7 +23,7 @@ export function TagList({
     <View style={styles.row}>
       {tags.map((t) => (
         onTagPress ? (
-          <Pressable key={t} onPress={() => onTagPress(t)}>
+          <Pressable key={t} onPress={() => onTagPress(t)} {...({ dataSet: { textLink: 'true' } } as any)}>
             <Text style={[styles.tag, textStyle]} numberOfLines={1}>#{t}</Text>
           </Pressable>
         ) : (

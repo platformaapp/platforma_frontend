@@ -32,6 +32,28 @@ export default function Root({ children }: { children: React.ReactNode }) {
             [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
             [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
             [data-mentor-avatar="true"]:hover { filter: none; }
+            /* Текстовые ссылки (имя автора статьи, теги, инлайн-ссылки в
+               тексте статьи — см. dataSet в journal/[slug].web.tsx,
+               tag-list.tsx, lib/markdown-inline.tsx) — только подчёркивание
+               при наведении, без затемнения (opacity), в отличие от общего
+               правила hover-dim в app/_layout.tsx. !important обязателен:
+               этот <style> в <head> идёт РАНЬШЕ #hover-dim-style (тот
+               добавляется в рантайме после монтирования), без !important
+               более поздняя по DOM-порядку .cursorClass:hover{opacity:.5}
+               выигрывала бы при равной специфичности. Не переиспользуем
+               общий механизм детекции "красного" цвета из _layout.tsx — он
+               ищет CSS-класс с нужным цветом через :has(), а
+               react-native-web для ВЛОЖЕННОГО Text (Text внутри другого
+               Text, ровно наш случай — ссылка внутри абзаца) применяет
+               color/textDecoration инлайн-стилем, а не классом, так что
+               :has(.класс) там в принципе никогда не совпадёт. */
+            @media (hover: hover) and (pointer: fine) {
+              [data-text-link="true"]:hover {
+                opacity: 1 !important;
+                text-decoration: underline !important;
+                text-underline-offset: 3px;
+              }
+            }
           `
         }} />
       </head>

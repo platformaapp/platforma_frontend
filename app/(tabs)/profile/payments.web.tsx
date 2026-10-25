@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
@@ -319,6 +320,8 @@ export default function PaymentsScreenWeb() {
         ) : (
           <View style={styles.historyEmpty}><Text style={styles.historyEmptyText}>История платежей пока пуста</Text></View>
         )}
+
+        <SiteFooter />
       </ScrollView>
 
       <Modal transparent animationType="fade" visible={isDeleteModalVisible} onRequestClose={handleDeleteModalKeep}>

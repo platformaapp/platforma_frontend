@@ -255,7 +255,11 @@ export default function ArticleScreenWeb() {
   // если не заданы — см. комментарий у Article.ogTitle на бэкенде.
   const ogTitle = article.ogTitle || pageTitle;
   const ogDescription = article.ogDescription || pageDescription;
-  const pageUrl = `https://platformaapp.ru/journal/${article.slug}`;
+  // Фолбэк на article.id — на случай, если бэкенд ещё не задеплоил поле slug
+  // (тогда article.slug пустой): без фолбэка router.push(`/journal/`) уводит
+  // на список статей вместо самой статьи — см. ту же защиту во всех местах,
+  // где строится ссылка на статью (journal/index.web.tsx, explore/[id].web.tsx и т.д.).
+  const pageUrl = `https://platformaapp.ru/journal/${article.slug || article.id}`;
   // canonical — явно заданный в админке (для дублей/пересекающихся по теме
   // статей) или собственный URL статьи по умолчанию.
   const canonicalUrl = article.canonicalUrl || pageUrl;
@@ -308,7 +312,11 @@ export default function ArticleScreenWeb() {
   const authorBlock = article.author.name ? (
     <View style={styles.authorRow}>
       {article.author.id ? (
-        <Pressable style={styles.authorNameShrink} onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}>
+        <Pressable
+          style={styles.authorNameShrink}
+          onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}
+          {...({ dataSet: { textLink: 'true' } } as any)}
+        >
           <Text style={styles.author}>{article.author.name}</Text>
         </Pressable>
       ) : (
@@ -381,11 +389,29 @@ export default function ArticleScreenWeb() {
     );
   }
 
+  // "Окей, что ещё" — статьи, выбранные админом (admin/journal-detail.tsx),
+  // но НЕ размещённые маркером {{related:<id>}} в тексте (см.
+  // relatedArticlesBlock ниже) — по умолчанию показываются блоком в конце
+  // статьи, той же сеткой-тройкой, что и renderUpcomingEventCard выше.
+  function renderRelatedArticleCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
+    return (
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
+        )}
+        {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
+        <Text style={styles.relatedTitle}>{item.title}</Text>
+      </Pressable>
+    );
+  }
+
   // Одна похожая статья, вставленная маркером {{related:<id>}} прямо в текст
   // — компактная карточка в ширину текстовой колонки, а не строка грида-тройки.
   function renderRelatedInlineCard(item: RelatedArticle) {
     return (
-      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.slug}` as any)}>
+      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.inlineRelatedImage} resizeMode="cover" /> : <View style={styles.inlineRelatedImage} />}
         {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
         <Text style={styles.relatedTitle}>{item.title}</Text>
@@ -509,6 +535,21 @@ export default function ArticleScreenWeb() {
     .filter((r): r is RelatedArticle => !!r);
   const relatedInlineBlock = relatedInlineItems.map((item) => <View key={item.id}>{renderRelatedInlineCard(item)}</View>);
 
+  // "Окей, что ещё" — статьи, выбранные админом в admin/journal-detail.tsx
+  // ("«Окей, что ещё» — похожие статьи"), которые НЕ вставлены маркером
+  // {{related:<id>}} в текст (те уже показаны выше, см. relatedInlineBlock) —
+  // по умолчанию блоком в конце статьи, как и обещает подсказка в админке
+  // ("По умолчанию показываются блоком в конце статьи").
+  const unclaimedRelatedArticles = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
+  const relatedArticlesBlock = unclaimedRelatedArticles.length > 0 ? (
+    <View style={styles.relatedSection}>
+      <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
+      <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
+        {unclaimedRelatedArticles.map((item, i) => renderRelatedArticleCard(item, (isMobile ? 0 : i) as 0 | 1 | 2))}
+      </View>
+    </View>
+  ) : null;
+
   // "Окей, что ещё" — ближайшие события той же категории, что у привязанного
   // к статье события (см. categoryEvents выше); без привязанного события
   // блок не рендерится вовсе — "та же категория" не из чего вывести.
@@ -525,23 +566,54 @@ export default function ArticleScreenWeb() {
   const afterEventBlock = hasEventSplit ? renderTextItems(afterEventItems, 'after') : null;
 
   // Баннер напротив ВТОРОГО подзаголовка (desktop only — на мобильном всё и
-  // так одной колонкой), не первого: та же техника грид-сплита, что у CTA
-  // события выше ("так же, как раньше работала пара подзаголовок+баннер"),
-  // но держим её независимой от события — только когда маркера {{event}} в
-  // статье нет вовсе, чтобы не пришлось сводить два независимых разбиения
-  // на строки в одной сетке. secondHeadingIdx — позиция ВТОРОГО по счёту
-  // "##"-подзаголовка в textItems (первый подзаголовок баннер не трогает);
-  // "от него и дальше" уходит во вторую строку вместе с баннером, который
-  // там встаёт по верхнему краю строки (там же, где начинается сам
-  // подзаголовок) — без лишних стилей, просто по дефолтному выравниванию
-  // грид-ячейки. Если в статье меньше двух подзаголовков — сплита нет,
-  // баннер идёт своим обычным порядком в sideStack (см. bannerBlock ниже).
+  // так одной колонкой, и баннер там уже вынесен в начало статьи отдельной
+  // функцией), не первого: та же техника грид-сплита, что у CTA события
+  // выше. secondHeadingIdx — позиция ВТОРОГО по счёту "##"-подзаголовка в
+  // textItems (первый подзаголовок баннер не трогает).
+  //
+  // РАНЬШЕ это было взаимоисключающим с CTA события (маркер {{event}} в
+  // статье выключал сплит по подзаголовку целиком) — так проще, но на
+  // статьях, где есть и второй подзаголовок, и привязанное событие, баннер
+  // просто не вставал на своё место, а CTA события съедал единственную
+  // "вторую строку" сетки. Теперь оба сплита независимы и могут сосуществовать:
+  // splitPoints — все точки разбиения статьи на строки грида, отсортированные
+  // по положению в тексте (их не больше двух — по одной на каждый механизм),
+  // каждая точка знает, что встаёт в правую колонку её строки (баннер или
+  // CTA события).
   const headingIndices = textItems.reduce<number[]>((acc, it, i) => { if (it.heading) acc.push(i); return acc; }, []);
   const hasSecondHeading = headingIndices.length >= 2;
   const secondHeadingIdx = hasSecondHeading ? headingIndices[1] : -1;
-  const bannerOpposesHeading = !isMobile && hasSecondHeading && !hasEventMarker;
-  const beforeHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(0, secondHeadingIdx), 'beforeHeading') : null;
-  const fromHeadingBlock = bannerOpposesHeading ? renderTextItems(textItems.slice(secondHeadingIdx), 'fromHeading') : null;
+  const bannerOpposesHeading = !isMobile && hasSecondHeading;
+
+  type GridSplit = { idx: number; kind: 'event' | 'heading' };
+  const gridSplits: GridSplit[] = [];
+  if (hasEventSplit) gridSplits.push({ idx: eventMarkerIdx, kind: 'event' });
+  if (bannerOpposesHeading) gridSplits.push({ idx: secondHeadingIdx, kind: 'heading' });
+  gridSplits.sort((a, b) => a.idx - b.idx);
+  // "event" прячет сам маркер (следующая строка начинается ПОСЛЕ него),
+  // "heading" начинает следующую строку ПРЯМО С подзаголовка (он — видимый
+  // текст, должен попасть в неё).
+  const nextRowStart = (sp: GridSplit) => (sp.kind === 'event' ? sp.idx + 1 : sp.idx);
+
+  const gridRow0Items = textItems.slice(0, gridSplits[0]?.idx ?? textItems.length);
+  const gridRow0Block = renderTextItems(gridRow0Items, 'grid0');
+  // Баннер/CTA события в первой строке — только если их механизм НЕ занял
+  // отдельную строку сплитом (иначе они уже встанут в своей строке ниже).
+  const row0HasBanner = !bannerOpposesHeading;
+  const row0HasEventCta = hasEventMarker && !hasEventSplit;
+  // relatedInlineBlock — всегда в сайдбаре ПОСЛЕДНЕЙ строки грида.
+  const row0HasRelated = gridSplits.length === 0;
+  const gridExtraRows = gridSplits.map((sp, i) => {
+    const start = nextRowStart(sp);
+    const end = gridSplits[i + 1]?.idx ?? textItems.length;
+    const isLast = i === gridSplits.length - 1;
+    return {
+      key: `grid-row-${i + 1}`,
+      textBlock: renderTextItems(textItems.slice(start, end), `grid${i + 1}`),
+      sidebar: sp.kind === 'event' ? renderEventCtaCard() : bannerBlock,
+      isLast,
+    };
+  });
 
   return (
     <SiteShell>
@@ -572,37 +644,33 @@ export default function ArticleScreenWeb() {
           </View>
         ) : (
           // CSS Grid — обычно одна строка: заголовок+автор+весь текст слева,
-          // обложка+галерея+баннер(+CTA, если не hasEventSplit)+похожие
-          // справа. Вторая строка — если hasEventSplit (текст после маркера
-          // слева, карточка события справа) ИЛИ bannerOpposesHeading (текст
-          // от подзаголовка слева, баннер справа, по верхнему краю строки —
-          // там же, где начинается сам подзаголовок) — варианты взаимно
-          // исключают друг друга (см. bannerOpposesHeading выше).
+          // обложка+галерея+баннер(+CTA события, если его механизм не занял
+          // отдельную строку)+похожие справа. Дальше — по одной строке на
+          // каждую точку разбиения в gridSplits (CTA события и/или баннер
+          // напротив второго подзаголовка — независимо, могут быть обе сразу,
+          // см. комментарий у gridSplits выше).
           <View style={styles.articleGrid}>
             <View>
               {titleElement}
               {authorBlock}
-              {bannerOpposesHeading ? beforeHeadingBlock : beforeEventBlock}
+              {gridRow0Block}
             </View>
             <View style={styles.colImageTop}>
               {mediaBlock}
-              {bannerOpposesHeading ? null : bannerBlock}
-              {!hasEventSplit && hasEventMarker ? renderEventCtaCard() : null}
-              {!hasEventSplit ? relatedInlineBlock : null}
+              {row0HasBanner ? bannerBlock : null}
+              {row0HasEventCta ? renderEventCtaCard() : null}
+              {row0HasRelated ? relatedInlineBlock : null}
             </View>
-            {hasEventSplit ? (
-              <>
-                <View>{afterEventBlock}</View>
-                <View>{renderEventCtaCard()}{relatedInlineBlock}</View>
-              </>
-            ) : bannerOpposesHeading ? (
-              <>
-                <View>{fromHeadingBlock}</View>
-                <View>{bannerBlock}</View>
-              </>
-            ) : null}
+            {gridExtraRows.map((row) => (
+              <React.Fragment key={row.key}>
+                <View>{row.textBlock}</View>
+                <View>{row.sidebar}{row.isLast ? relatedInlineBlock : null}</View>
+              </React.Fragment>
+            ))}
           </View>
         )}
+
+        {relatedArticlesBlock}
 
         {relatedBlock}
 
