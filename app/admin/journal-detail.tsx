@@ -643,7 +643,7 @@ export default function AdminJournalDetailScreen() {
           </Pressable>
         </View>
         <TextInput
-          style={[styles.input, styles.inputMultiline]}
+          style={[styles.input, styles.inputMultiline, styles.contentInput]}
           value={content}
           onChangeText={setContent}
           onSelectionChange={(e) => setContentSelection(e.nativeEvent.selection)}
@@ -925,6 +925,11 @@ const styles = StyleSheet.create({
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
   },
   inputMultiline: { minHeight: 200, textAlignVertical: 'top' },
+  // "Текст" (основное поле статьи) — заметно выше остальных многострочных
+  // полей (SEO-описания короткие, им хватает 200) + resize:vertical (веб-онли
+  // CSS-свойство — браузерный уголок-ручка для растягивания поля) — админ
+  // может сделать поле ещё выше сам, если текст статьи длинный.
+  contentInput: { minHeight: 420, resize: 'vertical' } as any,
   toolbarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   // Раньше кнопки были 32x32 с однобуквенной подписью (Ж/К/Ч/...) —
   // заменены на словесные подписи, поэтому ширина теперь по контенту

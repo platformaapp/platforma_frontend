@@ -567,53 +567,42 @@ export default function ArticleScreenWeb() {
 
   // Баннер напротив ВТОРОГО подзаголовка (desktop only — на мобильном всё и
   // так одной колонкой, и баннер там уже вынесен в начало статьи отдельной
-  // функцией), не первого: та же техника грид-сплита, что у CTA события
-  // выше. secondHeadingIdx — позиция ВТОРОГО по счёту "##"-подзаголовка в
-  // textItems (первый подзаголовок баннер не трогает).
+  // функцией), не первого. secondHeadingIdx — позиция ВТОРОГО по счёту
+  // "##"-подзаголовка в textItems (первый подзаголовок баннер не трогает).
   //
-  // РАНЬШЕ это было взаимоисключающим с CTA события (маркер {{event}} в
-  // статье выключал сплит по подзаголовку целиком) — так проще, но на
-  // статьях, где есть и второй подзаголовок, и привязанное событие, баннер
-  // просто не вставал на своё место, а CTA события съедал единственную
-  // "вторую строку" сетки. Теперь оба сплита независимы и могут сосуществовать:
-  // splitPoints — все точки разбиения статьи на строки грида, отсортированные
-  // по положению в тексте (их не больше двух — по одной на каждый механизм),
-  // каждая точка знает, что встаёт в правую колонку её строки (баннер или
-  // CTA события).
+  // РАНЬШЕ (и баннер, и CTA события) позиционировались через CSS Grid с
+  // разбиением текста на отдельные "строки" грида — ровно так, чтобы левая
+  // (текстовая) и правая (сайдбар) колонки делили одну высоту строки. Из-за
+  // этого, если текст до точки разбиения был короче обложки статьи (почти
+  // всегда — обложка ~500px, а абзацев до неё обычно меньше), вторая строка
+  // грида не могла начаться раньше, чем закончится ВЫСОКАЯ обложка в правой
+  // колонке — перед вторым подзаголовком появлялся огромный пустой отступ
+  // (сотни пикселей), которого в тексте быть не должно. Это и есть тот самый
+  // "лишний отступ перед вторым подзаголовком".
+  //
+  // Фикс — отвязать текстовую колонку от сайдбара: текст рендерится ОДНИМ
+  // непрерывным потоком (без разбиения на строки грида, см. JSX ниже), а
+  // баннер/CTA события просто идут в сайдбаре по порядку их положения в
+  // тексте (sidebarSplitItems ниже) — без привязки к точной пиксельной
+  // высоте конкретного абзаца (её нельзя получить одним CSS без JS-замеров).
   const headingIndices = textItems.reduce<number[]>((acc, it, i) => { if (it.heading) acc.push(i); return acc; }, []);
   const hasSecondHeading = headingIndices.length >= 2;
   const secondHeadingIdx = hasSecondHeading ? headingIndices[1] : -1;
   const bannerOpposesHeading = !isMobile && hasSecondHeading;
 
-  type GridSplit = { idx: number; kind: 'event' | 'heading' };
-  const gridSplits: GridSplit[] = [];
-  if (hasEventSplit) gridSplits.push({ idx: eventMarkerIdx, kind: 'event' });
-  if (bannerOpposesHeading) gridSplits.push({ idx: secondHeadingIdx, kind: 'heading' });
-  gridSplits.sort((a, b) => a.idx - b.idx);
-  // "event" прячет сам маркер (следующая строка начинается ПОСЛЕ него),
-  // "heading" начинает следующую строку ПРЯМО С подзаголовка (он — видимый
-  // текст, должен попасть в неё).
-  const nextRowStart = (sp: GridSplit) => (sp.kind === 'event' ? sp.idx + 1 : sp.idx);
-
-  const gridRow0Items = textItems.slice(0, gridSplits[0]?.idx ?? textItems.length);
-  const gridRow0Block = renderTextItems(gridRow0Items, 'grid0');
-  // Баннер/CTA события в первой строке — только если их механизм НЕ занял
-  // отдельную строку сплитом (иначе они уже встанут в своей строке ниже).
-  const row0HasBanner = !bannerOpposesHeading;
-  const row0HasEventCta = hasEventMarker && !hasEventSplit;
-  // relatedInlineBlock — всегда в сайдбаре ПОСЛЕДНЕЙ строки грида.
-  const row0HasRelated = gridSplits.length === 0;
-  const gridExtraRows = gridSplits.map((sp, i) => {
-    const start = nextRowStart(sp);
-    const end = gridSplits[i + 1]?.idx ?? textItems.length;
-    const isLast = i === gridSplits.length - 1;
-    return {
-      key: `grid-row-${i + 1}`,
-      textBlock: renderTextItems(textItems.slice(start, end), `grid${i + 1}`),
-      sidebar: sp.kind === 'event' ? renderEventCtaCard() : bannerBlock,
-      isLast,
-    };
-  });
+  // Порядок баннера/CTA события в сайдбаре — по положению их маркера/
+  // подзаголовка в тексте (как и было), просто без синхронизации высоты
+  // строк с текстовой колонкой.
+  type SidebarSplit = { idx: number; kind: 'event' | 'heading' };
+  const sidebarSplits: SidebarSplit[] = [];
+  if (hasEventSplit) sidebarSplits.push({ idx: eventMarkerIdx, kind: 'event' });
+  if (bannerOpposesHeading) sidebarSplits.push({ idx: secondHeadingIdx, kind: 'heading' });
+  sidebarSplits.sort((a, b) => a.idx - b.idx);
+  // Баннер/CTA события сразу после обложки (без привязки к подзаголовку/
+  // маркеру) — только если их механизм НЕ ушёл в sidebarSplits выше.
+  const sidebarHasLeadingBanner = !bannerOpposesHeading;
+  const sidebarHasLeadingEventCta = hasEventMarker && !hasEventSplit;
+  // relatedInlineBlock — всегда в конце сайдбара.
 
   return (
     <SiteShell>
@@ -643,30 +632,27 @@ export default function ArticleScreenWeb() {
             {hasEventSplit ? relatedInlineBlock : null}
           </View>
         ) : (
-          // CSS Grid — обычно одна строка: заголовок+автор+весь текст слева,
-          // обложка+галерея+баннер(+CTA события, если его механизм не занял
-          // отдельную строку)+похожие справа. Дальше — по одной строке на
-          // каждую точку разбиения в gridSplits (CTA события и/или баннер
-          // напротив второго подзаголовка — независимо, могут быть обе сразу,
-          // см. комментарий у gridSplits выше).
-          <View style={styles.articleGrid}>
-            <View>
+          // Две независимые колонки (не CSS Grid с общими строками — см.
+          // комментарий у bannerOpposesHeading выше, почему): слева весь текст
+          // статьи одним потоком, справа обложка+галерея, затем баннер/CTA
+          // события в порядке их положения в тексте, затем похожие статьи.
+          <View style={styles.articleCols}>
+            <View style={styles.textCol}>
               {titleElement}
               {authorBlock}
-              {gridRow0Block}
+              {renderTextItems(textItems, 'text')}
             </View>
             <View style={styles.colImageTop}>
               {mediaBlock}
-              {row0HasBanner ? bannerBlock : null}
-              {row0HasEventCta ? renderEventCtaCard() : null}
-              {row0HasRelated ? relatedInlineBlock : null}
+              {sidebarHasLeadingBanner ? bannerBlock : null}
+              {sidebarHasLeadingEventCta ? renderEventCtaCard() : null}
+              {sidebarSplits.map((sp) => (
+                <View key={`side-${sp.idx}-${sp.kind}`} style={styles.sidebarSplitItem}>
+                  {sp.kind === 'event' ? renderEventCtaCard() : bannerBlock}
+                </View>
+              ))}
+              {relatedInlineBlock}
             </View>
-            {gridExtraRows.map((row) => (
-              <React.Fragment key={row.key}>
-                <View>{row.textBlock}</View>
-                <View>{row.sidebar}{row.isLast ? relatedInlineBlock : null}</View>
-              </React.Fragment>
-            ))}
           </View>
         )}
 
@@ -708,11 +694,11 @@ const styles = StyleSheet.create({
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
-  // Обычно одна строка (весь текст слева, обложка/галерея/баннер/CTA/похожие
-  // справа). Вторая строка появляется, только если есть hasEventSplit —
-  // rowGap нужен именно на этот случай (без него вторая строка стартует
-  // вплотную к первой).
-  articleGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 32, rowGap: 40, marginBottom: 40 } as any,
+  // Две независимые по высоте колонки (flex, не CSS Grid — см. комментарий у
+  // bannerOpposesHeading в теле компонента, почему именно так) — текст слева
+  // течёт своим потоком, сайдбар справа своим, одна не ждёт высоту другой.
+  articleCols: { flexDirection: 'row', alignItems: 'flex-start', columnGap: 32, marginBottom: 40 },
+  textCol: { flex: 1, minWidth: 0 },
   mobileStack: { marginBottom: 40 },
   // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
   // события / карточки похожих статей), когда их несколько сразу.
@@ -723,8 +709,15 @@ const styles = StyleSheet.create({
   // этот потолок, и flexbox сжимал саму фотографию, чтобы уместиться —
   // "подпись уменьшала высоту фотографии". Колонка должна просто занимать
   // столько места, сколько нужно её содержимому.
-  // gap — см. mobileMediaBlock выше, тот же смысл.
-  colImageTop: { minWidth: 240, gap: 0 },
+  // gap:0 — элементы сайдбара разводятся явным marginTop там, где он нужен
+  // (см. sidebarSplitItem), не общим отступом колонки: у карточек похожих
+  // статей (inlineRelatedCard) уже есть свой marginVertical, общий gap тут
+  // задвоил бы интервал между ними.
+  colImageTop: { flex: 1, minWidth: 240, gap: 0 },
+  // Баннер/CTA события, занявшие отдельное "место" в сайдбаре из-за своей
+  // привязки к позиции в тексте (sidebarSplits) — те же 40px, что раньше
+  // давал rowGap между строками грида.
+  sidebarSplitItem: { marginTop: 40 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },

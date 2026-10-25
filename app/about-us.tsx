@@ -11,6 +11,7 @@ import { useSiteSettings } from '@/hooks/use-site-settings';
 // что и у остальных .web.tsx экранов в app/, см. [id].tsx рядом с [id].web.tsx).
 // Сам пункт недоступен из нативной навигации — ссылка p(34) есть только в
 // десктопной веб-шапке (components/web/site-header.tsx).
+const DEFAULT_PHOTO = require('@/assets/images/about-us-photo.webp');
 const DEFAULT_HEADING = 'О нас';
 const DEFAULT_TEXT =
   'p(34) — платформа для свободных городских разговоров и художественных высказываний. ' +
@@ -40,7 +41,7 @@ export default function AboutUsScreen() {
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
-        {aboutUs.photoUrl ? <Image source={{ uri: aboutUs.photoUrl }} style={styles.photo} resizeMode="cover" /> : <View style={styles.photo} />}
+        <Image source={aboutUs.photoUrl ? { uri: aboutUs.photoUrl } : DEFAULT_PHOTO} style={styles.photo} resizeMode="cover" />
         <Text style={styles.heading}>{aboutUs.heading || DEFAULT_HEADING}</Text>
         <Text style={styles.text}>{aboutUs.text || DEFAULT_TEXT}</Text>
 

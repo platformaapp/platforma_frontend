@@ -99,6 +99,15 @@ function isLocalUri(uri: string | undefined): boolean {
   return !!uri && (uri.startsWith('data:') || uri.startsWith('blob:') || uri.startsWith('file:'));
 }
 
+// Поля вроде navItems[].iconUrl необязательны (@IsOptional() на бэкенде), но
+// пустая строка '' — это НЕ undefined, и @IsUrl() всё равно её проверяет и
+// отклоняет ("must be a URL address") — ровно так ломалось сохранение любых
+// настроек (например, ссылки баннера), пока хоть один из 5 пунктов меню не
+// имел своей иконки. Перед отправкой стираем пустые строки в undefined.
+function emptyToUndefined(v: string | undefined): string | undefined {
+  return v && v.trim() ? v : undefined;
+}
+
 export default function AdminSiteSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -165,7 +174,17 @@ export default function AdminSiteSettingsScreen() {
         finalAboutUs = { ...aboutUs, photoUrl: url };
         setAboutUs(finalAboutUs);
       }
-      await updateSiteSettings({ navItems, banner: finalBanner, partners: finalPartners, topics, aboutUs: finalAboutUs });
+      const sanitizedNavItems = navItems.map((it) => ({ ...it, iconUrl: emptyToUndefined(it.iconUrl) }));
+      const sanitizedBanner = { ...finalBanner, imageUrl: emptyToUndefined(finalBanner.imageUrl), linkUrl: emptyToUndefined(finalBanner.linkUrl) };
+      const sanitizedPartners = finalPartners.map((p) => ({ ...p, linkUrl: emptyToUndefined(p.linkUrl) }));
+      const sanitizedAboutUs = { ...finalAboutUs, photoUrl: emptyToUndefined(finalAboutUs.photoUrl) };
+      await updateSiteSettings({
+        navItems: sanitizedNavItems,
+        banner: sanitizedBanner,
+        partners: sanitizedPartners,
+        topics,
+        aboutUs: sanitizedAboutUs,
+      });
       setSaveSuccess(true);
     } catch (e: any) {
       if (e?.message?.toLowerCase?.().includes('unauthorized')) {

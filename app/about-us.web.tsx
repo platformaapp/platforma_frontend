@@ -5,9 +5,9 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 
-// Дефолтный заголовок/текст — показываются, пока админ не задал свои (см.
-// AboutUsSetting/admin/site-settings.tsx, секция "О нас"). Фото без дефолта
-// — пустой плейсхолдер, пока не загружено реальное.
+// Дефолтные заголовок/текст/фото — показываются, пока админ не задал свои
+// (см. AboutUsSetting/admin/site-settings.tsx, секция "О нас").
+const DEFAULT_PHOTO = require('@/assets/images/about-us-photo.webp');
 const DEFAULT_HEADING = 'О нас';
 const DEFAULT_TEXT =
   'p(34) — платформа для свободных городских разговоров и художественных высказываний. ' +
@@ -42,10 +42,21 @@ export default function AboutUsScreenWeb() {
 
   const heading = aboutUs.heading || DEFAULT_HEADING;
   const text = aboutUs.text || DEFAULT_TEXT;
-  const photo = aboutUs.photoUrl ? (
-    <Image source={{ uri: aboutUs.photoUrl }} style={isMobile ? styles.mobileThumb : styles.cover} resizeMode="cover" />
-  ) : (
-    <View style={isMobile ? styles.mobileThumb : styles.cover} />
+  // Обёртка с paddingBottom-трюком (аспект через % от своей же ширины) +
+  // картинка внутри position:absolute/inset:0 — для photoUrl с бэкенда (uri)
+  // простой aspectRatio на самом Image тоже работал, но ломается именно для
+  // ЛОКАЛЬНОГО DEFAULT_PHOTO (require()): react-native-web подставляет
+  // зарегистрированные intrinsic width/height ассета как computed height
+  // напрямую, aspectRatio у Image при этом игнорируется (та же причина, что
+  // и у SECTION_BANNER_IMAGE в journal/[slug].web.tsx — см. тот же приём там).
+  const photo = (
+    <View style={isMobile ? styles.mobileThumb : styles.cover}>
+      <Image
+        source={aboutUs.photoUrl ? { uri: aboutUs.photoUrl } : DEFAULT_PHOTO}
+        style={styles.photoImage}
+        resizeMode="cover"
+      />
+    </View>
   );
 
   const contactsBlock = (
@@ -101,8 +112,12 @@ const styles = StyleSheet.create({
   desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%' },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
-  cover: { width: '100%', aspectRatio: 1.44, backgroundColor: '#E5E5E5' },
-  mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 16 },
+  // paddingBottom: (1/aspectRatio)*100% — классический приём для аспекта
+  // через проценты (которые CSS всегда берёт от ШИРИНЫ блока, в т.ч. для
+  // padding), см. комментарий у photo выше.
+  cover: { width: '100%', paddingBottom: `${(1 / 1.44) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5' } as any,
+  mobileThumb: { width: '100%', paddingBottom: `${(360 / 649) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 16 } as any,
+  photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
