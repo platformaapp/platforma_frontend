@@ -19,6 +19,7 @@ import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
 const FORMATS = ['Обсудить', 'Посмотреть', 'Посетить'] as const;
@@ -168,7 +169,7 @@ export default function AdminJournalDetailScreen() {
   const [authorSearching, setAuthorSearching] = useState(false);
 
   // "Окей, что ещё" в конце статьи — до 3 связанных статей, выбранных
-  // здесь при создании/редактировании (см. [id].web.tsx, блок вместо
+  // здесь при создании/редактировании (см. [slug].web.tsx, блок вместо
   // баннера в конце).
   const [relatedArticles, setRelatedArticles] = useState<ArticleOption[]>([]);
   const [relatedQuery, setRelatedQuery] = useState('');
@@ -176,7 +177,7 @@ export default function AdminJournalDetailScreen() {
   const [relatedSearching, setRelatedSearching] = useState(false);
 
   // Событие, привязанное к статье — CTA "Записаться на событие" на странице
-  // статьи (см. [id].web.tsx). В отличие от похожих статей — одно, не три.
+  // статьи (см. [slug].web.tsx). В отличие от похожих статей — одно, не три.
   const [event, setEvent] = useState<EventOption | null>(null);
   const [eventQuery, setEventQuery] = useState('');
   const [eventOptions, setEventOptions] = useState<EventOption[]>([]);
@@ -362,10 +363,13 @@ export default function AdminJournalDetailScreen() {
     if (!url) return;
     const { start, end } = contentSelection;
     const label = content.slice(start, end) || 'текст ссылки';
-    setContent(content.slice(0, start) + `[${label}](${url})` + content.slice(end));
+    const inserted = `[${label}](${url})`;
+    setContent(content.slice(0, start) + inserted + content.slice(end));
+    const newPos = start + inserted.length;
+    setContentSelection({ start: newPos, end: newPos });
   }
 
-  // Вставляет строку «## Подзаголовок» (см. parseContent в [id].web.tsx) —
+  // Вставляет строку «## Подзаголовок» (см. parseContent в [slug].web.tsx) —
   // отдельной кнопкой, а не парой маркеров вокруг выделения, т.к. это не
   // инлайн-форматирование, а отдельный блок текста на своей строке.
   function insertSubheading() {
@@ -380,17 +384,30 @@ export default function AdminJournalDetailScreen() {
 
   // Вставляет маркер в позицию курсора в "Текст" — на странице статьи он
   // заменяется на сам блок (CTA события / карточку похожей статьи) в этом же
-  // месте, а не в конце статьи (см. renderParagraphs в [id].web.tsx). Если
-  // маркер нигде не вставлен — блок всё равно показывается в конце (старое
-  // поведение, для уже существующих статей).
+  // месте, а не в конце статьи (см. textItems/gridSplits в [slug].web.tsx).
+  // Если маркер нигде не вставлен — блок всё равно показывается в конце
+  // (старое поведение, для уже существующих статей).
+  //
+  // ВАЖНО: после вставки обязательно обновляем contentSelection, той же
+  // причине, что и в wrapContentSelection выше — без этого следующий клик
+  // (второй маркер, или повторный клик по тому же) использует СТАРЫЕ индексы
+  // на новой, более длинной строке и вставляет куда попало (в т.ч. в самое
+  // начало текста, если contentSelection так и не сдвинулась с {0,0} по
+  // умолчанию) — ровно то, что ломало вёрстку статьи при добавлении события.
   function insertEventToken() {
     const { start, end } = contentSelection;
-    setContent(content.slice(0, start) + `\n\n{{event}}\n\n` + content.slice(end));
+    const inserted = `\n\n{{event}}\n\n`;
+    setContent(content.slice(0, start) + inserted + content.slice(end));
+    const newPos = start + inserted.length;
+    setContentSelection({ start: newPos, end: newPos });
   }
 
   function insertRelatedToken(articleId: string) {
     const { start, end } = contentSelection;
-    setContent(content.slice(0, start) + `\n\n{{related:${articleId}}}\n\n` + content.slice(end));
+    const inserted = `\n\n{{related:${articleId}}}\n\n`;
+    setContent(content.slice(0, start) + inserted + content.slice(end));
+    const newPos = start + inserted.length;
+    setContentSelection({ start: newPos, end: newPos });
   }
 
   async function handleSave() {
@@ -464,7 +481,7 @@ export default function AdminJournalDetailScreen() {
         const d = await res.json().catch(() => ({}));
         throw new Error(d?.message ?? (Array.isArray(d?.message) ? d.message.join(', ') : `Ошибка ${res.status}`));
       }
-      router.back();
+      adminGoBack(router, '/admin/journal');
     } catch (e) {
       setSaveError((e as Error)?.message ?? 'Не удалось сохранить материал');
     } finally {
@@ -502,7 +519,7 @@ export default function AdminJournalDetailScreen() {
         const d = await res.json().catch(() => ({}));
         throw new Error(d?.message ?? `Ошибка ${res.status}`);
       }
-      router.back();
+      adminGoBack(router, '/admin/journal');
     } catch (e) {
       const msg = (e as Error)?.message ?? 'Не удалось удалить материал';
       if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert(msg); }
@@ -520,7 +537,7 @@ export default function AdminJournalDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{loadError}</Text>
-        <Pressable style={[styles.backBtnOutline, styles.backBtnOutlineRow]} onPress={() => router.back()}>
+        <Pressable style={[styles.backBtnOutline, styles.backBtnOutlineRow]} onPress={() => adminGoBack(router, '/admin/journal')}>
           <BackArrowIcon width={16} height={15} />
           <Text style={styles.backBtnOutlineText}>Назад</Text>
         </Pressable>
@@ -531,7 +548,7 @@ export default function AdminJournalDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}><Text style={styles.backArrow}>‹</Text></Pressable>
+        <Pressable onPress={() => adminGoBack(router, '/admin/journal')} style={styles.backButton}><Text style={styles.backArrow}>‹</Text></Pressable>
         <Text style={styles.headerTitle}>{isNew ? 'НОВЫЙ МАТЕРИАЛ' : 'РЕДАКТИРОВАНИЕ'}</Text>
       </View>
 
@@ -898,13 +915,13 @@ const styles = StyleSheet.create({
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { paddingHorizontal: 16, paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
   hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
   hintStrong: { color: '#181818' },
   sectionDivider: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 32, paddingTop: 18, borderTopWidth: 1, borderColor: '#1E1E1E' },
   input: {
-    borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
   },
   inputMultiline: { minHeight: 200, textAlignVertical: 'top' },

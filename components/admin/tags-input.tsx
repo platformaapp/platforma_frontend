@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   chipRemove: { fontSize: 12, color: '#9B9B9B' },
   input: {
-    borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
   },
 });

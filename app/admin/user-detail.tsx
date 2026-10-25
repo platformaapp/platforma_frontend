@@ -16,6 +16,7 @@ import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 type UserDetail = {
   id: string;
@@ -176,7 +177,7 @@ export default function AdminUserDetailScreen() {
         setActionError(d?.message ?? `Ошибка (${res.status})`);
         return;
       }
-      router.back();
+      adminGoBack(router, '/admin/users');
     } catch {
       setActionError('Не удалось выполнить действие');
     } finally {
@@ -201,7 +202,7 @@ export default function AdminUserDetailScreen() {
         setActionError(d?.message ?? `Ошибка (${res.status})`);
         return;
       }
-      router.back();
+      adminGoBack(router, '/admin/users');
     } catch {
       setActionError('Не удалось выполнить действие');
     } finally {
@@ -247,7 +248,7 @@ export default function AdminUserDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{error || 'Пользователь не найден'}</Text>
-        <Pressable style={[styles.retryBackBtn, styles.retryBackRow]} onPress={() => router.back()}>
+        <Pressable style={[styles.retryBackBtn, styles.retryBackRow]} onPress={() => adminGoBack(router, '/admin/users')}>
           <BackArrowIcon width={16} height={15} />
           <Text style={styles.retryBackText}>Назад</Text>
         </Pressable>
@@ -268,7 +269,7 @@ export default function AdminUserDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/users')} style={styles.backButton}>
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{user.fullName || user.email}</Text>
@@ -427,7 +428,7 @@ const styles = StyleSheet.create({
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingBottom: 48 },
 
   // Было 72×72 в ряд с текстом, потом 140×140 — теперь фото на всю ширину
   // (нужно нормально видеть человека перед аппрувом заявки).
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
   cancelActionBtn: { flex: 1, borderWidth: 1, borderColor: '#1E1E1E', height: 44, alignItems: 'center', justifyContent: 'center' },
   cancelActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   rejectInput: {
-    borderWidth: 1, borderColor: '#1E1E1E',
+    borderBottomWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818',
     minHeight: 80, marginBottom: 10,

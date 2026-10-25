@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -130,7 +131,7 @@ export default function AdminJournalScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/dashboard')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>ЖУРНАЛ</Text>
@@ -190,12 +191,12 @@ const styles = StyleSheet.create({
   createBtn: { paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#181818' },
   createBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#fff' },
 
-  searchRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: '#E5E5E5' },
-  searchInput: { flex: 1, borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  searchRow: { width: '100%', maxWidth: 840, alignSelf: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: '#E5E5E5' },
+  searchInput: { flex: 1, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   searchBtn: { borderWidth: 1, borderColor: '#181818', paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   searchBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  list: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
   card: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
   cover: { width: 72, height: 72 },
   coverPlaceholder: { backgroundColor: '#E5E5E5' },

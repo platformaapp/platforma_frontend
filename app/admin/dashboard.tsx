@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818', letterSpacing: 0.3 },
   tabTextActive: { color: '#FAFAFA' },
 
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  list: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
 
   card: {
     flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E',
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   rejectModalTitle: { fontSize: 22, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 4 },
   rejectModalSubtitle: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 14 },
   rejectInput: {
-    borderWidth: 1, borderColor: '#1E1E1E',
+    borderBottomWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818',
     minHeight: 96, marginBottom: 14,

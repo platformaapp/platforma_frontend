@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 import {
   getAdminSiteSettings,
@@ -223,7 +224,7 @@ export default function AdminSiteSettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/dashboard')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>НАСТРОЙКИ САЙТА</Text>
@@ -410,11 +411,11 @@ const styles = StyleSheet.create({
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
-  content: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 24, paddingBottom: 48 },
   section: { borderWidth: 1, borderColor: '#1E1E1E', padding: 16, marginBottom: 20 },
   sectionTitle: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 6 },
   sectionSubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 16, lineHeight: 18 },
-  input: { borderWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  input: { borderBottomWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   inputMultiline: { minHeight: 160, textAlignVertical: 'top' },
   navRow: { marginBottom: 14, gap: 6 },
   navSlotLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },

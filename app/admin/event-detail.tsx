@@ -19,6 +19,7 @@ import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
 async function uploadAdminCoverImage(uri: string): Promise<string> {
@@ -316,7 +317,7 @@ export default function AdminEventDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{error || 'Событие не найдено'}</Text>
-        <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => router.back()}>
+        <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => adminGoBack(router, '/admin/events')}>
           <BackArrowIcon width={16} height={15} />
           <Text style={styles.backBtnText}>Назад</Text>
         </Pressable>
@@ -330,7 +331,7 @@ export default function AdminEventDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/events')} style={styles.backButton}>
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{event.title}</Text>
@@ -554,7 +555,7 @@ const styles = StyleSheet.create({
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingBottom: 48 },
 
   cover: { width: '100%', height: 200, backgroundColor: '#E5E5E5' },
   coverPlaceholder: { width: '100%', height: 120, backgroundColor: '#E5E5E5' },
@@ -593,7 +594,7 @@ const styles = StyleSheet.create({
   modTeamCommentLabel: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
   modTeamCommentText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#444', lineHeight: 18 },
   modInput: {
-    borderWidth: 1,
+    borderBottomWidth: 1,
     borderColor: '#E5E5E5',
     paddingHorizontal: 12,
     paddingVertical: 10,

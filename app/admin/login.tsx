@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     color: '#9B9B9B', marginBottom: 40,
   },
   input: {
-    borderWidth: 1, borderColor: '#1E1E1E',
+    borderBottomWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 14, paddingVertical: 14,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818',
     marginBottom: 12,
