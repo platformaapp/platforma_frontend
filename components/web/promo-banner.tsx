@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { useSiteSettings } from '@/hooks/use-site-settings';
@@ -33,6 +33,23 @@ const BANNER_ASPECT_RATIO = 2000 / 667;
 export function PromoBanner() {
   const router = useRouter();
   const { banner } = useSiteSettings();
+  // Админская картинка баннера — произвольных пропорций (не известны заранее,
+  // в отличие от дефолтной, где соотношение сторон файла зашито в константу
+  // выше). Fixed-ratio box (BANNER_ASPECT_RATIO) обрезал бы её под чужое
+  // соотношение сторон — вместо этого меряем реальные размеры картинки и
+  // показываем на всю ширину в ЕЁ собственном соотношении (contain, не
+  // cover — картинка должна помещаться целиком, не обрезаться).
+  const [customRatio, setCustomRatio] = useState<number | null>(null);
+  useEffect(() => {
+    if (!banner.imageUrl) { setCustomRatio(null); return; }
+    let active = true;
+    Image.getSize(
+      banner.imageUrl,
+      (w, h) => { if (active && h > 0) setCustomRatio(w / h); },
+      () => { if (active) setCustomRatio(null); }
+    );
+    return () => { active = false; };
+  }, [banner.imageUrl]);
 
   if (banner.imageUrl) {
     return (
@@ -40,8 +57,8 @@ export function PromoBanner() {
         style={styles.promoBanner}
         onPress={() => banner.linkUrl && window.open(banner.linkUrl, '_blank', 'noopener,noreferrer')}
       >
-        <View style={styles.promoImageWrap}>
-          <Image source={{ uri: banner.imageUrl }} style={styles.promoImage} resizeMode="cover" />
+        <View style={[styles.promoImageWrap, customRatio ? { aspectRatio: customRatio } : null]}>
+          <Image source={{ uri: banner.imageUrl }} style={styles.promoImage} resizeMode="contain" />
         </View>
       </Pressable>
     );

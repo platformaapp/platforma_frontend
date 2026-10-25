@@ -26,6 +26,10 @@ type AdminArticle = {
   coverUrl: string | null;
   author?: { name?: string };
   createdAt?: string;
+  /** 'pending_review' — заявка наставника (POST /tutor/articles), ещё не
+   *  опубликована и не видна на /journal — см. бейдж "На модерации" ниже и
+   *  переключатель в admin/journal-detail.tsx. */
+  status?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,6 +49,7 @@ function normalizeArticle(raw: Record<string, unknown>): AdminArticle {
     coverUrl: resolveUrl(raw.cover_url),
     author: author ? { name: String(author.name ?? '') } : undefined,
     createdAt: (raw.created_at as string) ?? undefined,
+    status: (raw.status as string) ?? undefined,
   };
 }
 
@@ -119,6 +124,9 @@ export default function AdminJournalScreen() {
         <Text style={styles.cardTitle} numberOfLines={2}>{item.title || '—'}</Text>
         {item.author?.name ? <Text style={styles.cardMeta}>{item.author.name}</Text> : null}
         <View style={styles.cardFooter}>
+          {item.status === 'pending_review' ? (
+            <View style={styles.pendingBadge}><Text style={styles.pendingBadgeText}>На модерации</Text></View>
+          ) : null}
           {item.category ? (
             <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{item.category}</Text></View>
           ) : null}
@@ -206,6 +214,8 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categoryBadge: { backgroundColor: '#E5E5E5', paddingHorizontal: 7, paddingVertical: 2 },
   categoryBadgeText: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  pendingBadge: { backgroundColor: '#FFF3CD', paddingHorizontal: 7, paddingVertical: 2 },
+  pendingBadgeText: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#856404' },
   cardDate: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 12 },

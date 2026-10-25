@@ -118,6 +118,11 @@ export default function AdminJournalDetailScreen() {
   const [loadError, setLoadError] = useState('');
 
   const [title, setTitle] = useState('');
+  // 'pending_review' — заявка наставника (POST /tutor/articles), ещё не
+  // видна на /journal; новые статьи, созданные прямо в админке, — сразу
+  // 'published' (старое поведение). См. комментарий у Article.status на
+  // бэкенде.
+  const [status, setStatus] = useState<'published' | 'pending_review'>('published');
   // Человекочитаемый URL (/journal/<slug>) — единственный публичный путь к
   // статье. Пусто при создании = бэкенд сгенерирует сам из title; при
   // редактировании пусто значит "не менять" (слаг НЕ пересчитывается из
@@ -206,6 +211,7 @@ export default function AdminJournalDetailScreen() {
         const a = await res.json();
         if (!active) return;
         setTitle(a.title ?? '');
+        setStatus(a.status === 'pending_review' ? 'pending_review' : 'published');
         setSlug(a.slug ?? '');
         setContent(a.content ?? '');
         setCategory(a.category ?? FORMATS[1]);
@@ -440,6 +446,7 @@ export default function AdminJournalDetailScreen() {
 
       const body: Record<string, unknown> = {
         title: title.trim(),
+        status,
         // Пусто — не отправляем вовсе: бэкенд сам сгенерирует slug из title
         // при создании, а при редактировании undefined значит "не менять"
         // (см. UpdateArticleDto.slug на бэкенде).
@@ -570,6 +577,19 @@ export default function AdminJournalDetailScreen() {
 
         <Text style={styles.label}>Название</Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Название материала" placeholderTextColor="#9B9B9B" />
+
+        <Text style={styles.label}>Статус</Text>
+        <Text style={styles.hint}>
+          На модерации — заявка наставника (или ещё не готовая статья): не видна на /journal, пока не опубликована.
+        </Text>
+        <View style={styles.formatRow}>
+          <Pressable style={[styles.formatChip, status === 'published' && styles.formatChipActive]} onPress={() => setStatus('published')}>
+            <Text style={[styles.formatChipText, status === 'published' && styles.formatChipTextActive]}>Опубликовано</Text>
+          </Pressable>
+          <Pressable style={[styles.formatChip, status === 'pending_review' && styles.formatChipActive]} onPress={() => setStatus('pending_review')}>
+            <Text style={[styles.formatChipText, status === 'pending_review' && styles.formatChipTextActive]}>На модерации</Text>
+          </Pressable>
+        </View>
 
         <Text style={styles.label}>Слаг (URL)</Text>
         <Text style={styles.hint}>

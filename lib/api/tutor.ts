@@ -295,13 +295,27 @@ export async function deleteTutorSlots(slotIds: string[]): Promise<void> {
 // У бэкенда нет отдельного /tutor/events — события общие, см. /events (было
 // 404 "Cannot POST /api/tutor/events" при создании события наставником).
 
-/** GET /events/my — список своих событий (наставник видит созданные им) */
-export async function getTutorEvents(): Promise<Event[]> {
-  const res = await fetch(endpoints.eventsMy, {
+/** Карточка своего события — поля ответа GET /events/my (MyEventItemDto на
+ *  бэкенде), НЕ то же самое, что Event выше (тот — обёртка вокруг слота/
+ *  брони, не общая карточка события). Используется для выбора "Событие для
+ *  интеграции в текст" в заявке на статью (см. createTutorArticle). */
+export interface TutorOwnEvent {
+  id: string;
+  title: string;
+  start_at: string | null;
+  cover_url: string | null;
+}
+
+/** GET /events/my?role=tutor — список своих событий (наставник видит
+ *  созданные им). role — обязательный параметр на бэкенде (MyEventsQueryDto),
+ *  без него запрос падает с 400 — раньше тут его не было вовсе, функция
+ *  была фактически нерабочей (и нигде не вызывалась). */
+export async function getTutorEvents(): Promise<TutorOwnEvent[]> {
+  const res = await fetch(`${endpoints.eventsMy}?role=tutor&filter=events&per_page=50`, {
     headers: await authHeaders(),
   });
-  const data = await handleResponse<Event[] | { events?: Event[] }>(res);
-  return Array.isArray(data) ? data : (data.events ?? []);
+  const data = await handleResponse<{ data?: { id: string; title: string; start_at: string | null; cover_url: string | null }[] }>(res);
+  return (data.data ?? []).map((e) => ({ id: e.id, title: e.title, start_at: e.start_at, cover_url: e.cover_url }));
 }
 
 /** POST /events — создать событие (если добавляем сразу занятие) */
@@ -332,6 +346,28 @@ export async function updateTutorEvent(id: string, data: EventUpdate): Promise<E
     body: JSON.stringify(data),
   });
   return handleResponse<Event>(res);
+}
+
+// --- Заявка на статью ---
+
+export interface TutorArticlePitch {
+  title: string;
+  cover_url?: string;
+  excerpt?: string;
+  event_id?: string;
+}
+
+/** POST /tutor/articles — заявка наставника на статью (облегчённая форма:
+ *  без текста, см. комментарий у CreateTutorArticleDto на бэкенде) — падает
+ *  в админку со статусом "на модерации", админ дооформляет и публикует
+ *  (см. admin/journal.tsx/journal-detail.tsx, бейдж "На модерации"). */
+export async function createTutorArticle(pitch: TutorArticlePitch): Promise<void> {
+  const res = await fetch(endpoints.tutorArticles, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(pitch),
+  });
+  await handleResponse(res);
 }
 
 // --- Платежи ---

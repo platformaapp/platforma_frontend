@@ -14,11 +14,13 @@ import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import {
-  createTutorEventFull, createTutorSlot, deleteTutorSlot,
+  createTutorArticle, createTutorEventFull, createTutorSlot, deleteTutorSlot,
+  getTutorEvents,
   getTutorPayouts,
   getTutorPayoutsBalance,
-  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
+  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot, type TutorOwnEvent,
 } from '@/lib/api/tutor';
+import { AuthError } from '@/lib/api/auth-error';
 import { clearAuth, getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 import { slotDateTimeMs } from '@/lib/slots-utils';
 
@@ -188,6 +190,23 @@ export default function ProfileScreenWeb() {
   const [tutorSaveError, setTutorSaveError] = useState('');
   const [tutorSaveOk, setTutorSaveOk] = useState(false);
 
+  // ── Заявка на статью — та же схема модалок, что и "Создать событие" выше,
+  // но полей меньше (без текста статьи, см. комментарий у
+  // CreateTutorArticleDto на бэкенде) и кнопка "Отправить заявку" вместо
+  // "Сохранить": статья уходит на модерацию (status='pending_review'), а не
+  // публикуется сразу — редактор дооформляет и публикует её в админке.
+  const [newArticleModalVisible, setNewArticleModalVisible] = useState(false);
+  const [articleTitle, setArticleTitle] = useState('');
+  const [articleCoverUri, setArticleCoverUri] = useState<string | null>(null);
+  const [articleExcerpt, setArticleExcerpt] = useState('');
+  const [articleEvents, setArticleEvents] = useState<TutorOwnEvent[]>([]);
+  const [articleEventsLoading, setArticleEventsLoading] = useState(false);
+  const [articleEventId, setArticleEventId] = useState<string | null>(null);
+  const [creatingArticle, setCreatingArticle] = useState(false);
+  const [articleError, setArticleError] = useState('');
+  const [articleSubmitted, setArticleSubmitted] = useState(false);
+  const [articleErrorModalVisible, setArticleErrorModalVisible] = useState(false);
+
   // ── Student modals ─────────────────────────────────────────────────────────
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
@@ -270,8 +289,24 @@ export default function ProfileScreenWeb() {
           setTelegram(sp.telegram ?? '');
           setAvatarUrl(sp.avatar_url ?? sp.avatarUrl ?? '');
         }
-      } catch { /* show empty form on failure */ }
-      finally { if (active) setLoading(false); }
+      } catch (e) {
+        // AuthError — handle401 (внутри getTutorProfile/getStudentProfile)
+        // уже попытался обновить токен и, если не вышло, очистил его; здесь
+        // просто уводим на логин, а НЕ рендерим страницу дальше — раньше
+        // ошибка полностью проглатывалась, и пользователь видел полностью
+        // рабочие "Изменить личные данные"/"Платежи"/т.д. с пустыми полями
+        // поверх битого токена, хотя запрос вернул 401.
+        if (e instanceof AuthError) {
+          // Не вызываем setLoading(false) здесь — страница и так уходит на
+          // /login, лишний рендер формы с пустыми полями не нужен даже на
+          // долю секунды.
+          if (active) router.replace('/login' as any);
+          return;
+        }
+        // Прочие ошибки (сеть и т.п.) — молча показываем пустую форму, как
+        // и раньше.
+      }
+      if (active) setLoading(false);
     })();
     return () => { active = false; };
   }, [router]);
@@ -825,6 +860,50 @@ export default function ProfileScreenWeb() {
     if (!result.canceled && result.assets[0]) setEventCoverUri(result.assets[0].uri);
   }
 
+  // ── Заявка на статью ─────────────────────────────────────────────────────
+  async function handlePickArticleCover() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.8 });
+    if (!result.canceled && result.assets[0]) setArticleCoverUri(result.assets[0].uri);
+  }
+
+  // Список своих событий — для выбора "Событие для интеграции в текст";
+  // грузим лениво, только при открытии модалки (а не сразу на странице),
+  // чтобы не делать лишний запрос для наставников, которые статью не пишут.
+  function openNewArticleModal() {
+    setArticleError('');
+    setNewArticleModalVisible(true);
+    if (articleEvents.length === 0 && !articleEventsLoading) {
+      setArticleEventsLoading(true);
+      getTutorEvents().then(setArticleEvents).catch(() => {}).finally(() => setArticleEventsLoading(false));
+    }
+  }
+
+  async function handleCreateArticle() {
+    setCreatingArticle(true);
+    setArticleError('');
+    try {
+      let coverUrl: string | undefined;
+      if (articleCoverUri) coverUrl = await uploadEventImage(articleCoverUri);
+      await createTutorArticle({
+        title: articleTitle,
+        cover_url: coverUrl,
+        excerpt: articleExcerpt || undefined,
+        event_id: articleEventId ?? undefined,
+      });
+      setArticleTitle(''); setArticleCoverUri(null); setArticleExcerpt(''); setArticleEventId(null);
+      setNewArticleModalVisible(false);
+      setArticleSubmitted(true);
+    } catch (e: any) {
+      setArticleError(e?.message ?? 'Не удалось отправить заявку');
+      setNewArticleModalVisible(false);
+      setArticleErrorModalVisible(true);
+    } finally {
+      setCreatingArticle(false);
+    }
+  }
+
   if (loading) {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
@@ -989,6 +1068,9 @@ export default function ProfileScreenWeb() {
                 </Pressable>
                 <Pressable onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
                   <Text style={styles.actionLink}>Создать событие</Text>
+                </Pressable>
+                <Pressable onPress={() => { setArticleSubmitted(false); openNewArticleModal(); }}>
+                  <Text style={styles.actionLink}>Создать статью</Text>
                 </Pressable>
               </View>
             </View>
@@ -1197,6 +1279,95 @@ export default function ProfileScreenWeb() {
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setEventErrorModalVisible(false)}><Text style={styles.modalCancelText}>Закрыть</Text></Pressable>
               <Pressable onPress={() => { setEventErrorModalVisible(false); setNewEventModalVisible(true); }}>
+                <Text style={styles.modalSaveText}>Попробовать ещё раз</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Заявка на статью ─────────────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={newArticleModalVisible} onRequestClose={() => setNewArticleModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setNewArticleModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Новая статья</Text>
+              <Pressable onPress={() => setNewArticleModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <ScrollView style={styles.slotsModalScroll}>
+              <FieldWithPlus label="Заголовок" value={articleTitle} onChangeText={setArticleTitle} />
+
+              <Text style={styles.fieldLabel}>Обложка</Text>
+              <Pressable style={styles.fieldInputWrap} onPress={handlePickArticleCover}>
+                {articleCoverUri ? <Image source={{ uri: articleCoverUri }} style={styles.avatarThumb} /> : (
+                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
+                    <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
+                  </Svg>
+                )}
+              </Pressable>
+
+              <FieldWithPlus label="Описание" value={articleExcerpt} onChangeText={setArticleExcerpt} multiline maxLength={300} />
+              <Text style={styles.hint}>Расскажите коротко о теме вашей статьи</Text>
+
+              <Text style={styles.fieldLabel}>Событие для интеграции в текст</Text>
+              {articleEventsLoading ? (
+                <ActivityIndicator color="#010101" style={{ marginTop: 8 }} />
+              ) : articleEvents.length === 0 ? (
+                <Text style={styles.hint}>У вас пока нет событий</Text>
+              ) : (
+                <View style={styles.articleEventList}>
+                  {articleEvents.map((e) => {
+                    const active = e.id === articleEventId;
+                    return (
+                      <Pressable
+                        key={e.id}
+                        style={[styles.articleEventRow, active && styles.articleEventRowActive]}
+                        onPress={() => setArticleEventId(active ? null : e.id)}
+                      >
+                        <Text style={[styles.articleEventRowTitle, active && styles.articleEventRowTitleActive]} numberOfLines={1}>{e.title}</Text>
+                        {e.start_at ? <Text style={[styles.articleEventRowDate, active && styles.articleEventRowTitleActive]}>{formatHistoryDate(e.start_at)}</Text> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setNewArticleModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleCreateArticle} disabled={creatingArticle || !articleTitle.trim()}>
+                <Text style={styles.modalSaveText}>{creatingArticle ? 'Отправляем…' : 'Отправить заявку'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Заявка отправлена!" modal — после успешной отправки заявки ──── */}
+      <Modal transparent animationType="fade" visible={articleSubmitted} onRequestClose={() => setArticleSubmitted(false)}>
+        <Pressable style={styles.overlay} onPress={() => setArticleSubmitted(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Заявка отправлена!</Text>
+              <Pressable onPress={() => setArticleSubmitted(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.withdrawMessage}>Статья отправлена на модерацию. Мы свяжемся с вами и опубликуем материал после проверки.</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Не удалось отправить заявку" modal — ошибка отправки ─────────── */}
+      <Modal transparent animationType="fade" visible={articleErrorModalVisible} onRequestClose={() => setArticleErrorModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setArticleErrorModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={[styles.modalTitle, styles.modalTitleError]}>Не удалось отправить заявку</Text>
+              <Pressable onPress={() => setArticleErrorModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.errorText}>{articleError}</Text>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setArticleErrorModalVisible(false)}><Text style={styles.modalCancelText}>Закрыть</Text></Pressable>
+              <Pressable onPress={() => { setArticleErrorModalVisible(false); setNewArticleModalVisible(true); }}>
                 <Text style={styles.modalSaveText}>Попробовать ещё раз</Text>
               </Pressable>
             </View>
@@ -1759,6 +1930,15 @@ const styles = StyleSheet.create({
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
+  // Выбор события для заявки на статью — список своих событий (title+дата),
+  // не пилюли (может не поместиться в строку) и не поиск, как в админке
+  // (наставник выбирает из своего короткого списка, не ищет по всем).
+  articleEventList: { marginTop: 8, marginBottom: 8, gap: 1 },
+  articleEventRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E5E5', paddingVertical: 10 },
+  articleEventRowActive: { borderColor: '#E02D2D' },
+  articleEventRowTitle: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101' },
+  articleEventRowTitleActive: { color: '#E02D2D' },
+  articleEventRowDate: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#9B9B9B', marginLeft: 12 },
   bioText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 30 },
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000',     marginTop: 16, lineHeight: 18 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },
