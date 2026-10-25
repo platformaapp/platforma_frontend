@@ -55,7 +55,12 @@ export function parseInlineMarkdown(text: string, keyPrefix = 'n'): React.ReactN
     const label = earliestMatch[1];
     const url = earliestMatch[2];
     nodes.push(
-      <Text key={`${keyPrefix}m`} style={linkStyle} onPress={() => Linking.openURL(url)}>
+      <Text
+        key={`${keyPrefix}m`}
+        style={linkStyle}
+        onPress={() => Linking.openURL(url)}
+        {...({ dataSet: { textLink: 'true' } } as any)}
+      >
         {parseInlineMarkdown(label, `${keyPrefix}mi`)}
       </Text>
     );

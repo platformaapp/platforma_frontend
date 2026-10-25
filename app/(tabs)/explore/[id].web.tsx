@@ -313,7 +313,7 @@ export default function TutorCardScreenWeb() {
   // наставника" выше, но статьи ведут на /journal/:id, не "прошедших" нет.
   function renderArticleCardMobile(a: MentorArticle) {
     return (
-      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.slug}` as any)}>
+      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)}>
         {a.coverUrl ? <Image source={{ uri: a.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventRowBodyMobile}>
           <View>
@@ -327,7 +327,7 @@ export default function TutorCardScreenWeb() {
 
   function renderMentorArticleGridCard(a: MentorArticle, posInRow: 0 | 1 | 2, narrowImage: boolean) {
     return (
-      <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.slug}` as any)}>
+      <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)}>
         {a.coverUrl ? (
           <Image
             source={{ uri: a.coverUrl }}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -10,9 +10,22 @@ import { useSiteSettings } from '@/hooks/use-site-settings';
 // — пустой плейсхолдер, пока не загружено реальное.
 const DEFAULT_HEADING = 'О нас';
 const DEFAULT_TEXT =
-  'p(34) — платформа для лекций, творческих занятий и встреч с наставниками. ' +
-  'Мы собираем независимых авторов и организаторов в одном месте, чтобы события ' +
-  'было легко находить, бронировать и проводить.';
+  'p(34) — платформа для свободных городских разговоров и художественных высказываний. ' +
+  'Мы помогаем людям открывать новые увлечения, встречаться с теми, кто готов делиться ' +
+  'опытом, и смотреть на привычную жизнь под другим углом.\n\n' +
+  'Наша цель — объединить наставников, учеников и культурные площадки, чтобы вместе ' +
+  'создать пространство для обмена знаниями, творческих экспериментов и новых знакомств.';
+
+// Контакты — не редактируются из админки (в отличие от heading/text выше),
+// захардкожены: это реквизиты самой платформы, а не контент конкретной
+// страницы. data-text-link — тот же механизм, что у ссылок в статье
+// (lib/markdown-inline.tsx, tag-list.tsx) — при наведении только подчёркивание,
+// без затемнения (см. правило в app/+html.tsx).
+const CONTACTS: { label: string; handle: string; url: string }[] = [
+  { label: 'для коллабораций и сотрудничества', handle: '@vladislav_yakunin', url: 'https://t.me/vladislav_yakunin' },
+  { label: 'Telegram', handle: '@p34forma', url: 'https://t.me/p34forma' },
+  { label: 'Instagram', handle: '@p34.forma', url: 'https://instagram.com/p34.forma' },
+];
 
 /**
  * Страница "О нас" — по клику на логотип p(34) в шапке (десктоп, см.
@@ -35,6 +48,20 @@ export default function AboutUsScreenWeb() {
     <View style={isMobile ? styles.mobileThumb : styles.cover} />
   );
 
+  const contactsBlock = (
+    <View style={styles.contacts}>
+      <Text style={styles.contactsHeading}>Свяжитесь с нами</Text>
+      {CONTACTS.map((c) => (
+        <View key={c.url} style={styles.contactRow}>
+          <Text style={styles.contactLabel}>{c.label}</Text>
+          <Pressable onPress={() => Linking.openURL(c.url)} {...({ dataSet: { textLink: 'true' } } as any)}>
+            <Text style={styles.contactHandle}>{c.handle}</Text>
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
@@ -44,12 +71,14 @@ export default function AboutUsScreenWeb() {
             <Text style={[styles.title, styles.titleMobile]}>{heading}</Text>
             {photo}
             <Text style={styles.description}>{text}</Text>
+            {contactsBlock}
           </View>
         ) : (
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
               <Text style={styles.title}>{heading}</Text>
               <Text style={styles.description}>{text}</Text>
+              {contactsBlock}
             </View>
             <View style={styles.rightCol}>
               {photo}
@@ -78,4 +107,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
   titleMobile: { fontSize: 25, lineHeight: 28 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
+
+  contacts: { marginTop: 40, maxWidth: 504 },
+  contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginBottom: 16 },
+  contactRow: { marginBottom: 12 },
+  contactLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
+  contactHandle: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
 });

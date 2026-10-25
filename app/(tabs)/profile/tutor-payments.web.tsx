@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import {
@@ -366,6 +367,8 @@ export default function TutorPaymentsScreenWeb() {
           </View>
         ))}
         {payouts.length === 0 && payments.length === 0 ? <Text style={styles.emptyText}>История пуста</Text> : null}
+
+        <SiteFooter />
       </ScrollView>
 
       {/* ─── Запросить выплату ────────────────────────────────────────── */}
