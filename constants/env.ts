@@ -37,6 +37,7 @@ export const endpoints = {
   // отдельного /api/tutor/events на бэкенде нет)
   tutorProfile: `${API_BASE}/api/tutor/profile`,
   tutorSlots: `${API_BASE}/api/tutor/slots`,
+  tutorArticles: `${API_BASE}/api/tutor/articles`,
   tutorPayments: `${API_BASE}/api/tutor/payments`,
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
   tutorPayoutsBalance: `${API_BASE}/api/tutor/payouts/balance`,
