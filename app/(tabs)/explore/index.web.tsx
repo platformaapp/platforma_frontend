@@ -150,7 +150,7 @@ export default function MentorsScreenWeb() {
 
         {activeTag ? (
           <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
-            <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
+            <Text style={styles.activeTagChipText}>#{activeTag}</Text>
           </Pressable>
         ) : null}
 
@@ -167,7 +167,7 @@ export default function MentorsScreenWeb() {
               })}
             </View>
             <Pressable style={styles.filterPillRight} onPress={() => router.push('/register-tutor' as any)}>
-              <Text style={styles.filterPillText}>Стать наставником</Text>
+              <Text style={styles.becomeTutorPillText}>Стать наставником</Text>
             </Pressable>
           </View>
         )}
@@ -256,6 +256,10 @@ const styles = StyleSheet.create({
   filterPillRight: { marginLeft: 'auto', marginRight: 0, paddingLeft: 24 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
+  // Тот же вариант А, что и «Создать событие» на /events (см. комментарий
+  // там) — красный текст, подчёркивание без затемнения при наведении даёт
+  // общий механизм в app/_layout.tsx сам по себе.
+  becomeTutorPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#E02D2D' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },

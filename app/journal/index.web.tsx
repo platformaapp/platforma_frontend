@@ -8,6 +8,7 @@ import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
+import { getAuthRole, getAuthToken } from '@/lib/auth';
 
 // Повторяющийся цикл из 4 строк (пара/тройка/пара/тройка, см. rows ниже) —
 // пропорции колонок из референса (vladyakunin.ru): .proj-featured 649:84:716
@@ -51,6 +52,31 @@ export default function JournalScreenWeb() {
   const [error, setError] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [isAuthedTutor, setIsAuthedTutor] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
+      if (active) setIsAuthedTutor(Boolean(token) && role === 'tutor');
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // Авторизованного наставника "Написать текст" ведёт сразу в попап
+  // создания статьи на его личной странице, а не на анкету регистрации
+  // наставника — она нужна только тем, кто ещё не наставник.
+  function handleWriteTextPress() {
+    router.push((isAuthedTutor ? '/profile?open=article' : '/register-tutor') as any);
+  }
+
+  // Вариант Б (сравниваем с вариантом А на /events, см. createEventPillText
+  // там): текст серый по умолчанию, красный только при наведении — в
+  // отличие от варианта А, цвет меняется через собственный hover-стейт
+  // (onHoverIn/onHoverOut), а не статично, поэтому общий механизм
+  // детекции "красного" в app/_layout.tsx применяет свои
+  // "без затемнения + подчёркивание" правила только в момент наведения.
+  const [writeTextHovered, setWriteTextHovered] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -196,7 +222,7 @@ export default function JournalScreenWeb() {
 
         {activeTag && isMobile ? (
           <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
-            <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
+            <Text style={styles.activeTagChipText}>#{activeTag}</Text>
           </Pressable>
         ) : null}
 
@@ -209,7 +235,7 @@ export default function JournalScreenWeb() {
                 // сам хэштег, тем же стилем, что и выбранная рубрика; клик
                 // сбрасывает фильтр и возвращает обычный журнал с рубриками.
                 <Pressable onPress={clearTagFilter}>
-                  <Text style={[styles.filterText, styles.filterTextActive]}>#{activeTag} ✕</Text>
+                  <Text style={[styles.filterText, styles.filterTextActive]}>#{activeTag}</Text>
                 </Pressable>
               ) : (
                 ARTICLE_FORMATS.map((f) => {
@@ -222,8 +248,13 @@ export default function JournalScreenWeb() {
                 })
               )}
             </View>
-            <Pressable style={styles.filterPillRight} onPress={() => router.push('/register-tutor' as any)}>
-              <Text style={styles.filterText}>Написать текст</Text>
+            <Pressable
+              style={styles.filterPillRight}
+              onPress={handleWriteTextPress}
+              onHoverIn={() => setWriteTextHovered(true)}
+              onHoverOut={() => setWriteTextHovered(false)}
+            >
+              <Text style={[styles.filterText, writeTextHovered && styles.filterTextRedHover]}>Написать текст</Text>
             </Pressable>
           </View>
         ) : null}
@@ -250,7 +281,7 @@ export default function JournalScreenWeb() {
                 </View>
               </Pressable>
             ))}
-            <Pressable style={styles.writeTextButton} onPress={() => router.push('/register-tutor' as any)}>
+            <Pressable style={styles.writeTextButton} onPress={handleWriteTextPress}>
               <Text style={styles.writeTextButtonText}>Написать текст</Text>
             </Pressable>
             {paginationEl}
@@ -326,6 +357,7 @@ const styles = StyleSheet.create({
   filterPillRight: { marginLeft: 'auto', marginRight: ROW_THREE_RIGHT_INSET, paddingLeft: 24 } as any,
   filterText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
+  filterTextRedHover: { color: '#E02D2D' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },

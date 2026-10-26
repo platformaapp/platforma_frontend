@@ -12,6 +12,7 @@ import { API_BASE, endpoints } from '@/constants/env';
 import { getArticles } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { fixHangingPrepositions } from '@/lib/typography';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
@@ -437,7 +438,7 @@ export default function TutorCardScreenWeb() {
               </View>
             </View>
 
-            {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
+            {displayBio ? <Text style={styles.bio}>{fixHangingPrepositions(displayBio)}</Text> : null}
 
             <View style={styles.actionsRowMobile}>{actions}</View>
             {instagramUrl ? (
@@ -461,7 +462,7 @@ export default function TutorCardScreenWeb() {
                 <TagList tags={tags} textStyle={styles.name} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
               </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
-              {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
+              {displayBio ? <Text style={styles.bio}>{fixHangingPrepositions(displayBio)}</Text> : null}
 
               {displayPrice ? (
                 <View style={styles.priceRow}>

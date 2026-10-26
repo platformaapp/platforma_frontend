@@ -1,14 +1,14 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
+import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { parseFeedItems } from '@/lib/event-feed';
 
 function resolveUrl(url: unknown): string | null {
@@ -96,6 +96,24 @@ export default function EventsScreenWeb() {
   const [format, setFormat] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [isAuthedTutor, setIsAuthedTutor] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
+      if (active) setIsAuthedTutor(Boolean(token) && role === 'tutor');
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // Авторизованного наставника "Создать событие" ведёт сразу в попап
+  // создания на его личной странице (как "Создать событие"/"Написать
+  // статью" там же), а не на анкету регистрации наставника — она нужна
+  // только тем, кто ещё не наставник.
+  function handleCreateEventPress() {
+    router.push((isAuthedTutor ? '/profile?open=event' : '/register-tutor') as any);
+  }
 
   const fetchRegisteredIds = useCallback(async (): Promise<Set<string>> => {
     const registeredIds = new Set<string>();
@@ -307,7 +325,7 @@ export default function EventsScreenWeb() {
 
         {activeTag ? (
           <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
-            <Text style={styles.activeTagChipText}>#{activeTag} ✕</Text>
+            <Text style={styles.activeTagChipText}>#{activeTag}</Text>
           </Pressable>
         ) : null}
 
@@ -325,9 +343,9 @@ export default function EventsScreenWeb() {
             </View>
             <Pressable
               style={[styles.filterPill, styles.filterPillRight]}
-              onPress={() => router.push('/register-tutor' as any)}
+              onPress={handleCreateEventPress}
             >
-              <Text style={styles.filterPillText}>Создать событие</Text>
+              <Text style={styles.createEventPillText}>Создать событие</Text>
             </Pressable>
           </View>
         ) : null}
@@ -359,7 +377,7 @@ export default function EventsScreenWeb() {
             ))}
             <Pressable
               style={styles.createEventButton}
-              onPress={() => router.push('/register-tutor' as any)}
+              onPress={handleCreateEventPress}
             >
               <Text style={styles.createEventButtonText}>Создать событие</Text>
             </Pressable>
@@ -447,6 +465,11 @@ const styles = StyleSheet.create({
   filterPillRight: { marginLeft: 'auto', marginRight: '13.4%', paddingLeft: 24 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
+  // Вариант А (сравниваем с вариантом Б на /journal, см. writeTextButtonText
+  // там): красный текст всегда — автоматически получает подчёркивание без
+  // затемнения при наведении через общий механизм детекции "красного" цвета
+  // в app/_layout.tsx (HoverDimCalibrator), ничего больше делать не нужно.
+  createEventPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#E02D2D' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },

@@ -13,6 +13,7 @@ import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payment
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthToken, getUserProfile } from '@/lib/auth';
 import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
+import { fixHangingPrepositions } from '@/lib/typography';
 
 // "Окей, что ещё" внизу страницы события — та же сетка-тройка (403/365/340),
 // что у похожих статей на /journal/[slug] (см. RELATED_ASPECTS там).
@@ -547,7 +548,7 @@ export default function EventDetailScreenWeb() {
             </View>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
-            {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+            {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
 
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
@@ -594,7 +595,7 @@ export default function EventDetailScreenWeb() {
                 <Text style={[styles.title, styles.titleShrink]}>{event.title}</Text>
                 <TagList tags={event.tags} textStyle={styles.title} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
               </View>
-              {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+              {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
               {metaBlock}
 
               {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}

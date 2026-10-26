@@ -4,6 +4,7 @@ import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { useSiteSettings } from '@/hooks/use-site-settings';
+import { fixHangingPrepositions } from '@/lib/typography';
 
 // Дефолтные заголовок/текст/фото — показываются, пока админ не задал свои
 // (см. AboutUsSetting/admin/site-settings.tsx, секция "О нас").
@@ -41,7 +42,7 @@ export default function AboutUsScreenWeb() {
   const { aboutUs } = useSiteSettings();
 
   const heading = aboutUs.heading || DEFAULT_HEADING;
-  const text = aboutUs.text || DEFAULT_TEXT;
+  const text = fixHangingPrepositions(aboutUs.text || DEFAULT_TEXT);
   // Обёртка с paddingBottom-трюком (аспект через % от своей же ширины) +
   // картинка внутри position:absolute/inset:0 — для photoUrl с бэкенда (uri)
   // простой aspectRatio на самом Image тоже работал, но ломается именно для

@@ -10,6 +10,8 @@
 import React from 'react';
 import { Linking, Text, type TextStyle } from 'react-native';
 
+import { fixHangingPrepositions } from '@/lib/typography';
+
 type InlineRule = {
   re: RegExp;
   isLink?: boolean;
@@ -44,7 +46,7 @@ export function parseInlineMarkdown(text: string, keyPrefix = 'n'): React.ReactN
     }
   }
 
-  if (!earliestMatch || earliestRule == null) return [text];
+  if (!earliestMatch || earliestRule == null) return [fixHangingPrepositions(text)];
 
   const before = text.slice(0, earliestIndex);
   const after = text.slice(earliestIndex + earliestMatch[0].length);

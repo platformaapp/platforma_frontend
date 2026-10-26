@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -128,8 +128,21 @@ function formatSlotDateLabel(date: string): string {
  */
 export default function ProfileScreenWeb() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  // ?open=event|article — см. events/journal "Создать событие"/"Написать
+  // текст": авторизованного наставника ведут сюда с этим параметром, чтобы
+  // открыть попап создания сразу, без лишнего клика по ссылке на этой же
+  // странице (см. useEffect ниже, который его читает один раз и открывает
+  // соответствующую модалку после загрузки профиля).
+  const { open: openParam } = useLocalSearchParams<{ open?: string }>();
+  const { width, height: windowHeight } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
+  // 320 — высота под самую короткую из форм, переиспользующих этот стиль
+  // (слоты); для формы наставника (Имя/Описание/Почта/Телеграм/...до
+  // Пароля) этого не хватает — поле "Телеграм" обрезалось строго по
+  // границе 320px, и было не прокрутить до него колесом мыши (вложенный
+  // ScrollView внутри модалки). Берём высоту от окна, чтобы длинные формы
+  // показывали больше полей сразу, не упираясь в небо на маленьких экранах.
+  const modalScrollMaxHeight = Math.max(320, Math.min(560, windowHeight - 260));
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState('');
@@ -310,6 +323,25 @@ export default function ProfileScreenWeb() {
     })();
     return () => { active = false; };
   }, [router]);
+
+  // ?open=event|article — см. events/journal: открываем попап создания
+  // сразу по приходу на страницу (вместо лишнего клика по "Создать
+  // событие"/"Создать статью" здесь же). openedFromParamRef — чтобы не
+  // открыть повторно при каждом ре-рендере, пока параметр остаётся в URL.
+  const openedFromParamRef = useRef(false);
+  useEffect(() => {
+    if (loading || openedFromParamRef.current || role !== 'tutor') return;
+    if (openParam === 'event') {
+      openedFromParamRef.current = true;
+      setEventCreated(false);
+      setEventError('');
+      setNewEventModalVisible(true);
+    } else if (openParam === 'article') {
+      openedFromParamRef.current = true;
+      setArticleSubmitted(false);
+      openNewArticleModal();
+    }
+  }, [loading, role, openParam]);
 
   async function pickAvatar(): Promise<string | undefined> {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -1101,7 +1133,7 @@ export default function ProfileScreenWeb() {
       <Modal transparent animationType="fade" visible={tutorEditModalVisible} onRequestClose={() => setTutorEditModalVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setTutorEditModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
-            <ScrollView style={styles.slotsModalScroll}>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
               <Text style={styles.modalTitle}>Изменение данных</Text>
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
@@ -1184,7 +1216,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>Добавить событие</Text>
               <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <ScrollView style={styles.slotsModalScroll}>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
               <FieldWithPlus
                 label="Название"
                 value={eventTitle}
@@ -1294,7 +1326,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>Новая статья</Text>
               <Pressable onPress={() => setNewArticleModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <ScrollView style={styles.slotsModalScroll}>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
               <FieldWithPlus label="Заголовок" value={articleTitle} onChangeText={setArticleTitle} />
 
               <Text style={styles.fieldLabel}>Обложка</Text>
@@ -1382,7 +1414,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>{isMobile ? 'Редактировать слоты' : 'Редактировать слоты для записи'}</Text>
             </View>
 
-            <ScrollView style={styles.slotsModalScroll}>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
               {groupSlotsByDate(slots).map((group) => (
                 <View key={group.date} style={styles.slotDateGroup}>
                   <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
