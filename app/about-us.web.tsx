@@ -127,6 +127,6 @@ const styles = StyleSheet.create({
   contacts: { marginTop: 40, maxWidth: 504 },
   contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginBottom: 16 },
   contactRow: { marginBottom: 12 },
-  contactLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  contactHandle: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', textDecorationLine: 'underline' },
+  contactLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076'},
+  contactHandle: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', textDecorationLine: 'none' },
 });
