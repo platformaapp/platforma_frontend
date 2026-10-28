@@ -687,7 +687,11 @@ export default function ArticleScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  // marginTop:86 — тот же отступ от шапки, что у страницы события
+  // (events/[id].web.tsx) и "О нас" (about-us.web.tsx); раньше здесь было
+  // только paddingTop:24, и заголовок статьи оказывался заметно ближе к
+  // шапке, чем на остальных похожих страницах.
+  scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
