@@ -1,5 +1,5 @@
 /**
- * Не даёm однобуквенным предлогам/союзам (в, к, с, о, а, и, у, е) повисать
+ * Не даёт однобуквенным предлогам/союзам (в, к, с, о, а, и, у, е) повисать
  * одни в конце строки — меняем пробел ПОСЛЕ такого слова на неразрывный
  * (U+00A0), чтобы оно всегда переносилось вместе со следующим словом.
  * Ограничиваемся именно однобуквенными словами: в русском языке отдельное
@@ -12,4 +12,23 @@ const SINGLE_LETTER_WORDS = /(^|\s)([авикосуеАВИКОСУЕ])(\s)/gu;
 export function fixHangingPrepositions(text: string): string {
   if (!text) return text;
   return text.replace(SINGLE_LETTER_WORDS, (_match, before: string, letter: string, _after: string) => `${before}${letter} `);
+}
+
+/**
+ * Не даёт заголовку обрываться так, что последняя строка состоит из одного
+ * короткого слова (пример: «Голодных игр» переносится как «Голодных» /
+ * «игр» — вторая строка повисает одним словом). Склеиваем неразрывным
+ * пробелом последние два слова — тогда при нехватке ширины браузер
+ * перенесёт их на новую строку только вместе, и ни одно слово не останется
+ * там в одиночестве. Для заголовков/названий (короткий текст, обычно 1-2
+ * строки) — в отличие от fixHangingPrepositions эта склейка не годится для
+ * длинных абзацев: там "последнее слово" — это конец всего текста, а не
+ * каждой визуальной строки, которую мы не знаем без разметки.
+ */
+export function preventOrphanLastWord(text: string): string {
+  if (!text) return text;
+  const trimmed = text.trimEnd();
+  const lastSpaceIndex = trimmed.lastIndexOf(' ');
+  if (lastSpaceIndex === -1) return text;
+  return trimmed.slice(0, lastSpaceIndex) + ' ' + trimmed.slice(lastSpaceIndex + 1) + text.slice(trimmed.length);
 }

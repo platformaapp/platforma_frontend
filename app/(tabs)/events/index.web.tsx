@@ -9,6 +9,7 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
+import { preventOrphanLastWord } from '@/lib/typography';
 import { parseFeedItems } from '@/lib/event-feed';
 
 function resolveUrl(url: unknown): string | null {
@@ -263,7 +264,7 @@ export default function EventsScreenWeb() {
           <View style={labelStyle}>
             {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
-          <Text style={[styles.cardTitleText, titleStyle]}>{item.title}</Text>
+          <Text style={[styles.cardTitleText, titleStyle]}>{preventOrphanLastWord(item.title)}</Text>
           {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
         </View>
       </Pressable>
@@ -281,7 +282,7 @@ export default function EventsScreenWeb() {
         <View style={styles.rowLabel}>
           {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
         </View>
-        <Text style={[styles.cardTitleText, styles.rowTitle]}>{item.title}</Text>
+        <Text style={[styles.cardTitleText, styles.rowTitle]}>{preventOrphanLastWord(item.title)}</Text>
         {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
       </Pressable>
     );
@@ -369,7 +370,7 @@ export default function EventsScreenWeb() {
                 <View style={styles.mobileInfo}>
                   <View>
                     {item.mentor?.name ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
-                    <Text style={styles.mobileTitleText}>{item.title}</Text>
+                    <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
                   </View>
                   {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                 </View>

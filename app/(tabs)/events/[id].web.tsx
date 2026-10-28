@@ -13,7 +13,7 @@ import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payment
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthToken, getUserProfile } from '@/lib/auth';
 import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
-import { fixHangingPrepositions } from '@/lib/typography';
+import { fixHangingPrepositions, preventOrphanLastWord } from '@/lib/typography';
 
 // "Окей, что ещё" внизу страницы события — та же сетка-тройка (403/365/340),
 // что у похожих статей на /journal/[slug] (см. RELATED_ASPECTS там).
@@ -469,7 +469,7 @@ export default function EventDetailScreenWeb() {
         ) : (
           <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
         )}
-        <Text style={styles.relatedTitle}>{item.title}</Text>
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
       </Pressable>
     );
   }
@@ -538,7 +538,7 @@ export default function EventDetailScreenWeb() {
         ) : isMobile ? (
           <View>
             <View style={styles.titleRow}>
-              <Text style={[styles.title, styles.titleMobile, styles.titleShrink]}>{event.title}</Text>
+              <Text style={[styles.title, styles.titleMobile, styles.titleShrink]}>{preventOrphanLastWord(event.title)}</Text>
               <TagList tags={event.tags} textStyle={[styles.title, styles.titleMobile]} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
             </View>
 
@@ -592,7 +592,7 @@ export default function EventDetailScreenWeb() {
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
               <View style={styles.titleRow}>
-                <Text style={[styles.title, styles.titleShrink]}>{event.title}</Text>
+                <Text style={[styles.title, styles.titleShrink]}>{preventOrphanLastWord(event.title)}</Text>
                 <TagList tags={event.tags} textStyle={styles.title} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
               </View>
               {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}

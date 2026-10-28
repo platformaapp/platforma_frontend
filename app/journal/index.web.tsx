@@ -9,6 +9,7 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
+import { preventOrphanLastWord } from '@/lib/typography';
 
 // Повторяющийся цикл из 4 строк (пара/тройка/пара/тройка, см. rows ниже) —
 // пропорции колонок из референса (vladyakunin.ru): .proj-featured 649:84:716
@@ -144,7 +145,7 @@ export default function JournalScreenWeb() {
           {item.category ? (
             <Text style={[styles.cardCategory, labelStyle]}>{item.category}</Text>
           ) : null}
-          <Text style={[styles.cardTitleText, titleStyle]}>{item.title}</Text>
+          <Text style={[styles.cardTitleText, titleStyle]}>{preventOrphanLastWord(item.title)}</Text>
         </View>
       </Pressable>
     );
@@ -159,7 +160,7 @@ export default function JournalScreenWeb() {
           <View style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} />
         )}
         {item.category ? <Text style={[styles.cardCategory, styles.rowLabel]}>{item.category}</Text> : null}
-        <Text style={[styles.cardTitleText, styles.rowTitle]}>{item.title}</Text>
+        <Text style={[styles.cardTitleText, styles.rowTitle]}>{preventOrphanLastWord(item.title)}</Text>
       </Pressable>
     );
   }
@@ -277,7 +278,7 @@ export default function JournalScreenWeb() {
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   {item.category ? <Text style={styles.mobileCategory}>{item.category}</Text> : null}
-                  <Text style={styles.mobileTitleText}>{item.title}</Text>
+                  <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
                 </View>
               </Pressable>
             ))}

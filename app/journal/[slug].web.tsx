@@ -10,6 +10,7 @@ import { API_BASE, endpoints } from '@/constants/env';
 import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
 import { parseFeedItems } from '@/lib/event-feed';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
+import { preventOrphanLastWord } from '@/lib/typography';
 
 // "Окей, что ещё" — ближайшие события той же категории, что у события,
 // привязанного к статье (article.event.category) — только когда оно есть;
@@ -247,7 +248,7 @@ export default function ArticleScreenWeb() {
   // если задан в админке (SEO-блок, admin/journal-detail.tsx); seoTitle/
   // metaDescription ни на что в разметке страницы не влияют, кроме <head>.
   const visibleTitle = article.h1 || article.title;
-  const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{visibleTitle}</Text>;
+  const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{preventOrphanLastWord(visibleTitle)}</Text>;
   const pageTitle = article.seoTitle || article.title;
   const pageDescription = article.metaDescription || excerptFromContent(article.content);
   // og:title/og:description — отдельные поля (могут отличаться от
@@ -383,7 +384,7 @@ export default function ArticleScreenWeb() {
         ) : (
           <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
         )}
-        <Text style={styles.relatedTitle}>{item.title}</Text>
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
         {dateText ? <Text style={styles.relatedCategory}>{dateText}</Text> : null}
       </Pressable>
     );
@@ -402,7 +403,7 @@ export default function ArticleScreenWeb() {
           <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
         )}
         {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
-        <Text style={styles.relatedTitle}>{item.title}</Text>
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
       </Pressable>
     );
   }
@@ -414,7 +415,7 @@ export default function ArticleScreenWeb() {
       <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.inlineRelatedImage} resizeMode="cover" /> : <View style={styles.inlineRelatedImage} />}
         {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
-        <Text style={styles.relatedTitle}>{item.title}</Text>
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
       </Pressable>
     );
   }
@@ -444,7 +445,7 @@ export default function ArticleScreenWeb() {
       return (
         <View style={styles.ctaBlock}>
           <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
-            <Text style={[styles.title, styles.titleMobile, styles.ctaEventTitleMobile]}>{event.title}</Text>
+            <Text style={[styles.title, styles.titleMobile, styles.ctaEventTitleMobile]}>{preventOrphanLastWord(event.title)}</Text>
             <View style={styles.ctaEventMetaRow}>
               {datetimeText ? <Text style={styles.ctaEventMetaValue}>{datetimeText}</Text> : null}
               <Text style={styles.ctaEventMetaValue}>{priceText}</Text>
@@ -471,7 +472,7 @@ export default function ArticleScreenWeb() {
           ) : (
             <View style={styles.eventCtaImage} />
           )}
-          <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{event.title}</Text>
+          <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
           <View style={styles.eventCtaFooterRow}>
             <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
             {dateText ? <Text style={styles.ctaCardMeta}>{dateText}</Text> : null}
