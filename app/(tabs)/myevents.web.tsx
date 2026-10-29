@@ -704,8 +704,9 @@ const styles = StyleSheet.create({
   // остальных (84.4% вместо 100%), только картинка.
   emptyRecommendedImageNarrow: { width: '84.4%' },
   emptyRecommendedAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
-  emptyRecommendedTitle: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  emptyRecommendedDate: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
+  // Размер — как в карточках "Прошедшие события" (cardTitle/cardDateText).
+  emptyRecommendedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  emptyRecommendedDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
