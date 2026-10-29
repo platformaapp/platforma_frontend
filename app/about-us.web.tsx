@@ -61,7 +61,7 @@ export default function AboutUsScreenWeb() {
   );
 
   const contactsBlock = (
-    <View style={styles.contacts}>
+    <View style={[styles.contacts, !isMobile && styles.contactsDesktop]}>
       <Text style={styles.contactsHeading}>Свяжитесь с нами</Text>
       {CONTACTS.map((c) => (
         <View key={c.url} style={styles.contactRow}>
@@ -90,21 +90,11 @@ export default function AboutUsScreenWeb() {
             <View style={styles.leftCol}>
               <Text style={styles.title}>{heading}</Text>
               <Text style={styles.description}>{text}</Text>
-              {/* Растягивается на всё свободное место ниже текста (leftCol
-                  растянут на высоту строки грида — см. комментарий у
-                  leftCol), прижимая "Свяжитесь с нами" к нижнему краю фото
-                  в правой колонке. Если текст длиннее фото — свободного
-                  места нет, спейсер сжимается до 0, и контакты остаются
-                  сразу под текстом с обычным отступом (marginTop:40 у
-                  contacts — тот не трогаем, в отличие от marginTop:'auto'
-                  на самом блоке контактов: это схлопывало бы отступ до 0,
-                  когда свободного места нет, а не оставляло бы его 40). */}
-              <View style={styles.bottomSpacer} />
-              {contactsBlock}
             </View>
             <View style={styles.rightCol}>
               {photo}
             </View>
+            {contactsBlock}
           </View>
         )}
       </View>
@@ -120,8 +110,12 @@ const styles = StyleSheet.create({
   scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
 
-  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
-  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%', position: 'relative' },
+  // position:'relative' — точка отсчёта для contactsDesktop
+  // (position:'absolute', bottom:0) ниже: блок контактов — третий прямой
+  // потомок этого грида (не внутри leftCol), так что его высота больше не
+  // зависит от того, сколько текста в описании слева.
+  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117, position: 'relative' } as any,
+  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
   // paddingBottom: (1/aspectRatio)*100% — классический приём для аспекта
   // через проценты (которые CSS всегда берёт от ШИРИНЫ блока, в т.ч. для
@@ -135,20 +129,16 @@ const styles = StyleSheet.create({
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
 
   contacts: { marginTop: 40, maxWidth: 504 },
-  // Растягивается (flexGrow:1) на всё свободное место между текстом и
-  // блоком контактов внутри leftCol — та растянута на высоту строки грида
-  // (height:'100%' у leftCol), которая равна высоте более высокой колонки
-  // (обычно фото справа). Если текста меньше, чем высота фото, спейсер
-  // забирает разницу и прижимает "Свяжитесь с нами" к нижнему краю фото.
-  // Если текста больше (сейчас — дефолтный плейсхолдер в DEFAULT_TEXT),
-  // свободного места нет, спейсер сжимается до 0 — контакты остаются сразу
-  // под текстом, как раньше. Пробовали marginTop:'auto' прямо на блоке
-  // контактов — тот в случае "места нет" схлопывает её собственный
-  // marginTop:40 до 0 (контакты впритык к тексту), а absolute-позиционирование
-  // (приём с кнопками на странице наставника, actionsRow в
-  // explore/[id].web.tsx) на длинном тексте просто наезжает контактами на
-  // хвост описания — спейсер единственный не ломается ни в одном случае.
-  bottomSpacer: { flexGrow: 1 },
+  // Тот же приём, что у кнопок на странице наставника (actionsRow в
+  // explore/[id].web.tsx): блок контактов — отдельный от текста элемент
+  // (не внутри leftCol, см. JSX), прижатый к нижнему краю desktopLayout
+  // (position:'absolute', bottom:0 относительно него — см. position:'relative'
+  // у desktopLayout) — то есть к низу более высокой колонки, обычно фото
+  // справа. Независимо от длины описания слева — если текст длиннее фото,
+  // контакты могут наложиться на хвост описания; текст на этой странице
+  // редактируется из админки, при обычной длине (короче фото) наложения
+  // не будет.
+  contactsDesktop: { position: 'absolute', bottom: 0, left: 0 },
   contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 16 },
   contactRow: { marginBottom: 12 },
   contactLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076'},

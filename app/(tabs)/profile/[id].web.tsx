@@ -155,6 +155,11 @@ export default function ProfileScreenWeb() {
   const [hourlyRate, setHourlyRate] = useState('');
   const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
+  // Пока заявка наставника не одобрена (pending) — нельзя создавать
+  // события/статьи/слоты, см. actionsRow ниже и гейты в handleCreateEvent/
+  // openNewArticleModal/toggleTimePickerForDate/createAndAddSlot.
+  const [applicationStatus, setApplicationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+  const isPendingTutor = applicationStatus === 'pending';
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [newSlotDate, setNewSlotDate] = useState('');
@@ -279,6 +284,7 @@ export default function ProfileScreenWeb() {
           setShortBio(tp.shortBio ?? tp.short_bio ?? '');
           setSpecialization(tp.specialization ?? null);
           setTelegram(tp.telegram ?? '');
+          setApplicationStatus(tp.applicationStatus ?? null);
           // Postgres-колонка hourly_rate — decimal без transformer'а, бэкенд
           // отдаёт её строкой ("7000.00"), а не числом — typeof rate ===
           // 'number' всегда был false, поле молча оставалось пустым при
@@ -330,7 +336,7 @@ export default function ProfileScreenWeb() {
   // открыть повторно при каждом ре-рендере, пока параметр остаётся в URL.
   const openedFromParamRef = useRef(false);
   useEffect(() => {
-    if (loading || openedFromParamRef.current || role !== 'tutor') return;
+    if (loading || openedFromParamRef.current || role !== 'tutor' || isPendingTutor) return;
     if (openParam === 'event') {
       openedFromParamRef.current = true;
       setEventCreated(false);
@@ -341,7 +347,7 @@ export default function ProfileScreenWeb() {
       setArticleSubmitted(false);
       openNewArticleModal();
     }
-  }, [loading, role, openParam]);
+  }, [loading, role, openParam, isPendingTutor]);
 
   async function pickAvatar(): Promise<string | undefined> {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -789,6 +795,10 @@ export default function ProfileScreenWeb() {
 
   // ── Tutor handlers (unchanged) ────────────────────────────────────────────
   async function handleTutorSave() {
+    if (slots.length === 0) {
+      setTutorSaveError('Добавьте хотя бы один слот, чтобы сохранить профиль');
+      return;
+    }
     setTutorSaving(true);
     setTutorSaveError('');
     setTutorSaveOk(false);
@@ -830,6 +840,10 @@ export default function ProfileScreenWeb() {
    * поля цены в этом попапе нет. */
   async function createAndAddSlot(date: string, time: string) {
     if (!date || !time) return;
+    if (isPendingTutor) {
+      setSlotsSaveError('Заявка на рассмотрении — слоты станут доступны после одобрения');
+      return;
+    }
     const price = Number(hourlyRate);
     if (!price || price <= 0) {
       setSlotsSaveError('Укажите стоимость часа в личных данных, чтобы создавать слоты');
@@ -860,6 +874,7 @@ export default function ProfileScreenWeb() {
   }
 
   async function handleCreateEvent() {
+    if (isPendingTutor) return;
     setCreatingEvent(true);
     setEventError('');
     try {
@@ -913,6 +928,7 @@ export default function ProfileScreenWeb() {
   }
 
   async function handleCreateArticle() {
+    if (isPendingTutor) return;
     setCreatingArticle(true);
     setArticleError('');
     try {
@@ -1074,7 +1090,14 @@ export default function ProfileScreenWeb() {
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
-            <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              {isPendingTutor ? (
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingBadgeText}>Заявка на рассмотрении</Text>
+                </View>
+              ) : null}
+            </View>
             {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
             {tutorBioBlock}
             <View style={styles.actionsRowMobile}>
@@ -1089,7 +1112,14 @@ export default function ProfileScreenWeb() {
         ) : (
           <View style={styles.tutorDesktopGrid}>
             <View style={styles.tutorInfoContainer}>
-              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              <View style={styles.nameRow}>
+                <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+                {isPendingTutor ? (
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingBadgeText}>Заявка на рассмотрении</Text>
+                  </View>
+                ) : null}
+              </View>
               {tutorBioBlock}
               <View style={styles.actionsRow}>
                 <Pressable onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
@@ -1098,11 +1128,21 @@ export default function ProfileScreenWeb() {
                 <Pressable onPress={openPaymentsModal}>
                   <Text style={styles.actionLink}>Платежи</Text>
                 </Pressable>
-                <Pressable onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
-                  <Text style={styles.actionLink}>Создать событие</Text>
+                {/* Пока заявка наставника не одобрена — нет доступа ни к
+                    созданию событий/статей, ни к слотам (см. ниже); вместо
+                    скрытия ссылок показываем их серыми и некликабельными —
+                    понятнее, чем пропавшие кнопки. */}
+                <Pressable
+                  onPress={() => { if (isPendingTutor) return; setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}
+                  disabled={isPendingTutor}
+                >
+                  <Text style={[styles.actionLink, isPendingTutor && styles.actionLinkDisabled]}>Создать событие</Text>
                 </Pressable>
-                <Pressable onPress={() => { setArticleSubmitted(false); openNewArticleModal(); }}>
-                  <Text style={styles.actionLink}>Создать статью</Text>
+                <Pressable
+                  onPress={() => { if (isPendingTutor) return; setArticleSubmitted(false); openNewArticleModal(); }}
+                  disabled={isPendingTutor}
+                >
+                  <Text style={[styles.actionLink, isPendingTutor && styles.actionLinkDisabled]}>Создать статью</Text>
                 </Pressable>
               </View>
             </View>
@@ -1119,8 +1159,12 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ))}
-        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}>
-          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
+        <Pressable
+          style={[styles.addSlotButton, isMobile && styles.mobileChip]}
+          onPress={() => { if (isPendingTutor) return; setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}
+          disabled={isPendingTutor}
+        >
+          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText, isPendingTutor && styles.actionLinkDisabled]}>Добавить слот</Text>
         </Pressable>
 
         {accountActions}
@@ -1168,11 +1212,14 @@ export default function ProfileScreenWeb() {
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
               {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
+              {/* Без хотя бы одного слота наставник не бронируется — не даём
+                  сохранить профиль, пока его нет. */}
+              {slots.length === 0 ? <Text style={styles.hint}>Добавьте хотя бы один слот, чтобы сохранить профиль</Text> : null}
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setTutorEditModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleTutorSave} disabled={tutorSaving}>
-                <Text style={styles.modalSaveText}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              <Pressable onPress={handleTutorSave} disabled={tutorSaving || slots.length === 0}>
+                <Text style={[styles.modalSaveText, slots.length === 0 && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -1861,11 +1908,19 @@ const styles = StyleSheet.create({
   bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 345 },
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 345 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  // Имя + плашка "Заявка на рассмотрении" (pendingBadge) рядом — см.
+  // isPendingTutor.
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
+  pendingBadge: { backgroundColor: '#FFF3CD', paddingHorizontal: 10, paddingVertical: 4 },
+  pendingBadgeText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#856404' },
   profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', marginTop: 40},
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
   profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 285,     width: '22.42%', aspectRatio: 339 / 409 },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0, justifyContent: 'space-between', width: '100%' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  // Пока заявка на рассмотрении/нет слотов — ссылка/кнопка серая и
+  // некликабельная (disabled на самом Pressable), а не просто скрыта.
+  actionLinkDisabled: { color: '#9B9B9B' },
 
   // Tutor view (собственный профиль наставника) — та же сетка, что и на
   // публичной странице наставника (/explore/[id].web.tsx: desktopGrid),
