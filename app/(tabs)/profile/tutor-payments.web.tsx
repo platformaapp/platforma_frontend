@@ -479,7 +479,9 @@ export default function TutorPaymentsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
-  scrollContentMobile: { paddingHorizontal: 20 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingHorizontal: 20, paddingTop: 0 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },

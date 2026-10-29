@@ -322,15 +322,19 @@ export default function MyEventsScreenWeb() {
 
   // Мобильная полноширинная строка (см. renderEventsGrid — на десктопе
   // вместо неё теперь карточки в grid-строках по 3, renderEventGridCard).
+  // Формат карточки — как на /events (mobileRow/mobileThumb/mobileInfo/
+  // mobileTitleText), по просьбе пользователя ("нужно все как в /events").
   function renderEventListRowMobile(item: EventItem, muted = false) {
     const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
     return (
-      <Pressable key={item.id} style={styles.listRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-        {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
-        <View style={styles.listBody}>
-          <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
-          <Text style={[styles.listTitle, muted && styles.textMuted]}>{item.title}</Text>
-          {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+      <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
+        <View style={styles.mobileInfo}>
+          <View>
+            <Text style={[styles.mobileAuthor, muted && styles.textMuted]}>{item.mentor?.name || 'Событие'}</Text>
+            <Text style={[styles.mobileTitleText, muted && styles.textMuted]}>{item.title}</Text>
+          </View>
+          {dateText ? <Text style={[styles.mobileDate, muted && styles.textMuted]}>{dateText}</Text> : null}
         </View>
       </Pressable>
     );
@@ -367,7 +371,7 @@ export default function MyEventsScreenWeb() {
 
   function renderEventsGrid(items: EventItem[], muted = false) {
     if (items.length === 0) return null;
-    if (isMobile) return <View style={styles.list}>{items.map((e) => renderEventListRowMobile(e, muted))}</View>;
+    if (isMobile) return <View style={styles.mobileList}>{items.map((e) => renderEventListRowMobile(e, muted))}</View>;
     return (
       <>
         {chunk3(items).map((row, rowIdx) => (
@@ -381,19 +385,21 @@ export default function MyEventsScreenWeb() {
 
   // Мобильная карточка (2 в ряд, flex-wrap) — на десктопе вместо неё
   // карточки в grid-строках по 3, см. renderBookingGridCard/renderBookingsGrid.
+  // Формат карточки — как на /events (mobileRow/mobileThumb/mobileInfo/
+  // mobileTitleText), по просьбе пользователя ("нужно все как в /events").
   function renderBookingCard(item: BookingItem, muted = false) {
     const other = otherPartyOf(item);
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
 
     return (
-      <Pressable key={item.id} style={[styles.card, styles.cardMobile, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
-        {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitle}>{other.name}</Text>
-          <View style={styles.cardMetaRow}>
-            <Text style={styles.cardMentorName}>Личная встреча</Text>
-            {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
+      <Pressable key={item.id} style={[styles.mobileRow, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
+        {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
+        <View style={styles.mobileInfo}>
+          <View>
+            <Text style={styles.mobileAuthor}>Личная встреча</Text>
+            <Text style={styles.mobileTitleText}>{other.name}</Text>
           </View>
+          {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
         </View>
       </Pressable>
     );
@@ -429,7 +435,7 @@ export default function MyEventsScreenWeb() {
 
   function renderBookingsGrid(items: BookingItem[], muted = false) {
     if (items.length === 0) return null;
-    if (isMobile) return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
+    if (isMobile) return <View style={styles.mobileList}>{items.map((b) => renderBookingCard(b, muted))}</View>;
     return (
       <>
         {chunk3(items).map((row, rowIdx) => (
@@ -475,7 +481,7 @@ export default function MyEventsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Мои записи</Text>
@@ -631,11 +637,14 @@ export default function MyEventsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
+  // paddingTop:0 — отступ до заголовка на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 62 },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0 },
   headerVideoBlock: { alignItems: 'flex-end' },
   headerVideoButton: { backgroundColor: '#010101', paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   headerVideoButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
@@ -667,15 +676,7 @@ const styles = StyleSheet.create({
   // а не после текста "нет записей") — отступ только между строками.
   cardsGridRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
   cardsGridRowSpacing: { marginTop: 113 },
-  // grid — только для личных встреч (renderBookingGroups), события теперь используют cardsGridRow.
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
-  list: { gap: 20, marginBottom: 24 },
-  card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, backgroundColor: '#fff', position: 'relative' },
-  // Личные встречи остаются карточками (не строками списка) и на мобильном —
-  // здесь у карточки нет минимальной ширины по умолчанию, поэтому переопределяем.
-  cardMobile: { flexBasis: '47%', minWidth: 0, maxWidth: '48%' },
   cardMuted: { opacity: 0.45 },
-  cardImage: { width: '100%', height: 180 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
   cardBody: { paddingTop: 14 },
   cardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
@@ -684,13 +685,16 @@ const styles = StyleSheet.create({
   cardMentorName: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   cardDateText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
 
-  listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, position: 'relative' },
-  listRowMain: { flexDirection: 'row', flex: 1, gap: 12 },
-  listThumb: { width: 72, height: 72, backgroundColor: '#E5E5E5' },
-  listBody: { flex: 1, minHeight: 72, justifyContent: 'space-between' },
-  listLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  listTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  listDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
+  // mobileList/mobileRow/mobileThumb/mobileInfo/mobileTitleText), по просьбе
+  // пользователя унифицировать карточки "Мои записи" с /events.
+  mobileList: { gap: 28, marginBottom: 24 },
+  mobileRow: { flexDirection: 'row', gap: 20 },
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, justifyContent: 'space-between' },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
+  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 25 },
+  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   textMuted: { opacity: 0.45 },
 
   mobileVideoBar: { backgroundColor: '#010101', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 8, marginBottom: 24 },

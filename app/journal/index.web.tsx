@@ -215,7 +215,7 @@ export default function JournalScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <Pressable onPress={() => selectCategory(null)}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
@@ -340,10 +340,13 @@ export default function JournalScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  // paddingTop:0 — отступ до заголовка на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0 },
   // Активный фильтр по тегу (переход по клику на #хэштег на странице
   // статьи, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
   activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },

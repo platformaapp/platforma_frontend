@@ -502,7 +502,9 @@ export default function TutorCardScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 0, paddingBottom: 24,     marginTop: 106 },
-  scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 30 },
+  // marginTop:0 — отступ до контента на мобильном теперь даёт только
+  // стрелка "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

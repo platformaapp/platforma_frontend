@@ -9,7 +9,7 @@ export default function UserAgreementScreenWeb() {
   const isMobile = useIsMobileWeb();
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.content}>
           <Text style={styles.title}>Пользовательское соглашение</Text>
@@ -34,6 +34,9 @@ export default function UserAgreementScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   content: { maxWidth: 720, gap: 16 },

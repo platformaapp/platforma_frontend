@@ -374,9 +374,22 @@ export default function ArticleScreenWeb() {
   ) : null;
 
   // "Окей, что ещё" — те же токены карточки, что раньше были у похожих
-  // статей (relatedCategory/relatedTitle), плюс дата события.
+  // статей (relatedCategory/relatedTitle), плюс дата события. На мобильном —
+  // формат карточки как на /events (mobileRow/mobileThumb/mobileInfo/
+  // mobileTitleText), по просьбе пользователя унифицировать с /events.
   function renderUpcomingEventCard(item: UpcomingCategoryEvent, posInRow: 0 | 1 | 2) {
     const dateText = formatEventDate(item.datetimeStart ?? undefined);
+    if (isMobile) {
+      return (
+        <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+          <View style={styles.mobileInfo}>
+            <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+            {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
+          </View>
+        </Pressable>
+      );
+    }
     return (
       <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
         {item.coverUrl ? (
@@ -393,8 +406,22 @@ export default function ArticleScreenWeb() {
   // "Окей, что ещё" — статьи, выбранные админом (admin/journal-detail.tsx),
   // но НЕ размещённые маркером {{related:<id>}} в тексте (см.
   // relatedArticlesBlock ниже) — по умолчанию показываются блоком в конце
-  // статьи, той же сеткой-тройкой, что и renderUpcomingEventCard выше.
+  // статьи, той же сеткой-тройкой, что и renderUpcomingEventCard выше. На
+  // мобильном — формат карточки как на /events, см. комментарий выше.
   function renderRelatedArticleCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
+    if (isMobile) {
+      return (
+        <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+          <View style={styles.mobileInfo}>
+            <View>
+              {item.category ? <Text style={styles.mobileAuthor}>{item.category}</Text> : null}
+              <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+            </View>
+          </View>
+        </Pressable>
+      );
+    }
     return (
       <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
         {item.coverUrl ? (
@@ -608,7 +635,7 @@ export default function ArticleScreenWeb() {
   return (
     <SiteShell>
       {headElement}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           // Мобильная раскладка — один столбец: заголовок, автор (под ним,
@@ -662,18 +689,22 @@ export default function ArticleScreenWeb() {
         {relatedBlock}
 
         {isMobile ? (
+          // Формат — как на /events (mobileRow/mobileThumb/mobileInfo), по
+          // просьбе пользователя унифицировать с /events.
           <View style={styles.ctaBlock}>
             <Text style={styles.actionLinkText}>Скачать приложение</Text>
-            <View style={styles.ctaCard}>
-              <Image source={APP_DOWNLOAD_IMAGE} style={styles.ctaCardImage} resizeMode="cover" />
-              <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
-              <View style={styles.appCardStores}>
-                <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
-                  <Text style={styles.storeLinkText}>app store</Text>
-                </Pressable>
-                <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
-                  <Text style={styles.storeLinkText}>google play</Text>
-                </Pressable>
+            <View style={styles.mobileRow}>
+              <Image source={APP_DOWNLOAD_IMAGE} style={styles.mobileThumb} resizeMode="cover" />
+              <View style={styles.mobileInfo}>
+                <Text style={styles.mobileTitleText} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
+                <View style={styles.appCardStores}>
+                  <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
+                    <Text style={styles.storeLinkText}>app store</Text>
+                  </Pressable>
+                  <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
+                    <Text style={styles.storeLinkText}>google play</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
           </View>
@@ -692,6 +723,9 @@ const styles = StyleSheet.create({
   // только paddingTop:24, и заголовок статьи оказывался заметно ближе к
   // шапке, чем на остальных похожих страницах.
   scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
+  // marginTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx), не десктопный 86.
+  scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
@@ -767,10 +801,18 @@ const styles = StyleSheet.create({
   relatedSection: { marginTop: 97, marginBottom: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
-  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 24 } as any,
+  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
   relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   relatedCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, marginTop: 18 },
   relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
+  // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
+  // mobileRow/mobileThumb/mobileInfo/mobileTitleText).
+  mobileRow: { flexDirection: 'row', gap: 20 },
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, justifyContent: 'space-between' },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
+  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 25 },
+  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 
   // Похожая статья, вставленная маркером прямо в текст — в ширину текстовой
   // колонки (maxWidth 420, как у ctaBlock), а не грид-тройка как в конце статьи.
@@ -799,7 +841,6 @@ const styles = StyleSheet.create({
   // (EVENT_CTA_WIDTH её фиксирует), иначе текст растягивается до maxWidth
   // ctaBlock (420), шире самой картинки под ним.
   eventCtaCardDesktop: { maxWidth: EVENT_CTA_WIDTH },
-  ctaCardImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
   // Размер как у карточки события в статье про советский самиздат — см.
   // расчёт EVENT_CTA_WIDTH/HEIGHT выше.
   eventCtaImage: { width: EVENT_CTA_WIDTH, height: EVENT_CTA_HEIGHT, backgroundColor: '#E5E5E5' },

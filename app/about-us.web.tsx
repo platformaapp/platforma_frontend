@@ -107,7 +107,9 @@ export default function AboutUsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
-  scrollContentMobile: { paddingTop: 0 },
+  // marginTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx), не десктопный 86.
+  scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
 
   // position:'relative' — точка отсчёта для contactsDesktop

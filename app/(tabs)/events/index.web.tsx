@@ -451,7 +451,9 @@ const styles = StyleSheet.create({
   // приложении (app/(tabs)/events/index.tsx: titleRow + aboutLink).
   titleRowMobile: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginTop: 23 },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  // marginTop:0 — отступ до заголовка на мобильном даёт только стрелка
+  // "назад" (5px, см. site-header.tsx), не десктопный 23.
+  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0 },
   aboutLink: {
     fontSize: 13, lineHeight: 28, fontFamily: 'Gramatika-Regular', color: '#010101',
     textDecorationLine: 'underline',

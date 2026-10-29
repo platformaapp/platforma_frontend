@@ -242,7 +242,9 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16, marginTop: 62 },
-  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12, marginTop: 30 },
+  // marginTop:0 — отступ до заголовка на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 12, marginTop: 0 },
   // Пильки — стиль и поведение как на /events: просто текст без рамки/фона,
   // кликабельны, активная — чёрная и жирная, остальные — серые. Последняя
   // ("Новые увлечения") — отдельно и прижата вправо по логотипу (см.

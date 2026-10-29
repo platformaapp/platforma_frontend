@@ -990,7 +990,7 @@ export default function ProfileScreenWeb() {
 
     return (
       <SiteShell>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
         <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
           {isMobile ? (
             <View>
@@ -1090,7 +1090,7 @@ export default function ProfileScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
@@ -1882,6 +1882,9 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, referenc
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },

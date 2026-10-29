@@ -841,7 +841,9 @@ export default function EventDetailScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
-  scrollContentMobile: { paddingTop: 0 },
+  // marginTop:0 — отступ до контента на мобильном теперь даёт только
+  // стрелка "назад" в шапке (5px, см. site-header.tsx), а не десктопный 86.
+  scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
