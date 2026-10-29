@@ -272,9 +272,12 @@ export default function MyEventsScreenWeb() {
   const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
   const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
+  // Блок "А пока советуем" — всегда, когда нет ПРЕДСТОЯЩИХ записей (даже
+  // если прошедшие есть), не только при полностью пустой вкладке.
+  const showRecommended = currentUpcoming.length === 0;
 
   useEffect(() => {
-    if (!isEmpty) return;
+    if (!showRecommended) return;
     let active = true;
     (async () => {
       try {
@@ -293,7 +296,7 @@ export default function MyEventsScreenWeb() {
       } catch { /* тихо — попап и без рекомендаций покажет ссылку "Посмотреть события" */ }
     })();
     return () => { active = false; };
-  }, [isEmpty]);
+  }, [showRecommended]);
 
   // "Открыть видео" в шапке — ведёт на ближайшую предстоящую личную встречу, если она есть.
   const nextBooking = upcomingBookings[0];
@@ -498,6 +501,28 @@ export default function MyEventsScreenWeb() {
     );
   }
 
+  // "А пока советуем" — показывается всегда, когда нет предстоящих записей
+  // (showRecommended), и в полностью пустом состоянии, и когда есть только
+  // прошедшие записи (см. ниже).
+  const recommendedBlock = recommended.length > 0 ? (
+    isMobile ? (
+      <View style={styles.recommendedSection}>
+        <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
+        <View style={styles.mobileList}>
+          {recommended.map((r) => renderRecommendedCardMobile(r))}
+        </View>
+      </View>
+    ) : (
+      <>
+        {chunk3(recommended).map((row, rowIdx) => (
+          <View key={row.map((r) => r.id).join('-')} style={[styles.emptyRecommendedRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
+            {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
+          </View>
+        ))}
+      </>
+    )
+  ) : null;
+
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
@@ -529,31 +554,16 @@ export default function MyEventsScreenWeb() {
           <View style={styles.emptyBlock}>
             <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
             <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
-            {recommended.length > 0 ? (
-              isMobile ? (
-                <View style={styles.recommendedSection}>
-                  <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
-                  <View style={styles.mobileList}>
-                    {recommended.map((r) => renderRecommendedCardMobile(r))}
-                  </View>
-                </View>
-              ) : (
-                <>
-                  {chunk3(recommended).map((row, rowIdx) => (
-                    <View key={row.map((r) => r.id).join('-')} style={[styles.emptyRecommendedRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
-                      {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
-                    </View>
-                  ))}
-                </>
-              )
-            ) : null}
+            {recommendedBlock}
             <Pressable onPress={() => router.push('/events' as any)}>
               <Text style={styles.emptyLink}>Посмотреть события</Text>
             </Pressable>
           </View>
         ) : (
           <>
-            {activeTab === 'events' ? renderEventsGrid(upcomingEvents) : renderBookingGroups(upcomingBookings)}
+            {currentUpcoming.length > 0
+              ? (activeTab === 'events' ? renderEventsGrid(upcomingEvents) : renderBookingGroups(upcomingBookings))
+              : recommendedBlock}
 
             {nextBooking && isMobile ? (
               <View style={styles.mobileVideoBar}>
@@ -708,7 +718,8 @@ const styles = StyleSheet.create({
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
   cardBody: { paddingTop: 14 },
   cardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
-  cardTitle: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 8 },
+  // Размер — как на /events (featuredTitleOne: fontSize:25, lineHeight:25).
+  cardTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 8 },
   cardMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
   cardMentorName: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   cardDateText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
