@@ -451,7 +451,7 @@ export default function MyEventsScreenWeb() {
     return (
       <Pressable
         key={r.id}
-        style={[styles.emptyRecommendedCard, !isMobile && ({ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any)]}
+        style={{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any}
         onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
       >
         {r.coverUrl ? (
@@ -462,6 +462,25 @@ export default function MyEventsScreenWeb() {
         {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
         <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
         {r.datetimeStart ? <Text style={styles.emptyRecommendedDate}>{formatRecommendedEventDate(r.datetimeStart)}</Text> : null}
+      </Pressable>
+    );
+  }
+
+  // Мобильный формат рекомендаций — тот же блок, что "Окей, что ещё" на
+  // /journal и странице события (карточка-строка как на /events), но
+  // озаглавлен "А пока советуем".
+  function renderRecommendedCardMobile(r: RecommendedEvent) {
+    const dateText = r.datetimeStart ? formatRecommendedEventDate(r.datetimeStart) : '';
+    return (
+      <Pressable key={r.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${r.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderRecommendedCardMobile' } } as any)}>
+        {r.coverUrl ? <Image source={{ uri: r.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+        <View style={styles.mobileInfo}>
+          <View>
+            {r.mentorName ? <Text style={styles.mobileAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
+            <Text style={styles.mobileTitleText}>{r.title}</Text>
+          </View>
+          {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
+        </View>
       </Pressable>
     );
   }
@@ -499,7 +518,7 @@ export default function MyEventsScreenWeb() {
 
         <View style={[styles.tabsRow, isMobile && styles.tabsRowMobile]}>
           <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
-          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'meetings' && styles.tabTextActive]}>Личные встречи</Text></Pressable>
+          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'meetings' && styles.tabTextActive]}>Встречи</Text></Pressable>
         </View>
 
         {loading ? (
@@ -512,8 +531,11 @@ export default function MyEventsScreenWeb() {
             <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
             {recommended.length > 0 ? (
               isMobile ? (
-                <View style={styles.emptyRecommendedRowMobile}>
-                  {recommended.map((r, idx) => renderRecommendedCard(r, idx % 3 as 0 | 1 | 2, false))}
+                <View style={styles.recommendedSection}>
+                  <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
+                  <View style={styles.mobileList}>
+                    {recommended.map((r) => renderRecommendedCardMobile(r))}
+                  </View>
                 </View>
               ) : (
                 <>
@@ -661,8 +683,10 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
   emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginTop: 254, marginBottom: 32 } as any,
-  emptyRecommendedRowMobile: { display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 20, marginTop: 0 } as any,
-  emptyRecommendedCard: { minWidth: 0 },
+  // "А пока советуем" на мобильном — тот же блок, что "Окей, что ещё" на
+  // /journal и странице события (relatedSection/relatedSectionTitle там).
+  recommendedSection: { marginTop: 40 },
+  recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
   // card--d по референсу — третья карточка каждой второй строки уже
   // остальных (84.4% вместо 100%), только картинка.
