@@ -460,7 +460,10 @@ export default function ArticleScreenWeb() {
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
             <View style={styles.mobileInfo}>
               <Text style={styles.mobileTitleText}>{preventOrphanLastWord(event.title)}</Text>
-              {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
+              <View style={styles.eventCtaFooterRowMobile}>
+                <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+                {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
+              </View>
             </View>
           </Pressable>
         </View>
@@ -469,7 +472,7 @@ export default function ArticleScreenWeb() {
 
     const dateText = formatEventDate(event.datetimeStart ?? undefined);
     return (
-      <View style={styles.ctaBlock}>
+      <View style={[styles.ctaBlock, styles.ctaBlockDesktop]}>
         <Pressable style={[styles.ctaCard, styles.eventCtaCardDesktop]} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
           {event.coverUrl ? (
             <Image source={{ uri: event.coverUrl }} style={styles.eventCtaImage} resizeMode="cover" />
@@ -809,6 +812,9 @@ const styles = StyleSheet.create({
   // всю ширину родителя, а узкую (maxWidth) карточку внутри центрирует как
   // обычный flex-контейнер.
   ctaBlock: { marginBottom: 40, width: '100%', alignItems: 'flex-start' },
+  // На десктопе CTA события — по центру блока справа, как баннер телеграма
+  // (sectionBannerWrap: alignSelf:'center').
+  ctaBlockDesktop: { alignItems: 'center' },
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 0 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
@@ -833,6 +839,9 @@ const styles = StyleSheet.create({
   // строкой под заголовком).
   eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
   ctaCardMeta: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000' },
+  // Та же строка "+ Записаться на событие"/дата, что и на десктопе
+  // (eventCtaFooterRow), но внутри mobileInfo карточки-строки /events.
+  eventCtaFooterRowMobile: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
   storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
 });

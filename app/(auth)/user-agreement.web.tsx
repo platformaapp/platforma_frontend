@@ -12,7 +12,7 @@ export default function UserAgreementScreenWeb() {
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.content}>
-          <Text style={styles.title}>Пользовательское соглашение</Text>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Пользовательское соглашение</Text>
 
           <Text style={styles.heading}>What is Lorem Ipsum?</Text>
           <Text style={styles.paragraph}>
@@ -41,6 +41,7 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20 },
   content: { maxWidth: 720, gap: 16 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
   paragraph: { fontFamily: 'Gramatika-Regular', fontSize: 19, lineHeight: 26, color: '#010101' },
 });

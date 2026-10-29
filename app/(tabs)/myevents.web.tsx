@@ -497,7 +497,7 @@ export default function MyEventsScreenWeb() {
           ) : null}
         </View>
 
-        <View style={styles.tabsRow}>
+        <View style={[styles.tabsRow, isMobile && styles.tabsRowMobile]}>
           <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
           <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, activeTab === 'meetings' && styles.tabTextActive]}>Личные встречи</Text></Pressable>
         </View>
@@ -548,7 +548,7 @@ export default function MyEventsScreenWeb() {
             ) : null}
 
             {currentPast.length > 0 ? (
-              <Text style={styles.pastSeparator}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
+              <Text style={[styles.pastSeparator, isMobile && styles.pastSeparatorMobile]}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
             ) : null}
             {activeTab === 'events' ? renderEventsGrid(pastEvents, true) : renderBookingGroups(pastBookings, true)}
           </>
@@ -650,6 +650,8 @@ const styles = StyleSheet.create({
   headerVideoButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
   headerCountdownText: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', textAlign: 'right' },
   tabsRow: { flexDirection: 'row', gap: 46, marginBottom: 80, marginTop: 59 },
+  // Мобильный — десктопные 59/80 слишком большие для узкого экрана.
+  tabsRowMobile: { marginBottom: 24, marginTop: 24 },
   tabText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
@@ -670,6 +672,7 @@ const styles = StyleSheet.create({
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
+  pastSeparatorMobile: { marginTop: 16 },
   // Настоящий список записей (не пустое состояние) — та же асимметричная
   // сетка 403/75/365/266/340, что и emptyRecommendedRow, но без её
   // marginTop:254 на первой строке (список начинается сразу под вкладками,

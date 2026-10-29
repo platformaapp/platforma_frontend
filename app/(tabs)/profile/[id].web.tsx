@@ -994,14 +994,14 @@ export default function ProfileScreenWeb() {
         <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
           {isMobile ? (
             <View>
-              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
               {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
               <View style={styles.actionsRowMobile}>{studentActions}</View>
             </View>
           ) : (
             <View style={styles.profileDesktopLayout}>
               <View style={styles.profileLeftCol}>
-                <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+                <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
                 <View style={styles.actionsRow}>{studentActions}</View>
               </View>
               <View style={styles.profileRightCol}>
@@ -1095,7 +1095,7 @@ export default function ProfileScreenWeb() {
         {isMobile ? (
           <View>
             <View style={styles.nameRow}>
-              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
               {isPendingTutor ? (
                 <View style={styles.pendingBadge}>
                   <Text style={styles.pendingBadgeText}>Заявка на рассмотрении</Text>
@@ -1117,7 +1117,7 @@ export default function ProfileScreenWeb() {
           <View style={styles.tutorDesktopGrid}>
             <View style={styles.tutorInfoContainer}>
               <View style={styles.nameRow}>
-                <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+                <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
                 {isPendingTutor ? (
                   <View style={styles.pendingBadge}>
                     <Text style={styles.pendingBadgeText}>Заявка на рассмотрении</Text>
@@ -1917,6 +1917,9 @@ const styles = StyleSheet.create({
   bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 345 },
   bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 345 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  // Основной заголовок страницы на мобильном — 25px, как на /events,
+  // /explore, /journal и т.д.
+  studentNameMobile: { fontSize: 25, lineHeight: 28 },
   // Имя + плашка "Заявка на рассмотрении" (pendingBadge) рядом — см.
   // isPendingTutor.
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
