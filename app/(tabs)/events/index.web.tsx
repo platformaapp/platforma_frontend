@@ -9,8 +9,8 @@ import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
-import { preventOrphanLastWord } from '@/lib/typography';
 import { parseFeedItems } from '@/lib/event-feed';
+import { preventOrphanLastWord } from '@/lib/typography';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
-  mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 25 },
+  mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 14 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   // Та же заливка, что у «Создать событие» в нативном профиле наставника
   // (app/(tabs)/profile/[id].tsx: actionPrimary/actionPrimaryText) — чёрная
