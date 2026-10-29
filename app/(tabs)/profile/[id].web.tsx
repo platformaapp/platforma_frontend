@@ -795,6 +795,10 @@ export default function ProfileScreenWeb() {
 
   // ── Tutor handlers (unchanged) ────────────────────────────────────────────
   async function handleTutorSave() {
+    if (!telegram.trim()) {
+      setTutorSaveError('Укажите Telegram, чтобы сохранить профиль');
+      return;
+    }
     if (slots.length === 0) {
       setTutorSaveError('Добавьте хотя бы один слот, чтобы сохранить профиль');
       return;
@@ -1182,7 +1186,7 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
-              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
+              <FieldWithPlus label="Телеграм *" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
               <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline />
               <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
@@ -1212,14 +1216,16 @@ export default function ProfileScreenWeb() {
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
               {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
-              {/* Без хотя бы одного слота наставник не бронируется — не даём
-                  сохранить профиль, пока его нет. */}
+              {/* Telegram — обязательное поле (иначе наставника не с кем
+                  связаться по записи), без хотя бы одного слота наставник
+                  не бронируется — не даём сохранить профиль, пока их нет. */}
+              {!telegram.trim() ? <Text style={styles.hint}>Укажите Telegram, чтобы сохранить профиль</Text> : null}
               {slots.length === 0 ? <Text style={styles.hint}>Добавьте хотя бы один слот, чтобы сохранить профиль</Text> : null}
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setTutorEditModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleTutorSave} disabled={tutorSaving || slots.length === 0}>
-                <Text style={[styles.modalSaveText, slots.length === 0 && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              <Pressable onPress={handleTutorSave} disabled={tutorSaving || !telegram.trim() || slots.length === 0}>
+                <Text style={[styles.modalSaveText, (!telegram.trim() || slots.length === 0) && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </View>
           </Pressable>
