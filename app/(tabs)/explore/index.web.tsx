@@ -23,10 +23,8 @@ const LAST_TOPIC_RIGHT_ALIGNED = 'Новые увлечения';
  * а заданный по позиции в сетке паттерн — ровно как на референсе (карточки
  * 410/340/341/358 в первом ряду, 358/341/410/340 — во втором, значения даны
  * пользователем при базовой ширине карточки 340). Ratio = height/width.
- * Чётные и нечётные ряды (по 4 колонки на десктопе) используют разный
- * порядок, паттерн просто повторяется построчно. Это — ТОЛЬКО десктоп (см.
- * MOBILE_AVATAR_RATIO ниже): на мобильном карточки договорились делать
- * одинаковой высоты.
+ * Чётные и нечётные ряды (по 4 колонки на десктопе, по 2 на мобильном)
+ * используют разный порядок, паттерн просто повторяется построчно.
  */
 const AVATAR_HEIGHT_RATIO_ROWS: number[][] = [
   [410 / 340, 340 / 340, 341 / 340, 358 / 340],
@@ -37,12 +35,6 @@ function avatarHeightRatio(index: number, columns: number): number {
   const col = index % columns % AVATAR_HEIGHT_RATIO_ROWS[row].length;
   return AVATAR_HEIGHT_RATIO_ROWS[row][col];
 }
-
-// На мобильном карточки наставников — одинаковой высоты (в отличие от
-// десктопа, где высота намеренно разная по позиции, см. комментарий выше).
-// 341/340 — средний по "размаху" вариант из того же паттерна (между самым
-// высоким 410/340 и самым низким 340/340).
-const MOBILE_AVATAR_RATIO = 341 / 340;
 
 // Вынесена в отдельный компонент просто для читаемости (была инлайн в .map).
 // Чб/цветной переключается настоящим CSS ":hover" (см. [data-mentor-avatar]
@@ -191,7 +183,7 @@ export default function MentorsScreenWeb() {
             <View style={styles.grid}>
               {pageTutors.map((tutor, index) => {
                 const isOwn = tutor.id === myId && myRole === 'tutor';
-                const ratio = isMobile ? MOBILE_AVATAR_RATIO : avatarHeightRatio(index, COLS_DESKTOP);
+                const ratio = avatarHeightRatio(index, isMobile ? COLS_MOBILE : COLS_DESKTOP);
                 return (
                   <TutorCard
                     key={tutor.id}

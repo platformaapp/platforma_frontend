@@ -365,7 +365,7 @@ export default function EventsScreenWeb() {
         ) : isMobile ? (
           <View style={styles.mobileList}>
             {filtered.map((item) => (
-              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/index.web.tsx:mobileRow' } } as any)}>
+              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   <View>
@@ -539,14 +539,10 @@ const styles = StyleSheet.create({
   // (см. моб. макет), а не по центру колонки, как раньше.
   mobileList: { gap: 28, marginTop: 30 },
   mobileRow: { flexDirection: 'row', gap: 20 },
-  // width не задаём явно — ширина высчитывается из height:120 + aspectRatio,
-  // чтобы не было рассинхрона между ними (раньше 165 не соответствовало 120×649/360≈216).
-  mobileThumb: { height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
-  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
-  // 0.95 × fontSize(14) = 13.3.
-  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
+  mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 14 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   // Та же заливка, что у «Создать событие» в нативном профиле наставника
   // (app/(tabs)/profile/[id].tsx: actionPrimary/actionPrimaryText) — чёрная

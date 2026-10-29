@@ -274,7 +274,7 @@ export default function JournalScreenWeb() {
         ) : isMobile ? (
           <View style={styles.mobileList}>
             {pageMobileItems.map((item) => (
-              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)} {...({ dataSet: { card: 'app/journal/index.web.tsx:mobileRow' } } as any)}>
+              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   {item.category ? <Text style={styles.mobileCategory}>{item.category}</Text> : null}
@@ -426,16 +426,9 @@ const styles = StyleSheet.create({
   // пилюля рубрикатора на мобильном скрыта целиком.
   writeTextButton: { backgroundColor: '#111', alignItems: 'center', paddingVertical: 16, marginTop: 8 },
   writeTextButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
-  mobileRow: { flexDirection: 'row', gap: 20 },
-  // height:120 + aspectRatio (без явной width — как на /events) вместо
-  // flexBasis:45%, чтобы миниатюра была единого размера с остальными
-  // карточками на сайте.
-  mobileThumb: { height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileRow: { flexDirection: 'row', gap: 14 },
+  mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'flex-start' },
-  // marginBottom:0 — отступ до заголовка даёт его собственный marginTop:8
-  // (как на /events), а не оба свойства сразу.
-  mobileCategory: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 0 },
-  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
-  // 0.95 × fontSize(14) = 13.3.
-  mobileTitleText: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
+  mobileCategory: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 });
