@@ -203,6 +203,7 @@ export default function TutorCardScreenWeb() {
         style={[styles.eventRowMobile, isPast && styles.eventDimmed]}
         disabled={isPast}
         onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+        {...({ dataSet: { card: 'app/(tabs)/explore/[id].web.tsx:renderEventCardMobile' } } as any)}
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventRowBodyMobile}>
@@ -314,7 +315,7 @@ export default function TutorCardScreenWeb() {
   // наставника" выше, но статьи ведут на /journal/:id, не "прошедших" нет.
   function renderArticleCardMobile(a: MentorArticle) {
     return (
-      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)}>
+      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/explore/[id].web.tsx:renderArticleCardMobile' } } as any)}>
         {a.coverUrl ? <Image source={{ uri: a.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventRowBodyMobile}>
           <View>
@@ -605,10 +606,15 @@ const styles = StyleSheet.create({
 
   // Mobile: полноширинная строка на событие (миниатюра + текст), а не
   // карточки в сетке — см. renderEventCardMobile / референс.
-  eventsListMobile: { gap: 24 },
-  eventRowMobile: { flexDirection: 'row', gap: 16 },
-  eventThumbMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', flexShrink: 0 },
-  eventRowBodyMobile: { flex: 1, minHeight: 90, justifyContent: 'space-between' },
-  eventCardTitleMobile: { fontSize: 16, lineHeight: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  // Формат — как на /events (height:120 + aspectRatio без явной width,
+  // gap:28 между карточками), по просьбе пользователя унифицировать карточки
+  // сайта.
+  eventsListMobile: { gap: 28 },
+  eventRowMobile: { flexDirection: 'row', gap: 20 },
+  eventThumbMobile: { height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', flexShrink: 0 },
+  eventRowBodyMobile: { flex: 1, minHeight: 120, justifyContent: 'space-between' },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  eventCardTitleMobile: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
   eventRowMetaMobile: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
 });
