@@ -498,8 +498,8 @@ export default function MyEventsScreenWeb() {
         </View>
 
         <View style={[styles.tabsRow, isMobile && styles.tabsRowMobile]}>
-          <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
-          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, activeTab === 'meetings' && styles.tabTextActive]}>Личные встречи</Text></Pressable>
+          <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
+          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'meetings' && styles.tabTextActive]}>Личные встречи</Text></Pressable>
         </View>
 
         {loading ? (
@@ -653,6 +653,7 @@ const styles = StyleSheet.create({
   // Мобильный — десктопные 59/80 слишком большие для узкого экрана.
   tabsRowMobile: { marginBottom: 24, marginTop: 24 },
   tabText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
+  tabTextMobile: { fontSize: 25, lineHeight: 28 },
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
@@ -672,7 +673,7 @@ const styles = StyleSheet.create({
   emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
-  pastSeparatorMobile: { marginTop: 16 },
+  pastSeparatorMobile: { marginTop: 16, fontSize: 25, lineHeight: 28 },
   // Настоящий список записей (не пустое состояние) — та же асимметричная
   // сетка 403/75/365/266/340, что и emptyRecommendedRow, но без её
   // marginTop:254 на первой строке (список начинается сразу под вкладками,

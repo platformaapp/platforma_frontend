@@ -460,12 +460,10 @@ export default function ArticleScreenWeb() {
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
             <View style={styles.mobileInfo}>
               <Text style={styles.mobileTitleText}>{preventOrphanLastWord(event.title)}</Text>
-              <View style={styles.eventCtaFooterRowMobile}>
-                <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
-                {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
-              </View>
+              {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
             </View>
           </Pressable>
+          <Text style={styles.actionLinkTextMobile} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>+ Записаться на событие</Text>
         </View>
       );
     }
@@ -839,9 +837,9 @@ const styles = StyleSheet.create({
   // строкой под заголовком).
   eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
   ctaCardMeta: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000' },
-  // Та же строка "+ Записаться на событие"/дата, что и на десктопе
-  // (eventCtaFooterRow), но внутри mobileInfo карточки-строки /events.
-  eventCtaFooterRowMobile: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // "+ Записаться на событие" — отдельной строкой ПОД карточкой (не рядом с
+  // датой внутри mobileInfo — там не помещается на мобильном).
+  actionLinkTextMobile: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', marginTop: 12 },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
   storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
 });
