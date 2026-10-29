@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
-  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0 },
+  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0, marginBottom: 24 },
   // Активный фильтр по тегу (переход по клику на #хэштег на странице
   // статьи, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
   activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },
@@ -430,5 +430,5 @@ const styles = StyleSheet.create({
   mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'flex-start' },
   mobileCategory: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
-  mobileTitleText: { fontSize: 16, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  mobileTitleText: { fontSize: 14, lineHeight: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
 });

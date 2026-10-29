@@ -99,5 +99,5 @@ const styles = StyleSheet.create({
   // отступа) — чтобы отступ был ровно 5px на всех страницах, у самого
   // контента (scrollContent/title и т.п.) на мобильном не должно быть
   // собственного marginTop/paddingTop поверх этого.
-  mobileHeader: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 29, paddingBottom: 5 },
+  mobileHeader: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 45, paddingBottom: 34 },
 });
