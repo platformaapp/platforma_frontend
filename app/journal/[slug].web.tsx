@@ -113,23 +113,6 @@ function formatEventDate(iso?: string): string {
   }
 }
 
-// Дата+время — тот же формат, что и на самой странице события
-// (events/[id].web.tsx formatDatetime), для мобильного CTA (renderEventCtaCard):
-// там он "в точности как событие на мобильном", с временем, а не только датой.
-function formatEventDatetime(iso?: string): string {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    const day = d.getDate();
-    const month = MONTHS_GEN[d.getMonth()];
-    const hh = d.getHours();
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${day} ${month} ${hh}:${mm}`;
-  } catch {
-    return iso ?? '';
-  }
-}
-
 // Строка, начинающаяся с "##" (после обрезки пробелов — любое количество
 // пробельных символов, включая неразрывный пробел и табы, или вообще без
 // них), открывает подзаголовок + текст после него. Раньше детект искал
@@ -467,23 +450,17 @@ export default function ArticleScreenWeb() {
     const event = safeArticle.event;
 
     if (isMobile) {
-      const datetimeText = formatEventDatetime(event.datetimeStart ?? undefined);
-      const priceText = event.price != null ? `${event.price.toLocaleString('ru-RU')} Р` : 'Бесплатно';
+      // Формат — как на /events (mobileRow/mobileThumb/mobileInfo/
+      // mobileTitleText/mobileDate), по просьбе пользователя: карточка
+      // "Событие" должна быть такой же, как карточки в /events.
+      const dateTextMobile = formatEventDate(event.datetimeStart ?? undefined);
       return (
         <View style={styles.ctaBlock}>
-          <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
-            <Text style={[styles.title, styles.titleMobile, styles.ctaEventTitleMobile]}>{preventOrphanLastWord(event.title)}</Text>
-            <View style={styles.ctaEventMetaRow}>
-              {datetimeText ? <Text style={styles.ctaEventMetaValue}>{datetimeText}</Text> : null}
-              <Text style={styles.ctaEventMetaValue}>{priceText}</Text>
-            </View>
-            {event.coverUrl ? (
-              <Image source={{ uri: event.coverUrl }} style={styles.ctaEventThumbMobile} resizeMode="cover" />
-            ) : (
-              <View style={styles.ctaEventThumbMobile} />
-            )}
-            <View style={styles.chipButton}>
-              <Text style={styles.chipButtonText}>Зарегистрироваться</Text>
+          <Pressable style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderEventCtaCard' } } as any)}>
+            {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+            <View style={styles.mobileInfo}>
+              <Text style={styles.mobileTitleText}>{preventOrphanLastWord(event.title)}</Text>
+              {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
             </View>
           </Pressable>
         </View>
@@ -856,15 +833,6 @@ const styles = StyleSheet.create({
   // строкой под заголовком).
   eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
   ctaCardMeta: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000' },
-  // Мобильный CTA события — в точности как сама страница события на
-  // мобильном (events/[id].web.tsx: titleMobile, mobileMetaRow/Value,
-  // mobileThumb, chipButton/chipButtonText) — значения скопированы оттуда.
-  ctaEventTitleMobile: { marginBottom: 8 },
-  ctaEventMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
-  ctaEventMetaValue: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  ctaEventThumbMobile: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#68717A' },
   appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
   storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
 });

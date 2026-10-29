@@ -94,10 +94,10 @@ const styles = StyleSheet.create({
    },
   // Стрелка "назад" по левому краю. paddingTop держит её примерно на той же
   // высоте, что раньше (была в центре блока height:76 — (76-19)/2≈28.5).
-  // paddingBottom:5 — ЕДИНСТВЕННЫЙ источник отступа между стрелкой и
+  // paddingBottom:34 — ЕДИНСТВЕННЫЙ источник отступа между стрелкой и
   // контентом страницы (ниже в SiteShell сразу идёт content, без своего
-  // отступа) — чтобы отступ был ровно 5px на всех страницах, у самого
+  // отступа) — чтобы отступ был ровно 34px на всех страницах, у самого
   // контента (scrollContent/title и т.п.) на мобильном не должно быть
   // собственного marginTop/paddingTop поверх этого.
-  mobileHeader: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 29, paddingBottom: 5 },
+  mobileHeader: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 29, paddingBottom: 34 },
 });

@@ -461,7 +461,21 @@ export default function EventDetailScreenWeb() {
     </View>
   );
 
+  // На мобильном — формат карточки как на /events (mobileRow/mobileThumb/
+  // mobileInfo/mobileTitleText), по просьбе пользователя унифицировать с
+  // /events. Названия стилей с префиксом related* — чтобы не конфликтовать
+  // с mobileThumb/mobileMetaRow выше (те — для обложки самого события).
   function renderRelatedEventCard(item: RelatedEventItem, posInRow: 0 | 1 | 2) {
+    if (isMobile) {
+      return (
+        <Pressable key={item.id} style={styles.relatedMobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/[id].web.tsx:renderRelatedEventCard' } } as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.relatedMobileThumb} resizeMode="cover" /> : <View style={styles.relatedMobileThumb} />}
+          <View style={styles.relatedMobileInfo}>
+            <Text style={styles.relatedMobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+          </View>
+        </Pressable>
+      );
+    }
     return (
       <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
         {item.coverUrl ? (
@@ -946,7 +960,15 @@ const styles = StyleSheet.create({
   relatedSection: { marginTop: 97, marginBottom: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
-  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 24 } as any,
+  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
   relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
+  // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
+  // mobileRow/mobileThumb/mobileInfo/mobileTitleText).
+  relatedMobileRow: { flexDirection: 'row', gap: 20 },
+  relatedMobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  relatedMobileInfo: { flex: 1, justifyContent: 'space-between' },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  relatedMobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
 });
