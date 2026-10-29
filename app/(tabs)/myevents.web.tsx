@@ -281,12 +281,12 @@ export default function MyEventsScreenWeb() {
     let active = true;
     (async () => {
       try {
-        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=6`);
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=3`);
         if (!res.ok) return;
         const data = await res.json();
         const raw = parseFeedItems(data) as Record<string, unknown>[];
         if (!active) return;
-        setRecommended(raw.slice(0, 6).map((r) => ({
+        setRecommended(raw.slice(0, 3).map((r) => ({
           id: String(r.id ?? ''),
           title: String(r.title ?? ''),
           coverUrl: resolveUploadUrl((r.coverUrl ?? r.cover_url) as string | undefined),
@@ -507,19 +507,20 @@ export default function MyEventsScreenWeb() {
   const recommendedBlock = recommended.length > 0 ? (
     isMobile ? (
       <View style={styles.recommendedSection}>
-        <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
+        <Text style={[styles.recommendedSectionTitle, isMobile && styles.recommendedSectionTitleMobile]}>А пока советуем</Text>
         <View style={styles.mobileList}>
           {recommended.map((r) => renderRecommendedCardMobile(r))}
         </View>
       </View>
     ) : (
-      <>
+      <View style={styles.recommendedSection}>
+        <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
         {chunk3(recommended).map((row, rowIdx) => (
           <View key={row.map((r) => r.id).join('-')} style={[styles.emptyRecommendedRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
             {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
           </View>
         ))}
-      </>
+      </View>
     )
   ) : null;
 
@@ -692,11 +693,12 @@ const styles = StyleSheet.create({
   emptyBlock: { paddingTop: 24, paddingBottom: 24 },
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
-  emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginTop: 254, marginBottom: 32 } as any,
+  emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
   // "А пока советуем" на мобильном — тот же блок, что "Окей, что ещё" на
   // /journal и странице события (relatedSection/relatedSectionTitle там).
   recommendedSection: { marginTop: 40 },
   recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  recommendedSectionTitleMobile: { fontSize: 25, lineHeight: 28 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
   // card--d по референсу — третья карточка каждой второй строки уже
   // остальных (84.4% вместо 100%), только картинка.
