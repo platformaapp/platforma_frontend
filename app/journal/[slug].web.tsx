@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -570,7 +570,7 @@ export default function ArticleScreenWeb() {
   // ("По умолчанию показываются блоком в конце статьи").
   const unclaimedRelatedArticles = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
   const relatedArticlesBlock = unclaimedRelatedArticles.length > 0 ? (
-    <View style={[styles.relatedSection, isMobile && styles.relatedSectionMobile]}>
+    <View style={styles.relatedSection}>
       <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
         {unclaimedRelatedArticles.map((item, i) => renderRelatedArticleCard(item, (isMobile ? 0 : i) as 0 | 1 | 2))}
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   mobileStack: { marginBottom: 40 },
   // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
   // события / карточки похожих статей), когда их несколько сразу.
-  mobileMediaBlock: { marginBottom: 24, gap: 0 },
+  mobileMediaBlock: { marginBottom: 24, gap: 40 },
   // Раньше здесь был maxHeight: 494 — зажимал высоту колонки с обложкой и
   // галереей жёстким потолком. Когда под второй фоткой появлялась подпись,
   // суммарная высота содержимого (обложка + галерея + подпись) превышала
@@ -799,7 +799,6 @@ const styles = StyleSheet.create({
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
   relatedSection: { marginTop: 97, marginBottom: 40 },
-  relatedSectionMobile: { marginTop: 0 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
@@ -832,7 +831,7 @@ const styles = StyleSheet.create({
   // по контенту сама по себе, остаётся прижатой к левому краю) — сам блок на
   // всю ширину родителя, а узкую (maxWidth) карточку внутри центрирует как
   // обычный flex-контейнер.
-  ctaBlock: { marginBottom: 40, width: '100%', alignItems: 'flex-start' },
+  ctaBlock: { marginBottom: 40, width: '100%', alignItems: 'center' },
   actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 0 },
   // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
   // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под

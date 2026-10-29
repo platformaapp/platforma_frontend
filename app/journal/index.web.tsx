@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0, marginTop: 62 },
-  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0, marginBottom: 24 },
+  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0 },
   // Активный фильтр по тегу (переход по клику на #хэштег на странице
   // статьи, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
   activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },
