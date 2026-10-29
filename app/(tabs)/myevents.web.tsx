@@ -327,7 +327,7 @@ export default function MyEventsScreenWeb() {
   function renderEventListRowMobile(item: EventItem, muted = false) {
     const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
     return (
-      <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderEventListRowMobile' } } as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
         <View style={styles.mobileInfo}>
           <View>
@@ -392,7 +392,7 @@ export default function MyEventsScreenWeb() {
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
 
     return (
-      <Pressable key={item.id} style={[styles.mobileRow, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
+      <Pressable key={item.id} style={[styles.mobileRow, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderBookingCard' } } as any)}>
         {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
         <View style={styles.mobileInfo}>
           <View>
@@ -693,7 +693,9 @@ const styles = StyleSheet.create({
   mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
-  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 13, lineHeight: 25 },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   textMuted: { opacity: 0.45 },
 

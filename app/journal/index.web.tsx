@@ -274,7 +274,7 @@ export default function JournalScreenWeb() {
         ) : isMobile ? (
           <View style={styles.mobileList}>
             {pageMobileItems.map((item) => (
-              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)} {...({ dataSet: { card: 'app/journal/index.web.tsx:mobileRow' } } as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   {item.category ? <Text style={styles.mobileCategory}>{item.category}</Text> : null}
@@ -427,8 +427,12 @@ const styles = StyleSheet.create({
   writeTextButton: { backgroundColor: '#111', alignItems: 'center', paddingVertical: 16, marginTop: 8 },
   writeTextButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#FAFAFA' },
   mobileRow: { flexDirection: 'row', gap: 14 },
-  mobileThumb: { flexBasis: '45%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  // width:165 задан явно вместе с height — как на /events, без расчёта через
+  // один только aspectRatio (это ломалось в RN-вёрстке внутри flex-row).
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'flex-start' },
   mobileCategory: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
-  mobileTitleText: { fontSize: 14, lineHeight: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  mobileTitleText: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
 });

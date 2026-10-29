@@ -365,7 +365,7 @@ export default function EventsScreenWeb() {
         ) : isMobile ? (
           <View style={styles.mobileList}>
             {filtered.map((item) => (
-              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/index.web.tsx:mobileRow' } } as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   <View>
@@ -542,7 +542,9 @@ const styles = StyleSheet.create({
   mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'space-between' },
   mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
-  mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 14 },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   // Та же заливка, что у «Создать событие» в нативном профиле наставника
   // (app/(tabs)/profile/[id].tsx: actionPrimary/actionPrimaryText) — чёрная
