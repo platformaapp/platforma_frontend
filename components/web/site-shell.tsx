@@ -50,6 +50,15 @@ export function useIsMobileWeb(): boolean {
   return width < MOBILE_BREAKPOINT;
 }
 
+// Переключение страниц пагинации (см. /journal, /explore) не должно
+// оставлять пользователя внизу списка — scrollArea выше (data-site-content),
+// а не document/body, поэтому обычный window.scrollTo здесь не сработает.
+export function scrollSiteContentToTop() {
+  if (typeof document === 'undefined') return;
+  const el = document.querySelector('[data-site-content]');
+  if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
   scrollArea: { flex: 1, width: '100%', overflowY: 'auto' } as any,

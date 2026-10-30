@@ -98,6 +98,9 @@ export default function EventsScreenWeb() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isAuthedTutor, setIsAuthedTutor] = useState(false);
+  // Вариант Б (серый по умолчанию, красный только при наведении) — тот же
+  // приём, что и у «Написать текст» на /journal (см. writeTextHovered там).
+  const [createEventHovered, setCreateEventHovered] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -345,8 +348,10 @@ export default function EventsScreenWeb() {
             <Pressable
               style={[styles.filterPill, styles.filterPillRight]}
               onPress={handleCreateEventPress}
+              onHoverIn={() => setCreateEventHovered(true)}
+              onHoverOut={() => setCreateEventHovered(false)}
             >
-              <Text style={styles.createEventPillText}>Создать событие</Text>
+              <Text style={[styles.createEventPillText, createEventHovered && styles.createEventPillTextHover]}>Создать событие</Text>
             </Pressable>
           </View>
         ) : null}
@@ -468,11 +473,10 @@ const styles = StyleSheet.create({
   filterPillRight: { marginLeft: 'auto', marginRight: '13.4%', paddingLeft: 24 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  // Вариант А (сравниваем с вариантом Б на /journal, см. writeTextButtonText
-  // там): красный текст всегда — автоматически получает подчёркивание без
-  // затемнения при наведении через общий механизм детекции "красного" цвета
-  // в app/_layout.tsx (HoverDimCalibrator), ничего больше делать не нужно.
-  createEventPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#E02D2D' },
+  // Вариант Б (серый по умолчанию, красный только при наведении) — тот же
+  // приём, что и у «Написать текст» на /journal (см. writeTextHovered там).
+  createEventPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
+  createEventPillTextHover: { color: '#E02D2D' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },

@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { PromoBanner } from '@/components/web/promo-banner';
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { scrollSiteContentToTop, SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { ARTICLE_FORMATS, getArticles, type Article } from '@/lib/api/journal';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { preventOrphanLastWord } from '@/lib/typography';
@@ -71,12 +71,12 @@ export default function JournalScreenWeb() {
     router.push((isAuthedTutor ? '/profile?open=article' : '/register-tutor') as any);
   }
 
-  // Вариант Б (сравниваем с вариантом А на /events, см. createEventPillText
-  // там): текст серый по умолчанию, красный только при наведении — в
-  // отличие от варианта А, цвет меняется через собственный hover-стейт
-  // (onHoverIn/onHoverOut), а не статично, поэтому общий механизм
-  // детекции "красного" в app/_layout.tsx применяет свои
+  // Вариант Б — текст серый по умолчанию, красный только при наведении,
+  // через собственный hover-стейт (onHoverIn/onHoverOut), а не статично —
+  // общий механизм детекции "красного" в app/_layout.tsx применяет свои
   // "без затемнения + подчёркивание" правила только в момент наведения.
+  // Тот же приём — у «Создать событие» на /events и «Стать наставником»
+  // на /explore (createEventHovered/becomeTutorHovered там).
   const [writeTextHovered, setWriteTextHovered] = useState(false);
 
   const load = useCallback(async () => {
@@ -197,17 +197,22 @@ export default function JournalScreenWeb() {
   const pageRows = isMobile ? [] : rows.slice(rowOffset, rowOffset + ROWS_PER_PAGE);
   const pageMobileItems = isMobile ? filtered.slice(rowOffset, rowOffset + ROWS_PER_PAGE) : [];
 
+  // Переключение страницы должно возвращать наверх списка (scrollArea в
+  // SiteShell), иначе после клика пользователь остаётся внизу — там, где
+  // была прежняя страница.
+  const goToPage = (n: number) => { setPage(n); scrollSiteContentToTop(); };
+
   const paginationEl = totalPages > 1 ? (
     <View style={styles.pagination}>
-      <Pressable style={[styles.paginationArrow, page === 1 && styles.paginationArrowDisabled]} onPress={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+      <Pressable style={[styles.paginationArrow, page === 1 && styles.paginationArrowDisabled]} onPress={() => goToPage(Math.max(1, page - 1))} disabled={page === 1}>
         <Text style={styles.paginationArrowText}>‹</Text>
       </Pressable>
       {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-        <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => setPage(n)}>
+        <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => goToPage(n)}>
           <Text style={[styles.paginationPageText, n === page && styles.paginationPageTextActive]}>{n}</Text>
         </Pressable>
       ))}
-      <Pressable style={[styles.paginationArrow, page === totalPages && styles.paginationArrowDisabled]} onPress={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+      <Pressable style={[styles.paginationArrow, page === totalPages && styles.paginationArrowDisabled]} onPress={() => goToPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}>
         <Text style={styles.paginationArrowText}>›</Text>
       </Pressable>
     </View>

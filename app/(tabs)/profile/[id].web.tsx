@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
@@ -220,6 +220,9 @@ export default function ProfileScreenWeb() {
   const [articleEvents, setArticleEvents] = useState<TutorOwnEvent[]>([]);
   const [articleEventsLoading, setArticleEventsLoading] = useState(false);
   const [articleEventId, setArticleEventId] = useState<string | null>(null);
+  // Поиск по названию — как в админке журнала (поле "Событие — CTA"): список
+  // появляется только когда начали печатать, а не весь целиком сразу.
+  const [articleEventQuery, setArticleEventQuery] = useState('');
   const [creatingArticle, setCreatingArticle] = useState(false);
   const [articleError, setArticleError] = useState('');
   const [articleSubmitted, setArticleSubmitted] = useState(false);
@@ -1400,22 +1403,49 @@ export default function ProfileScreenWeb() {
                 <ActivityIndicator color="#010101" style={{ marginTop: 8 }} />
               ) : articleEvents.length === 0 ? (
                 <Text style={styles.hint}>У вас пока нет событий</Text>
-              ) : (
-                <View style={styles.articleEventList}>
-                  {articleEvents.map((e) => {
-                    const active = e.id === articleEventId;
-                    return (
-                      <Pressable
-                        key={e.id}
-                        style={[styles.articleEventRow, active && styles.articleEventRowActive]}
-                        onPress={() => setArticleEventId(active ? null : e.id)}
-                      >
-                        <Text style={[styles.articleEventRowTitle, active && styles.articleEventRowTitleActive]} numberOfLines={1}>{e.title}</Text>
-                        {e.start_at ? <Text style={[styles.articleEventRowDate, active && styles.articleEventRowTitleActive]}>{formatHistoryDate(e.start_at)}</Text> : null}
+              ) : articleEventId ? (
+                // Выбранное событие — отдельной строкой, со ссылкой "Изменить"
+                // (вместо списка всех событий сразу).
+                (() => {
+                  const selected = articleEvents.find((e) => e.id === articleEventId);
+                  if (!selected) return null;
+                  return (
+                    <View style={[styles.articleEventRow, styles.articleEventRowActive]}>
+                      <Text style={[styles.articleEventRowTitle, styles.articleEventRowTitleActive]} numberOfLines={1}>{selected.title}</Text>
+                      <Pressable onPress={() => { setArticleEventId(null); setArticleEventQuery(''); }}>
+                        <Text style={styles.removeLink}>Изменить</Text>
                       </Pressable>
-                    );
-                  })}
-                </View>
+                    </View>
+                  );
+                })()
+              ) : (
+                // Поиск по названию — как в админке журнала (поле "Событие —
+                // CTA"): список появляется только когда начали печатать.
+                <>
+                  <TextInput
+                    style={styles.eventSearchInput}
+                    value={articleEventQuery}
+                    onChangeText={setArticleEventQuery}
+                    placeholder="Поиск события по названию"
+                    placeholderTextColor="#9B9B9B"
+                  />
+                  {articleEventQuery.trim() ? (
+                    <View style={styles.articleEventList}>
+                      {articleEvents
+                        .filter((e) => e.title.toLowerCase().includes(articleEventQuery.trim().toLowerCase()))
+                        .map((e) => (
+                          <Pressable
+                            key={e.id}
+                            style={styles.articleEventRow}
+                            onPress={() => { setArticleEventId(e.id); setArticleEventQuery(''); }}
+                          >
+                            <Text style={styles.articleEventRowTitle} numberOfLines={1}>{e.title}</Text>
+                            {e.start_at ? <Text style={styles.articleEventRowDate}>{formatHistoryDate(e.start_at)}</Text> : null}
+                          </Pressable>
+                        ))}
+                    </View>
+                  ) : null}
+                </>
               )}
             </ScrollView>
             <View style={styles.modalFooterRow}>
@@ -2024,7 +2054,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24, maxWidth: 560 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12 },
+  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 12 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
@@ -2038,6 +2068,8 @@ const styles = StyleSheet.create({
   articleEventRowTitle: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101' },
   articleEventRowTitleActive: { color: '#E02D2D' },
   articleEventRowDate: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#9B9B9B', marginLeft: 12 },
+  eventSearchInput: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101', borderBottomWidth: 1, borderColor: '#E5E5E5', paddingVertical: 10, marginTop: 8, outlineStyle: 'none' } as any,
+  removeLink: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   bioText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 30 },
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000',     marginTop: 16, lineHeight: 18 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },

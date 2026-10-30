@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { scrollSiteContentToTop, SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { TOPICS } from '@/constants/topics';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { getPublicTutorList, getPublicTutors, type PublicTutor } from '@/lib/api/tutor';
@@ -91,6 +91,9 @@ export default function MentorsScreenWeb() {
   const { topics: adminTopics } = useSiteSettings();
   const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [page, setPage] = useState(1);
+  // Вариант Б (серый по умолчанию, красный только при наведении) — тот же
+  // приём, что и у «Написать текст» на /journal (см. writeTextHovered там).
+  const [becomeTutorHovered, setBecomeTutorHovered] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -134,6 +137,10 @@ export default function MentorsScreenWeb() {
   const ROWS_PER_PAGE = 4;
   const pageSize = (isMobile ? COLS_MOBILE : COLS_DESKTOP) * ROWS_PER_PAGE;
   const totalPages = Math.max(1, Math.ceil(filteredTutors.length / pageSize));
+  // Переключение страницы должно возвращать наверх списка (scrollArea в
+  // SiteShell), иначе после клика пользователь остаётся внизу — там, где
+  // была прежняя страница.
+  const goToPage = (n: number) => { setPage(n); scrollSiteContentToTop(); };
   // Фильтр/смена раскладки могли сделать текущую страницу несуществующей.
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
   const pageTutors = filteredTutors.slice((page - 1) * pageSize, page * pageSize);
@@ -174,8 +181,13 @@ export default function MentorsScreenWeb() {
                 );
               })}
             </View>
-            <Pressable style={styles.filterPillRight} onPress={() => router.push('/register-tutor' as any)}>
-              <Text style={styles.becomeTutorPillText}>Стать наставником</Text>
+            <Pressable
+              style={styles.filterPillRight}
+              onPress={() => router.push('/register-tutor' as any)}
+              onHoverIn={() => setBecomeTutorHovered(true)}
+              onHoverOut={() => setBecomeTutorHovered(false)}
+            >
+              <Text style={[styles.becomeTutorPillText, becomeTutorHovered && styles.becomeTutorPillTextHover]}>Стать наставником</Text>
             </Pressable>
           </View>
         )}
@@ -209,19 +221,19 @@ export default function MentorsScreenWeb() {
               <View style={styles.pagination}>
                 <Pressable
                   style={[styles.paginationArrow, page === 1 && styles.paginationArrowDisabled]}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  onPress={() => goToPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                 >
                   <Text style={styles.paginationArrowText}>‹</Text>
                 </Pressable>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                  <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => setPage(n)}>
+                  <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => goToPage(n)}>
                     <Text style={[styles.paginationPageText, n === page && styles.paginationPageTextActive]}>{n}</Text>
                   </Pressable>
                 ))}
                 <Pressable
                   style={[styles.paginationArrow, page === totalPages && styles.paginationArrowDisabled]}
-                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onPress={() => goToPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                 >
                   <Text style={styles.paginationArrowText}>›</Text>
@@ -266,10 +278,11 @@ const styles = StyleSheet.create({
   filterPillRight: { marginLeft: 'auto', marginRight: 0, paddingLeft: 24 },
   filterPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
   filterPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  // Тот же вариант А, что и «Создать событие» на /events (см. комментарий
-  // там) — красный текст, подчёркивание без затемнения при наведении даёт
-  // общий механизм в app/_layout.tsx сам по себе.
-  becomeTutorPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#E02D2D' },
+  // Вариант Б, тот же, что и «Написать текст» на /journal и «Создать
+  // событие» на /events — серый по умолчанию, красный только при наведении
+  // (через собственный hover-стейт, см. becomeTutorHovered выше).
+  becomeTutorPillText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
+  becomeTutorPillTextHover: { color: '#E02D2D' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
