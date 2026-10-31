@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, lineHeight: 18 },
   // .card__title: font-size:25, line-height:0.9 (22.5px) на vladyakunin.ru/projects/.
   cardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 1, textAlign: 'right', marginTop: 13  },
+  cardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18, textAlign: 'right', marginTop: 27  },
   // Полный повторяющийся цикл строк (см. rows/cycle выше): пара A — CSS grid
   // 649fr:84fr:716fr, пара B — 481fr:165fr:611fr:193fr (у обеих — пустая
   // колонка-спейсер после первой карточки, и у второй карточки картинка+текст

@@ -471,18 +471,29 @@ export default function ArticleScreenWeb() {
     const dateText = formatEventDate(event.datetimeStart ?? undefined);
     return (
       <View style={[styles.ctaBlock, styles.ctaBlockDesktop]}>
-        <Pressable style={[styles.ctaCard, styles.eventCtaCardDesktop]} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
-          {event.coverUrl ? (
-            <Image source={{ uri: event.coverUrl }} style={styles.eventCtaImage} resizeMode="cover" />
-          ) : (
-            <View style={styles.eventCtaImage} />
-          )}
-          <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
+        <View style={[styles.ctaCard, styles.eventCtaCardDesktop]}>
+          {/* Картинка+заголовок — отдельный Pressable от ссылки "+ Записаться"
+              ниже: общий механизм затемнения при наведении (app/_layout.tsx)
+              отключает себя у любого Pressable, который СОДЕРЖИТ красный
+              текст (красные ссылки не тускнеют, только подчёркиваются) — если
+              бы вся карточка была одним Pressable с красной ссылкой внутри,
+              она вообще не осветлялась бы при наведении на картинку/заголовок,
+              в отличие от обычных карточек событий. */}
+          <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+            {event.coverUrl ? (
+              <Image source={{ uri: event.coverUrl }} style={styles.eventCtaImage} resizeMode="cover" />
+            ) : (
+              <View style={styles.eventCtaImage} />
+            )}
+            <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
+          </Pressable>
           <View style={styles.eventCtaFooterRow}>
-            <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+            <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+              <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+            </Pressable>
             {dateText ? <Text style={styles.ctaCardMeta}>{dateText}</Text> : null}
           </View>
-        </Pressable>
+        </View>
       </View>
     );
   }
@@ -828,7 +839,9 @@ const styles = StyleSheet.create({
   // Размер как у карточки события в статье про советский самиздат — см.
   // расчёт EVENT_CTA_WIDTH/HEIGHT выше.
   eventCtaImage: { width: EVENT_CTA_WIDTH, height: EVENT_CTA_HEIGHT, backgroundColor: '#E5E5E5' },
-  ctaCardTitle: { fontSize: 30, lineHeight: 27, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 13 },
+  // Тот же размер, что у заголовка карточки на /events (cardTitleText) —
+  // раньше здесь было 30/27, заметно крупнее, чем в карточках событий.
+  ctaCardTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 13 },
   // У блока "Скачать приложение" нет строки-подписи над заголовком — сдвигаем
   // заголовок так же, как если бы подпись была (20 её marginTop + 13 обычный).
   ctaCardTitleNoLabel: { marginTop: 33 },
@@ -836,7 +849,7 @@ const styles = StyleSheet.create({
   // заголовком (было: ссылка отдельной строкой над картинкой, дата отдельной
   // строкой под заголовком).
   eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
-  ctaCardMeta: { fontSize: 15, fontFamily: 'Gramatika-Regular', color: '#000' },
+  ctaCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   // "+ Записаться на событие" — отдельной строкой ПОД карточкой (не рядом с
   // датой внутри mobileInfo — там не помещается на мобильном).
   actionLinkTextMobile: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', marginTop: 12 },

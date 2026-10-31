@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -131,6 +131,15 @@ export default function AdminJournalDetailScreen() {
   const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
   const [contentSelection, setContentSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+  // onSelectionChange на "Текст" не обязан сработать на каждое нажатие
+  // клавиши (это отдельное от onChangeText событие) — если админ допечатал
+  // текст и сразу же нажал "Вставить в текст" без промежуточного клика/
+  // выделения, contentSelection в стейте может отставать от реальной
+  // позиции курсора, и маркер встаёт не там, где рассчитывал админ. На вебе
+  // RN TextInput форвардит ref на сам DOM <textarea> — читаем курсор прямо
+  // оттуда (selectionStart/End) на момент клика, а не из потенциально
+  // устаревшего стейта.
+  const contentInputRef = useRef<any>(null);
   const [category, setCategory] = useState<string>(FORMATS[1]);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -347,6 +356,18 @@ export default function AdminJournalDetailScreen() {
     });
   }
 
+  // Реальная позиция курсора на момент клика — предпочитаем её stateʼу
+  // contentSelection (см. комментарий у contentInputRef выше), иначе
+  // откатываемся на стейт (нативные платформы, либо web до первого рендера
+  // поля).
+  function getLiveSelection(): { start: number; end: number } {
+    const el = contentInputRef.current;
+    if (Platform.OS === 'web' && el && typeof el.selectionStart === 'number' && typeof el.selectionEnd === 'number') {
+      return { start: el.selectionStart, end: el.selectionEnd };
+    }
+    return contentSelection;
+  }
+
   // Оборачивает текущее выделение в "Текст" парой маркеров тулбара (если
   // ничего не выделено — вставляет пустую пару на месте курсора).
   //
@@ -357,7 +378,7 @@ export default function AdminJournalDetailScreen() {
   // (более длинной) строке текста, и маркеры попадают внутрь слова, а не
   // вокруг него (ровно на длину первой вставленной пары символов).
   function wrapContentSelection(before: string, after: string) {
-    const { start, end } = contentSelection;
+    const { start, end } = getLiveSelection();
     const selected = content.slice(start, end);
     setContent(content.slice(0, start) + before + selected + after + content.slice(end));
     const newStart = start + before.length;
@@ -367,7 +388,7 @@ export default function AdminJournalDetailScreen() {
   function insertLink() {
     const url = typeof window !== 'undefined' ? window.prompt('Ссылка (URL)') : null;
     if (!url) return;
-    const { start, end } = contentSelection;
+    const { start, end } = getLiveSelection();
     const label = content.slice(start, end) || 'текст ссылки';
     const inserted = `[${label}](${url})`;
     setContent(content.slice(0, start) + inserted + content.slice(end));
@@ -379,7 +400,7 @@ export default function AdminJournalDetailScreen() {
   // отдельной кнопкой, а не парой маркеров вокруг выделения, т.к. это не
   // инлайн-форматирование, а отдельный блок текста на своей строке.
   function insertSubheading() {
-    const { start, end } = contentSelection;
+    const { start, end } = getLiveSelection();
     const selected = content.slice(start, end);
     const headingText = selected || 'Подзаголовок';
     const prefix = '\n\n## ';
@@ -401,7 +422,7 @@ export default function AdminJournalDetailScreen() {
   // начало текста, если contentSelection так и не сдвинулась с {0,0} по
   // умолчанию) — ровно то, что ломало вёрстку статьи при добавлении события.
   function insertEventToken() {
-    const { start, end } = contentSelection;
+    const { start, end } = getLiveSelection();
     const inserted = `\n\n{{event}}\n\n`;
     setContent(content.slice(0, start) + inserted + content.slice(end));
     const newPos = start + inserted.length;
@@ -409,7 +430,7 @@ export default function AdminJournalDetailScreen() {
   }
 
   function insertRelatedToken(articleId: string) {
-    const { start, end } = contentSelection;
+    const { start, end } = getLiveSelection();
     const inserted = `\n\n{{related:${articleId}}}\n\n`;
     setContent(content.slice(0, start) + inserted + content.slice(end));
     const newPos = start + inserted.length;
@@ -663,6 +684,7 @@ export default function AdminJournalDetailScreen() {
           </Pressable>
         </View>
         <TextInput
+          ref={contentInputRef}
           style={[styles.input, styles.inputMultiline, styles.contentInput]}
           value={content}
           onChangeText={setContent}
