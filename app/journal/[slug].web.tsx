@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   // привязки к позиции в тексте (sidebarSplits) — те же 40px, что раньше
   // давал rowGap между строками грида.
   sidebarSplitItem: { marginTop: 40 },
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40, marginTop: 0},
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 100, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
   // Только имя под заголовком, серым — раньше тут был целый блок (фото +
