@@ -260,9 +260,9 @@ export default function EventsScreenWeb() {
       >
         <View style={innerStyle}>
           {item.coverUrl ? (
-            <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
+            <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, isSecond && variant === 'A' ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
           ) : (
-            <View style={[styles.featuredImage, isSecond ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} />
+            <View style={[styles.featuredImage, isSecond && variant === 'A' ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
           <View style={labelStyle}>
             {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
@@ -523,9 +523,13 @@ const styles = StyleSheet.create({
   featuredTitleOneB: { marginTop: 13, fontSize: 25, lineHeight: 25 },
   featuredTitleTwoB: { marginTop: 15, lineHeight: 25 },
   featuredImage: { width: '100%', backgroundColor: '#E5E5E5' },
-  // Высота второй картинки фиксированная (248px), а не по aspect-ratio. У
-  // пары B отдельных размеров картинок не дано — переиспользуем те же, что
-  // и у пары A, чтобы не выдумывать новые числа.
+  // Фиксированная высота (248px) — только у второй картинки пары A (строка
+  // 1). У пары B (строка 3) своих размеров картинок не было, использовали
+  // то же самое — из-за этого вторая карточка в строке 3 на /events
+  // отличалась по размеру от такой же карточки в строке 3 на /journal (там
+  // всегда aspect-ratio, без исключения для второй картинки). Теперь на
+  // /events пара B тоже просто aspect-ratio (см. variant==='A' в условии
+  // применения этого стиля ниже) — обе страницы совпадают.
   featuredImageTwo: { height: 248 },
 
   // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают
