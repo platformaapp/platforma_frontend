@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
@@ -79,6 +79,10 @@ const EVENT_CTA_WIDTH = Math.round(EVENT_CTA_HEIGHT * EVENT_CTA_ASPECT_RATIO);
 //   уходит в правую колонку (без привязки к конкретному абзацу).
 const EVENT_TOKEN = '{{event}}';
 const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
+// Базовый отступ между элементами сайдбара (см. styles.sidebarSplitItem) —
+// вынесен отдельной константой, т.к. используется и в самом стиле, и в
+// формуле выравнивания CTA события по якорю в тексте (см. eventCardOffset).
+const SIDEBAR_SPLIT_GAP = 40;
 
 // Фолбэк для og:description/meta description, когда в админке не заполнено
 // SEO-поле "Meta Description" — берём начало текста статьи, убираем
@@ -208,6 +212,31 @@ export default function ArticleScreenWeb() {
     // же категории".
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article?.event?.id, article?.event?.category]);
+
+  // CTA события в сайдбаре (десктоп) раньше либо шло строго сразу после
+  // баннера (не реагируя на то, где в тексте реально стоял маркер {{event}}),
+  // либо требовало синхронизации высоты строк текстовой/сайдбар-колонки
+  // через CSS Grid — а это давало огромный пустой отступ, если текст до
+  // точки разбиения короче обложки справа (см. комментарий у
+  // bannerOpposesHeading ниже). Среднее решение: меряем через ref, где в
+  // пикселях реально оказался невидимый якорь в ТЕКСТОВОЙ колонке (ровно на
+  // месте маркера, см. JSX ниже) и где карточка легла БЕЗ поправки — и
+  // сдвигаем её вниз (marginTop) ровно настолько, чтобы верх карточки совпал
+  // с якорем. Не раньше: если бы якорь оказался ВЫШЕ естественного места
+  // карточки (например, обложка справа высокая, а маркер стоит в первом
+  // абзаце), подвинуть карточку ВВЕРХ нельзя, не наложив её на баннер/
+  // обложку над ней — тогда просто оставляем 0 (ближайшее подходящее место).
+  const eventAnchorRef = useRef<any>(null);
+  const eventCardRef = useRef<any>(null);
+  const [eventCardOffset, setEventCardOffset] = useState(0);
+  useLayoutEffect(() => {
+    const anchor = eventAnchorRef.current;
+    const card = eventCardRef.current;
+    if (!anchor || !card || typeof anchor.getBoundingClientRect !== 'function') return;
+    const anchorTop = anchor.getBoundingClientRect().top;
+    const cardTop = card.getBoundingClientRect().top;
+    setEventCardOffset((prev) => Math.max(0, anchorTop - (cardTop - prev)));
+  }, [article?.content, article?.event?.id, isMobile]);
 
   if (loading) {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
@@ -657,14 +686,29 @@ export default function ArticleScreenWeb() {
             <View style={styles.textCol}>
               {titleElement}
               {authorBlock}
-              {renderTextItems(textItems, 'text')}
+              {hasEventSplit ? (
+                <>
+                  {beforeEventBlock}
+                  {/* Невидимый якорь ровно на месте маркера {{event}} в
+                      тексте — по нему меряем, куда сдвинуть карточку в
+                      сайдбаре (см. eventCardOffset выше). */}
+                  <View ref={eventAnchorRef} />
+                  {afterEventBlock}
+                </>
+              ) : (
+                renderTextItems(textItems, 'text')
+              )}
             </View>
             <View style={styles.colImageTop}>
               {mediaBlock}
               {sidebarHasLeadingBanner ? bannerBlock : null}
               {sidebarHasLeadingEventCta ? renderEventCtaCard() : null}
               {sidebarSplits.map((sp) => (
-                <View key={`side-${sp.idx}-${sp.kind}`} style={styles.sidebarSplitItem}>
+                <View
+                  key={`side-${sp.idx}-${sp.kind}`}
+                  ref={sp.kind === 'event' ? eventCardRef : undefined}
+                  style={sp.kind === 'event' ? [styles.sidebarSplitItem, { marginTop: SIDEBAR_SPLIT_GAP + eventCardOffset }] : styles.sidebarSplitItem}
+                >
                   {sp.kind === 'event' ? renderEventCtaCard() : bannerBlock}
                 </View>
               ))}
@@ -745,7 +789,7 @@ const styles = StyleSheet.create({
   // Баннер/CTA события, занявшие отдельное "место" в сайдбаре из-за своей
   // привязки к позиции в тексте (sidebarSplits) — те же 40px, что раньше
   // давал rowGap между строками грида.
-  sidebarSplitItem: { marginTop: 40 },
+  sidebarSplitItem: { marginTop: SIDEBAR_SPLIT_GAP },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 100, marginTop: 0},
   titleMobile: { fontSize: 25, lineHeight: 28 },
   subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
