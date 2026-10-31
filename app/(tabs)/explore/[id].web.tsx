@@ -568,8 +568,8 @@ const styles = StyleSheet.create({
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
-  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
+  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
 
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 

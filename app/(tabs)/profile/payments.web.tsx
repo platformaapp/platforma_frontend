@@ -397,8 +397,8 @@ const styles = StyleSheet.create({
   cardActionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardActionDelete: {},
   cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
-  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
+  chip: { backgroundColor: '#111', paddingVertical: 8, paddingHorizontal: 14 },
+  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FAFAFA' },
   chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   historyCard: { borderWidth: 1, borderColor: '#E5E5E5', marginBottom: 8, padding: 12 },

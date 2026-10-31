@@ -485,8 +485,8 @@ const styles = StyleSheet.create({
   loadMoreButton: { alignSelf: 'center', borderWidth: 1, borderColor: '#010101', paddingVertical: 12, paddingHorizontal: 40, marginTop: 24 },
   loadMoreButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   // Мобильные экшн-кнопки — заливка вместо обводки, см. мобильные макеты.
-  chipButton: { backgroundColor: '#F0F5FB', borderWidth: 0 },
-  chipButtonText: { color: '#68717A' },
+  chipButton: { backgroundColor: '#111', borderWidth: 0 },
+  chipButtonText: { color: '#FAFAFA' },
 
   // Имя наставника — тип события (формат) здесь не показываем (только на
   // странице события и в рубрикаторе). Цвет — как .card__label на

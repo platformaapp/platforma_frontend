@@ -509,8 +509,8 @@ const styles = StyleSheet.create({
   cardAction: { paddingVertical: 6 },
   cardActionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
-  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
+  chip: { backgroundColor: '#111', paddingVertical: 8, paddingHorizontal: 14 },
+  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FAFAFA' },
   chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   linkCardRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#010101', height: 56, marginBottom: 24 },

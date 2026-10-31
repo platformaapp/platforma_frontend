@@ -33,13 +33,19 @@ const ROW_THREE_COLUMNS = [403, 75, 365, 76, 340, 191];
 const ROW_THREE_TOTAL = ROW_THREE_COLUMNS.reduce((sum, n) => sum + n, 0);
 const ROW_THREE_RIGHT_INSET = `${((ROW_THREE_COLUMNS[5] / ROW_THREE_TOTAL) * 100).toFixed(4)}%`;
 
-// Пагинация — 5 строк контента на страницу (см. ROWS_PER_PAGE ниже). Вместо
-// подгрузки с бэкенда по мере скролла (как было — "Показать ещё") теперь
-// просто берём разом весь журнал одним запросом и листаем уже загруженный
-// список постранично на клиенте — проще и не завязано на то, как бэкендная
-// страница (per_page) соотносится со "строками" вёрстки (пара/тройка/пара).
+// Пагинация — 10 статей на страницу. Вместо подгрузки с бэкенда по мере
+// скролла (как было — "Показать ещё") теперь просто берём разом весь
+// журнал одним запросом и листаем уже загруженный список постранично на
+// клиенте — проще и не завязано на то, как бэкендная страница (per_page)
+// соотносится со "строками" вёрстки (пара/тройка/пара).
 const ARTICLES_FETCH_LIMIT = 200;
-const ROWS_PER_PAGE = 5;
+const ARTICLES_PER_PAGE = 10;
+// На десктопе цикл строк — pairA(2) + triple(3) + pairB(2) + triple(3) = 10
+// статей ровно за 4 строки (см. cycle в rows ниже), поэтому "10 статей на
+// страницу" на десктопе — это "4 строки на страницу": НОК цикла и размера
+// страницы совпадает, так что каждая страница — ровно один полный цикл, без
+// обрезков по середине.
+const ROWS_PER_PAGE = 4;
 
 export default function JournalScreenWeb() {
   const router = useRouter();
@@ -188,14 +194,16 @@ export default function JournalScreenWeb() {
     }
   }
 
-  // Пагинация: на десктопе страница — ROWS_PER_PAGE строк сетки (rows), на
-  // мобильном (1 карточка = 1 "строка" в mobileList) — то же число карточек.
+  // Пагинация — 10 статей на страницу. На десктопе страница — ROWS_PER_PAGE
+  // (4) строк сетки, что при цикле pairA+triple+pairB+triple ровно и даёт 10
+  // статей; на мобильном (1 карточка = 1 статья) — напрямую ARTICLES_PER_PAGE.
   const totalUnits = isMobile ? filtered.length : rows.length;
-  const totalPages = Math.max(1, Math.ceil(totalUnits / ROWS_PER_PAGE));
+  const unitsPerPage = isMobile ? ARTICLES_PER_PAGE : ROWS_PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil(totalUnits / unitsPerPage));
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
-  const rowOffset = (page - 1) * ROWS_PER_PAGE;
-  const pageRows = isMobile ? [] : rows.slice(rowOffset, rowOffset + ROWS_PER_PAGE);
-  const pageMobileItems = isMobile ? filtered.slice(rowOffset, rowOffset + ROWS_PER_PAGE) : [];
+  const rowOffset = (page - 1) * unitsPerPage;
+  const pageRows = isMobile ? [] : rows.slice(rowOffset, rowOffset + unitsPerPage);
+  const pageMobileItems = isMobile ? filtered.slice(rowOffset, rowOffset + unitsPerPage) : [];
 
   // Переключение страницы должно возвращать наверх списка (scrollArea в
   // SiteShell), иначе после клика пользователь остаётся внизу — там, где

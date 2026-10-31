@@ -1978,11 +1978,11 @@ const styles = StyleSheet.create({
   // (на узком экране высота подстраивается под ширину).
   avatarMobile: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
-  // Filled light-blue button used for action chips on mobile widths (see mobile mockups).
-  mobileChip: { backgroundColor: '#F0F5FB', borderWidth: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  mobileChipText: { color: '#68717A', fontSize: 15 },
+  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
+  // Filled black button used for action chips on mobile widths (see mobile mockups).
+  mobileChip: { backgroundColor: '#111', borderWidth: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  mobileChipText: { color: '#FAFAFA', fontSize: 15 },
 
   // Modals (shared)
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
@@ -2093,8 +2093,8 @@ const styles = StyleSheet.create({
   // <input>), с явной кнопкой "Выбрать", чтобы можно было покликать по часам
   // и минутам сколько нужно, не создавая слот раньше времени.
   slotTimePickerRow: { marginTop: 12 },
-  slotTimePickerConfirm: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
-  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#68717A' },
+  slotTimePickerConfirm: { backgroundColor: '#111', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
+  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FAFAFA' },
 
   // Свой пикер времени — см. TimeWheelPicker. Красный акцент вместо синего
   // выделения нативного браузерного попапа (тот не перекрашивается).
