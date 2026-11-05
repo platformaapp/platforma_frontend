@@ -362,7 +362,10 @@ const styles = StyleSheet.create({
   titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0, marginBottom: 24 },
   // Активный фильтр по тегу (переход по клику на #хэштег на странице
   // статьи, см. TagList/onTagPress) — чип с крестиком сбрасывает фильтр.
-  activeTagChip: { alignSelf: 'flex-start', marginTop: 12 },
+  // marginBottom:24 — без него чип #тега вплотную прижимался к картинке
+  // первой карточки списка ниже (mobileList/mobileRow не добавляют свой
+  // отступ сверху).
+  activeTagChip: { alignSelf: 'flex-start', marginTop: 12, marginBottom: 24 },
   activeTagChipText: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#687076' },
   filtersRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0, marginTop: 68 },
   filtersGroup: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 46, rowGap: 12, flexShrink: 1 },

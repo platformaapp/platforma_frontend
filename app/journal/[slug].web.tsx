@@ -396,7 +396,7 @@ export default function ArticleScreenWeb() {
         <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderUpcomingEventCard' } } as any)}>
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
           <View style={styles.mobileInfo}>
-            <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+            <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]}>{preventOrphanLastWord(item.title)}</Text>
             {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
           </View>
         </Pressable>
@@ -488,7 +488,7 @@ export default function ArticleScreenWeb() {
           <Pressable style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderEventCtaCard' } } as any)}>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
             <View style={styles.mobileInfo}>
-              <Text style={styles.mobileTitleText}>{preventOrphanLastWord(event.title)}</Text>
+              <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
               {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
             </View>
           </Pressable>
@@ -589,7 +589,7 @@ export default function ArticleScreenWeb() {
   const unclaimedRelatedArticles = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
   const relatedArticlesBlock = unclaimedRelatedArticles.length > 0 ? (
     <View style={[styles.relatedSection, isMobile && styles.relatedSectionMobile]}>
-      <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
+      <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Окей, что ещё</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
         {unclaimedRelatedArticles.map((item, i) => renderRelatedArticleCard(item, (isMobile ? 0 : i) as 0 | 1 | 2))}
       </View>
@@ -601,7 +601,7 @@ export default function ArticleScreenWeb() {
   // блок не рендерится вовсе — "та же категория" не из чего вывести.
   const relatedBlock = categoryEvents.length > 0 ? (
     <View style={styles.relatedSection}>
-      <Text style={styles.relatedSectionTitle}>Ближайшие события</Text>
+      <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Ближайшие события</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
         {categoryEvents.map((e, i) => renderUpcomingEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
       </View>
@@ -729,7 +729,7 @@ export default function ArticleScreenWeb() {
             <View style={styles.mobileRow} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:Скачать приложение' } } as any)}>
               <Image source={APP_DOWNLOAD_IMAGE} style={styles.mobileThumb} resizeMode="cover" />
               <View style={styles.mobileInfo}>
-                <Text style={styles.mobileTitleText} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
+                <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
                 <View style={styles.appCardStores}>
                   <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
                     <Text style={styles.storeLinkText}>app store</Text>
@@ -791,7 +791,10 @@ const styles = StyleSheet.create({
   // давал rowGap между строками грида.
   sidebarSplitItem: { marginTop: SIDEBAR_SPLIT_GAP },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 100, marginTop: 0},
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  // marginBottom:24 — перекрывает десктопные 100px у styles.title (см. там):
+  // тот же отступ, что между медиа-блоком (обложка/галерея) и текстом
+  // статьи ниже (styles.mobileMediaBlock), а не гигантский десктопный.
+  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
   // Только имя под заголовком, серым — раньше тут был целый блок (фото +
   // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
@@ -834,6 +837,10 @@ const styles = StyleSheet.create({
   relatedSection: { marginTop: 97, marginBottom: 40 },
   relatedSectionMobile: { marginTop: 0 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  // На мобильном — тот же размер, что у заголовка самой статьи (titleMobile):
+  // 40px десктопного была слишком крупной для "Окей, что ещё"/"Ближайшие
+  // события" на узком экране.
+  relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
   relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
@@ -848,6 +855,13 @@ const styles = StyleSheet.create({
   // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
   // 0.95 × fontSize(14) = 13.3.
   mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
+  // Для карточек, где заголовок — первый/единственный элемент в mobileInfo
+  // (без category-лейбла над ним: CTA события, "Скачать приложение",
+  // ближайшие события), mobileInfo работает через justifyContent:
+  // 'space-between' — отступ сверху у mobileTitleText (нужен, когда ПЕРЕД
+  // заголовком есть category-лейбл, см. renderRelatedArticleCard) здесь
+  // лишний, прижимает заголовок вниз от верхнего края картинки.
+  mobileTitleTextNoLabel: { marginTop: 0 },
   mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 
   // Похожая статья, вставленная маркером прямо в текст — в ширину текстовой
