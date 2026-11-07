@@ -878,8 +878,17 @@ const styles = StyleSheet.create({
   // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
   // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)
   // + карточка наставника — в широкой колонке справа.
-  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
-  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%' },
+  // alignItems убран (был 'flex-start'): без него работает дефолт CSS
+  // Grid — 'stretch' — только тогда leftCol реально растягивается на
+  // высоту строки (как на странице наставника, см. тот же приём в
+  // explore/[id].web.tsx: desktopGrid), и actionsRow (position:'absolute',
+  // bottom:0) внутри него садится на нижний край колонки, а не куда
+  // попало. leftCol также получил position:'relative' — без него
+  // actionsRow (абсолютный, bottom:0) не находил позиционированного
+  // предка и улетал к первому найденному выше по дереву, наезжая на текст
+  // статьи/события.
+  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
+  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%', position: 'relative' },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
@@ -928,10 +937,14 @@ const styles = StyleSheet.create({
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
 
   // Mobile: дата/цена над картинкой (не сбоку), картинка — на всю ширину
-  // (не доля строки рядом с текстом, как раньше).
-  mobileMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 8 },
+  // (не доля строки рядом с текстом, как раньше). Размер/интервалы — по
+  // просьбе пользователя: та же мелкая приглушённая подпись, что и везде
+  // на сайте (10/10), плюс свои отступы сверху/снизу для этой конкретной
+  // строки (раньше была задача marginBottom:8, из-за чего строка стояла
+  // вплотную под заголовком и наезжала на него межстрочно).
+  mobileMetaRow: { flexDirection: 'row', gap: 16, marginTop: 20, marginBottom: 24 },
   mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  mobileMetaValue: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  mobileMetaValue: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', opacity: 0.5 },
   // Заметный отступ перед блоком наставника — см. референс.
   mobileMentorBlock: { marginTop: 56 },
   // Тот же отступ, что между текстом события и кнопкой "Зарегистрироваться"
