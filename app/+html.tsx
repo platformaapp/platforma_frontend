@@ -30,8 +30,14 @@ export default function Root({ children }: { children: React.ReactNode }) {
             #root { display: flex; }
             [data-site-content="true"] { scrollbar-width: none; -ms-overflow-style: none; }
             [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
-            [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
-            [data-mentor-avatar="true"]:hover { filter: none; }
+            /* @media (hover:hover) — на тач-устройствах (моб.) реального
+               наведения нет, поэтому без этого условия фото навсегда
+               оставалось бы чёрно-белым (hover для снятия фильтра никогда
+               не наступает) — на мобильном фото сразу цветное. */
+            @media (hover: hover) and (pointer: fine) {
+              [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
+              [data-mentor-avatar="true"]:hover { filter: none; }
+            }
             /* Текстовые ссылки (имя автора статьи, теги, инлайн-ссылки в
                тексте статьи — см. dataSet в journal/[slug].web.tsx,
                tag-list.tsx, lib/markdown-inline.tsx) — только подчёркивание

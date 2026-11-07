@@ -210,10 +210,7 @@ export default function TutorCardScreenWeb() {
           <View>
             <Text style={styles.eventCardTitleMobile}>{ev.title}</Text>
           </View>
-          <Text style={styles.eventRowMetaMobile}>
-            {formatEventDate(ev.datetimeStart)}
-            {ev.price != null ? `    ${ev.price.toLocaleString('ru-RU')} Р` : ''}
-          </Text>
+          <Text style={styles.eventRowDateMobile}>{formatEventDate(ev.datetimeStart)}</Text>
         </View>
       </Pressable>
     );
@@ -434,12 +431,15 @@ export default function TutorCardScreenWeb() {
               <View style={styles.headerInfoMobile}>
                 {displayRole ? <Text style={[styles.role, styles.roleMobile]}>{displayRole}</Text> : null}
                 {displayPrice ? (
-                  <Text style={styles.priceTextMobile}>Стоимость консультации {displayPrice}</Text>
+                  <View>
+                    <Text style={styles.priceTextMobile}>Стоимость консультации</Text>
+                    <Text style={styles.priceTextMobile}>{displayPrice}</Text>
+                  </View>
                 ) : null}
               </View>
             </View>
 
-            {displayBio ? <Text style={styles.bio}>{fixHangingPrepositions(displayBio)}</Text> : null}
+            {displayBio ? <Text style={[styles.bio, styles.bioMobile]}>{fixHangingPrepositions(displayBio)}</Text> : null}
 
             <View style={styles.actionsRowMobile}>{actions}</View>
             {instagramUrl ? (
@@ -553,8 +553,11 @@ const styles = StyleSheet.create({
   // Короткое био (shortBio) — серым (см. displayRole/styles.role: несмотря
   // на название, сюда попадает именно shortBio, не роль/должность).
   role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
-  roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
+  roleMobile: { fontSize: 14, lineHeight: 18, marginTop: 0 },
   bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
+  // На мобильном — тот же межстрочный интервал, что у текста статьи в
+  // журнале (body: lineHeight:26) — 18 читался слишком плотно.
+  bioMobile: { lineHeight: 26 },
   // Стоимость — на отдельной строке под подписью (не в один ряд).
   priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24, marginTop: 24 },
   priceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18 },
@@ -615,6 +618,13 @@ const styles = StyleSheet.create({
   eventRowBodyMobile: { flex: 1, minHeight: 120, justifyContent: 'space-between' },
   // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
   // 0.95 × fontSize(14) = 13.3.
-  eventCardTitleMobile: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },
+  // marginTop:0 — заголовок тут всегда первый/единственный элемент в
+  // eventRowBodyMobile (justifyContent:'space-between', без лейбла над
+  // ним, см. renderEventCardMobile/renderArticleCardMobile), отступ сверху
+  // просто сдвигал его вниз от края картинки.
+  eventCardTitleMobile: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 0 },
   eventRowMetaMobile: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
+  // Дата у карточки события — серым и мельче, как в карточках на /events
+  // (mobileDate там же), а не чёрным текстом в размер category-лейбла.
+  eventRowDateMobile: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });

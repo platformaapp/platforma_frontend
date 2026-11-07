@@ -21,7 +21,7 @@ const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 2
 const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 const RELATED_EVENTS_COUNT = 3;
 
-type RelatedEventItem = { id: string; title: string; coverUrl: string | null };
+type RelatedEventItem = { id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 // Тот же лимит, что у нативной формы редактирования события (edit-event.tsx)
@@ -103,6 +103,17 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
 }
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+// На карточках "Окей, что ещё" — только дата, без времени (как на /events).
+function formatEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return '';
+  }
+}
 
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
@@ -244,6 +255,7 @@ export default function EventDetailScreenWeb() {
               id: String(r.id ?? ''),
               title: String(r.title ?? ''),
               coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
+              datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined ?? null,
             })),
         );
       } catch { /* тихо — просто не показываем секцию */ }
@@ -471,7 +483,8 @@ export default function EventDetailScreenWeb() {
         <Pressable key={item.id} style={styles.relatedMobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/[id].web.tsx:renderRelatedEventCard' } } as any)}>
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.relatedMobileThumb} resizeMode="cover" /> : <View style={styles.relatedMobileThumb} />}
           <View style={styles.relatedMobileInfo}>
-            <Text style={styles.relatedMobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+            <Text style={[styles.relatedMobileTitleText, styles.relatedMobileTitleTextNoLabel]}>{preventOrphanLastWord(item.title)}</Text>
+            {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
           </View>
         </Pressable>
       );
@@ -490,7 +503,7 @@ export default function EventDetailScreenWeb() {
 
   const relatedBlock = recentEvents.length > 0 ? (
     <View style={styles.relatedSection}>
-      <Text style={styles.relatedSectionTitle}>Окей, что ещё</Text>
+      <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Окей, что ещё</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
         {recentEvents.map((e, i) => renderRelatedEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
       </View>
@@ -510,7 +523,7 @@ export default function EventDetailScreenWeb() {
       <View style={styles.mentorInfo}>
         <View>
           <Text style={styles.mentorName}>{event.mentor.name}</Text>
-          {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+          {event.mentor.shortBio ? <Text style={[styles.mentorBio, isMobile && styles.mentorBioMobile]}>{event.mentor.shortBio}</Text> : null}
         </View>
         {!isMobile ? <Text style={styles.actionLink}>Перейти в профиль</Text> : null}
       </View>
@@ -562,7 +575,7 @@ export default function EventDetailScreenWeb() {
             </View>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
-            {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
+            {event.description ? <Text style={[styles.description, styles.descriptionMobile]}>{fixHangingPrepositions(event.description)}</Text> : null}
 
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
@@ -596,7 +609,7 @@ export default function EventDetailScreenWeb() {
             {event.mentor ? (
               <View style={styles.mobileMentorBlock}>
                 {mentorRow}
-                <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                <Pressable style={[styles.chipButton, styles.mentorProfileButtonMobile]} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
                   <Text style={styles.chipButtonText}>Перейти в профиль</Text>
                 </Pressable>
               </View>
@@ -880,6 +893,9 @@ const styles = StyleSheet.create({
   // теги вместо заголовка (та же проблема, что и ниже на /explore).
   titleShrink: { flexShrink: 1, minWidth: 0 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 18 },
+  // На мобильном — тот же межстрочный интервал, что у текста статьи в
+  // журнале (body: lineHeight:26) — 18 читался слишком плотно.
+  descriptionMobile: { lineHeight: 26 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
@@ -904,6 +920,9 @@ const styles = StyleSheet.create({
   mentorInfo: { flex: 1, maxWidth: 360, justifyContent: 'space-between' },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  // На мобильном — подпись мельче (как на самой странице наставника, см.
+  // roleMobile в explore/[id].web.tsx).
+  mentorBioMobile: { fontSize: 14, lineHeight: 18 },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
@@ -915,6 +934,10 @@ const styles = StyleSheet.create({
   mobileMetaValue: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   // Заметный отступ перед блоком наставника — см. референс.
   mobileMentorBlock: { marginTop: 56 },
+  // Тот же отступ, что между текстом события и кнопкой "Зарегистрироваться"
+  // (description.marginBottom) — раньше кнопка стояла вплотную под фото
+  // наставника без зазора.
+  mentorProfileButtonMobile: { marginTop: 24 },
   chipButton: { backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FAFAFA' },
 
@@ -959,6 +982,8 @@ const styles = StyleSheet.create({
   // на /journal/[slug] (см. RELATED_ASPECTS там).
   relatedSection: { marginTop: 97, marginBottom: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  // На мобильном — тот же размер, что у заголовка самого события (titleMobile).
+  relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
   relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
@@ -971,4 +996,9 @@ const styles = StyleSheet.create({
   // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
   // 0.95 × fontSize(14) = 13.3.
   relatedMobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
+  // marginTop:0 — заголовок тут всегда первый/единственный элемент в
+  // relatedMobileInfo (justifyContent:'space-between', без лейбла над ним),
+  // стандартный marginTop:8 просто сдвигал его вниз от края картинки.
+  relatedMobileTitleTextNoLabel: { marginTop: 0 },
+  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });
