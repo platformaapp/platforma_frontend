@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
   // 0.95 × fontSize(14) = 13.3.
   mobileTitleText: {  fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
-  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   // Та же заливка, что у «Создать событие» в нативном профиле наставника
   // (app/(tabs)/profile/[id].tsx: actionPrimary/actionPrimaryText) — чёрная
   // кнопка на всю ширину в конце списка, как «Все советы в Сетке» на референсе.

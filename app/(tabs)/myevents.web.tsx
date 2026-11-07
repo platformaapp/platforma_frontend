@@ -738,7 +738,7 @@ const styles = StyleSheet.create({
   // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
   // 0.95 × fontSize(14) = 13.3.
   mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
-  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   textMuted: { opacity: 0.45 },
 
   mobileVideoBar: { backgroundColor: '#010101', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 8, marginBottom: 24 },

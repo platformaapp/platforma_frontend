@@ -40,9 +40,11 @@ function avatarHeightRatio(index: number, columns: number): number {
 
 // На мобильном карточки наставников — одинаковой высоты (в отличие от
 // десктопа, где высота намеренно разная по позиции, см. комментарий выше).
-// 341/340 — средний по "размаху" вариант из того же паттерна (между самым
-// высоким 410/340 и самым низким 340/340).
-const MOBILE_AVATAR_RATIO = 341 / 340;
+// Раньше было 341/340 (фактически квадрат) — пользователь попросил сделать
+// фото прямоугольным, не квадратным; 1.2 — тот же портретный кроп, что и
+// у фото наставника на его собственной странице (110×132, см. avatarMobile
+// в explore/[id].web.tsx).
+const MOBILE_AVATAR_RATIO = 1.2;
 
 // Вынесена в отдельный компонент просто для читаемости (была инлайн в .map).
 // Чб/цветной переключается настоящим CSS ":hover" (см. [data-mentor-avatar]
@@ -67,7 +69,7 @@ function TutorCard({
           {...({ dataSet: { mentorAvatar: 'true' } } as any)}
         />
       </View>
-      {shortBio ? <Text style={styles.shortBio} numberOfLines={2}>{shortBio}</Text> : null}
+      {shortBio ? <Text style={[styles.shortBio, isMobile && styles.shortBioMobile]} numberOfLines={2}>{shortBio}</Text> : null}
       <Text style={styles.name}>{tutor.fullName}{isOwn ? ' (вы)' : ''}</Text>
     </Pressable>
   );
@@ -200,7 +202,7 @@ export default function MentorsScreenWeb() {
           <View style={styles.centered}><Text style={styles.emptyText}>Наставники не найдены</Text></View>
         ) : (
           <>
-            <View style={styles.grid}>
+            <View style={[styles.grid, isMobile && styles.gridMobile]}>
               {pageTutors.map((tutor, index) => {
                 const isOwn = tutor.id === myId && myRole === 'tutor';
                 const ratio = isMobile ? MOBILE_AVATAR_RATIO : avatarHeightRatio(index, COLS_DESKTOP);
@@ -287,6 +289,11 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center' },
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 24, rowGap: 48 },
+  // Отступ сверху на мобильном — как у mobileList на /events (gap:28,
+  // marginTop:30) — без него сетка начиналась почти вплотную под
+  // заголовком, с меньшим зазором от стрелки "назад" в шапке, чем на
+  // остальных списковых страницах.
+  gridMobile: { marginTop: 30 },
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 40 },
   paginationArrow: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   paginationArrowDisabled: { opacity: 0.3 },
@@ -320,4 +327,7 @@ const styles = StyleSheet.create({
   avatar: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   name: { fontSize: 22, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   shortBio: { fontSize: 16, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: 'rgba(131, 131, 131, 1.00)', marginBottom: 6 },
+  // Та же единая высота серых подписей-метаданных на мобильном, что у даты
+  // события/категории статьи/роли наставника (10/10) — раньше была 16/17.
+  shortBioMobile: { fontSize: 10, lineHeight: 10 },
 });

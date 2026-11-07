@@ -862,7 +862,7 @@ const styles = StyleSheet.create({
   // заголовком есть category-лейбл, см. renderRelatedArticleCard) здесь
   // лишний, прижимает заголовок вниз от верхнего края картинки.
   mobileTitleTextNoLabel: { marginTop: 0 },
-  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 
   // Похожая статья, вставленная маркером прямо в текст — в ширину текстовой
   // колонки (maxWidth 420, как у ctaBlock), а не грид-тройка как в конце статьи.

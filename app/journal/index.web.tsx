@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   // один только aspectRatio (это ломалось в RN-вёрстке внутри flex-row).
   mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
   mobileInfo: { flex: 1, justifyContent: 'flex-start' },
-  mobileCategory: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  mobileCategory: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
   // 0.95 × fontSize(14) = 13.3.
   mobileTitleText: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8 },

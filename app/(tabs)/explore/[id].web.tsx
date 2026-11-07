@@ -553,7 +553,11 @@ const styles = StyleSheet.create({
   // Короткое био (shortBio) — серым (см. displayRole/styles.role: несмотря
   // на название, сюда попадает именно shortBio, не роль/должность).
   role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
-  roleMobile: { fontSize: 14, lineHeight: 18, marginTop: 0 },
+  // Единый размер для всех серых подписей-метаданных на мобильном сайте
+  // (роль наставника, дата события, категория статьи) — по просьбе
+  // пользователя: font-size:10/line-height:10 везде, где раньше были
+  // разные значения (14/18, 8/—, 13/—).
+  roleMobile: { fontSize: 10, lineHeight: 10, marginTop: 0 },
   bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   // На мобильном — тот же межстрочный интервал, что у текста статьи в
   // журнале (body: lineHeight:26) — 18 читался слишком плотно.
@@ -623,8 +627,10 @@ const styles = StyleSheet.create({
   // ним, см. renderEventCardMobile/renderArticleCardMobile), отступ сверху
   // просто сдвигал его вниз от края картинки.
   eventCardTitleMobile: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 0 },
-  eventRowMetaMobile: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
+  // Категория статьи в "О чём пишет" — серым и мелко, как дата у события
+  // (eventRowDateMobile) — раньше была чёрной и крупной (14px).
+  eventRowMetaMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', textAlign: 'right' },
   // Дата у карточки события — серым и мельче, как в карточках на /events
   // (mobileDate там же), а не чёрным текстом в размер category-лейбла.
-  eventRowDateMobile: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  eventRowDateMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });

@@ -1000,5 +1000,5 @@ const styles = StyleSheet.create({
   // relatedMobileInfo (justifyContent:'space-between', без лейбла над ним),
   // стандартный marginTop:8 просто сдвигал его вниз от края картинки.
   relatedMobileTitleTextNoLabel: { marginTop: 0 },
-  mobileDate: { fontSize: 8, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });

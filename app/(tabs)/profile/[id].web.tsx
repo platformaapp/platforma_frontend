@@ -1105,8 +1105,20 @@ export default function ProfileScreenWeb() {
                 </View>
               ) : null}
             </View>
-            {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
-            {tutorBioBlock}
+            {/* За основу — публичная страница наставника (explore/[id].web.tsx):
+                фото и короткое "О себе" стоят в ряд, а не отдельными блоками
+                друг под другом — раньше фото было на всю ширину квадратом,
+                а подпись и био шли сплошным текстом без того же межстрочного
+                интервала/размера, что и везде на сайте. */}
+            <View style={styles.tutorHeaderRowMobile}>
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.tutorAvatarMobile} /> : <View style={[styles.tutorAvatarMobile, styles.bigAvatarPlaceholder]} />}
+              {shortBio.trim() ? (
+                <View style={styles.tutorHeaderInfoMobile}>
+                  <Text style={styles.tutorShortBioMobile}>{shortBio.trim()}</Text>
+                </View>
+              ) : null}
+            </View>
+            {bio.trim() ? <Text style={[styles.bioText, styles.bioTextMobile]}>{bio.trim()}</Text> : null}
             <View style={styles.actionsRowMobile}>
               <Pressable style={styles.chipHalf} onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
                 <Text style={styles.chipHalfText}>Личные данные</Text>
@@ -2072,6 +2084,15 @@ const styles = StyleSheet.create({
   removeLink: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   bioText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 30 },
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000',     marginTop: 16, lineHeight: 18 },
+  // Мобильный хедер наставника — как на публичной странице наставника
+  // (explore/[id].web.tsx: headerRowMobile/avatarMobile/roleMobile/bioMobile).
+  tutorHeaderRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
+  tutorHeaderInfoMobile: { flex: 1 },
+  tutorAvatarMobile: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
+  tutorShortBioMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  // Тот же межстрочный интервал, что у текста статьи в журнале — 18 читался
+  // слишком плотно (см. тот же фикс на explore/[id].web.tsx: bioMobile).
+  bioTextMobile: { lineHeight: 26, marginTop: 16 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },
   emptyText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076',  marginTop: 24, marginBottom: 8 },
   slotDateGroup: { marginBottom: 12 },
