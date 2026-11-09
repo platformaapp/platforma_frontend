@@ -908,17 +908,23 @@ const styles = StyleSheet.create({
   // контента (min-width:auto в CSS flexbox), и при нехватке места сжимает
   // теги вместо заголовка (та же проблема, что и ниже на /explore).
   titleShrink: { flexShrink: 1, minWidth: 0 },
-  description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 18 },
-  // На мобильном — тот же межстрочный интервал, что у текста статьи в
-  // журнале (body: lineHeight:26) — 18 читался слишком плотно. marginTop:0
-  // — десктопные 40px тут лишние: отступ до текста уже даёт marginBottom
-  // обложки (mobileThumb) ниже, тем же журнальным значением 24.
-  descriptionMobile: { lineHeight: 26, marginTop: 0 },
+  // lineHeight:26 — тот же межстрочный интервал, что у текста статьи в
+  // журнале (body: lineHeight:26) — раньше был 18 и на десктопе тоже,
+  // текст события читался заметно плотнее, чем в статьях.
+  description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
+  // marginTop:0 — десктопные 40px тут лишние: отступ до текста уже даёт
+  // marginBottom обложки (mobileThumb) ниже, тем же журнальным значением 24.
+  descriptionMobile: { marginTop: 0 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 280, marginTop: 0,     position: 'absolute', bottom: 0 },
+  // gap:280 — вероятно, опечатка (взят из другого макета): при узкой
+  // leftCol (420–605px) «Зарегистрироваться» и «Поделиться» с таким
+  // зазором не помещались в одну строку и переносились через flexWrap.
+  // 24 — тот же зазор, что у идентичного actionsRow на странице наставника
+  // (explore/[id].web.tsx).
+  actionsRow: { flexDirection: 'row', gap: 24, marginTop: 0,     position: 'absolute', bottom: 0 },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
   actionLinkWrapper: { justifyContent: 'flex-end' },
   actionLinkDisabled: { color: '#9B9B9B' },

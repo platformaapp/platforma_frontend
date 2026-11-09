@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -91,6 +92,7 @@ function LogoGrid({ logos }: { logos: { name: string; logo: number | string; url
  * документы по-прежнему доступны напрямую с /about — "Правовая информация").
  */
 export function SiteFooter({ showPartners = false }: { showPartners?: boolean }) {
+  const router = useRouter();
   const [openDoc, setOpenDoc] = useState<'none' | 'offer'>('none');
   const { width: windowWidth } = useWindowDimensions();
   const isMobile = windowWidth < MOBILE_BREAKPOINT;
@@ -146,7 +148,11 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
 
       {showDocsRow ? (
         <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
-          <Text style={styles.copyright}>©2026, p(34)</Text>
+          {/* По клику — на "О нас" (та же страница, куда ведёт лого p(34)
+              в шапке, см. site-header.tsx). */}
+          <Pressable onPress={() => router.push('/about-us' as any)}>
+            <Text style={styles.copyright}>©2026, p(34)</Text>
+          </Pressable>
           <Pressable onPress={() => setOpenDoc('offer')}>
             <Text style={styles.docsLink}>Официальные документы</Text>
           </Pressable>

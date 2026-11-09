@@ -617,7 +617,10 @@ const styles = StyleSheet.create({
   eventDimmed: { opacity: 0.5 },
   eventCardBody: { paddingTop: 10 },
   eventCardTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4, marginTop: 12, lineHeight: 25 },
-  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', marginTop: 27, lineHeight: 1, textAlign: 'right' },
+  // Серый, как категория/дата в журнале (cardCategory/relatedCategory:
+  // color:'#687076') — раньше была чёрная (#000), заметно выделялась на
+  // фоне остальных подписей на сайте.
+  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 27, lineHeight: 1, textAlign: 'right' },
 
   // Mobile: полноширинная строка на событие (миниатюра + текст), а не
   // карточки в сетке — см. renderEventCardMobile / референс.

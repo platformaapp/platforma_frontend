@@ -151,7 +151,7 @@ export default function LoginScreenWeb() {
               </View>
 
               <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
-                <PlusField label="Логин" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                <PlusField label="Почта" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
                 <PlusField label="Пароль" value={password} onChangeText={setPassword} secureTextEntry />
 
                 <Pressable style={styles.checkboxRow} onPress={() => { setIsMentor((p) => !p); setLoginError(''); }}>

@@ -112,13 +112,17 @@ const styles = StyleSheet.create({
   scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
 
-  desktopLayout: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
+  // alignItems убран (был 'flex-start'): дефолт CSS Grid — 'stretch' —
+  // растягивает обе колонки на высоту строки (то есть на высоту более
+  // высокой из них — как правило, текстовой колонки с контактами внизу).
+  // Фото (rightCol/cover) при этом заполняет всю эту высоту (height:'100%'
+  // вместо фикс. аспекта через paddingBottom — см. ниже), поэтому его
+  // нижний край всегда совпадает с низом блока "Свяжитесь с нами", а не
+  // гуляет сам по себе в зависимости от длины текста из админки.
+  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
-  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
-  // paddingBottom: (1/aspectRatio)*100% — классический приём для аспекта
-  // через проценты (которые CSS всегда берёт от ШИРИНЫ блока, в т.ч. для
-  // padding), см. комментарий у photo выше.
-  cover: { width: '100%', paddingBottom: `${(1 / 1.44) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5' } as any,
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', height: '100%', overflow: 'hidden' },
+  cover: { width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
   mobileThumb: { width: '100%', paddingBottom: `${(360 / 649) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 16 } as any,
   photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
