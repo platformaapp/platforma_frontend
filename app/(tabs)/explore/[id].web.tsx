@@ -427,7 +427,10 @@ export default function TutorCardScreenWeb() {
             </View>
 
             <View style={styles.headerRowMobile}>
-              <Image source={imageSource} style={styles.avatarMobile} {...({ dataSet: { mentorAvatar: 'true' } } as any)} />
+              {/* Без data-mentor-avatar — на собственной странице наставника
+                  фото всегда цветное (чб-эффект — только в сетке на
+                  /explore, см. комментарий у правила в app/+html.tsx). */}
+              <Image source={imageSource} style={styles.avatarMobile} />
               <View style={styles.headerInfoMobile}>
                 {displayRole ? <Text style={[styles.role, styles.roleMobile]}>{displayRole}</Text> : null}
                 {displayPrice ? (
@@ -480,7 +483,7 @@ export default function TutorCardScreenWeb() {
               ) : null}
             </View>
             <View style={styles.avatarLargeBox}>
-              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" {...({ dataSet: { mentorAvatar: 'true' } } as any)} />
+              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" />
             </View>
           </View>
         )}
@@ -536,7 +539,10 @@ const styles = StyleSheet.create({
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
   // Mobile: имя отдельной строкой сверху, ниже — портретное фото слева и
   // роль/цена справа от него (см. референс мобильной страницы наставника).
-  headerRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
+  // marginTop/marginBottom: 24 — тот же интервал между блоками (имя/фото/
+  // текст/кнопки), что уже выработан в журнале (journal/[slug].web.tsx:
+  // titleMobile/authorRow/mobileMediaBlock — везде 24).
+  headerRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 24, marginBottom: 24 },
   headerInfoMobile: { flex: 1, gap: 16 },
   avatarMobile: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
   priceTextMobile: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
@@ -560,8 +566,10 @@ const styles = StyleSheet.create({
   roleMobile: { fontSize: 10, lineHeight: 10, marginTop: 0 },
   bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   // На мобильном — тот же межстрочный интервал, что у текста статьи в
-  // журнале (body: lineHeight:26) — 18 читался слишком плотно.
-  bioMobile: { lineHeight: 26 },
+  // журнале (body: lineHeight:26) — 18 читался слишком плотно. marginTop:0/
+  // marginBottom:24 — заменяют десктопный marginVertical:16 тем же
+  // журнальным интервалом между блоками, что и везде на этой странице.
+  bioMobile: { lineHeight: 26, marginTop: 0, marginBottom: 24 },
   // Стоимость — на отдельной строке под подписью (не в один ряд).
   priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24, marginTop: 24 },
   priceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18 },

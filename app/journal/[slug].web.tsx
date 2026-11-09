@@ -794,7 +794,9 @@ const styles = StyleSheet.create({
   // marginBottom:24 — перекрывает десктопные 100px у styles.title (см. там):
   // тот же отступ, что между медиа-блоком (обложка/галерея) и текстом
   // статьи ниже (styles.mobileMediaBlock), а не гигантский десктопный.
-  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
+  // Тот же размер/насыщенность, что у подзаголовков статьи (subheading) —
+  // по просьбе пользователя: 25px смотрелся заметно мельче и легче.
+  titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
   subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
   // Только имя под заголовком, серым — раньше тут был целый блок (фото +
   // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —

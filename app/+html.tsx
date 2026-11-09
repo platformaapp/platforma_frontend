@@ -30,12 +30,20 @@ export default function Root({ children }: { children: React.ReactNode }) {
             #root { display: flex; }
             [data-site-content="true"] { scrollbar-width: none; -ms-overflow-style: none; }
             [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
-            /* @media (hover:hover) — на тач-устройствах (моб.) реального
-               наведения нет, поэтому без этого условия фото навсегда
-               оставалось бы чёрно-белым (hover для снятия фильтра никогда
-               не наступает) — на мобильном фото сразу цветное. */
+            /* Чб со снятием фильтра по наведению — только для карточек в
+               сетках/списках (сетка наставников на /explore, см.
+               dataSet в explore/index.web.tsx — единственное место,
+               которое теперь ставит data-mentor-avatar). На тач-устройствах
+               реального hover нет, поэтому там фото остаётся чб всегда —
+               это и нужно на /explore. Фото наставника на ЕГО СОБСТВЕННОЙ
+               странице (explore/[id].web.tsx) и в карточке наставника на
+               странице события (events/[id].web.tsx) этот атрибут больше
+               не ставят вовсе — те всегда цветные, независимо от
+               устройства (раньше были обёрнуты в @media(hover:hover) ради
+               мобильных, но этим заодно гасили чб и в сетке /explore на
+               мобильном, где оно, наоборот, нужно). */
+            [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
             @media (hover: hover) and (pointer: fine) {
-              [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
               [data-mentor-avatar="true"]:hover { filter: none; }
             }
             /* Текстовые ссылки (имя автора статьи, теги, инлайн-ссылки в

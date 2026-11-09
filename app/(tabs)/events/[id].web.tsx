@@ -527,11 +527,13 @@ export default function EventDetailScreenWeb() {
         </View>
         {!isMobile ? <Text style={styles.actionLink}>Перейти в профиль</Text> : null}
       </View>
+      {/* Без data-mentor-avatar — чб-эффект только в сетке на /explore
+          (см. комментарий у правила в app/+html.tsx), здесь фото
+          наставника всегда цветное. */}
       <Image
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
         style={styles.mentorAvatar}
         resizeMode="cover"
-        {...({ dataSet: { mentorAvatar: 'true' } } as any)}
       />
     </Pressable>
   ) : null;
@@ -893,7 +895,12 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  // marginBottom:24 — тот же интервал между блоками (заголовок/дата/
+  // обложка/текст), что уже выработан в журнале (journal/[slug].web.tsx:
+  // titleMobile/authorRow/mobileMediaBlock — везде 24, см. mobileMetaRow/
+  // mobileThumb/descriptionMobile ниже): раньше на этой странице у каждого
+  // блока был свой случайный отступ (0, 20+24, 16, 40).
+  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   // Теги (#хэштег) — напротив названия события, тем же размером шрифта,
   // по правому краю заголовка (строка — на всю ширину колонки заголовка).
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
@@ -903,8 +910,10 @@ const styles = StyleSheet.create({
   titleShrink: { flexShrink: 1, minWidth: 0 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 18 },
   // На мобильном — тот же межстрочный интервал, что у текста статьи в
-  // журнале (body: lineHeight:26) — 18 читался слишком плотно.
-  descriptionMobile: { lineHeight: 26 },
+  // журнале (body: lineHeight:26) — 18 читался слишком плотно. marginTop:0
+  // — десктопные 40px тут лишние: отступ до текста уже даёт marginBottom
+  // обложки (mobileThumb) ниже, тем же журнальным значением 24.
+  descriptionMobile: { lineHeight: 26, marginTop: 0 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
@@ -939,11 +948,11 @@ const styles = StyleSheet.create({
   // Mobile: дата/цена над картинкой (не сбоку), картинка — на всю ширину
   // (не доля строки рядом с текстом, как раньше). Размер/интервалы — по
   // просьбе пользователя: та же мелкая приглушённая подпись, что и везде
-  // на сайте (10/10), плюс свои отступы сверху/снизу для этой конкретной
-  // строки (раньше была задача marginBottom:8, из-за чего строка стояла
-  // вплотную под заголовком и наезжала на него межстрочно).
-  mobileMetaRow: { flexDirection: 'row', gap: 16, marginTop: 20, marginBottom: 24 },
-  mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 16 },
+  // на сайте (10/10). marginTop не нужен — отступ сверху уже даёт
+  // titleMobile.marginBottom (24, см. выше); marginBottom — тот же
+  // журнальный интервал между блоками (24), что и everywhere ниже.
+  mobileMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 24 },
   mobileMetaValue: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', opacity: 0.5 },
   // Заметный отступ перед блоком наставника — см. референс.
   mobileMentorBlock: { marginTop: 56 },
