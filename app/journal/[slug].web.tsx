@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
-  relatedSection: { marginTop: 97, marginBottom: 40 },
+  relatedSection: { marginTop: 140, marginBottom: 40 },
   relatedSectionMobile: { marginTop: 0 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самой статьи (titleMobile):

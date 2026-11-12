@@ -460,6 +460,17 @@ export default function EventDetailScreenWeb() {
   // отменить запись на него (участник) — действие уже неактуально.
   const isPastEvent = !!event?.datetimeStart && new Date(event.datetimeStart).getTime() < Date.now();
 
+  // Формат + теги — тот же блок, что "автор + теги" под заголовком статьи в
+  // журнале (journal/[slug].web.tsx: authorBlock/authorRow/author) — тем же
+  // мелким серым стилем, а не крупным, как заголовок (раньше теги стояли
+  // прямо в titleRow, тем же размером, что и сам заголовок).
+  const formatRow = event?.format ? (
+    <View style={styles.eventMetaRow}>
+      <Text style={[styles.eventFormatText, styles.eventFormatShrink]}>{event.format}</Text>
+      <TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
+    </View>
+  ) : null;
+
   const metaBlock = (
     <View style={styles.metaRow}>
       <View>
@@ -566,10 +577,8 @@ export default function EventDetailScreenWeb() {
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
         ) : isMobile ? (
           <View>
-            <View style={styles.titleRow}>
-              <Text style={[styles.title, styles.titleMobile, styles.titleShrink]}>{preventOrphanLastWord(event.title)}</Text>
-              <TagList tags={event.tags} textStyle={[styles.title, styles.titleMobile]} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
-            </View>
+            <Text style={[styles.title, styles.titleMobile]}>{preventOrphanLastWord(event.title)}</Text>
+            {formatRow}
 
             <View style={styles.mobileMetaRow}>
               <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
@@ -577,7 +586,7 @@ export default function EventDetailScreenWeb() {
             </View>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
-            {event.description ? <Text style={[styles.description, styles.descriptionMobile]}>{fixHangingPrepositions(event.description)}</Text> : null}
+            {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
 
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
@@ -620,10 +629,8 @@ export default function EventDetailScreenWeb() {
         ) : (
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
-              <View style={styles.titleRow}>
-                <Text style={[styles.title, styles.titleShrink]}>{preventOrphanLastWord(event.title)}</Text>
-                <TagList tags={event.tags} textStyle={styles.title} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
-              </View>
+              <Text style={styles.title}>{preventOrphanLastWord(event.title)}</Text>
+              {formatRow}
               {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
               {metaBlock}
 
@@ -894,29 +901,35 @@ const styles = StyleSheet.create({
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
+  // marginBottom:100 — тот же отступ до строки "формат + теги", что у
+  // заголовка статьи в журнале на десктопе (title.marginBottom:100) —
+  // раньше было 0 (отступ давала не строка формата, которой не было, а
+  // фиксированный marginTop:40 у текста, см. description ниже).
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 100 },
   // fontSize/lineHeight:30 и marginBottom:24 — тот же размер заголовка и
-  // интервал между блоками (заголовок/дата/обложка/текст), что уже
-  // выработан в журнале (journal/[slug].web.tsx: titleMobile/authorRow/
-  // mobileMediaBlock — везде 24, заголовок — 30/30, см. mobileMetaRow/
-  // mobileThumb/descriptionMobile ниже): раньше здесь был и свой размер
+  // интервал до следующего блока (строки формата/даты), что уже
+  // выработан в журнале (journal/[slug].web.tsx: titleMobile/authorRow —
+  // везде 24, заголовок — 30/30): раньше здесь был и свой размер
   // заголовка (25/28), и у каждого блока свой случайный отступ (0, 20+24,
   // 16, 40).
   titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
-  // Теги (#хэштег) — напротив названия события, тем же размером шрифта,
-  // по правому краю заголовка (строка — на всю ширину колонки заголовка).
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+  // Формат события + теги — тот же блок, что "автор + теги" под
+  // заголовком статьи в журнале (authorRow/author): мелкий серый текст,
+  // формат слева, теги справа. Раньше теги стояли прямо рядом с
+  // заголовком, тем же крупным размером, что и сам заголовок.
+  eventMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  eventFormatText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
   // minWidth:0 — без него flex-item по умолчанию не сжимается уже самого
   // контента (min-width:auto в CSS flexbox), и при нехватке места сжимает
-  // теги вместо заголовка (та же проблема, что и ниже на /explore).
-  titleShrink: { flexShrink: 1, minWidth: 0 },
-  // lineHeight:26 — тот же межстрочный интервал, что у текста статьи в
-  // журнале (body: lineHeight:26) — раньше был 18 и на десктопе тоже,
-  // текст события читался заметно плотнее, чем в статьях.
-  description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
-  // marginTop:0 — десктопные 40px тут лишние: отступ до текста уже даёт
-  // marginBottom обложки (mobileThumb) ниже, тем же журнальным значением 24.
-  descriptionMobile: { marginTop: 0 },
+  // теги вместо формата (та же проблема, что и у имени автора в журнале).
+  eventFormatShrink: { flexShrink: 1, minWidth: 0 },
+  // lineHeight:26, без maxWidth — тот же межстрочный интервал и та же
+  // "длина текста" (во всю ширину колонки, не уже), что у текста статьи в
+  // журнале (body: lineHeight:26, без своего maxWidth у textCol) — раньше
+  // текст события был уже (504px) самой колонки (605px) и плотнее (18).
+  // marginTop:0 — отступ до текста теперь даёт formatRow.marginBottom
+  // (24) выше, а не фиксированный 40.
+  description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 0, fontSize: 18, lineHeight: 26 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
@@ -1010,7 +1023,7 @@ const styles = StyleSheet.create({
 
   // "Окей, что ещё" — та же сетка-тройка (403/365/340), что у похожих статей
   // на /journal/[slug] (см. RELATED_ASPECTS там).
-  relatedSection: { marginTop: 97, marginBottom: 40 },
+  relatedSection: { marginTop: 140, marginBottom: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самого события (titleMobile).
   relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },

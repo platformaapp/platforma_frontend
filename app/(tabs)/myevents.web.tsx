@@ -695,9 +695,9 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
   emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
   // "А пока советуем" — тот же интервал до блока, что у "Окей, что ещё" на
-  // /journal и странице события (relatedSection: marginTop:97) — раньше
+  // /journal и странице события (relatedSection: marginTop:140) — раньше
   // было 40, секция стояла заметно ближе к кнопке/тексту выше, чем там.
-  recommendedSection: { marginTop: 97 },
+  recommendedSection: { marginTop: 140 },
   recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   recommendedSectionTitleMobile: { fontSize: 25, lineHeight: 28 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
@@ -711,7 +711,8 @@ const styles = StyleSheet.create({
   // а не чёрная и по правому краю, как там).
   emptyRecommendedAuthor: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginTop: 18 },
   emptyRecommendedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 12 },
-  emptyRecommendedDate: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000000', textAlign: 'right', marginTop: 27 },
+  // Серым, как на /events (cardDate) — раньше была чёрной.
+  emptyRecommendedDate: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right', marginTop: 27 },
   // Настоящая кнопка (как "Посмотреть события" в нативной версии, см.
   // myevents.tsx: emptySheetButton), а не малозаметная текстовая ссылка —
   // раньше тут был красный Text без фона (styles.emptyLink, убран).

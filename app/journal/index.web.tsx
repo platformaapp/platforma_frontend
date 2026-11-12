@@ -408,9 +408,14 @@ const styles = StyleSheet.create({
   featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
   pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
   // pairA (строка 1).
-  featuredCardOne: { width: '100%' },
-  featuredCardTwo: { width: '100%' },
-  featuredInnerTwo: { width: '72.8%' },
+  featuredCardOne: { width: '100%', overflow: 'hidden' },
+  featuredCardTwo: { width: '100%', overflow: 'hidden' },
+  // overflow:'hidden' — подстраховка: картинка внутри всегда укладывается
+  // в свои 72.8%/100% математически (width+aspectRatio), но без явного
+  // overflow ничто не мешало бы ей вылезти за эту ширину, если что-то
+  // внутри (например, реальное фото с нестандартными пропорциями)
+  // всё-таки посчитает себя шире контейнера.
+  featuredInnerTwo: { width: '72.8%', overflow: 'hidden' },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13 },
@@ -418,9 +423,9 @@ const styles = StyleSheet.create({
   // pairB (строка 3) — отдельные классы, не переиспользуют стили pairA:
   // второй блок строки 3 — на всю ширину колонки (100%), а не 72.8%, как
   // у второго блока строки 1.
-  featuredCardOneB: { width: '100%' },
-  featuredCardTwoB: { width: '100%' },
-  featuredInnerTwoB: { width: '100%' },
+  featuredCardOneB: { width: '100%', overflow: 'hidden' },
+  featuredCardTwoB: { width: '100%', overflow: 'hidden' },
+  featuredInnerTwoB: { width: '100%', overflow: 'hidden' },
   featuredLabelOneB: { marginTop: 20 },
   featuredLabelTwoB: { marginTop: 23 },
   featuredTitleOneB: { marginTop: 13 },

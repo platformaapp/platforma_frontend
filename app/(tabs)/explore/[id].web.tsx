@@ -702,12 +702,12 @@ const styles = StyleSheet.create({
   // (см. MENTOR_ROW_COLUMNS), 2/4 — зазоры. Строка-тройка — одна из трёх
   // разновидностей цикла pairA/triple/pairB/triple (см. buildMentorRows) —
   // те же пары, что и на /events (featuredRow/pairBRow там), ниже.
-  // marginTop:97 — тот же единый интервал, что у "Окей, что ещё" в журнале
-  // (relatedSection) — раньше было 273, из-за чего и отступ от кнопок до
-  // "События наставника", и отступ между "События наставника" и "О чём
-  // пишет" (обе секции используют этот же стиль) были гораздо больше, чем
-  // тот же переход в статье.
-  mentorEventsSection: { marginTop: 97 },
+  // marginTop:140 — тот же единый интервал, что у "Окей, что ещё" в
+  // журнале (relatedSection) — раньше было 273, из-за чего и отступ от
+  // кнопок до "События наставника", и отступ между "События наставника"
+  // и "О чём пишет" (обе секции используют этот же стиль) были гораздо
+  // больше, чем тот же переход в статье.
+  mentorEventsSection: { marginTop: 140 },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
@@ -718,10 +718,12 @@ const styles = StyleSheet.create({
   // получались одинаковыми по размеру); теперь ряды чередуются, как там.
   mentorFeaturedRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
   mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
-  mentorFeaturedCardOne: { width: '100%' },
-  mentorFeaturedCardTwo: { width: '100%' },
-  mentorFeaturedInnerTwo: { width: '72.8%' },
-  mentorFeaturedInnerTwoB: { width: '100%' },
+  // overflow:'hidden' — подстраховка от визуального вылезания картинки за
+  // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
+  mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },
+  mentorFeaturedCardTwo: { width: '100%', overflow: 'hidden' },
+  mentorFeaturedInnerTwo: { width: '72.8%', overflow: 'hidden' },
+  mentorFeaturedInnerTwoB: { width: '100%', overflow: 'hidden' },
   mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   mentorFeaturedImageTwo: { height: 248 },
 

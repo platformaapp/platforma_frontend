@@ -494,7 +494,9 @@ const styles = StyleSheet.create({
   cardAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, lineHeight: 18 },
   // .card__title: font-size:25, line-height:0.9 (22.5px) на vladyakunin.ru/projects/.
   cardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  cardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18, textAlign: 'right', marginTop: 27  },
+  // Серым (#687076) — по просьбе пользователя: раньше дата в карточках
+  // была чёрной, выделялась на фоне остальных приглушённых подписей сайта.
+  cardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, textAlign: 'right', marginTop: 27  },
   // Полный повторяющийся цикл строк (см. rows/cycle выше): пара A — CSS grid
   // 649fr:84fr:716fr, пара B — 481fr:165fr:611fr:193fr (у обеих — пустая
   // колонка-спейсер после первой карточки, и у второй карточки картинка+текст
@@ -505,9 +507,12 @@ const styles = StyleSheet.create({
   featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
   pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
   // pairA (строка 1).
-  featuredCardOne: { width: '100%' },
-  featuredCardTwo: { width: '100%' },
-  featuredInnerTwo: { width: '72.8%' },
+  featuredCardOne: { width: '100%', overflow: 'hidden' },
+  featuredCardTwo: { width: '100%', overflow: 'hidden' },
+  // overflow:'hidden' — подстраховка от визуального вылезания картинки за
+  // границу своей колонки (72.8%/100%), даже если что-то внутри (напр.
+  // реальное фото с нестандартными пропорциями) посчитает себя шире.
+  featuredInnerTwo: { width: '72.8%', overflow: 'hidden' },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25},
@@ -515,9 +520,9 @@ const styles = StyleSheet.create({
   // pairB (строка 3) — отдельные классы, не переиспользуют стили pairA:
   // второй блок строки 3 — на всю ширину колонки (100%), а не 72.8%, как
   // у второго блока строки 1.
-  featuredCardOneB: { width: '100%' },
-  featuredCardTwoB: { width: '100%' },
-  featuredInnerTwoB: { width: '100%' },
+  featuredCardOneB: { width: '100%', overflow: 'hidden' },
+  featuredCardTwoB: { width: '100%', overflow: 'hidden' },
+  featuredInnerTwoB: { width: '100%', overflow: 'hidden' },
   featuredLabelOneB: { marginTop: 20 },
   featuredLabelTwoB: { marginTop: 23 },
   featuredTitleOneB: { marginTop: 13, fontSize: 25, lineHeight: 25 },
