@@ -646,7 +646,9 @@ const styles = StyleSheet.create({
   priceTextMobile: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  nameMobile: { fontSize: 25, lineHeight: 28 },
+  // Тот же размер заголовка, что в журнале (titleMobile: 30/30) — раньше
+  // было 25/28, имя наставника смотрелось заметно мельче заголовка статьи.
+  nameMobile: { fontSize: 30, lineHeight: 30 },
   // Теги (#хэштег) — напротив имени, тем же размером шрифта, выровнены по
   // правому краю (строка full-width, как и само имя-заголовок).
   nameRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },

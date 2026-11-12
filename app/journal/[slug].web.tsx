@@ -647,7 +647,13 @@ export default function ArticleScreenWeb() {
   // Баннер/CTA события сразу после обложки (без привязки к подзаголовку/
   // маркеру) — только если их механизм НЕ ушёл в sidebarSplits выше.
   const sidebarHasLeadingBanner = !bannerOpposesHeading;
-  const sidebarHasLeadingEventCta = hasEventMarker && !hasEventSplit;
+  // Раньше рендерилась "ведущей" (сразу после баннера, у самого верха
+  // сайдбара) — расходилось с собственным же комментарием выше ("карточка
+  // идёт... в конце") и с тем, где админ обычно ставит маркер в этом
+  // случае (ближе к концу текста, раз после него нет полноценного абзаца
+  // для разбиения) — карточка оказывалась у верха статьи вместо конца.
+  // Теперь действительно замыкающая — после похожих статей, см. ниже.
+  const sidebarHasTrailingEventCta = hasEventMarker && !hasEventSplit;
   // relatedInlineBlock — всегда в конце сайдбара.
 
   return (
@@ -658,24 +664,26 @@ export default function ArticleScreenWeb() {
         {isMobile ? (
           // Мобильная раскладка — один столбец: заголовок, автор (под ним,
           // см. десктопную колонку — там тот же порядок), обложка/галерея/
-          // баннер, затем текст до маркера события; если он есть и
-          // текста после хватает (hasEventSplit) — сама карточка ровно на
-          // его месте в тексте, затем текст после. Иначе (нет маркера или
-          // "текста мало") — carточка (если маркер всё же есть) и похожие
-          // статьи идут после баннера, а текст — один непрерывный поток.
+          // баннер, затем текст — если маркер {{event}} есть и текста после
+          // хватает (hasEventSplit), карточка встаёт ровно на его месте
+          // (текст до/после разбит); если нет (маркера нет вовсе, либо он
+          // стоит ближе к концу и после него нет "настоящего" абзаца —
+          // beforeEventBlock тогда уже содержит ВЕСЬ текст, afterEventBlock
+          // пуст) — карточка всё равно идёт ПОСЛЕ текста, а не перед ним:
+          // раньше в этом случае (afterEventBlock пуст) она рисовалась сразу
+          // после обложки, в самом начале статьи — там, где админ её не
+          // ставил, если маркер стоял ближе к концу текста.
           <View style={styles.mobileStack}>
             {bannerBlock}
             {titleElement}
             {authorBlock}
             <View style={styles.mobileMediaBlock}>
               {mediaBlock}
-              {!hasEventSplit && hasEventMarker ? renderEventCtaCard() : null}
-              {!hasEventSplit ? relatedInlineBlock : null}
             </View>
             {beforeEventBlock}
-            {hasEventSplit ? renderEventCtaCard() : null}
+            {renderEventCtaCard()}
             {afterEventBlock}
-            {hasEventSplit ? relatedInlineBlock : null}
+            {relatedInlineBlock}
           </View>
         ) : (
           // Две независимые колонки (не CSS Grid с общими строками — см.
@@ -702,7 +710,6 @@ export default function ArticleScreenWeb() {
             <View style={styles.colImageTop}>
               {mediaBlock}
               {sidebarHasLeadingBanner ? bannerBlock : null}
-              {sidebarHasLeadingEventCta ? renderEventCtaCard() : null}
               {sidebarSplits.map((sp) => (
                 <View
                   key={`side-${sp.idx}-${sp.kind}`}
@@ -713,6 +720,7 @@ export default function ArticleScreenWeb() {
                 </View>
               ))}
               {relatedInlineBlock}
+              {sidebarHasTrailingEventCta ? renderEventCtaCard() : null}
             </View>
           </View>
         )}

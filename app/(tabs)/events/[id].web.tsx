@@ -895,12 +895,14 @@ const styles = StyleSheet.create({
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
-  // marginBottom:24 — тот же интервал между блоками (заголовок/дата/
-  // обложка/текст), что уже выработан в журнале (journal/[slug].web.tsx:
-  // titleMobile/authorRow/mobileMediaBlock — везде 24, см. mobileMetaRow/
-  // mobileThumb/descriptionMobile ниже): раньше на этой странице у каждого
-  // блока был свой случайный отступ (0, 20+24, 16, 40).
-  titleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
+  // fontSize/lineHeight:30 и marginBottom:24 — тот же размер заголовка и
+  // интервал между блоками (заголовок/дата/обложка/текст), что уже
+  // выработан в журнале (journal/[slug].web.tsx: titleMobile/authorRow/
+  // mobileMediaBlock — везде 24, заголовок — 30/30, см. mobileMetaRow/
+  // mobileThumb/descriptionMobile ниже): раньше здесь был и свой размер
+  // заголовка (25/28), и у каждого блока свой случайный отступ (0, 20+24,
+  // 16, 40).
+  titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
   // Теги (#хэштег) — напротив названия события, тем же размером шрифта,
   // по правому краю заголовка (строка — на всю ширину колонки заголовка).
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
