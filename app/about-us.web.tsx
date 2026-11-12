@@ -24,8 +24,10 @@ const DEFAULT_TEXT =
 // без затемнения (см. правило в app/+html.tsx).
 const CONTACTS: { label: string; handle: string; url: string }[] = [
   { label: 'для коллабораций и сотрудничества', handle: '@vladislav_yakunin', url: 'https://t.me/vladislav_yakunin' },
-  { label: 'Telegram', handle: '@p34forma', url: 'https://t.me/p34forma' },
-  { label: 'Instagram', handle: '@p34.forma', url: 'https://instagram.com/p34.forma' },
+  // С маленькой буквы — как и первая подпись ("для коллабораций и
+  // сотрудничества"), раньше тут были с заглавной.
+  { label: 'telegram', handle: '@p34forma', url: 'https://t.me/p34forma' },
+  { label: 'instagram', handle: '@p34.forma', url: 'https://instagram.com/p34.forma' },
 ];
 
 /**

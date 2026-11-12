@@ -555,10 +555,10 @@ export default function MyEventsScreenWeb() {
           <View style={styles.emptyBlock}>
             <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
             <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
-            {recommendedBlock}
-            <Pressable onPress={() => router.push('/events' as any)}>
-              <Text style={styles.emptyLink}>Посмотреть события</Text>
+            <Pressable style={styles.emptyRegisterButton} onPress={() => router.push('/events' as any)}>
+              <Text style={styles.emptyRegisterButtonText}>Зарегистрироваться</Text>
             </Pressable>
+            {recommendedBlock}
           </View>
         ) : (
           <>
@@ -694,20 +694,29 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
   emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
   emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
-  // "А пока советуем" на мобильном — тот же блок, что "Окей, что ещё" на
-  // /journal и странице события (relatedSection/relatedSectionTitle там).
-  recommendedSection: { marginTop: 40 },
+  // "А пока советуем" — тот же интервал до блока, что у "Окей, что ещё" на
+  // /journal и странице события (relatedSection: marginTop:97) — раньше
+  // было 40, секция стояла заметно ближе к кнопке/тексту выше, чем там.
+  recommendedSection: { marginTop: 97 },
   recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   recommendedSectionTitleMobile: { fontSize: 25, lineHeight: 28 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
   // card--d по референсу — третья карточка каждой второй строки уже
   // остальных (84.4% вместо 100%), только картинка.
   emptyRecommendedImageNarrow: { width: '84.4%' },
-  emptyRecommendedAuthor: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
-  // Размер — как в карточках "Прошедшие события" (cardTitle/cardDateText).
-  emptyRecommendedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  emptyRecommendedDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 10 },
-  emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-start' },
+  // Те же значения (включая отступы), что у карточек на главной странице
+  // событий (events/index.web.tsx: cardAuthor/rowLabel/cardTitleText/
+  // rowTitle/cardDate) — раньше тут был свой межстрочный интервал/отступы
+  // (без marginTop у подписи наставника и заголовка, дата — серая и слева,
+  // а не чёрная и по правому краю, как там).
+  emptyRecommendedAuthor: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginTop: 18 },
+  emptyRecommendedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 12 },
+  emptyRecommendedDate: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000000', textAlign: 'right', marginTop: 27 },
+  // Настоящая кнопка (как "Посмотреть события" в нативной версии, см.
+  // myevents.tsx: emptySheetButton), а не малозаметная текстовая ссылка —
+  // раньше тут был красный Text без фона (styles.emptyLink, убран).
+  emptyRegisterButton: { backgroundColor: '#111', alignSelf: 'flex-start', paddingVertical: 16, paddingHorizontal: 32, marginBottom: 32 },
+  emptyRegisterButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
   pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
   pastSeparatorMobile: { marginTop: 16, fontSize: 25, lineHeight: 28 },
