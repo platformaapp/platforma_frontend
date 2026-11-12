@@ -217,6 +217,12 @@ export default function TutorCardScreenWeb() {
     const cardStyle = [isSecond ? styles.mentorFeaturedCardTwo : styles.mentorFeaturedCardOne, dimmed && styles.eventDimmed];
     const innerStyle = isSecond ? (variant === 'B' ? styles.mentorFeaturedInnerTwoB : styles.mentorFeaturedInnerTwo) : undefined;
     const imageStyle = isSecond && variant === 'A' ? styles.mentorFeaturedImageTwo : { aspectRatio: MENTOR_FEATURED_ASPECT[index] };
+    const labelStyle = variant === 'B'
+      ? (isSecond ? styles.mentorFeaturedLabelTwoB : styles.mentorFeaturedLabelOneB)
+      : (isSecond ? styles.mentorFeaturedLabelTwo : styles.mentorFeaturedLabelOne);
+    const titleStyle = variant === 'B'
+      ? (isSecond ? styles.mentorFeaturedTitleTwoB : styles.mentorFeaturedTitleOneB)
+      : (isSecond ? styles.mentorFeaturedTitleTwo : styles.mentorFeaturedTitleOne);
     return (
       <Pressable key={key} style={cardStyle} disabled={dimmed} onPress={dimmed ? undefined : onPress}>
         <View style={innerStyle}>
@@ -225,10 +231,9 @@ export default function TutorCardScreenWeb() {
           ) : (
             <View style={[styles.mentorFeaturedImage, styles.eventCoverPlaceholder, imageStyle]} />
           )}
-          <View style={styles.eventCardBody}>
-            <Text style={styles.eventCardTitle}>{title}</Text>
-            {meta ? <Text style={styles.eventCardMeta}>{meta}</Text> : null}
-          </View>
+          <View style={labelStyle} />
+          <Text style={[styles.mentorCardTitleText, titleStyle]}>{title}</Text>
+          {meta ? <Text style={styles.mentorCardDate}>{meta}</Text> : null}
         </View>
       </Pressable>
     );
@@ -330,10 +335,9 @@ export default function TutorCardScreenWeb() {
         ) : (
           <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
         )}
-        <View style={styles.eventCardBody}>
-          <Text style={styles.eventCardTitle}>{ev.title}</Text>
-          <Text style={styles.eventCardMeta}>{formatEventDate(ev.datetimeStart)}</Text>
-        </View>
+        <View style={styles.mentorRowLabel} />
+        <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{ev.title}</Text>
+        <Text style={styles.mentorCardDate}>{formatEventDate(ev.datetimeStart)}</Text>
       </Pressable>
     );
   }
@@ -410,10 +414,9 @@ export default function TutorCardScreenWeb() {
         ) : (
           <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
         )}
-        <View style={styles.eventCardBody}>
-          <Text style={styles.eventCardTitle}>{a.title}</Text>
-          {a.category ? <Text style={styles.eventCardMeta}>{a.category}</Text> : null}
-        </View>
+        <View style={styles.mentorRowLabel} />
+        <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{a.title}</Text>
+        {a.category ? <Text style={styles.mentorCardDate}>{a.category}</Text> : null}
       </Pressable>
     );
   }
@@ -726,6 +729,26 @@ const styles = StyleSheet.create({
   mentorFeaturedInnerTwoB: { width: '100%', overflow: 'hidden' },
   mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   mentorFeaturedImageTwo: { height: 248 },
+  // Отступы label/title под картинкой — буквально те же значения, что у
+  // featuredLabelOne/Two(B)/featuredTitleOne/Two(B) на /events: карточки
+  // в паре имеют разную высоту картинки (72.8%/248 у второй), и этот сдвиг
+  // (20/23 у пустого label-спейсера, 13/15 у заголовка) выравнивает их
+  // между собой так же, как там — отсюда и "скопируй вёрстку как в /events".
+  mentorFeaturedLabelOne: { marginTop: 20 },
+  mentorFeaturedLabelTwo: { marginTop: 23 },
+  mentorFeaturedTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25 },
+  mentorFeaturedTitleTwo: { marginTop: 15, lineHeight: 25 },
+  mentorFeaturedLabelOneB: { marginTop: 20 },
+  mentorFeaturedLabelTwoB: { marginTop: 23 },
+  mentorFeaturedTitleOneB: { marginTop: 13, fontSize: 25, lineHeight: 25 },
+  mentorFeaturedTitleTwoB: { marginTop: 15, lineHeight: 25 },
+  // Строка-тройка — те же rowLabel/rowTitle, что на /events (18/12).
+  mentorRowLabel: { marginTop: 18 },
+  mentorRowTitle: { marginTop: 12 },
+  // Базовый заголовок/дата карточки — те же cardTitleText/cardDate, что на
+  // /events (без marginBottom/paddingTop — тех отступов там нет).
+  mentorCardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  mentorCardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, textAlign: 'right', marginTop: 27 },
 
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },
