@@ -383,7 +383,10 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
   retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
   retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 40 },
+  // marginTop:120 — тот же отступ, что у баннера ТГ (promoBannerCell) после
+  // строк карточек, раньше было 40 — пагинация стояла заметно ближе к
+  // последнему блоку, чем баннер.
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 120 },
   paginationArrow: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   paginationArrowDisabled: { opacity: 0.3 },
   paginationArrowText: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },

@@ -51,6 +51,9 @@ function resolveFormat(raw: Record<string, unknown>): string | undefined {
 // /events, но со своими колонками-зазорами — см. mentorEventsRow).
 const MENTOR_ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
 const MENTOR_ROW_COLUMNS: [string, string, string] = ['1', '3', '5'];
+// Та же пара соотношений, что у featured-строк (пара карточек) на /events
+// (FEATURED_ASPECT) — используется в pairA/pairB-строках ниже.
+const MENTOR_FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
 
 function formatEventDate(iso?: string): string {
   if (!iso) return '';
@@ -177,16 +180,58 @@ export default function TutorCardScreenWeb() {
   const upcomingEvents = mentorEvents.filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now);
   const pastEvents = mentorEvents.filter((e) => e.datetimeStart && new Date(e.datetimeStart).getTime() <= now);
 
-  // Сетка "События наставника"/"Прошедшие события" по референсу — не внутри
-  // 2-колоночного desktopGrid (текст/фото), а отдельная полноширинная
-  // 3-колоночная сетка: 403fr 75fr 365fr 266fr 340fr (карточки в колонках
-  // 1/3/5, 2 и 4 — зазоры). Строки по 3 карточки, две строки образуют
-  // повторяющийся блок — картинки везде 100% по ширине (раньше у третьей
-  // карточки второй строки была уже, 84.4%, по просьбе пользователя убрано).
-  function buildMentorEventRows<T>(events: T[]): T[][] {
-    const rows: T[][] = [];
-    for (let i = 0; i < events.length; i += 3) rows.push(events.slice(i, i + 3));
+  // Раньше сетка "События наставника"/"О чём пишет" была просто строками по
+  // 3 карточки одного и того же размера подряд — блоки получались
+  // одинаковыми по размеру во всех строках. По просьбе пользователя взят
+  // тот же подход, что на главной странице событий (/events): повторяющийся
+  // цикл из 4 строк — 1) пара 649:84:716 ("pairA"), 2) тройка 403:365:340,
+  // 3) пара 481:165:611:193 ("pairB"), 4) снова тройка — см.
+  // renderMentorEventsGrid/renderMentorArticlesGrid ниже.
+  type MentorRow<T> = { type: 'pairA' | 'triple' | 'pairB'; items: T[] };
+  function buildMentorRows<T>(items: T[]): MentorRow<T>[] {
+    const rows: MentorRow<T>[] = [];
+    const cycle: ('pairA' | 'triple' | 'pairB')[] = ['pairA', 'triple', 'pairB', 'triple'];
+    let i = 0;
+    let cycleIdx = 0;
+    while (i < items.length) {
+      const type = cycle[cycleIdx % cycle.length];
+      const count = type === 'triple' ? 3 : 2;
+      const slice = items.slice(i, i + count);
+      if (slice.length === 0) break;
+      rows.push({ type, items: slice });
+      i += slice.length;
+      cycleIdx++;
+    }
     return rows;
+  }
+
+  // Карточка пары ("pairA"/"pairB") — та же разметка, что renderFeaturedCard
+  // на /events, но без строки с именем автора (это и так страница самого
+  // наставника) — сразу картинка, заголовок, дата/категория.
+  function renderMentorFeaturedCard(args: {
+    key: string; coverUrl: string | null; title: string; meta: string;
+    onPress: () => void; index: 0 | 1; variant: 'A' | 'B'; dimmed?: boolean;
+  }) {
+    const { key, coverUrl, title, meta, onPress, index, variant, dimmed } = args;
+    const isSecond = index === 1;
+    const cardStyle = [isSecond ? styles.mentorFeaturedCardTwo : styles.mentorFeaturedCardOne, dimmed && styles.eventDimmed];
+    const innerStyle = isSecond ? (variant === 'B' ? styles.mentorFeaturedInnerTwoB : styles.mentorFeaturedInnerTwo) : undefined;
+    const imageStyle = isSecond && variant === 'A' ? styles.mentorFeaturedImageTwo : { aspectRatio: MENTOR_FEATURED_ASPECT[index] };
+    return (
+      <Pressable key={key} style={cardStyle} disabled={dimmed} onPress={dimmed ? undefined : onPress}>
+        <View style={innerStyle}>
+          {coverUrl ? (
+            <Image source={{ uri: coverUrl }} style={[styles.mentorFeaturedImage, imageStyle]} resizeMode="cover" />
+          ) : (
+            <View style={[styles.mentorFeaturedImage, styles.eventCoverPlaceholder, imageStyle]} />
+          )}
+          <View style={styles.eventCardBody}>
+            <Text style={styles.eventCardTitle}>{title}</Text>
+            {meta ? <Text style={styles.eventCardMeta}>{meta}</Text> : null}
+          </View>
+        </View>
+      </Pressable>
+    );
   }
 
   // Mobile: одно событие — одна полноширинная строка (миниатюра слева,
@@ -268,7 +313,7 @@ export default function TutorCardScreenWeb() {
     </>
   );
 
-  function renderMentorGridCard(ev: MentorEvent, posInRow: 0 | 1 | 2, narrowImage: boolean, isPast = false) {
+  function renderMentorGridCard(ev: MentorEvent, posInRow: 0 | 1 | 2, isPast = false) {
     return (
       <Pressable
         key={ev.id}
@@ -279,11 +324,11 @@ export default function TutorCardScreenWeb() {
         {ev.coverUrl ? (
           <Image
             source={{ uri: ev.coverUrl }}
-            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]}
+            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]}
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]} />
+          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
         )}
         <View style={styles.eventCardBody}>
           <Text style={styles.eventCardTitle}>{ev.title}</Text>
@@ -295,13 +340,42 @@ export default function TutorCardScreenWeb() {
 
   function renderMentorEventsGrid(title: string, events: MentorEvent[], isPast = false) {
     if (events.length === 0) return null;
-    const rows = buildMentorEventRows(events);
+    const rows = buildMentorRows(events);
     return (
       <View style={styles.mentorEventsSection}>
         <Text style={styles.eventsSectionTitle}>{title}</Text>
         {rows.map((row, rowIdx) => (
-          <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
-            {row.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, false, isPast))}
+          <View
+            key={row.items.map((r) => r.id).join('-')}
+            style={[row.type === 'triple' ? styles.mentorEventsRow : row.type === 'pairA' ? styles.mentorFeaturedRow : styles.mentorPairBRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}
+          >
+            {row.type === 'triple' ? (
+              row.items.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, isPast))
+            ) : (
+              <>
+                {renderMentorFeaturedCard({
+                  key: row.items[0].id,
+                  coverUrl: row.items[0].coverUrl ?? null,
+                  title: row.items[0].title,
+                  meta: formatEventDate(row.items[0].datetimeStart),
+                  onPress: () => router.push(`/(tabs)/events/${row.items[0].id}` as any),
+                  index: 0,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                  dimmed: isPast,
+                })}
+                {row.items.length > 1 ? <View /> : null}
+                {row.items.length > 1 ? renderMentorFeaturedCard({
+                  key: row.items[1].id,
+                  coverUrl: row.items[1].coverUrl ?? null,
+                  title: row.items[1].title,
+                  meta: formatEventDate(row.items[1].datetimeStart),
+                  onPress: () => router.push(`/(tabs)/events/${row.items[1].id}` as any),
+                  index: 1,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                  dimmed: isPast,
+                }) : null}
+              </>
+            )}
           </View>
         ))}
       </View>
@@ -324,17 +398,17 @@ export default function TutorCardScreenWeb() {
     );
   }
 
-  function renderMentorArticleGridCard(a: MentorArticle, posInRow: 0 | 1 | 2, narrowImage: boolean) {
+  function renderMentorArticleGridCard(a: MentorArticle, posInRow: 0 | 1 | 2) {
     return (
       <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)}>
         {a.coverUrl ? (
           <Image
             source={{ uri: a.coverUrl }}
-            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]}
+            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]}
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }, narrowImage && styles.mentorGridImageNarrow]} />
+          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
         )}
         <View style={styles.eventCardBody}>
           <Text style={styles.eventCardTitle}>{a.title}</Text>
@@ -346,18 +420,42 @@ export default function TutorCardScreenWeb() {
 
   function renderMentorArticlesGrid() {
     if (mentorArticles.length === 0) return null;
-    const rows = buildMentorEventRows(mentorArticles);
+    const rows = buildMentorRows(mentorArticles);
     return (
       <View style={styles.mentorEventsSection}>
         <Text style={styles.eventsSectionTitle}>О чём пишет</Text>
-        {rows.map((row, rowIdx) => {
-          const narrowLast = rowIdx % 2 === 1;
-          return (
-            <View key={row.map((r) => r.id).join('-')} style={[styles.mentorEventsRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}>
-              {row.map((a, pos) => renderMentorArticleGridCard(a, pos as 0 | 1 | 2, narrowLast && pos === 2))}
-            </View>
-          );
-        })}
+        {rows.map((row, rowIdx) => (
+          <View
+            key={row.items.map((r) => r.id).join('-')}
+            style={[row.type === 'triple' ? styles.mentorEventsRow : row.type === 'pairA' ? styles.mentorFeaturedRow : styles.mentorPairBRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}
+          >
+            {row.type === 'triple' ? (
+              row.items.map((a, pos) => renderMentorArticleGridCard(a, pos as 0 | 1 | 2))
+            ) : (
+              <>
+                {renderMentorFeaturedCard({
+                  key: row.items[0].id,
+                  coverUrl: row.items[0].coverUrl,
+                  title: row.items[0].title,
+                  meta: row.items[0].category ?? '',
+                  onPress: () => router.push(`/journal/${row.items[0].slug || row.items[0].id}` as any),
+                  index: 0,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                })}
+                {row.items.length > 1 ? <View /> : null}
+                {row.items.length > 1 ? renderMentorFeaturedCard({
+                  key: row.items[1].id,
+                  coverUrl: row.items[1].coverUrl,
+                  title: row.items[1].title,
+                  meta: row.items[1].category ?? '',
+                  onPress: () => router.push(`/journal/${row.items[1].slug || row.items[1].id}` as any),
+                  index: 1,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                }) : null}
+              </>
+            )}
+          </View>
+        ))}
       </View>
     );
   }
@@ -564,7 +662,10 @@ const styles = StyleSheet.create({
   // пользователя: font-size:10/line-height:10 везде, где раньше были
   // разные значения (14/18, 8/—, 13/—).
   roleMobile: { fontSize: 10, lineHeight: 10, marginTop: 0 },
-  bio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
+  // lineHeight:26 — тот же межстрочный интервал, что у текста статьи в
+  // журнале (body: lineHeight:26) — раньше на десктопе оставался 18
+  // (только мобильный уже был пофикшен отдельным bioMobile, см. ниже).
+  bio: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
   // На мобильном — тот же межстрочный интервал, что у текста статьи в
   // журнале (body: lineHeight:26) — 18 читался слишком плотно. marginTop:0/
   // marginBottom:24 — заменяют десктопный marginVertical:16 тем же
@@ -593,17 +694,29 @@ const styles = StyleSheet.create({
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
 
-  // Полноширинная сетка "События наставника"/"Прошедшие события" — своя,
+  // Полноширинная сетка "События наставника"/"О чём пишет" — своя,
   // отдельная от 2-колоночного desktopGrid выше (текст/фото), см.
   // renderMentorEventsGrid/renderMentorGridCard. Колонки 1/3/5 — карточки
-  // (см. MENTOR_ROW_COLUMNS), 2/4 — зазоры.
+  // (см. MENTOR_ROW_COLUMNS), 2/4 — зазоры. Строка-тройка — одна из трёх
+  // разновидностей цикла pairA/triple/pairB/triple (см. buildMentorRows) —
+  // те же пары, что и на /events (featuredRow/pairBRow там), ниже.
   mentorEventsSection: { marginTop: 273 },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
-  // card--d по референсу — третья карточка каждой второй строки уже
-  // остальных (84.4% вместо 100%), только картинка, не весь блок карточки.
-  mentorGridImageNarrow: { width: '84.4%' },
+
+  // pairA/pairB — те же пропорции (649:84:716 и 481:165:611:193), что и
+  // featuredRow/pairBRow на главной странице событий (/events) — раньше
+  // здесь была только тройка, повторяющаяся из строки в строку (блоки
+  // получались одинаковыми по размеру); теперь ряды чередуются, как там.
+  mentorFeaturedRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
+  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
+  mentorFeaturedCardOne: { width: '100%' },
+  mentorFeaturedCardTwo: { width: '100%' },
+  mentorFeaturedInnerTwo: { width: '72.8%' },
+  mentorFeaturedInnerTwoB: { width: '100%' },
+  mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  mentorFeaturedImageTwo: { height: 248 },
 
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },

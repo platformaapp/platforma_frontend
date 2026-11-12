@@ -2082,8 +2082,14 @@ const styles = StyleSheet.create({
   articleEventRowDate: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#9B9B9B', marginLeft: 12 },
   eventSearchInput: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101', borderBottomWidth: 1, borderColor: '#E5E5E5', paddingVertical: 10, marginTop: 8, outlineStyle: 'none' } as any,
   removeLink: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  bioText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 30 },
-  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000',     marginTop: 16, lineHeight: 18 },
+  // lineHeight:26/marginVertical:16 — те же значения, что у "bio" на
+  // публичной странице наставника (explore/[id].web.tsx) — раньше здесь
+  // был свой межстрочный интервал (18) и отступ (marginTop:30).
+  bioText: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#000', marginVertical: 16 },
+  // Серая подпись и отступ — как у "role" на публичной странице
+  // наставника (explore/[id].web.tsx) — раньше была чёрной (#000) с
+  // другим отступом (16 вместо 18).
+  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
   // Мобильный хедер наставника — как на публичной странице наставника
   // (explore/[id].web.tsx: headerRowMobile/avatarMobile/roleMobile/bioMobile).
   tutorHeaderRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
