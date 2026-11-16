@@ -1,7 +1,7 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PromoBanner } from '@/components/web/promo-banner';
@@ -49,6 +49,7 @@ const ROWS_PER_PAGE = 4;
 
 export default function JournalScreenWeb() {
   const router = useRouter();
+  const contentRef = useRef<View>(null);
   const isMobile = useIsMobileWeb();
   // ?tag=... — переход по клику на хэштег (см. TagList/onTagPress на
   // странице статьи) — список статей с этим тегом, см. filtered ниже.
@@ -175,9 +176,8 @@ export default function JournalScreenWeb() {
   // повторяющийся цикл из 4 строк (видно на vladyakunin.ru при скролле):
   // 1) пара 649:84:716 ("pairA", она же бывший featured), 2) тройка
   // 403:75:365:76:340:191, 3) пара 481:165:611:193 ("pairB"), 4) снова
-  // тройка — и цикл начинается заново с 1). Баннер — после каждой 3-й
-  // строки этого цикла (считая строки любого типа подряд), поэтому его
-  // позиция относительно типа строки каждый раз разная (НОК(3,4)=12).
+  // тройка — и цикл начинается заново с 1). Баннер — один на страницу,
+  // после третьей строки (или последней на неполной странице).
   const rows: { type: 'pairA' | 'triple' | 'pairB'; items: Article[] }[] = [];
   {
     const cycle: ('pairA' | 'triple' | 'pairB')[] = ['pairA', 'triple', 'pairB', 'triple'];
@@ -208,7 +208,13 @@ export default function JournalScreenWeb() {
   // Переключение страницы должно возвращать наверх списка (scrollArea в
   // SiteShell), иначе после клика пользователь остаётся внизу — там, где
   // была прежняя страница.
-  const goToPage = (n: number) => { setPage(n); scrollSiteContentToTop(); };
+  const goToPage = (n: number) => {
+    if (n === page) scrollSiteContentToTop(contentRef.current as unknown as HTMLElement | null);
+    else setPage(n);
+  };
+  useLayoutEffect(() => {
+    scrollSiteContentToTop(contentRef.current as unknown as HTMLElement | null);
+  }, [page, category, activeTag]);
 
   const paginationEl = totalPages > 1 ? (
     <View style={styles.pagination}>
@@ -229,7 +235,7 @@ export default function JournalScreenWeb() {
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
-      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
+      <View ref={contentRef} style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <Pressable onPress={() => selectCategory(null)}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
@@ -303,7 +309,6 @@ export default function JournalScreenWeb() {
         ) : (
           <View>
             {pageRows.map((row, idxInPage) => {
-              const rowIdx = rowOffset + idxInPage;
               // Отступ сверху — одинаковый для ВСЕХ строк подряд (не только
               // троек): первая строка — 80 (отступ от фильтров), дальше 120
               // между каждой следующей парой строк.
@@ -325,8 +330,8 @@ export default function JournalScreenWeb() {
               return (
                 <React.Fragment key={row.items.map((r) => r.id).join('-')}>
                   {rowEl}
-                  {(rowIdx + 1) % 3 === 0 ? (
-                    // Баннер после каждой 3-й строки (любого типа) — должен
+                  {idxInPage === Math.min(2, pageRows.length - 1) ? (
+                    // Единственный баннер страницы — должен
                     // заканчиваться там же, где и карточки в тройке (rowThree
                     // резервирует справа пустую 6-ю колонку 191fr, куда
                     // карточки-тройки не заходят) — тот же grid, растягиваем

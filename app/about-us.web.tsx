@@ -95,13 +95,12 @@ export default function AboutUsScreenWeb() {
             <View style={styles.leftCol}>
               <Text style={styles.title}>{heading}</Text>
               <Text style={[styles.description, isMobile && styles.descriptionMobile]}>{text}</Text>
-              <View style={styles.desktopContactsTitle}><Text style={[styles.contactsHeading, { marginBottom: 0 }]}>Свяжитесь с нами</Text></View>
             </View>
             <View style={styles.rightCol}>
               {photo}
             </View>
           </View>
-          <View style={[styles.contacts, { marginTop: 16 }]}>{contactRows}</View>
+          {contactsBlock}
           </>
         )}
       </View>
@@ -125,16 +124,15 @@ const styles = StyleSheet.create({
   desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%', alignSelf: 'flex-start', overflow: 'hidden' },
-  cover: { width: '100%', paddingBottom: `${(1041 / 1511) * 100}%`, position: 'relative', backgroundColor: '#E5E5E5' },
-  mobileThumb: { width: '100%', paddingBottom: '75%', position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 24 },
+  cover: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', backgroundColor: '#E5E5E5' },
+  mobileThumb: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 24 },
   photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
   titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
 
-  // On desktop the contact heading shares the photo’s lower edge; links follow below.
-  desktopContactsTitle: { marginTop: 'auto', paddingTop: 40 },
+  // Contacts follow the entire desktop row, below the photo as well as the text.
   contacts: { marginTop: 40, maxWidth: 504 },
   contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 16 },
   contactRow: { marginBottom: 12 },

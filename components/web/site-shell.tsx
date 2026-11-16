@@ -50,13 +50,21 @@ export function useIsMobileWeb(): boolean {
   return width < MOBILE_BREAKPOINT;
 }
 
-// Переключение страниц пагинации (см. /journal, /explore) не должно
-// оставлять пользователя внизу списка — scrollArea выше (data-site-content),
-// а не document/body, поэтому обычный window.scrollTo здесь не сработает.
-export function scrollSiteContentToTop() {
+// A page can have both its own ScrollView and the outer shell scroller.
+// Reset the ancestors of that page, rather than a hidden screen's first shell.
+export function scrollSiteContentToTop(anchor?: HTMLElement | null) {
   if (typeof document === 'undefined') return;
-  const el = document.querySelector('[data-site-content]');
-  if (el) el.scrollTo({ top: 0, behavior: 'smooth' });
+  const origin = anchor ?? Array.from(document.querySelectorAll<HTMLElement>('[data-site-content]'))
+    .find((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden');
+  if (!origin) return;
+  if (!anchor) {
+    origin.querySelectorAll<HTMLElement>('*').forEach((el) => {
+      if (el.scrollTop > 0) el.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  }
+  for (let el: HTMLElement | null = origin; el; el = el.parentElement) {
+    el.scrollTo({ top: 0, behavior: 'instant' });
+  }
 }
 
 const styles = StyleSheet.create({
