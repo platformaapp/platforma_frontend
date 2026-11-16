@@ -62,42 +62,47 @@ export default function AboutUsScreenWeb() {
     </View>
   );
 
-  const contactsBlock = (
-    <View style={styles.contacts}>
-      <Text style={styles.contactsHeading}>Свяжитесь с нами</Text>
-      {CONTACTS.map((c) => (
+  const contactRows = CONTACTS.map((c) => (
         <View key={c.url} style={styles.contactRow}>
           <Text style={styles.contactLabel}>{c.label}</Text>
           <Pressable onPress={() => Linking.openURL(c.url)} {...({ dataSet: { textLink: 'true' } } as any)}>
             <Text style={styles.contactHandle}>{c.handle}</Text>
           </Pressable>
         </View>
-      ))}
+      ));
+
+  const contactsBlock = (
+    <View style={styles.contacts}>
+      <Text style={[styles.contactsHeading, isMobile && styles.contactsHeadingMobile]}>Свяжитесь с нами</Text>
+      {contactRows}
     </View>
   );
 
   return (
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
             <Text style={[styles.title, styles.titleMobile]}>{heading}</Text>
             {photo}
-            <Text style={styles.description}>{text}</Text>
+            <Text style={[styles.description, isMobile && styles.descriptionMobile]}>{text}</Text>
             {contactsBlock}
           </View>
         ) : (
+          <>
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
               <Text style={styles.title}>{heading}</Text>
-              <Text style={styles.description}>{text}</Text>
-              {contactsBlock}
+              <Text style={[styles.description, isMobile && styles.descriptionMobile]}>{text}</Text>
+              <View style={styles.desktopContactsTitle}><Text style={[styles.contactsHeading, { marginBottom: 0 }]}>Свяжитесь с нами</Text></View>
             </View>
             <View style={styles.rightCol}>
               {photo}
             </View>
           </View>
+          <View style={[styles.contacts, { marginTop: 16 }]}>{contactRows}</View>
+          </>
         )}
       </View>
 
@@ -113,30 +118,23 @@ const styles = StyleSheet.create({
   // "назад" в шапке (5px, см. site-header.tsx), не десктопный 86.
   scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
+  descriptionMobile: { marginTop: 0, maxWidth: '100%' },
+  contactsHeadingMobile: { fontSize: 30, lineHeight: 30 },
 
-  // alignItems убран (был 'flex-start'): дефолт CSS Grid — 'stretch' —
-  // растягивает обе колонки на высоту строки (то есть на высоту более
-  // высокой из них — как правило, текстовой колонки с контактами внизу).
-  // Фото (rightCol/cover) при этом заполняет всю эту высоту (height:'100%'
-  // вместо фикс. аспекта через paddingBottom — см. ниже), поэтому его
-  // нижний край всегда совпадает с низом блока "Свяжитесь с нами", а не
-  // гуляет сам по себе в зависимости от длины текста из админки.
   desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
-  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', height: '100%', overflow: 'hidden' },
-  cover: { width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
-  mobileThumb: { width: '100%', paddingBottom: `${(360 / 649) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 16 } as any,
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%', alignSelf: 'flex-start', overflow: 'hidden' },
+  cover: { width: '100%', paddingBottom: `${(1041 / 1511) * 100}%`, position: 'relative', backgroundColor: '#E5E5E5' },
+  mobileThumb: { width: '100%', paddingBottom: '75%', position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 24 },
   photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
 
-  // Раньше контакты были отдельным элементом вне leftCol, прижатым к низу
-  // desktopLayout через position:'absolute' — если текст из админки длиннее
-  // фото справа, это накладывало контакты на хвост описания. Теперь контакты
-  // — часть обычного потока внутри leftCol, сразу после текста (см. JSX),
-  // поэтому наложения не бывает независимо от длины текста.
+  // On desktop the contact heading shares the photo’s lower edge; links follow below.
+  desktopContactsTitle: { marginTop: 'auto', paddingTop: 40 },
   contacts: { marginTop: 40, maxWidth: 504 },
   contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 16 },
   contactRow: { marginBottom: 12 },

@@ -78,16 +78,6 @@ function pluralRu(n: number, forms: [string, string, string]): string {
   return forms[2];
 }
 
-function formatDatetime(iso?: string): string {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-  } catch {
-    return iso ?? '';
-  }
-}
-
 function formatBookingDate(date?: string, time?: string): string {
   const timeClean = time ? time.slice(0, 5) : '00:00';
   const timeNoLeadingZero = timeClean.replace(/^0(\d:)/, '$1');
@@ -271,7 +261,6 @@ export default function MyEventsScreenWeb() {
 
   const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
-  const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
   // Блок "А пока советуем" — всегда, когда нет ПРЕДСТОЯЩИХ записей (даже
   // если прошедшие есть), не только при полностью пустой вкладке.
   const showRecommended = currentUpcoming.length === 0;
@@ -328,7 +317,7 @@ export default function MyEventsScreenWeb() {
   // Формат карточки — как на /events (mobileRow/mobileThumb/mobileInfo/
   // mobileTitleText), по просьбе пользователя ("нужно все как в /events").
   function renderEventListRowMobile(item: EventItem, muted = false) {
-    const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
+    const dateText = item.datetimeStart ? formatRecommendedEventDate(item.datetimeStart) : '';
     return (
       <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderEventListRowMobile' } } as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
@@ -337,7 +326,10 @@ export default function MyEventsScreenWeb() {
             <Text style={[styles.mobileAuthor, muted && styles.textMuted]}>{item.mentor?.name || 'Событие'}</Text>
             <Text style={[styles.mobileTitleText, muted && styles.textMuted]}>{item.title}</Text>
           </View>
-          {dateText ? <Text style={[styles.mobileDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+          <View style={styles.cardMetaRow}>
+            {dateText ? <Text style={[styles.mobileDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+            {item.registeredCount != null ? <Text style={styles.mobileDate}>Записалось: {item.registeredCount} чел.</Text> : null}
+          </View>
         </View>
       </Pressable>
     );
@@ -348,7 +340,7 @@ export default function MyEventsScreenWeb() {
   // flex-wrap сетка (styles.grid/card), по референсу список тоже должен
   // идти строками по 3 с повторяющимся card--d на каждой второй строке.
   function renderEventGridCard(item: EventItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
-    const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
+    const dateText = item.datetimeStart ? formatRecommendedEventDate(item.datetimeStart) : '';
     return (
       <Pressable
         key={item.id}
@@ -361,11 +353,11 @@ export default function MyEventsScreenWeb() {
           <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
         )}
         <View style={styles.cardBody}>
-          {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
+          <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
           <Text style={styles.cardTitle}>{item.title}</Text>
           <View style={styles.cardMetaRow}>
-            <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
             {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
+            {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
           </View>
         </View>
       </Pressable>
@@ -549,16 +541,19 @@ export default function MyEventsScreenWeb() {
 
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
-        ) : error && activeTab === 'events' && isEmpty ? (
-          <Text style={styles.errorText}>Не удалось загрузить события: {error}</Text>
-        ) : isEmpty ? (
+        ) : showRecommended ? (
           <View style={styles.emptyBlock}>
-            <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
+            <Text style={styles.emptyTitle}>{error && activeTab === 'events' ? 'Не удалось загрузить записи' : 'У вас еще нет ни одной записи'}</Text>
             <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
             <Pressable style={styles.emptyRegisterButton} onPress={() => router.push('/events' as any)}>
               <Text style={styles.emptyRegisterButtonText}>Зарегистрироваться</Text>
             </Pressable>
+            {error && activeTab === 'events' ? <Text style={styles.errorText}>Не удалось загрузить события: {error}</Text> : null}
             {recommendedBlock}
+            {currentPast.length > 0 ? <>
+              <Text style={[styles.pastSeparator, isMobile && styles.pastSeparatorMobile]}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
+              {activeTab === 'events' ? renderEventsGrid(pastEvents, true) : renderBookingGroups(pastBookings, true)}
+            </> : null}
           </View>
         ) : (
           <>
@@ -719,8 +714,8 @@ const styles = StyleSheet.create({
   emptyRegisterButton: { backgroundColor: '#111', alignSelf: 'flex-start', paddingVertical: 16, paddingHorizontal: 32, marginBottom: 32 },
   emptyRegisterButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
-  pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
-  pastSeparatorMobile: { marginTop: 16, fontSize: 25, lineHeight: 28 },
+  pastSeparator: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 140, marginBottom: 40 },
+  pastSeparatorMobile: { fontSize: 25, lineHeight: 28 },
   // Настоящий список записей (не пустое состояние) — та же асимметричная
   // сетка 403/75/365/266/340, что и emptyRecommendedRow, но без её
   // marginTop:254 на первой строке (список начинается сразу под вкладками,
@@ -729,13 +724,13 @@ const styles = StyleSheet.create({
   cardsGridRowSpacing: { marginTop: 113 },
   cardMuted: { opacity: 0.45 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
-  cardBody: { paddingTop: 14 },
-  cardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
+  cardBody: { paddingTop: 18 },
+  cardMeta: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   // Размер — как на /events (featuredTitleOne: fontSize:25, lineHeight:25).
-  cardTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 8 },
+  cardTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 27 },
   cardMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
-  cardMentorName: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
-  cardDateText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
+  cardMentorName: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 12 },
+  cardDateText: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
 
   // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
   // mobileList/mobileRow/mobileThumb/mobileInfo/mobileTitleText), по просьбе

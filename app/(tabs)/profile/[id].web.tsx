@@ -8,8 +8,7 @@ import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
-import { TOPICS } from '@/constants/topics';
-import { useSiteSettings } from '@/hooks/use-site-settings';
+import { AdminTagsInput } from '@/components/admin/tags-input';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
@@ -195,10 +194,8 @@ export default function ProfileScreenWeb() {
   const [eventTime, setEventTime] = useState('');
   const [eventPrice, setEventPrice] = useState('');
   const [eventMax, setEventMax] = useState('');
-  const [eventTopic, setEventTopic] = useState<string | null>(null);
+  const [eventTags, setEventTags] = useState<string[]>([]);
   const [eventFormat, setEventFormat] = useState<string | null>(null);
-  const { topics: adminTopics } = useSiteSettings();
-  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [eventCoverUri, setEventCoverUri] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [eventError, setEventError] = useState('');
@@ -521,7 +518,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setWithdrawModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Отправить деньги на эту карту?</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Отправить деньги на эту карту?</Text>
               <Pressable onPress={() => setWithdrawModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
 
@@ -550,7 +547,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setWithdrawSuccessVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Деньги отправлены!</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Деньги отправлены!</Text>
               <Pressable onPress={() => setWithdrawSuccessVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
             <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} Р.</Text>
@@ -594,7 +591,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setEditCardModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Изменить карту</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Изменить карту</Text>
               <Pressable onPress={() => setEditCardModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
 
@@ -657,7 +654,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setHistoryModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>История платежей</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>История платежей</Text>
               <Pressable onPress={() => setHistoryModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
 
@@ -722,7 +719,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setPaymentsModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Платежи</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Платежи</Text>
               <Pressable onPress={() => setPaymentsModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
 
@@ -893,9 +890,9 @@ export default function ProfileScreenWeb() {
         title: eventTitle, description: eventDescription,
         datetime_start: startDate.toISOString(), datetime_end: endDate.toISOString(),
         price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0,
-        coverUrl, topic: eventTopic ?? undefined, category: eventFormat ?? undefined,
+        coverUrl, tags: eventTags, category: eventFormat ?? undefined,
       });
-      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTopic(null); setEventFormat(null); setEventCoverUri(null);
+      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTags([]); setEventFormat(null); setEventCoverUri(null);
       setNewEventModalVisible(false);
       setEventCreated(true);
     } catch (e: any) {
@@ -1024,7 +1021,7 @@ export default function ProfileScreenWeb() {
           <Pressable style={styles.overlay} onPress={() => setEditModalVisible(false)}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
               <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-                <Text style={styles.modalTitle}>Изменить данные</Text>
+                <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Изменить данные</Text>
                 <Pressable onPress={() => setEditModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
@@ -1055,7 +1052,7 @@ export default function ProfileScreenWeb() {
                   <Pressable onPress={() => { setPasswordModalVisible(false); setEditModalVisible(true); }} hitSlop={8}>
                     <BackArrowIcon />
                   </Pressable>
-                  <Text style={styles.modalTitle}>Новый пароль</Text>
+                  <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Новый пароль</Text>
                 </View>
                 <Pressable onPress={() => setPasswordModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
@@ -1169,7 +1166,7 @@ export default function ProfileScreenWeb() {
           </View>
         )}
 
-        <Text style={styles.sectionTitle}>Свободные слоты</Text>
+        <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>Свободные слоты</Text>
         {slots.length === 0 ? <Text style={styles.emptyText}>Слотов пока нет</Text> : groupSlotsByDate(slots).map((group) => (
           <View key={group.date} style={styles.slotDateGroup}>
             <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
@@ -1183,9 +1180,15 @@ export default function ProfileScreenWeb() {
           onPress={() => { if (isPendingTutor) return; setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}
           disabled={isPendingTutor}
         >
-          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText, isPendingTutor && styles.actionLinkDisabled]}>Добавить слот</Text>
+          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText, isPendingTutor && styles.actionLinkDisabled]}>Добавить</Text>
         </Pressable>
 
+        {isMobile ? <>
+          <Text style={[styles.sectionTitle, styles.sectionTitleMobile]}>События</Text>
+          <Pressable style={[styles.addSlotButton, styles.mobileChip]} disabled={isPendingTutor} onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
+            <Text style={[styles.addSlotLink, styles.mobileChipText, isPendingTutor && styles.actionLinkDisabled]}>Создать событие</Text>
+          </Pressable>
+        </> : null}
         {accountActions}
       </View>
 
@@ -1197,7 +1200,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setTutorEditModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
-              <Text style={styles.modalTitle}>Изменение данных</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Изменение данных</Text>
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
@@ -1211,16 +1214,7 @@ export default function ProfileScreenWeb() {
                   и не менялась после регистрации — наставник навсегда выпадал из
                   всех фильтров рубрикатора на /explore. */}
               <Text style={styles.fieldLabel}>Специализация</Text>
-              <View style={styles.eventTopicsRow}>
-                {topicsList.map((t) => {
-                  const active = t === specialization;
-                  return (
-                    <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
-                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{t}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <AdminTagsInput tags={(specialization || '').split(',').map((t) => t.trim()).filter(Boolean)} onChange={(tags) => setSpecialization(tags.join(', '))} placeholder="Добавьте одну или несколько специализаций" />
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -1255,7 +1249,7 @@ export default function ProfileScreenWeb() {
               <Pressable onPress={() => { setPasswordModalVisible(false); setTutorEditModalVisible(true); }} hitSlop={8}>
                 <BackArrowIcon />
               </Pressable>
-              <Text style={styles.modalTitle}>Новый пароль</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Новый пароль</Text>
             </View>
             <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
@@ -1281,7 +1275,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setNewEventModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Добавить событие</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Добавить событие</Text>
               <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
             <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
@@ -1323,17 +1317,8 @@ export default function ProfileScreenWeb() {
                   );
                 })}
               </View>
-              <Text style={styles.fieldLabel}>Рубрика</Text>
-              <View style={styles.eventTopicsRow}>
-                {topicsList.map((t) => {
-                  const active = t === eventTopic;
-                  return (
-                    <Pressable key={t} onPress={() => setEventTopic(active ? null : t)}>
-                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{t}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <Text style={styles.fieldLabel}>Теги</Text>
+              <AdminTagsInput tags={eventTags} onChange={setEventTags} />
               <Text style={styles.fieldLabel}>Обложка</Text>
               <Pressable style={styles.fieldInputWrap} onPress={handlePickCover}>
                 {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : (
@@ -1359,7 +1344,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setEventCreated(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Событие создано!</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Событие создано!</Text>
               <Pressable onPress={() => setEventCreated(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
             <Text style={styles.withdrawMessage}>Событие опубликовано и уже доступно для записи.</Text>
@@ -1391,7 +1376,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setNewArticleModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Новая статья</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Новая статья</Text>
               <Pressable onPress={() => setNewArticleModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
             <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
@@ -1475,7 +1460,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={() => setArticleSubmitted(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
-              <Text style={styles.modalTitle}>Заявка отправлена!</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>Заявка отправлена!</Text>
               <Pressable onPress={() => setArticleSubmitted(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
             <Text style={styles.withdrawMessage}>Статья отправлена на модерацию. Мы свяжемся с вами и опубликуем материал после проверки.</Text>
@@ -1506,7 +1491,7 @@ export default function ProfileScreenWeb() {
         <Pressable style={styles.overlay} onPress={closeSlotsModal}>
           <Pressable style={[styles.modalCard, styles.slotsModalCard]} onPress={() => {}}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>{isMobile ? 'Редактировать слоты' : 'Редактировать слоты для записи'}</Text>
+              <Text style={[styles.modalTitle, isMobile && styles.modalTitleMobile]}>{isMobile ? 'Редактировать слоты' : 'Редактировать слоты для записи'}</Text>
             </View>
 
             <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
@@ -1777,9 +1762,8 @@ function DateFieldWithPicker({ label, value, onChangeValue, pickerId, openPicker
   label: string; value: string; onChangeValue: (v: string) => void;
   pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
 }) {
-  const [active, setActive] = useState(false);
   const pickerOpen = openPickerId === pickerId;
-  const expanded = active || value.length > 0;
+  const expanded = pickerOpen || value.length > 0;
   const dateObj = value ? new Date(`${value}T00:00:00`) : null;
   const display = dateObj && !isNaN(dateObj.getTime())
     ? `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`
@@ -1803,7 +1787,7 @@ function DateFieldWithPicker({ label, value, onChangeValue, pickerId, openPicker
           ) : null}
         </View>
       ) : (
-        <Pressable onPress={() => { setActive(true); onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1875,9 +1859,8 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, referenc
   label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean; referenceDate?: string;
   pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
 }) {
-  const [active, setActive] = useState(!!autoActive);
   const pickerOpen = openPickerId === pickerId;
-  const expanded = active || value.length > 0;
+  const expanded = pickerOpen || value.length > 0;
   const [anchorRef, direction] = useFlipDirection(pickerOpen, TIME_POPOVER_HEIGHT);
   useOutsideClick(anchorRef, pickerOpen, () => onOpenPicker(null));
 
@@ -1911,7 +1894,7 @@ function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, referenc
           ) : null}
         </View>
       ) : (
-        <Pressable onPress={() => { setActive(true); onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1939,7 +1922,7 @@ const styles = StyleSheet.create({
   // (components/web/plus-field.tsx), для визуальной согласованности.
   // Переопределение размера текста общего PlusField/FieldWithPlus — во всех
   // попапах этой страницы текст 18px, кроме заголовка модалки.
-  popupFieldLabel: { fontSize: 18 },
+  popupFieldLabel: { fontSize: 14, lineHeight: 18, color: '#687076' },
   popupFieldInput: { fontSize: 18, lineHeight: 22 },
   plusFieldWrap: { marginBottom: 24 },
   // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
@@ -1947,7 +1930,7 @@ const styles = StyleSheet.create({
   // поверх попапа вместо того, чтобы быть под ним (z-index попапа сам по
   // себе сравнивается только с соседями внутри своего родителя).
   plusFieldWrapElevated: { zIndex: 50 },
-  plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', marginBottom: 8 },
+  plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginBottom: 8 },
   plusFieldButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   plusFieldValueRow: { position: 'relative', paddingVertical: 4 },
   plusFieldValueText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
@@ -1989,7 +1972,7 @@ const styles = StyleSheet.create({
   // и у десктопной bigAvatar/tutorAvatarBox, просто без фикс. высоты 345
   // (на узком экране высота подстраивается под ширину).
   avatarMobile: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', marginVertical: 16 },
-  actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
   // Filled black button used for action chips on mobile widths (see mobile mockups).
@@ -1999,7 +1982,8 @@ const styles = StyleSheet.create({
   // Modals (shared)
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth:1021, padding: 24 },
-  modalTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', marginBottom: 20 },
+  modalTitle: { fontSize: 40, lineHeight: 40, flexShrink: 1, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', marginBottom: 20 },
+  modalTitleMobile: { fontSize: 30, lineHeight: 30 },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   modalHeaderRowSpread: { justifyContent: 'space-between' },
   modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -2009,7 +1993,7 @@ const styles = StyleSheet.create({
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  hint: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
+  hint: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: -4, marginBottom: 12 },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 0, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 2 },
@@ -2066,7 +2050,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24, maxWidth: 560 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 12 },
+  fieldLabel: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 12, marginBottom: 8 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
@@ -2092,13 +2076,14 @@ const styles = StyleSheet.create({
   tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
   // Мобильный хедер наставника — как на публичной странице наставника
   // (explore/[id].web.tsx: headerRowMobile/avatarMobile/roleMobile/bioMobile).
-  tutorHeaderRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
+  tutorHeaderRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 0 },
   tutorHeaderInfoMobile: { flex: 1 },
   tutorAvatarMobile: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
   tutorShortBioMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076' },
   // Тот же межстрочный интервал, что у текста статьи в журнале — 18 читался
   // слишком плотно (см. тот же фикс на explore/[id].web.tsx: bioMobile).
-  bioTextMobile: { lineHeight: 26, marginTop: 16 },
+  bioTextMobile: { lineHeight: 26, marginTop: 16, marginBottom: 0 },
+  sectionTitleMobile: { fontSize: 25, lineHeight: 28 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },
   emptyText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076',  marginTop: 24, marginBottom: 8 },
   slotDateGroup: { marginBottom: 12 },

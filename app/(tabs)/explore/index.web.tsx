@@ -128,7 +128,7 @@ export default function MentorsScreenWeb() {
   useEffect(() => { setPage(1); }, [activeTag]);
 
   const filteredTutors = tutors
-    .filter((t) => !category || t.specialization === category)
+    .filter((t) => !category || t.specialization?.split(',').map((item) => item.trim()).includes(category))
     .filter((t) => !activeTag || t.tags?.includes(activeTag));
 
   // Пагинация — 4 строки контента на страницу. Колонок в строке разное

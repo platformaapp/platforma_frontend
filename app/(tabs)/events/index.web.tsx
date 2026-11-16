@@ -88,7 +88,8 @@ export default function EventsScreenWeb() {
   // TagList/onTagPress там) — список событий с этим тегом. Фильтрует
   // только уже загруженную страницу фида (как и обычный фильтр по
   // формату ниже — сервер по тегам не фильтрует).
-  const { tag: tagParam } = useLocalSearchParams<{ tag?: string }>();
+  const { tag: tagParam, format: formatParam } = useLocalSearchParams<{ tag?: string; format?: string }>();
+  const activeFormat = typeof formatParam === 'string' ? formatParam : Array.isArray(formatParam) ? formatParam[0] : null;
   const activeTag = typeof tagParam === 'string' ? tagParam : Array.isArray(tagParam) ? tagParam[0] : null;
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,6 +228,8 @@ export default function EventsScreenWeb() {
 
   useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
+  useEffect(() => { setFormat(activeFormat || null); }, [activeFormat]);
+
   const filtered = events
     .filter((e) => !format || e.format === format)
     .filter((e) => !activeTag || e.tags?.includes(activeTag));
@@ -327,16 +330,20 @@ export default function EventsScreenWeb() {
           ) : null}
         </View>
 
-        {activeTag ? (
+        {(activeTag || activeFormat) && isMobile ? (
           <Pressable style={styles.activeTagChip} onPress={clearTagFilter}>
-            <Text style={styles.activeTagChipText}>#{activeTag}</Text>
+            <Text style={styles.activeTagChipText}>#{activeTag || activeFormat}</Text>
           </Pressable>
         ) : null}
 
         {!isMobile ? (
           <View style={styles.filtersRow}>
             <View style={styles.filtersGroup}>
-              {FORMATS.map((f) => {
+              {activeTag || activeFormat ? (
+                <Pressable onPress={clearTagFilter}>
+                  <Text style={[styles.filterPillText, styles.filterPillTextActive]}>#{activeTag || activeFormat}</Text>
+                </Pressable>
+              ) : FORMATS.map((f) => {
                 const active = f === format;
                 return (
                   <Pressable key={f} style={styles.filterPill} onPress={() => setFormat(active ? null : f)}>

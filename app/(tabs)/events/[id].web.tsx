@@ -464,9 +464,9 @@ export default function EventDetailScreenWeb() {
   // журнале (journal/[slug].web.tsx: authorBlock/authorRow/author) — тем же
   // мелким серым стилем, а не крупным, как заголовок (раньше теги стояли
   // прямо в titleRow, тем же размером, что и сам заголовок).
-  const formatRow = event?.format ? (
+  const formatRow = event && (event.format || event.tags?.length) ? (
     <View style={styles.eventMetaRow}>
-      <Text style={[styles.eventFormatText, styles.eventFormatShrink]}>{event.format}</Text>
+      {event.format ? <Pressable onPress={() => router.push(`/events?format=${encodeURIComponent(event.format!)}` as any)}><Text style={[styles.eventFormatText, styles.eventFormatShrink]}>#{event.format}</Text></Pressable> : null}
       <TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
     </View>
   ) : null;
@@ -521,14 +521,6 @@ export default function EventDetailScreenWeb() {
     </View>
   ) : null;
 
-  // "Перейти в профиль" (десктоп) — внутри mentorInfo, прижат к низу через
-  // justifyContent:'space-between' на колонке + alignItems:'stretch' на
-  // mentorRow (сама строка растягивается на высоту фото, 132px) — ровно по
-  // нижнему краю фотки наставника. Раньше был отдельным Pressable строкой
-  // ниже mentorRow (обычный поток, без привязки к фото); сейчас — просто
-  // текст внутри уже кликабельного mentorRow (ведёт туда же). На мобильном
-  // своя отдельная кнопка-чип под mentorRow (см. mobileMentorBlock ниже) —
-  // здесь её не дублируем.
   const mentorRow = event?.mentor ? (
     <Pressable style={styles.mentorRow} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
       <View style={styles.mentorInfo}>
@@ -536,7 +528,6 @@ export default function EventDetailScreenWeb() {
           <Text style={styles.mentorName}>{event.mentor.name}</Text>
           {event.mentor.shortBio ? <Text style={[styles.mentorBio, isMobile && styles.mentorBioMobile]}>{event.mentor.shortBio}</Text> : null}
         </View>
-        {!isMobile ? <Text style={styles.actionLink}>Перейти в профиль</Text> : null}
       </View>
       {/* Без data-mentor-avatar — чб-эффект только в сетке на /explore
           (см. комментарий у правила в app/+html.tsx), здесь фото
@@ -570,7 +561,7 @@ export default function EventDetailScreenWeb() {
     <SiteShell>
       {headElement}
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
-      <View style={styles.pageContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error || !event ? (
@@ -578,11 +569,9 @@ export default function EventDetailScreenWeb() {
         ) : isMobile ? (
           <View>
             <Text style={[styles.title, styles.titleMobile]}>{preventOrphanLastWord(event.title)}</Text>
-            {formatRow}
-
             <View style={styles.mobileMetaRow}>
-              <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
-              <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
+              <Text style={styles.eventFormatText}>{formatDatetime(event.datetimeStart)} · {formatPrice(event.price)}</Text>
+              <View style={styles.mobileTags}><TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} /></View>
             </View>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
@@ -671,7 +660,12 @@ export default function EventDetailScreenWeb() {
 
             <View style={styles.rightCol}>
               {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
-              {event.mentor ? <View>{mentorRow}</View> : null}
+              {event.mentor ? <>
+                {mentorRow}
+                <Pressable style={styles.desktopMentorProfile} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                  <Text style={styles.actionLink}>Перейти в профиль</Text>
+                </Pressable>
+              </> : null}
             </View>
           </View>
         )}
@@ -887,19 +881,11 @@ const styles = StyleSheet.create({
   // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
   // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)
   // + карточка наставника — в широкой колонке справа.
-  // alignItems убран (был 'flex-start'): без него работает дефолт CSS
-  // Grid — 'stretch' — только тогда leftCol реально растягивается на
-  // высоту строки (как на странице наставника, см. тот же приём в
-  // explore/[id].web.tsx: desktopGrid), и actionsRow (position:'absolute',
-  // bottom:0) внутри него садится на нижний край колонки, а не куда
-  // попало. leftCol также получил position:'relative' — без него
-  // actionsRow (абсолютный, bottom:0) не находил позиционированного
-  // предка и улетал к первому найденному выше по дереву, наезжая на текст
-  // статьи/события.
+  // Both columns stretch; actions remain in flow and align along their bottom edge.
   desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
-  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%', position: 'relative' },
-  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
-  cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
+  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%' },
+  cover: { width: '100%', aspectRatio: 4 / 3, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
   // marginBottom:100 — тот же отступ до строки "формат + теги", что у
   // заголовка статьи в журнале на десктопе (title.marginBottom:100) —
@@ -934,28 +920,13 @@ const styles = StyleSheet.create({
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  // gap:280 — вероятно, опечатка (взят из другого макета): при узкой
-  // leftCol (420–605px) «Зарегистрироваться» и «Поделиться» с таким
-  // зазором не помещались в одну строку и переносились через flexWrap.
-  // 24 — тот же зазор, что у идентичного actionsRow на странице наставника
-  // (explore/[id].web.tsx).
-  actionsRow: { flexDirection: 'row', gap: 24, marginTop: 0,     position: 'absolute', bottom: 0 },
+  actionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, marginTop: 'auto', paddingTop: 40 },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
   actionLinkWrapper: { justifyContent: 'flex-end' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
-  // alignItems убран (был 'flex-start'): дефолт CSS flexbox — 'stretch' —
-  // растягивает mentorInfo на высоту строки (132px, задаёт mentorAvatar),
-  // иначе justifyContent:'space-between' на mentorInfo (ниже) прижимать
-  // "Перейти в профиль" было бы не к чему — колонка была бы ровно по
-  // высоте своего контента (имя+био), а не по высоте фото рядом.
   mentorRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 0 },
-  // maxWidth обязателен: rightCol — flex:1 (под широкое фото), без него
-  // текстовый блок (особенно с добавленным bio) растягивался бы почти на
-  // всю ширину колонки вместо компактной подписи рядом с аватаром.
-  // justifyContent:'space-between' — имя+био сверху, "Перейти в профиль"
-  // снизу (по нижнему краю фото, см. mentorRow выше).
   mentorInfo: { flex: 1, maxWidth: 360, justifyContent: 'space-between' },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
   mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
@@ -966,14 +937,11 @@ const styles = StyleSheet.create({
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
 
-  // Mobile: дата/цена над картинкой (не сбоку), картинка — на всю ширину
-  // (не доля строки рядом с текстом, как раньше). Размер/интервалы — по
-  // просьбе пользователя: та же мелкая приглушённая подпись, что и везде
-  // на сайте (10/10). marginTop не нужен — отступ сверху уже даёт
-  // titleMobile.marginBottom (24, см. выше); marginBottom — тот же
-  // журнальный интервал между блоками (24), что и everywhere ниже.
-  mobileMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
-  mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 24 },
+  pageContentMobile: { paddingHorizontal: 20 },
+  mobileTags: { flex: 1, minWidth: 0 },
+  desktopMentorProfile: { marginTop: 'auto', paddingTop: 24 },
+  mobileMetaRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  mobileThumb: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5', marginBottom: 24 },
   mobileMetaValue: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', opacity: 0.5 },
   // Заметный отступ перед блоком наставника — см. референс.
   mobileMentorBlock: { marginTop: 56 },
@@ -1008,7 +976,7 @@ const styles = StyleSheet.create({
   editScrollContent: { paddingBottom: 8 },
   editLockedNote: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
   editFieldWrap: { marginBottom: 28 },
-  editFieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
+  editFieldLabel: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   editFieldInput: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none', textAlignVertical: 'top' } as any,
   editFieldValueRow: { position: 'relative' },
   editFieldValue: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },

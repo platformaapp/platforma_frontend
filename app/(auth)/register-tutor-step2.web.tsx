@@ -6,8 +6,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
-import { TOPICS } from '@/constants/topics';
-import { useSiteSettings } from '@/hooks/use-site-settings';
+import { AdminTagsInput } from '@/components/admin/tags-input';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
 import { openInNewTab } from '@/lib/open-in-new-tab';
@@ -30,8 +29,6 @@ export default function RegisterTutorStep2ScreenWeb() {
   const [groupMeetings, setGroupMeetings] = useState('');
   const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const { topics: adminTopics } = useSiteSettings();
-  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
@@ -106,16 +103,7 @@ export default function RegisterTutorStep2ScreenWeb() {
 
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Специализация</Text>
-              <View style={styles.topicsRow}>
-                {topicsList.map((t) => {
-                  const active = t === specialization;
-                  return (
-                    <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
-                      <Text style={[styles.topicPillText, active && styles.topicPillTextActive]}>{t}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <AdminTagsInput tags={(specialization || '').split(',').map((t) => t.trim()).filter(Boolean)} onChange={(tags) => setSpecialization(tags.join(', '))} placeholder="Добавьте одну или несколько специализаций" />
             </View>
 
             <View style={styles.fieldWrap}>
@@ -164,11 +152,11 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
   fieldWrap: { marginBottom: 24 },
-  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
+  fieldLabel: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 8 },
   topicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
   topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   topicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginTop: -16, marginBottom: 16 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginTop: -16, marginBottom: 16 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
