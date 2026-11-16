@@ -1,16 +1,37 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
+import { openInNewTab } from '@/lib/open-in-new-tab';
+
+const DOCUMENTS = [
+  { label: 'Публичная оферта', path: '/offer' },
+  { label: 'Политика конфиденциальности', path: '/privacy' },
+  { label: 'Оферта для наставников', path: '/tutor-offer' },
+];
 
 /**
  * Содержимое без обвязки (шапка/ScrollView/заголовок) — переиспользуется и
  * полноэкранным маршрутом /offer (ниже), и всплывающим попапом на вебе
- * (см. components/web/document-modal.tsx, используется в SiteFooter).
+ * (см. components/web/document-modal.tsx, используется в SiteFooter) —
+ * попап "Официальные документы", единая точка входа ко всем документам.
  */
 export function OfferContent() {
   return (
     <>
+        <View style={styles.section}>
+          <Text style={styles.sectionHeading}>Документы</Text>
+          <View style={styles.docsMenu}>
+            {DOCUMENTS.map((d) => (
+              <Pressable key={d.path} onPress={() => openInNewTab(d.path)}>
+                <Text style={styles.docsMenuLink}>{d.label} →</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         <Section heading="1. Общие положения">
           <P>1.1. Настоящий документ является публичной офертой в соответствии со ст. 437 Гражданского кодекса Российской Федерации.</P>
           <P>1.2. Сервис p34 (далее — «Сервис») предлагает любому дееспособному лицу (далее — «Пользователь») заключить договор на условиях, изложенных в настоящем документе.</P>
@@ -275,11 +296,18 @@ export default function OfferScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backText}>← Назад</Text>
-        </Pressable>
-      </View>
+      {Platform.OS === 'web' ? null : (
+        // На вебе /offer открывается в новой вкладке (openInNewTab) — там
+        // нет истории для router.back(), кнопка "Назад" была бы нерабочей.
+        // На нативе страница открывается через router.push из флоу
+        // регистрации — там кнопка нужна.
+        <View style={styles.header}>
+          <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => router.back()}>
+            <BackArrowIcon width={16} height={15} />
+            <Text style={styles.backText}>Назад</Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.mainTitle}>ПУБЛИЧНАЯ ОФЕРТА И ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ СЕРВИСА p34</Text>
@@ -319,11 +347,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
+  backBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   content: { paddingHorizontal: 16, paddingBottom: 48 },
   mainTitle: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 4, marginBottom: 24 },
   section: { marginBottom: 24 },
   sectionHeading: { fontSize: 14, lineHeight: 22, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', borderBottomWidth: 1, borderColor: '#1E1E1E', paddingBottom: 6, marginBottom: 10 },
+  docsMenu: { gap: 10 },
+  docsMenuLink: { fontSize: 15, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#181818', textDecorationLine: 'underline' },
   body: { fontSize: 13, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 8 },
   bullet: { fontSize: 13, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 5, paddingLeft: 8 },
   row: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },

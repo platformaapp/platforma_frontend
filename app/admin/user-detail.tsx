@@ -1,24 +1,29 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdminTagsInput } from '@/components/admin/tags-input';
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 type UserDetail = {
   id: string;
   email: string;
   fullName: string;
   phone?: string | null;
+  telegram?: string | null;
   roles: string[];
   avatarUrl?: string | null;
   bio?: string | null;
@@ -31,6 +36,7 @@ type UserDetail = {
   defaultPaymentMethodId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  applicationId?: string | null;
   applicationStatus?: string | null;
   rejectionReason?: string | null;
 };
@@ -41,12 +47,13 @@ function resolveUrl(url: unknown): string | null {
   return `${API_BASE}${url}`;
 }
 
+// Пустое значение — не "нет такого поля", а "наставник его не заполнил":
+// всегда показываем строку, просто с прочерком, а не прячем целиком.
 function Row({ label, value }: { label: string; value?: string | null }) {
-  if (value == null || value === '') return null;
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <Text style={styles.rowValue}>{value != null && value !== '' ? value : '—'}</Text>
     </View>
   );
 }
@@ -84,6 +91,16 @@ export default function AdminUserDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [showRejectBox, setShowRejectBox] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isActioning, setActioning] = useState(false);
+  const [actionError, setActionError] = useState('');
+
+  const [tags, setTags] = useState<string[]>([]);
+  const [savingTags, setSavingTags] = useState(false);
+  const [tagsError, setTagsError] = useState('');
+  const [tagsSaved, setTagsSaved] = useState(false);
+
   useEffect(() => {
     if (!id) return;
     let active = true;
@@ -108,11 +125,13 @@ export default function AdminUserDetailScreen() {
         }
         const data = await res.json();
         const raw = data?.data ?? data?.user ?? data;
+        if (active) setTags(Array.isArray(raw.tags) ? raw.tags : []);
         if (active) setUser({
           id: String(raw.id ?? ''),
           email: raw.email ?? '',
           fullName: raw.fullName ?? raw.full_name ?? raw.name ?? '',
           phone: raw.phone ?? null,
+          telegram: raw.telegram ?? null,
           roles: Array.isArray(raw.roles)
             ? raw.roles.map((r: any) => typeof r === 'string' ? r : r?.name ?? '')
             : typeof raw.role === 'string' ? [raw.role] : [],
@@ -127,6 +146,7 @@ export default function AdminUserDetailScreen() {
           defaultPaymentMethodId: raw.defaultPaymentMethodId ?? raw.default_payment_method_id ?? null,
           createdAt: raw.createdAt ?? raw.created_at,
           updatedAt: raw.updatedAt ?? raw.updated_at,
+          applicationId: raw.applicationId ?? raw.application_id ?? null,
           applicationStatus: raw.applicationStatus ?? raw.application_status ?? null,
           rejectionReason: raw.rejectionReason ?? raw.rejection_reason ?? null,
         });
@@ -141,6 +161,81 @@ export default function AdminUserDetailScreen() {
     return () => { active = false; };
   }, [id]);
 
+  async function handleApprove() {
+    if (!user?.applicationId) return;
+    setActioning(true);
+    setActionError('');
+    try {
+      const token = await getAdminToken();
+      if (!token) return;
+      const res = await fetch(`${endpoints.adminApplications}/${user.applicationId}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setActionError(d?.message ?? `Ошибка (${res.status})`);
+        return;
+      }
+      adminGoBack(router, '/admin/users');
+    } catch {
+      setActionError('Не удалось выполнить действие');
+    } finally {
+      setActioning(false);
+    }
+  }
+
+  async function handleRejectConfirm() {
+    if (!user?.applicationId) return;
+    setActioning(true);
+    setActionError('');
+    try {
+      const token = await getAdminToken();
+      if (!token) return;
+      const res = await fetch(`${endpoints.adminApplications}/${user.applicationId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: rejectReason.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setActionError(d?.message ?? `Ошибка (${res.status})`);
+        return;
+      }
+      adminGoBack(router, '/admin/users');
+    } catch {
+      setActionError('Не удалось выполнить действие');
+    } finally {
+      setActioning(false);
+    }
+  }
+
+  async function handleSaveTags() {
+    if (!id) return;
+    setSavingTags(true);
+    setTagsError('');
+    setTagsSaved(false);
+    try {
+      const token = await getAdminToken();
+      if (!token) { router.replace('/admin/login'); return; }
+      const res = await fetch(`${endpoints.adminUsers}/${id}/tags`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ tags }),
+      });
+      if (res.status === 401 || res.status === 403) { await clearAdminToken(); router.replace('/admin/login'); return; }
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d?.message ?? `Ошибка ${res.status}`);
+      }
+      setTagsSaved(true);
+    } catch (e) {
+      setTagsError((e as Error)?.message ?? 'Не удалось сохранить теги');
+    } finally {
+      setSavingTags(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
@@ -153,8 +248,9 @@ export default function AdminUserDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{error || 'Пользователь не найден'}</Text>
-        <Pressable style={styles.retryBackBtn} onPress={() => router.back()}>
-          <Text style={styles.retryBackText}>← Назад</Text>
+        <Pressable style={[styles.retryBackBtn, styles.retryBackRow]} onPress={() => adminGoBack(router, '/admin/users')}>
+          <BackArrowIcon width={16} height={15} />
+          <Text style={styles.retryBackText}>Назад</Text>
         </Pressable>
       </View>
     );
@@ -164,34 +260,38 @@ export default function AdminUserDetailScreen() {
   const statusLabel = user.applicationStatus
     ? (APPLICATION_STATUS_LABELS[user.applicationStatus] ?? user.applicationStatus)
     : null;
+  // Заявка на роль наставника ещё не даёт роль tutor — её присваивают только
+  // при одобрении (см. backend admin.service.ts approveApplication). Значит
+  // ровно в момент, когда нужно посмотреть анкету для решения, isTutor ещё
+  // false — поэтому секцию профиля наставника показываем и по заявке тоже.
+  const hasTutorProfile = isTutor || Boolean(user.applicationStatus);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/users')} style={styles.backButton}>
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{user.fullName || user.email}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Hero */}
-        <View style={styles.heroRow}>
-          {user.avatarUrl ? (
-            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarInitial}>{(user.fullName || user.email || '?')[0].toUpperCase()}</Text>
-            </View>
-          )}
-          <View style={styles.heroText}>
-            <Text style={styles.heroName}>{user.fullName || '—'}</Text>
-            <Text style={styles.heroRoles}>{user.roles.join(', ') || 'без роли'}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: user.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
-              <Text style={[styles.statusText, { color: user.isBlocked ? '#721c24' : '#155724' }]}>
-                {user.isBlocked ? 'Заблокирован' : 'Активен'}
-              </Text>
-            </View>
+        {/* Hero — большое фото во всю ширину: перед аппрувом наставника
+            нужно нормально видеть человека, а не пиктограмму 72×72. */}
+        {user.avatarUrl ? (
+          <Image source={{ uri: user.avatarUrl }} style={styles.heroPhoto} resizeMode="contain" />
+        ) : (
+          <View style={[styles.heroPhoto, styles.avatarPlaceholder]}>
+            <Text style={styles.heroPhotoInitial}>{(user.fullName || user.email || '?')[0].toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={styles.heroTextBlock}>
+          <Text style={styles.heroName}>{user.fullName || '—'}</Text>
+          <Text style={styles.heroRoles}>{user.roles.join(', ') || 'без роли'}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: user.isBlocked ? '#F8D7DA' : '#D4EDDA' }]}>
+            <Text style={[styles.statusText, { color: user.isBlocked ? '#721c24' : '#155724' }]}>
+              {user.isBlocked ? 'Заблокирован' : 'Активен'}
+            </Text>
           </View>
         </View>
 
@@ -200,10 +300,12 @@ export default function AdminUserDetailScreen() {
           <Row label="ID" value={user.id} />
           <Row label="Email" value={user.email} />
           <Row label="Телефон" value={user.phone} />
+          <Row label="Телеграм" value={user.telegram} />
         </Section>
 
-        {/* Tutor profile */}
-        {isTutor && (
+        {/* Tutor profile — см. hasTutorProfile выше: доступно и по заявке,
+            не только состоявшимся наставникам. */}
+        {hasTutorProfile && (
           <Section title="Профиль наставника">
             <Row label="Короткое био" value={user.shortBio} />
             <Row label="Специализация" value={user.specialization} />
@@ -211,8 +313,20 @@ export default function AdminUserDetailScreen() {
             <Row label="Групповые встречи" value={user.groupMeetings} />
             <Row
               label="Стоимость часа"
-              value={user.hourlyRate != null ? `${Number(user.hourlyRate).toLocaleString('ru-RU')} ₽` : null}
+              value={user.hourlyRate != null ? `${Number(user.hourlyRate).toLocaleString('ru-RU')} Р` : null}
             />
+          </Section>
+        )}
+
+        {/* Теги — показываются на странице наставника напротив имени
+            (#тег), редактируются только из админки. */}
+        {hasTutorProfile && (
+          <Section title="Теги">
+            <AdminTagsInput tags={tags} onChange={(next) => { setTags(next); setTagsSaved(false); }} />
+            {tagsError ? <Text style={styles.actionErrorText}>{tagsError}</Text> : null}
+            <Pressable style={[styles.approveActionBtn, savingTags && styles.btnDisabled]} onPress={handleSaveTags} disabled={savingTags}>
+              {savingTags ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.approveActionBtnText}>{tagsSaved ? 'Сохранено' : 'Сохранить теги'}</Text>}
+            </Pressable>
           </Section>
         )}
 
@@ -225,12 +339,67 @@ export default function AdminUserDetailScreen() {
           <Row label="Метод оплаты по умолч." value={user.defaultPaymentMethodId} />
         </Section>
 
-        {/* Application (tutors only) */}
-        {isTutor && statusLabel && (
+        {/* Application — гейт на statusLabel, не на isTutor: у заявки на
+            рассмотрении роли tutor ещё нет, а кнопки "Одобрить"/"Отклонить"
+            здесь и находятся — если завязать на isTutor, их вообще нельзя
+            будет увидеть до одобрения. */}
+        {statusLabel && (
           <Section title="Заявка наставника">
             <Row label="Статус заявки" value={statusLabel} />
             {user.applicationStatus === 'rejected' && (
               <Row label="Причина отказа" value={user.rejectionReason} />
+            )}
+            {user.applicationStatus === 'pending' && user.applicationId && (
+              <View style={styles.appActions}>
+                {actionError ? <Text style={styles.actionErrorText}>{actionError}</Text> : null}
+                {!showRejectBox ? (
+                  <View style={styles.appActionBtnRow}>
+                    <Pressable
+                      style={[styles.approveActionBtn, isActioning && styles.btnDisabled]}
+                      onPress={handleApprove}
+                      disabled={isActioning}
+                    >
+                      {isActioning ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.approveActionBtnText}>Одобрить</Text>}
+                    </Pressable>
+                    <Pressable
+                      style={[styles.rejectActionBtn, isActioning && styles.btnDisabled]}
+                      onPress={() => setShowRejectBox(true)}
+                      disabled={isActioning}
+                    >
+                      <Text style={styles.rejectActionBtnText}>Отклонить</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <>
+                    <TextInput
+                      style={styles.rejectInput}
+                      placeholder="Причина отклонения (необязательно)"
+                      placeholderTextColor="#9B9B9B"
+                      value={rejectReason}
+                      onChangeText={setRejectReason}
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                    />
+                    <View style={styles.appActionBtnRow}>
+                      <Pressable
+                        style={[styles.rejectActionBtn, isActioning && styles.btnDisabled]}
+                        onPress={handleRejectConfirm}
+                        disabled={isActioning}
+                      >
+                        {isActioning ? <ActivityIndicator color="#721c24" size="small" /> : <Text style={styles.rejectActionBtnText}>Подтвердить отклонение</Text>}
+                      </Pressable>
+                      <Pressable
+                        style={styles.cancelActionBtn}
+                        onPress={() => { setShowRejectBox(false); setRejectReason(''); setActionError(''); }}
+                        disabled={isActioning}
+                      >
+                        <Text style={styles.cancelActionBtnText}>Отмена</Text>
+                      </Pressable>
+                    </View>
+                  </>
+                )}
+              </View>
             )}
           </Section>
         )}
@@ -251,6 +420,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   retryBackBtn: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 20 },
+  retryBackRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   retryBackText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
@@ -258,14 +428,15 @@ const styles = StyleSheet.create({
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingBottom: 48 },
 
-  heroRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5', gap: 16 },
-  avatar: { width: 72, height: 72, backgroundColor: '#E5E5E5' },
+  // Было 72×72 в ряд с текстом, потом 140×140 — теперь фото на всю ширину
+  // (нужно нормально видеть человека перед аппрувом заявки).
+  heroPhoto: { width: '100%', height: 340, backgroundColor: '#E5E5E5' },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { fontSize: 26, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  heroText: { flex: 1 },
-  heroName: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
+  heroPhotoInitial: { fontSize: 72, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  heroTextBlock: { padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5' },
+  heroName: { fontSize: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 2 },
   heroRoles: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6 },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3 },
   statusText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
@@ -276,4 +447,22 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
   rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
   rowValue: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+
+  // Одобрить/отклонить заявку — прямо на странице, без модалок.
+  appActions: { paddingTop: 12, paddingBottom: 8 },
+  appActionBtnRow: { flexDirection: 'row', gap: 10 },
+  approveActionBtn: { flex: 1, backgroundColor: '#155724', height: 44, alignItems: 'center', justifyContent: 'center' },
+  approveActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  rejectActionBtn: { flex: 1, borderWidth: 1, borderColor: '#721c24', height: 44, alignItems: 'center', justifyContent: 'center' },
+  rejectActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#721c24' },
+  cancelActionBtn: { flex: 1, borderWidth: 1, borderColor: '#1E1E1E', height: 44, alignItems: 'center', justifyContent: 'center' },
+  cancelActionBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  rejectInput: {
+    borderBottomWidth: 1, borderColor: '#1E1E1E',
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818',
+    minHeight: 80, marginBottom: 10,
+  },
+  btnDisabled: { opacity: 0.5 },
+  actionErrorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 10 },
 });

@@ -126,7 +126,7 @@ export default function RegisterTutorStep2Screen() {
                 onPress={() => setIsEditingRate(true)}
               >
                 <ThemedText style={styles.rateDisplay}>
-                  Стоимость часа — {rateValue} ₽
+                  Стоимость часа — {rateValue} Р
                 </ThemedText>
               </Pressable>
             ) : (
@@ -151,7 +151,7 @@ export default function RegisterTutorStep2Screen() {
               <View style={styles.commissionInfo}>
                 <ThemedText style={styles.commissionText}>Комиссия 10%</ThemedText>
                 <ThemedText style={styles.finalAmountText}>
-                  Вы получите {finalAmount} ₽
+                  Вы получите {finalAmount} Р
                 </ThemedText>
               </View>
             ) : (

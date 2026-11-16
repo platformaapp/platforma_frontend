@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 function toApiDate(d: Date): string {
   const y = d.getFullYear();
@@ -80,7 +81,7 @@ export default function AdminPaymentsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/dashboard')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>ПЛАТЕЖИ</Text>
@@ -212,13 +213,13 @@ const styles = StyleSheet.create({
   backBtnText: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { padding: 16 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', padding: 16 },
   description: { fontSize: 13, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
   dateRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   dateInput: { flex: 1 },
   input: {
-    borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
     justifyContent: 'center', position: 'relative',
   },

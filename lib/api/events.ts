@@ -13,6 +13,7 @@ import { Platform } from 'react-native';
 import { API_BASE, endpoints } from '@/constants/env';
 import { getAuthToken } from '@/lib/auth';
 import { AuthError, handle401 } from '@/lib/api/auth-error';
+import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 export { AuthError };
 
 // --- Типы ---
@@ -100,15 +101,17 @@ export async function uploadEventImage(uri: string): Promise<string> {
   const token = await getAuthToken();
   if (!token) throw new Error('Требуется авторизация');
 
+  const resizedUri = await resizeImageForUpload(uri);
+
   const formData = new FormData();
   const filename = `cover_${Date.now()}.jpg`;
 
   if (Platform.OS === 'web') {
-    const resp = await fetch(uri);
+    const resp = await fetch(resizedUri);
     const blob = await resp.blob();
     formData.append('file', blob, filename);
   } else {
-    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+    formData.append('file', { uri: resizedUri, name: filename, type: 'image/jpeg' } as any);
   }
 
   const res = await fetch(endpoints.uploadImage, {

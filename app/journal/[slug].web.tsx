@@ -1,0 +1,926 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { SiteFooter } from '@/components/web/site-footer';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TagList } from '@/components/web/tag-list';
+import { API_BASE, endpoints } from '@/constants/env';
+import { getArticle, type Article, type RelatedArticle } from '@/lib/api/journal';
+import { parseFeedItems } from '@/lib/event-feed';
+import { parseInlineMarkdown } from '@/lib/markdown-inline';
+import { preventOrphanLastWord } from '@/lib/typography';
+
+// "Окей, что ещё" — ближайшие события той же категории, что у события,
+// привязанного к статье (article.event.category) — только когда оно есть;
+// без привязанного события показывать "из той же категории" не из чего,
+// блок просто не рендерится (см. categoryEvents/relatedBlock).
+type UpcomingCategoryEvent = { id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
+const UPCOMING_EVENTS_LIMIT = 3;
+
+function resolveEventCoverUrl(url: unknown): string | null {
+  if (!url || typeof url !== 'string') return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
+
+// "Окей, что ещё" — до 3 связанных статей вместо баннера в конце (выбраны в
+// админке, см. admin/journal-detail.tsx). Та же сетка-тройка (403/365/340),
+// что и строки на /journal (см. ROW_ASPECTS в journal/index.web.tsx) — тут
+// всегда ровно одна строка, т.к. связанных статей не больше 3.
+const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+
+// Баннер рядом со вторым подзаголовком — свой, отдельный от PromoBanner
+// (того, что на /journal и /events): конкретная портретная картинка
+// 720×1280 (текст сверху, фото снизу), не админско-настраиваемый промо-
+// баннер списков. Квадратная обёртка (см. sectionBannerWrap) показывает
+// только верхнюю (текстовую) часть, см. комментарий у bannerBlock.
+const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
+
+// Картинка в блоке "Скачать приложение" (мобильный, низ статьи) — раньше
+// был просто серый плейсхолдер без картинки, взята с vladyakunin.ru (та же
+// чб-портретная эстетика, что и у section-banner выше).
+const APP_DOWNLOAD_IMAGE = require('@/assets/images/app-download-photo.png');
+const SECTION_BANNER_TELEGRAM_URL = 'https://t.me/p34forma';
+
+// Размер картинки CTA события внутри статьи — как в статье про советский
+// самиздат (aspect-ratio 1.72986, max-width 365, max-height 180). Высота —
+// связывающее ограничение (365/1.72986 ≈ 211 > 180), поэтому реальная
+// ширина меньше 365. Явные числа, а не aspectRatio+maxWidth+maxHeight —
+// та же причина, что и у SECTION_BANNER_* выше: react-native-web сам
+// переводит aspectRatio в явную высоту ДО применения max-height, из-за чего
+// max-height обрезает картинку, а ширина обратно не пересчитывается (должна
+// бы по спеке CSS, но для Image из react-native-web — нет), и картинка
+// просто растягивается не в тех пропорциях.
+const EVENT_CTA_ASPECT_RATIO = 1.72986;
+const EVENT_CTA_MAX_WIDTH = 365;
+const EVENT_CTA_MAX_HEIGHT = 180;
+const EVENT_CTA_HEIGHT = Math.min(EVENT_CTA_MAX_HEIGHT, Math.round(EVENT_CTA_MAX_WIDTH / EVENT_CTA_ASPECT_RATIO));
+const EVENT_CTA_WIDTH = Math.round(EVENT_CTA_HEIGHT * EVENT_CTA_ASPECT_RATIO);
+
+// Маркеры в "Текст" — админ ставит их отдельной "строкой-абзацем" где угодно
+// (см. admin/journal-detail.tsx, кнопки "Вставить в текст" у события/похожей
+// статьи), сам текст маркера убирается при рендере (никогда не виден). Два
+// РАЗНЫХ случая:
+// - {{event}} — позиция, как правило, ИМЕЕТ значение: CTA события должен
+//   оказаться напротив того места, где стоит маркер (текст до него — одна
+//   строка грида с обложкой/галереей/баннером, текст после — следующая
+//   строка с самой карточкой, см. eventMarkerIdx/hasEventSplit ниже). НО
+//   если после маркера в тексте не осталось ни одного настоящего абзаца
+//   (маркер — последний, "текста мало"), разбивать не на что — тогда маркер
+//   работает просто как включатель показа, а карточка идёт своим чередом в
+//   правой колонке сразу после баннера (как похожие статьи ниже), без
+//   разбиения текста. Баннер, для сравнения, НЕ позиционируется так — он
+//   простой фиксированный элемент сразу после обложки/галереи, независимо
+//   от текста.
+// - {{related:<id>}} — позиция не важна, только факт: такая похожая статья
+//   уходит в правую колонку (без привязки к конкретному абзацу).
+const EVENT_TOKEN = '{{event}}';
+const RELATED_TOKEN_RE = /^\{\{related:([0-9a-fA-F-]+)\}\}$/;
+// Базовый отступ между элементами сайдбара (см. styles.sidebarSplitItem) —
+// вынесен отдельной константой, т.к. используется и в самом стиле, и в
+// формуле выравнивания CTA события по якорю в тексте (см. eventCardOffset).
+const SIDEBAR_SPLIT_GAP = 40;
+
+// Фолбэк для og:description/meta description, когда в админке не заполнено
+// SEO-поле "Meta Description" — берём начало текста статьи, убираем
+// markdown-маркеры тулбара (см. TOOLBAR_ACTIONS в admin/journal-detail.tsx) и
+// служебные токены ({{event}}/{{related:...}}/"## "), схлопываем пробелы.
+function excerptFromContent(content: string | null, maxLen = 160): string {
+  if (!content) return '';
+  const plain = content
+    .replace(/\{\{event\}\}/g, '')
+    .replace(/\{\{related:[0-9a-fA-F-]+\}\}/g, '')
+    .replace(/^##\s*/gm, '')
+    .replace(/[*_~=]{1,2}|\{[+-]|[+-]\}/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (plain.length <= maxLen) return plain;
+  return `${plain.slice(0, maxLen).trimEnd()}…`;
+}
+
+const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+// Только дата, без времени и без имени автора в карточке события внутри
+// статьи (см. renderEventCtaCard) — это CTA события, а не материала, автору
+// там делать нечего.
+function formatEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return '';
+  }
+}
+
+// Строка, начинающаяся с "##" (после обрезки пробелов — любое количество
+// пробельных символов, включая неразрывный пробел и табы, или вообще без
+// них), открывает подзаголовок + текст после него. Раньше детект искал
+// точную подстроку "\n## " — ломался на переносах строк \r\n (частый
+// результат вставки текста из Word/Telegram/Google Docs) и на любом другом
+// пробеле после "##", кроме обычного. Построчный разбор с регуляркой
+// устойчив к обоим случаям. Поддерживается ЛЮБОЕ число "##"-подзаголовков
+// подряд (не только один, как раньше) — баннер в статье встаёт именно
+// напротив ВТОРОГО из них (см. hasSecondHeading/secondHeadingIdx ниже),
+// первый подзаголовок баннером не затрагивается.
+function parseContent(content: string | null): { intro: string[]; sections: { heading: string; body: string[] }[] } {
+  if (!content) return { intro: [], sections: [] };
+  const lines = content.split(/\r\n|\r|\n/);
+  const headingLineIdxs: number[] = [];
+  lines.forEach((l, i) => { if (/^##(?!#)/.test(l.trim())) headingLineIdxs.push(i); });
+  if (headingLineIdxs.length === 0) {
+    return { intro: content.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean), sections: [] };
+  }
+  const before = lines.slice(0, headingLineIdxs[0]).join('\n').trim();
+  const sections = headingLineIdxs.map((startIdx, i) => {
+    const endIdx = i + 1 < headingLineIdxs.length ? headingLineIdxs[i + 1] : lines.length;
+    const heading = lines[startIdx].trim().replace(/^##(?!#)\s*/, '').trim();
+    const bodyText = lines.slice(startIdx + 1, endIdx).join('\n').trim();
+    return { heading, body: bodyText.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) };
+  });
+  return {
+    intro: before.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
+    sections,
+  };
+}
+
+export default function ArticleScreenWeb() {
+  const router = useRouter();
+  const isMobile = useIsMobileWeb();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [categoryEvents, setCategoryEvents] = useState<UpcomingCategoryEvent[]>([]);
+
+  const load = useCallback(async () => {
+    if (!slug) return;
+    setLoading(true);
+    try {
+      setError('');
+      const a = await getArticle(slug);
+      setArticle(a);
+    } catch (e: any) {
+      setError(e?.message ?? 'Не удалось загрузить материал');
+      setArticle(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Ближайшие события той же категории, что у привязанного к статье события
+  // (см. UpcomingCategoryEvent выше) — для "Окей, что ещё" в конце статьи.
+  // Серверной фильтрации по категории у /events/feed нет (см. events-feed-
+  // query.dto.ts бэкенда), поэтому берём одну страницу фида и фильтруем на
+  // клиенте — тот же приём, что уже используется в explore/[id].web.tsx для
+  // "Событий наставника".
+  useEffect(() => {
+    const linkedEvent = article?.event;
+    if (!linkedEvent?.category) { setCategoryEvents([]); return; }
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=50`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = parseFeedItems(data) as Record<string, unknown>[];
+        const now = Date.now();
+        const matches: UpcomingCategoryEvent[] = raw
+          .filter((r) => String(r.id ?? '') !== linkedEvent.id && r.category === linkedEvent.category)
+          .map((r) => ({
+            id: String(r.id ?? ''),
+            title: String(r.title ?? ''),
+            coverUrl: resolveEventCoverUrl(r.coverUrl ?? r.cover_url),
+            datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined ?? null,
+          }))
+          .filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now)
+          .sort((a, b) => (a.datetimeStart ?? '').localeCompare(b.datetimeStart ?? ''))
+          .slice(0, UPCOMING_EVENTS_LIMIT);
+        if (active) setCategoryEvents(matches);
+      } catch { /* блок "Окей, что ещё" просто не покажется */ }
+    })();
+    return () => { active = false; };
+    // Нарочно зависим только от id/category, а не от всего article.event:
+    // остальные его поля (cover_url/price/...) не влияют на подборку "той
+    // же категории".
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article?.event?.id, article?.event?.category]);
+
+  // CTA события в сайдбаре (десктоп) раньше либо шло строго сразу после
+  // баннера (не реагируя на то, где в тексте реально стоял маркер {{event}}),
+  // либо требовало синхронизации высоты строк текстовой/сайдбар-колонки
+  // через CSS Grid — а это давало огромный пустой отступ, если текст до
+  // точки разбиения короче обложки справа (см. комментарий у
+  // bannerOpposesHeading ниже). Среднее решение: меряем через ref, где в
+  // пикселях реально оказался невидимый якорь в ТЕКСТОВОЙ колонке (ровно на
+  // месте маркера, см. JSX ниже) и где карточка легла БЕЗ поправки — и
+  // сдвигаем её вниз (marginTop) ровно настолько, чтобы верх карточки совпал
+  // с якорем. Не раньше: если бы якорь оказался ВЫШЕ естественного места
+  // карточки (например, обложка справа высокая, а маркер стоит в первом
+  // абзаце), подвинуть карточку ВВЕРХ нельзя, не наложив её на баннер/
+  // обложку над ней — тогда просто оставляем 0 (ближайшее подходящее место).
+  const eventAnchorRef = useRef<any>(null);
+  const eventCardRef = useRef<any>(null);
+  const [eventCardOffset, setEventCardOffset] = useState(0);
+  useLayoutEffect(() => {
+    const anchor = eventAnchorRef.current;
+    const card = eventCardRef.current;
+    if (!anchor || !card || typeof anchor.getBoundingClientRect !== 'function') return;
+    const anchorTop = anchor.getBoundingClientRect().top;
+    const cardTop = card.getBoundingClientRect().top;
+    setEventCardOffset((prev) => Math.max(0, anchorTop - (cardTop - prev)));
+  }, [article?.content, article?.event?.id, isMobile]);
+
+  if (loading) {
+    return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
+  }
+
+  if (error || !article) {
+    return (
+      <SiteShell>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error || 'Материал не найден'}</Text>
+          <Pressable style={styles.retryButton} onPress={load}><Text style={styles.retryButtonText}>Повторить</Text></Pressable>
+        </View>
+      </SiteShell>
+    );
+  }
+
+  const { intro, sections } = parseContent(article.content);
+  const [galleryLeft, galleryRight] = article.gallery;
+
+  // H1 — видимый заголовок на странице, заменяет обычный title, только
+  // если задан в админке (SEO-блок, admin/journal-detail.tsx); seoTitle/
+  // metaDescription ни на что в разметке страницы не влияют, кроме <head>.
+  const visibleTitle = article.h1 || article.title;
+  const titleElement = <Text style={[styles.title, isMobile && styles.titleMobile]}>{preventOrphanLastWord(visibleTitle)}</Text>;
+  const pageTitle = article.seoTitle || article.title;
+  const pageDescription = article.metaDescription || excerptFromContent(article.content);
+  // og:title/og:description — отдельные поля (могут отличаться от
+  // формулировки сниппета в поиске), фолбэк на seoTitle/metaDescription,
+  // если не заданы — см. комментарий у Article.ogTitle на бэкенде.
+  const ogTitle = article.ogTitle || pageTitle;
+  const ogDescription = article.ogDescription || pageDescription;
+  // Фолбэк на article.id — на случай, если бэкенд ещё не задеплоил поле slug
+  // (тогда article.slug пустой): без фолбэка router.push(`/journal/`) уводит
+  // на список статей вместо самой статьи — см. ту же защиту во всех местах,
+  // где строится ссылка на статью (journal/index.web.tsx, explore/[id].web.tsx и т.д.).
+  const pageUrl = `https://platformaapp.ru/journal/${article.slug || article.id}`;
+  // canonical — явно заданный в админке (для дублей/пересекающихся по теме
+  // статей) или собственный URL статьи по умолчанию.
+  const canonicalUrl = article.canonicalUrl || pageUrl;
+  // robots — noindex/nofollow настраиваются в админке точечно на статью
+  // (черновики/слабый контент/дубли), не убирая её с самого сайта.
+  const robotsParts = [article.noindex ? 'noindex' : 'index', article.nofollow ? 'nofollow' : 'follow'];
+  // Structured data (schema.org Article) — datePublished/dateModified и
+  // автор, сигнал E-E-A-T и свежести контента для поисковика.
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: pageTitle,
+    description: pageDescription || undefined,
+    image: article.coverUrl || undefined,
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt,
+    author: { '@type': 'Person', name: article.author.name },
+  };
+  // og:* — превью при расшаривании ссылки (Telegram и т.п.). ВАЖНО: сайт
+  // собирается как статический SPA-шелл без SSR (app.json: web.output =
+  // "static", .htaccess/_redirects переписывают любой путь на /index.html),
+  // поэтому <head>, который сюда попадает через expo-router/head, рисуется
+  // уже В БРАУЗЕРЕ после загрузки JS и данных статьи. Боты соцсетей (в т.ч.
+  // Telegram) JS не исполняют — эти теги они не увидят, превью будет
+  // дефолтным/пустым, пока сайт не получит серверный рендер для этих
+  // маршрутов. Google и Яндекс дорендеривают JS (с задержкой), им эти
+  // теги всё же помогают — поэтому оставляем.
+  const headElement = (
+    <Head>
+      <title>{pageTitle}</title>
+      {pageDescription ? <meta name="description" content={pageDescription} /> : null}
+      <meta name="robots" content={robotsParts.join(', ')} />
+      <link rel="canonical" href={canonicalUrl} />
+      <meta property="og:type" content="article" />
+      <meta property="og:title" content={ogTitle} />
+      {ogDescription ? <meta property="og:description" content={ogDescription} /> : null}
+      <meta property="og:url" content={pageUrl} />
+      {article.coverUrl ? <meta property="og:image" content={article.coverUrl} /> : null}
+      <meta name="twitter:card" content={article.coverUrl ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={ogTitle} />
+      {ogDescription ? <meta name="twitter:description" content={ogDescription} /> : null}
+      {article.coverUrl ? <meta name="twitter:image" content={article.coverUrl} /> : null}
+      <script type="application/ld+json">{JSON.stringify(articleJsonLd)}</script>
+    </Head>
+  );
+
+  // Под заголовком — только имя, серым, без фото и без роли/био (раньше
+  // был целый блок с фото+имя+роль+био, см. git history), кликабельно на
+  // страницу наставника, если он известен.
+  const authorBlock = article.author.name ? (
+    <View style={styles.authorRow}>
+      {article.author.id ? (
+        <Pressable
+          style={styles.authorNameShrink}
+          onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}
+          {...({ dataSet: { textLink: 'true' } } as any)}
+        >
+          <Text style={styles.author}>{article.author.name}</Text>
+        </Pressable>
+      ) : (
+        <Text style={[styles.author, styles.authorNameShrink]}>{article.author.name}</Text>
+      )}
+      <TagList tags={article.tags} textStyle={styles.author} onTagPress={(t) => router.push(`/journal?tag=${encodeURIComponent(t)}` as any)} />
+    </View>
+  ) : null;
+
+  // Обложка и галерея — единый медиа-блок: текст статьи начинается под
+  // обложкой, галерея (если есть) идёт сразу под ней же, а не привязана к
+  // случайному "## "-подзаголовку (у реальных статей его никогда нет).
+  // Подпись — только под второй (правой) фотографией, см. admin/journal-detail.tsx.
+  const mediaBlock = (
+    <>
+      {article.coverUrl ? (
+        <Image source={{ uri: article.coverUrl }} style={styles.coverImage} resizeMode="cover" accessibilityLabel={article.coverAlt || article.title} />
+      ) : (
+        <View style={styles.coverImage} />
+      )}
+      {galleryLeft || galleryRight ? (
+        <View style={styles.galleryRow}>
+          {galleryLeft ? (
+            <Image source={{ uri: galleryLeft }} style={styles.galleryImage} resizeMode="cover" accessibilityLabel={article.galleryAlt[0] || article.title} />
+          ) : null}
+          {galleryRight ? (
+            <View style={styles.galleryImageWithCaption}>
+              <Image source={{ uri: galleryRight }} style={styles.galleryImageInner} resizeMode="cover" accessibilityLabel={article.galleryAlt[1] || article.galleryCaption || article.title} />
+              {article.galleryCaption ? <Text style={styles.galleryCaption}>{article.galleryCaption}</Text> : null}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </>
+  );
+
+  // Баннер — опционально, выключается в админке (article.showBanner). Это
+  // свой, конкретный баннер (не PromoBanner с /journal и /events).
+  // Квадрат шириной 50% родительского блока, по центру (паддинг-трюк:
+  // paddingBottom — тот же процент, что и width, см. тот же приём у
+  // avatarBox на /explore). Картинка внутри — inset:0 (top/left/right/
+  // bottom:0, см. тот же приём у avatar там же) и resizeMode="cover" —
+  // заполняет квадрат целиком и обрезается по центру независимо от
+  // исходных пропорций картинки (не aspectRatio: react-native-web
+  // игнорирует aspectRatio для Image из require(), см. git history).
+  // На мобильном баннер — первым перед статьёй (см. mobileStack ниже) и по
+  // ширине как обложка (100%, не 50%-квадрат по центру, как на десктопе) —
+  // sectionBannerWrapMobile меняет только width/paddingBottom, крупность
+  // кропа (квадрат) остаётся та же, т.к. картинка-источник уже квадратная.
+  const bannerBlock = article.showBanner ? (
+    <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
+      <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
+    </Pressable>
+  ) : null;
+
+  // "Окей, что ещё" — те же токены карточки, что раньше были у похожих
+  // статей (relatedCategory/relatedTitle), плюс дата события. На мобильном —
+  // формат карточки как на /events (mobileRow/mobileThumb/mobileInfo/
+  // mobileTitleText), по просьбе пользователя унифицировать с /events.
+  function renderUpcomingEventCard(item: UpcomingCategoryEvent, posInRow: 0 | 1 | 2) {
+    const dateText = formatEventDate(item.datetimeStart ?? undefined);
+    if (isMobile) {
+      return (
+        <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderUpcomingEventCard' } } as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+          <View style={styles.mobileInfo}>
+            <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]}>{preventOrphanLastWord(item.title)}</Text>
+            {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
+          </View>
+        </Pressable>
+      );
+    }
+    return (
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
+        )}
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
+        {dateText ? <Text style={styles.relatedCategory}>{dateText}</Text> : null}
+      </Pressable>
+    );
+  }
+
+  // "Окей, что ещё" — статьи, выбранные админом (admin/journal-detail.tsx),
+  // но НЕ размещённые маркером {{related:<id>}} в тексте (см.
+  // relatedArticlesBlock ниже) — по умолчанию показываются блоком в конце
+  // статьи, той же сеткой-тройкой, что и renderUpcomingEventCard выше. На
+  // мобильном — формат карточки как на /events, см. комментарий выше.
+  function renderRelatedArticleCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
+    if (isMobile) {
+      return (
+        <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderRelatedArticleCard' } } as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+          <View style={styles.mobileInfo}>
+            <View>
+              {item.category ? <Text style={styles.mobileAuthor}>{item.category}</Text> : null}
+              <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+            </View>
+          </View>
+        </Pressable>
+      );
+    }
+    return (
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
+        )}
+        {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
+      </Pressable>
+    );
+  }
+
+  // Одна похожая статья, вставленная маркером {{related:<id>}} прямо в текст
+  // — компактная карточка в ширину текстовой колонки, а не строка грида-тройки.
+  function renderRelatedInlineCard(item: RelatedArticle) {
+    return (
+      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+        {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.inlineRelatedImage} resizeMode="cover" /> : <View style={styles.inlineRelatedImage} />}
+        {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
+      </Pressable>
+    );
+  }
+
+  // TS не умеет протащить сужение "article не null" (проверено выше, при
+  // раннем return) внутрь вложенных function-деклараций — фиксируем это
+  // локальной константой с заведомо известным типом.
+  const safeArticle: Article = article;
+
+  // CTA "Записаться на событие" — показывается, только если событие выбрано
+  // И в тексте стоит маркер {{event}}; позиция самого маркера, как правило,
+  // ЯВЛЯЕТСЯ координатой — см. eventMarkerIdx/hasEventSplit ниже (и
+  // комментарий у EVENT_TOKEN выше про случай "текста мало").
+  // Мобильный CTA — в точности как страница самого события на мобильном
+  // (events/[id].web.tsx: titleMobile → дата/цена в ряд → обложка → кнопка
+  // "Зарегистрироваться" в chipButton). Десктопный — своя компактная
+  // карточка: картинка, заголовок, "+ Записаться на событие" в одной
+  // строке с датой; ширина ограничена картинкой (EVENT_CTA_WIDTH), чтобы
+  // заголовок не был шире неё.
+  function renderEventCtaCard() {
+    if (!safeArticle.event) return null;
+    const event = safeArticle.event;
+
+    if (isMobile) {
+      // Формат — как на /events (mobileRow/mobileThumb/mobileInfo/
+      // mobileTitleText/mobileDate), по просьбе пользователя: карточка
+      // "Событие" должна быть такой же, как карточки в /events.
+      const dateTextMobile = formatEventDate(event.datetimeStart ?? undefined);
+      return (
+        <View style={styles.ctaBlock}>
+          <Pressable style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderEventCtaCard' } } as any)}>
+            {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+            <View style={styles.mobileInfo}>
+              <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
+              {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
+            </View>
+          </Pressable>
+          <Text style={styles.actionLinkTextMobile} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>+ Записаться на событие</Text>
+        </View>
+      );
+    }
+
+    const dateText = formatEventDate(event.datetimeStart ?? undefined);
+    return (
+      <View style={[styles.ctaBlock, styles.ctaBlockDesktop]}>
+        <View style={[styles.ctaCard, styles.eventCtaCardDesktop]}>
+          {/* Картинка+заголовок — отдельный Pressable от ссылки "+ Записаться"
+              ниже: общий механизм затемнения при наведении (app/_layout.tsx)
+              отключает себя у любого Pressable, который СОДЕРЖИТ красный
+              текст (красные ссылки не тускнеют, только подчёркиваются) — если
+              бы вся карточка была одним Pressable с красной ссылкой внутри,
+              она вообще не осветлялась бы при наведении на картинку/заголовок,
+              в отличие от обычных карточек событий. */}
+          <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+            {event.coverUrl ? (
+              <Image source={{ uri: event.coverUrl }} style={styles.eventCtaImage} resizeMode="cover" />
+            ) : (
+              <View style={styles.eventCtaImage} />
+            )}
+            <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
+          </Pressable>
+          <View style={styles.eventCtaFooterRow}>
+            <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+              <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
+            </Pressable>
+            {dateText ? <Text style={styles.ctaCardMeta}>{dateText}</Text> : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Весь текст статьи как плоский упорядоченный список (абзацы intro, затем,
+  // если есть "## "-подзаголовок, сам подзаголовок и абзацы после него) —
+  // чтобы найти позицию маркера {{event}} В ТЕКСТЕ ЦЕЛИКОМ, а не только
+  // внутри intro или только внутри section.
+  type TextItem = { heading: boolean; text: string };
+  const textItems: TextItem[] = [
+    ...intro.map((text) => ({ heading: false, text })),
+    ...sections.flatMap((s) => [{ heading: true, text: s.heading }, ...s.body.map((text) => ({ heading: false, text }))]),
+  ];
+
+  function isRealTextItem(it: TextItem) {
+    const t = it.text.trim();
+    return t !== '' && t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t);
+  }
+
+  function renderTextItems(items: TextItem[], keyPrefix: string) {
+    return items
+      .filter((it) => { const t = it.text.trim(); return t !== EVENT_TOKEN && !RELATED_TOKEN_RE.test(t); })
+      .map((it, i) => (
+        <Text key={`${keyPrefix}-${i}`} style={it.heading ? styles.subheading : styles.body}>
+          {parseInlineMarkdown(it.text)}
+        </Text>
+      ));
+  }
+
+  // CTA события — как правило, НЕ фиксированная позиция в стопке справа (как
+  // баннер, который всегда просто идёт следом за галереей), а именно
+  // НАПРОТИВ того абзаца, где админ поставил маркер {{event}} (см. "Вставить
+  // в текст" в admin/journal-detail.tsx) — так же, как раньше работала пара
+  // подзаголовок+баннер: текст до маркера и "правая колонка до этого места"
+  // — одна строка грида, текст после маркера и сама карточка — следующая.
+  // Исключение — "текста мало": если после маркера нет ни одного настоящего
+  // абзаца (разбивать не на что — вторая строка была бы пустой слева), маркер
+  // работает просто как включатель, карточка идёт в sideStack после баннера.
+  const rawEventMarkerIdx = article.event ? textItems.findIndex((it) => it.text.trim() === EVENT_TOKEN) : -1;
+  const hasEventMarker = rawEventMarkerIdx !== -1;
+  const hasEventSplit = hasEventMarker && textItems.slice(rawEventMarkerIdx + 1).some(isRealTextItem);
+  const eventMarkerIdx = hasEventSplit ? rawEventMarkerIdx : -1;
+  const beforeEventItems = hasEventSplit ? textItems.slice(0, eventMarkerIdx) : textItems;
+  const afterEventItems = hasEventSplit ? textItems.slice(eventMarkerIdx + 1) : [];
+
+  // Похожие статьи, размещённые маркером {{related:<id>}} где-либо в тексте,
+  // уходят в правую колонку (в порядке маркеров) и не дублируются в блоке
+  // "Окей, что ещё" в конце — туда попадают только те, что админ не отметил
+  // маркером явно (старое поведение). В отличие от события — без привязки к
+  // конкретному абзацу, просто следом за остальным содержимым правой колонки.
+  const relatedInlineIds = Array.from(new Set(
+    textItems.map((it) => it.text.trim().match(RELATED_TOKEN_RE)?.[1]).filter((x): x is string => !!x)
+  ));
+  const relatedInlineItems = relatedInlineIds
+    .map((rid) => article.relatedArticles.find((r) => r.id === rid))
+    .filter((r): r is RelatedArticle => !!r);
+  const relatedInlineBlock = relatedInlineItems.map((item) => <View key={item.id}>{renderRelatedInlineCard(item)}</View>);
+
+  // "Окей, что ещё" — статьи, выбранные админом в admin/journal-detail.tsx
+  // ("«Окей, что ещё» — похожие статьи"), которые НЕ вставлены маркером
+  // {{related:<id>}} в текст (те уже показаны выше, см. relatedInlineBlock) —
+  // по умолчанию блоком в конце статьи, как и обещает подсказка в админке
+  // ("По умолчанию показываются блоком в конце статьи").
+  const unclaimedRelatedArticles = article.relatedArticles.filter((r) => !relatedInlineIds.includes(r.id));
+  const relatedArticlesBlock = unclaimedRelatedArticles.length > 0 ? (
+    <View style={[styles.relatedSection, isMobile && styles.relatedSectionMobile]}>
+      <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Окей, что ещё</Text>
+      <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
+        {unclaimedRelatedArticles.map((item, i) => renderRelatedArticleCard(item, (isMobile ? 0 : i) as 0 | 1 | 2))}
+      </View>
+    </View>
+  ) : null;
+
+  // "Окей, что ещё" — ближайшие события той же категории, что у привязанного
+  // к статье события (см. categoryEvents выше); без привязанного события
+  // блок не рендерится вовсе — "та же категория" не из чего вывести.
+  const relatedBlock = categoryEvents.length > 0 ? (
+    <View style={styles.relatedSection}>
+      <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Ближайшие события</Text>
+      <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
+        {categoryEvents.map((e, i) => renderUpcomingEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
+      </View>
+    </View>
+  ) : null;
+
+  const beforeEventBlock = renderTextItems(beforeEventItems, 'before');
+  const afterEventBlock = hasEventSplit ? renderTextItems(afterEventItems, 'after') : null;
+
+  // Баннер напротив ВТОРОГО подзаголовка (desktop only — на мобильном всё и
+  // так одной колонкой, и баннер там уже вынесен в начало статьи отдельной
+  // функцией), не первого. secondHeadingIdx — позиция ВТОРОГО по счёту
+  // "##"-подзаголовка в textItems (первый подзаголовок баннер не трогает).
+  //
+  // РАНЬШЕ (и баннер, и CTA события) позиционировались через CSS Grid с
+  // разбиением текста на отдельные "строки" грида — ровно так, чтобы левая
+  // (текстовая) и правая (сайдбар) колонки делили одну высоту строки. Из-за
+  // этого, если текст до точки разбиения был короче обложки статьи (почти
+  // всегда — обложка ~500px, а абзацев до неё обычно меньше), вторая строка
+  // грида не могла начаться раньше, чем закончится ВЫСОКАЯ обложка в правой
+  // колонке — перед вторым подзаголовком появлялся огромный пустой отступ
+  // (сотни пикселей), которого в тексте быть не должно. Это и есть тот самый
+  // "лишний отступ перед вторым подзаголовком".
+  //
+  // Фикс — отвязать текстовую колонку от сайдбара: текст рендерится ОДНИМ
+  // непрерывным потоком (без разбиения на строки грида, см. JSX ниже), а
+  // баннер/CTA события просто идут в сайдбаре по порядку их положения в
+  // тексте (sidebarSplitItems ниже) — без привязки к точной пиксельной
+  // высоте конкретного абзаца (её нельзя получить одним CSS без JS-замеров).
+  const headingIndices = textItems.reduce<number[]>((acc, it, i) => { if (it.heading) acc.push(i); return acc; }, []);
+  const hasSecondHeading = headingIndices.length >= 2;
+  const secondHeadingIdx = hasSecondHeading ? headingIndices[1] : -1;
+  const bannerOpposesHeading = !isMobile && hasSecondHeading;
+
+  // Порядок баннера/CTA события в сайдбаре — по положению их маркера/
+  // подзаголовка в тексте (как и было), просто без синхронизации высоты
+  // строк с текстовой колонкой.
+  type SidebarSplit = { idx: number; kind: 'event' | 'heading' };
+  const sidebarSplits: SidebarSplit[] = [];
+  if (hasEventSplit) sidebarSplits.push({ idx: eventMarkerIdx, kind: 'event' });
+  if (bannerOpposesHeading) sidebarSplits.push({ idx: secondHeadingIdx, kind: 'heading' });
+  sidebarSplits.sort((a, b) => a.idx - b.idx);
+  // Баннер/CTA события сразу после обложки (без привязки к подзаголовку/
+  // маркеру) — только если их механизм НЕ ушёл в sidebarSplits выше.
+  const sidebarHasLeadingBanner = !bannerOpposesHeading;
+  // Раньше рендерилась "ведущей" (сразу после баннера, у самого верха
+  // сайдбара) — расходилось с собственным же комментарием выше ("карточка
+  // идёт... в конце") и с тем, где админ обычно ставит маркер в этом
+  // случае (ближе к концу текста, раз после него нет полноценного абзаца
+  // для разбиения) — карточка оказывалась у верха статьи вместо конца.
+  // Теперь действительно замыкающая — после похожих статей, см. ниже.
+  const sidebarHasTrailingEventCta = hasEventMarker && !hasEventSplit;
+  // relatedInlineBlock — всегда в конце сайдбара.
+
+  return (
+    <SiteShell>
+      {headElement}
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
+        {isMobile ? (
+          // Мобильная раскладка — один столбец: заголовок, автор (под ним,
+          // см. десктопную колонку — там тот же порядок), обложка/галерея/
+          // баннер, затем текст — если маркер {{event}} есть и текста после
+          // хватает (hasEventSplit), карточка встаёт ровно на его месте
+          // (текст до/после разбит); если нет (маркера нет вовсе, либо он
+          // стоит ближе к концу и после него нет "настоящего" абзаца —
+          // beforeEventBlock тогда уже содержит ВЕСЬ текст, afterEventBlock
+          // пуст) — карточка всё равно идёт ПОСЛЕ текста, а не перед ним:
+          // раньше в этом случае (afterEventBlock пуст) она рисовалась сразу
+          // после обложки, в самом начале статьи — там, где админ её не
+          // ставил, если маркер стоял ближе к концу текста.
+          <View style={styles.mobileStack}>
+            {bannerBlock}
+            {titleElement}
+            {authorBlock}
+            <View style={styles.mobileMediaBlock}>
+              {mediaBlock}
+            </View>
+            {beforeEventBlock}
+            {renderEventCtaCard()}
+            {afterEventBlock}
+            {relatedInlineBlock}
+          </View>
+        ) : (
+          // Две независимые колонки (не CSS Grid с общими строками — см.
+          // комментарий у bannerOpposesHeading выше, почему): слева весь текст
+          // статьи одним потоком, справа обложка+галерея, затем баннер/CTA
+          // события в порядке их положения в тексте, затем похожие статьи.
+          <View style={styles.articleCols}>
+            <View style={styles.textCol}>
+              {titleElement}
+              {authorBlock}
+              {hasEventSplit ? (
+                <>
+                  {beforeEventBlock}
+                  {/* Невидимый якорь ровно на месте маркера {{event}} в
+                      тексте — по нему меряем, куда сдвинуть карточку в
+                      сайдбаре (см. eventCardOffset выше). */}
+                  <View ref={eventAnchorRef} />
+                  {afterEventBlock}
+                </>
+              ) : (
+                renderTextItems(textItems, 'text')
+              )}
+            </View>
+            <View style={styles.colImageTop}>
+              {mediaBlock}
+              {sidebarHasLeadingBanner ? bannerBlock : null}
+              {sidebarSplits.map((sp) => (
+                <View
+                  key={`side-${sp.idx}-${sp.kind}`}
+                  ref={sp.kind === 'event' ? eventCardRef : undefined}
+                  style={sp.kind === 'event' ? [styles.sidebarSplitItem, { marginTop: SIDEBAR_SPLIT_GAP + eventCardOffset }] : styles.sidebarSplitItem}
+                >
+                  {sp.kind === 'event' ? renderEventCtaCard() : bannerBlock}
+                </View>
+              ))}
+              {relatedInlineBlock}
+              {sidebarHasTrailingEventCta ? renderEventCtaCard() : null}
+            </View>
+          </View>
+        )}
+
+        {relatedArticlesBlock}
+
+        {relatedBlock}
+
+        {isMobile ? (
+          // Формат — как на /events (mobileRow/mobileThumb/mobileInfo), по
+          // просьбе пользователя унифицировать с /events.
+          <View style={styles.ctaBlock}>
+            <Text style={styles.actionLinkText}>Скачать приложение</Text>
+            <View style={styles.mobileRow} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:Скачать приложение' } } as any)}>
+              <Image source={APP_DOWNLOAD_IMAGE} style={styles.mobileThumb} resizeMode="cover" />
+              <View style={styles.mobileInfo}>
+                <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]} numberOfLines={3}>Скачайте приложение p34 и найдите себе наставника по душе</Text>
+                <View style={styles.appCardStores}>
+                  <Pressable onPress={() => Linking.openURL('https://apps.apple.com')}>
+                    <Text style={styles.storeLinkText}>app store</Text>
+                  </Pressable>
+                  <Pressable onPress={() => Linking.openURL('https://play.google.com')}>
+                    <Text style={styles.storeLinkText}>google play</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+        <SiteFooter />
+      </ScrollView>
+    </SiteShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  // marginTop:86 — тот же отступ от шапки, что у страницы события
+  // (events/[id].web.tsx) и "О нас" (about-us.web.tsx); раньше здесь было
+  // только paddingTop:24, и заголовок статьи оказывался заметно ближе к
+  // шапке, чем на остальных похожих страницах.
+  scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
+  // marginTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx), не десктопный 86.
+  scrollContentMobile: { paddingTop: 0, marginTop: 0 },
+  pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
+  errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
+  retryButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 10, paddingHorizontal: 32 },
+  retryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+
+  // Две независимые по высоте колонки (flex, не CSS Grid — см. комментарий у
+  // bannerOpposesHeading в теле компонента, почему именно так) — текст слева
+  // течёт своим потоком, сайдбар справа своим, одна не ждёт высоту другой.
+  articleCols: { flexDirection: 'row', alignItems: 'flex-start', columnGap: 32, marginBottom: 40 },
+  textCol: { flex: 1, minWidth: 0 },
+  mobileStack: { marginBottom: 40 },
+  // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
+  // события / карточки похожих статей), когда их несколько сразу.
+  mobileMediaBlock: { marginBottom: 24, gap: 0 },
+  // Раньше здесь был maxHeight: 494 — зажимал высоту колонки с обложкой и
+  // галереей жёстким потолком. Когда под второй фоткой появлялась подпись,
+  // суммарная высота содержимого (обложка + галерея + подпись) превышала
+  // этот потолок, и flexbox сжимал саму фотографию, чтобы уместиться —
+  // "подпись уменьшала высоту фотографии". Колонка должна просто занимать
+  // столько места, сколько нужно её содержимому.
+  // gap:0 — элементы сайдбара разводятся явным marginTop там, где он нужен
+  // (см. sidebarSplitItem), не общим отступом колонки: у карточек похожих
+  // статей (inlineRelatedCard) уже есть свой marginVertical, общий gap тут
+  // задвоил бы интервал между ними.
+  colImageTop: { flex: 1, minWidth: 240, gap: 0 },
+  // Баннер/CTA события, занявшие отдельное "место" в сайдбаре из-за своей
+  // привязки к позиции в тексте (sidebarSplits) — те же 40px, что раньше
+  // давал rowGap между строками грида.
+  sidebarSplitItem: { marginTop: SIDEBAR_SPLIT_GAP },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 100, marginTop: 0},
+  // marginBottom:24 — перекрывает десктопные 100px у styles.title (см. там):
+  // тот же отступ, что между медиа-блоком (обложка/галерея) и текстом
+  // статьи ниже (styles.mobileMediaBlock), а не гигантский десктопный.
+  // Тот же размер/насыщенность, что у подзаголовков статьи (subheading) —
+  // по просьбе пользователя: 25px смотрелся заметно мельче и легче.
+  titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
+  subheading: { fontSize: 30, lineHeight: 30, fontFamily: 'Gramatika-Regular', fontWeight: '400', color: '#010101', marginBottom: 16 },
+  // Только имя под заголовком, серым — раньше тут был целый блок (фото +
+  // имя + роль + био), убрали всё, кроме имени (см. git history). Размер —
+  // как у прежнего authorBio (14/18), а не у прежнего имени (18).
+  authorRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  // minWidth:0 — см. тот же приём в events/[id].web.tsx/explore/[id].web.tsx:
+  // при нехватке места сжимается имя автора, а не теги (TagList сам
+  // flexShrink:0 — никогда не обрезается троеточием).
+  authorNameShrink: { flexShrink: 1, minWidth: 0 },
+  author: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
+  body: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
+  coverImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
+  // alignItems: 'flex-start' обязателен — без него flexbox по умолчанию
+  // растягивает (stretch) оба элемента ряда до высоты самого высокого: когда
+  // под правой фоткой есть подпись, её обёртка становится "выше" левой
+  // фотографии по натуральному контенту, и левая фотография насильно
+  // растягивается (теряя квадратную aspectRatio), либо наоборот сжимается —
+  // в любом случае перестаёт быть квадратной. С flex-start каждая картинка
+  // остаётся своего естественного (aspectRatio) размера независимо от подписи.
+  galleryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginTop: 16, marginBottom: 16 },
+  galleryImage: { flex: 1, aspectRatio: 1, backgroundColor: '#E5E5E5', maxWidth: '50%' },
+  // Правая фотография — с подписью под ней, поэтому своя обёртка вместо
+  // flex/maxWidth прямо на Image (как у galleryImage/левой фотографии).
+  galleryImageWithCaption: { flex: 1, maxWidth: '50%' },
+  galleryImageInner: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
+  galleryCaption: { fontSize: 13, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 8, textAlign: 'right' },
+  // Квадрат шириной 50% родителя, по центру — paddingBottom тем же
+  // процентом, что и width, даёт height = width (тот же приём, что у
+  // avatarBox на /explore: AVATAR_RATIO*100% при width:'100%' там, здесь
+  // 50%/50% — паддинг-проценты всегда считаются от ширины родителя, то есть
+  // при собственной width:50% это и есть квадрат).
+  sectionBannerWrap: { width: '50%', alignSelf: 'center', position: 'relative', overflow: 'hidden', paddingBottom: '50%' } as any,
+  // Мобильный вариант — по ширине как обложка (100%, не центрированный
+  // 50%-квадрат), см. комментарий у bannerBlock.
+  sectionBannerWrapMobile: { width: '100%', alignSelf: 'stretch', paddingBottom: '100%', marginBottom: 24 } as any,
+  sectionBanner: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
+
+  // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
+  // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
+  relatedSection: { marginTop: 140, marginBottom: 40 },
+  relatedSectionMobile: { marginTop: 0 },
+  relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  // На мобильном — тот же размер, что у заголовка самой статьи (titleMobile):
+  // 40px десктопного была слишком крупной для "Окей, что ещё"/"Ближайшие
+  // события" на узком экране.
+  relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
+  relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
+  relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  relatedCategory: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, marginTop: 18 },
+  relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
+  // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
+  // mobileRow/mobileThumb/mobileInfo/mobileTitleText).
+  mobileRow: { flexDirection: 'row', gap: 20 },
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, justifyContent: 'space-between' },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
+  // Для карточек, где заголовок — первый/единственный элемент в mobileInfo
+  // (без category-лейбла над ним: CTA события, "Скачать приложение",
+  // ближайшие события), mobileInfo работает через justifyContent:
+  // 'space-between' — отступ сверху у mobileTitleText (нужен, когда ПЕРЕД
+  // заголовком есть category-лейбл, см. renderRelatedArticleCard) здесь
+  // лишний, прижимает заголовок вниз от верхнего края картинки.
+  mobileTitleTextNoLabel: { marginTop: 0 },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+
+  // Похожая статья, вставленная маркером прямо в текст — в ширину текстовой
+  // колонки (maxWidth 420, как у ctaBlock), а не грид-тройка как в конце статьи.
+  inlineRelatedCard: { marginVertical: 24, maxWidth: 420 },
+  inlineRelatedImage: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5' },
+
+  // marginTop убран (была лишняя "двойная" вставка между текстом и CTA —
+  // React Native не схлопывает соседние margin, как в обычном CSS, поэтому
+  // marginBottom:24 предыдущего абзаца (styles.body) и marginTop:8 этого
+  // блока складывались, а не схлопывались в больший из двух).
+  // width:'100%' + alignItems:'center' (не alignSelf на самой карточке —
+  // проверено рендером: карточка с maxWidth и без явного width не сжимается
+  // по контенту сама по себе, остаётся прижатой к левому краю) — сам блок на
+  // всю ширину родителя, а узкую (maxWidth) карточку внутри центрирует как
+  // обычный flex-контейнер.
+  ctaBlock: { marginBottom: 40, width: '100%', alignItems: 'flex-start' },
+  // На десктопе CTA события — по центру блока справа, как баннер телеграма
+  // (sectionBannerWrap: alignSelf:'center').
+  ctaBlockDesktop: { alignItems: 'center' },
+  actionLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', paddingVertical: 8, marginBottom: 0 },
+  // Те же токены, что и у карточек на /journal (cardCategory/cardTitleText +
+  // featuredLabelOne/featuredTitleOne) — картинка на всю ширину блока, под
+  // ней подпись и заголовок, а не мелкая горизонтальная мини-карточка.
+  // maxWidth — тот, что раньше был на ctaBlock (сам блок теперь на всю
+  // ширину ради центрирования, см. выше), width:'100%' — чтобы на узких
+  // экранах карточка занимала всю доступную ширину, а не только maxWidth.
+  ctaCard: { width: '100%', maxWidth: 420 },
+  // CTA события на десктопе — заголовок не должен быть шире картинки
+  // (EVENT_CTA_WIDTH её фиксирует), иначе текст растягивается до maxWidth
+  // ctaBlock (420), шире самой картинки под ним.
+  eventCtaCardDesktop: { maxWidth: EVENT_CTA_WIDTH },
+  // Размер как у карточки события в статье про советский самиздат — см.
+  // расчёт EVENT_CTA_WIDTH/HEIGHT выше.
+  eventCtaImage: { width: EVENT_CTA_WIDTH, height: EVENT_CTA_HEIGHT, backgroundColor: '#E5E5E5' },
+  // Тот же размер, что у заголовка карточки на /events (cardTitleText) —
+  // раньше здесь было 30/27, заметно крупнее, чем в карточках событий.
+  ctaCardTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 13 },
+  // У блока "Скачать приложение" нет строки-подписи над заголовком — сдвигаем
+  // заголовок так же, как если бы подпись была (20 её marginTop + 13 обычный).
+  ctaCardTitleNoLabel: { marginTop: 33 },
+  // "+ Записаться на событие" слева, дата справа — одна строка под
+  // заголовком (было: ссылка отдельной строкой над картинкой, дата отдельной
+  // строкой под заголовком).
+  eventCtaFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
+  ctaCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
+  // "+ Записаться на событие" — отдельной строкой ПОД карточкой (не рядом с
+  // датой внутри mobileInfo — там не помещается на мобильном).
+  actionLinkTextMobile: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D', marginTop: 12 },
+  appCardStores: { flexDirection: 'row', gap: 16, marginTop: 16 },
+  storeLinkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 13, color: '#E02D2D' },
+});

@@ -4,8 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 /**
  * Заглушка для нативного приложения — "Журнал" пока только веб-раздел
- * (см. [id].web.tsx). Нужна как fallback-sibling для платформенного
- * файла [id].web.tsx: без неё expo-router не может собрать статический
+ * (см. [slug].web.tsx). Нужна как fallback-sibling для платформенного
+ * файла [slug].web.tsx: без неё expo-router не может собрать статический
  * маршрут для веба и билд падает.
  */
 export default function JournalArticleScreen() {

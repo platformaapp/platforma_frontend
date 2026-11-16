@@ -1,24 +1,18 @@
-import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
-import { SiteShell } from '@/components/web/site-shell';
+import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 
 /** Веб-версия пользовательского соглашения (см. user-agreement.tsx для нативной). */
 export default function UserAgreementScreenWeb() {
-  const router = useRouter();
-
+  const isMobile = useIsMobileWeb();
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
-        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any))}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.content}>
-          <Text style={styles.title}>Пользовательское соглашение</Text>
+          <Text style={[styles.title, isMobile && styles.titleMobile]}>Пользовательское соглашение</Text>
 
           <Text style={styles.heading}>What is Lorem Ipsum?</Text>
           <Text style={styles.paragraph}>
@@ -40,10 +34,14 @@ export default function UserAgreementScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
-  backArrow: { fontSize: 25, color: '#010101', marginBottom: 24 },
+  pageContentMobile: { paddingHorizontal: 20 },
   content: { maxWidth: 720, gap: 16 },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 8 },
+  titleMobile: { fontSize: 25, lineHeight: 28 },
   heading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', marginTop: 8 },
   paragraph: { fontFamily: 'Gramatika-Regular', fontSize: 19, lineHeight: 26, color: '#010101' },
 });

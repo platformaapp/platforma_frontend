@@ -1,17 +1,26 @@
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TagList } from '@/components/web/tag-list';
+import { TutorSlotsModal } from '@/components/web/tutor-slots-modal';
 import { API_BASE, endpoints } from '@/constants/env';
+import { getArticles } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { fixHangingPrepositions } from '@/lib/typography';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
 type MentorEvent = { id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
+// "О чём пишет" — статьи этого наставника в журнале (см. GET
+// /api/articles?author_id=...), тот же формат блоков, что у "События
+// наставника" ниже, см. renderMentorArticlesGrid/renderArticleCardMobile.
+type MentorArticle = { id: string; slug: string; title: string; coverUrl: string | null; category: string | null };
 
 function resolveCover(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -37,11 +46,20 @@ function resolveFormat(raw: Record<string, unknown>): string | undefined {
   return legacy;
 }
 
+// Карточки в строке "События наставника" — 3 на ряд, каждая со своим
+// соотношением сторон картинки (та же сетка 403/365/340, что в rowThree на
+// /events, но со своими колонками-зазорами — см. mentorEventsRow).
+const MENTOR_ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const MENTOR_ROW_COLUMNS: [string, string, string] = ['1', '3', '5'];
+// Та же пара соотношений, что у featured-строк (пара карточек) на /events
+// (FEATURED_ASPECT) — используется в pairA/pairB-строках ниже.
+const MENTOR_FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
+
 function formatEventDate(iso?: string): string {
   if (!iso) return '';
   try {
     const d = new Date(iso);
-    return `${d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}, ${d.toLocaleTimeString('ru-RU', { hour: 'numeric', minute: '2-digit' })}`;
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   } catch {
     return iso;
   }
@@ -68,6 +86,12 @@ export default function TutorCardScreenWeb() {
   const [isMentorVerified, setIsMentorVerified] = useState(true);
   const [telegramHandle, setTelegramHandle] = useState('');
   const [mentorEvents, setMentorEvents] = useState<MentorEvent[]>([]);
+  const [mentorArticles, setMentorArticles] = useState<MentorArticle[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  // "Записаться" открывает TutorSlotsModal прямо здесь (не переходом по
+  // ссылке на /explore/:id/slots) — страница наставника остаётся
+  // смонтированной и видна затемнённой позади модалки.
+  const [showSlotsModal, setShowSlotsModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -92,9 +116,10 @@ export default function TutorCardScreenWeb() {
           // decimal-колонки в TypeORM/pg нередко приходят строкой ("2500.00"),
           // а не числом — принимаем оба варианта.
           const rate = typeof rateRaw === 'number' ? rateRaw : typeof rateRaw === 'string' ? parseFloat(rateRaw) : NaN;
-          if (!isNaN(rate) && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} ₽ в час`);
+          if (!isNaN(rate) && rate > 0) setDisplayPrice(`${rate.toLocaleString('ru-RU')} Р в час`);
           setTelegramHandle(((tutor as any).telegram ?? (tutor as any).telegramUsername ?? '').replace(/^@/, ''));
           setIsMentorVerified((tutor as any).isVerified !== false);
+          setTags(Array.isArray((tutor as any).tags) ? (tutor as any).tags : []);
         }
 
         try {
@@ -124,6 +149,11 @@ export default function TutorCardScreenWeb() {
             if (active) setMentorEvents(events);
           }
         } catch { /* events section stays empty */ }
+
+        try {
+          const { items } = await getArticles({ authorId: String(id), perPage: 50 });
+          if (active) setMentorArticles(items.map((a) => ({ id: a.id, slug: a.slug, title: a.title, coverUrl: a.coverUrl, category: a.category })));
+        } catch { /* articles section stays empty */ }
       } catch { /* network failure — show empty/placeholder profile instead of crashing */ }
       finally {
         if (active) setLoadingProfile(false);
@@ -150,41 +180,93 @@ export default function TutorCardScreenWeb() {
   const upcomingEvents = mentorEvents.filter((e) => !e.datetimeStart || new Date(e.datetimeStart).getTime() > now);
   const pastEvents = mentorEvents.filter((e) => e.datetimeStart && new Date(e.datetimeStart).getTime() <= now);
 
-  // Как на референсе: карточки событий распределены между обеими колонками
-  // страницы — 2 в узкой левой колонке (под текстом) и 1 в правой (под
-  // фото), затем повтор — а не всё в одной колонке. slice/every 3rd matches
-  // that 2-left/1-right rhythm.
-  function splitForColumns(events: MentorEvent[]): { left: MentorEvent[]; right: MentorEvent[] } {
-    const left: MentorEvent[] = [];
-    const right: MentorEvent[] = [];
-    events.forEach((e, i) => (i % 3 === 2 ? right : left).push(e));
-    return { left, right };
+  // Раньше сетка "События наставника"/"О чём пишет" была просто строками по
+  // 3 карточки одного и того же размера подряд — блоки получались
+  // одинаковыми по размеру во всех строках. По просьбе пользователя взят
+  // тот же подход, что на главной странице событий (/events): повторяющийся
+  // цикл из 4 строк — 1) пара 649:84:716 ("pairA"), 2) тройка 403:365:340,
+  // 3) пара 481:165:611:193 ("pairB"), 4) снова тройка — см.
+  // renderMentorEventsGrid/renderMentorArticlesGrid ниже.
+  type MentorRow<T> = { type: 'pairA' | 'triple' | 'pairB'; items: T[] };
+  function buildMentorRows<T>(items: T[]): MentorRow<T>[] {
+    const rows: MentorRow<T>[] = [];
+    const cycle: ('pairA' | 'triple' | 'pairB')[] = ['pairA', 'triple', 'pairB', 'triple'];
+    let i = 0;
+    let cycleIdx = 0;
+    while (i < items.length) {
+      const type = cycle[cycleIdx % cycle.length];
+      const count = type === 'triple' ? 3 : 2;
+      const slice = items.slice(i, i + count);
+      if (slice.length === 0) break;
+      rows.push({ type, items: slice });
+      i += slice.length;
+      cycleIdx++;
+    }
+    return rows;
   }
-  const upcomingSplit = splitForColumns(upcomingEvents);
-  const pastSplit = splitForColumns(pastEvents);
 
-  // Mobile: одно событие — одна полноширинная строка (миниатюра слева,
-  // текст справа, дата/цена прижаты к низу справа) — не карточка в сетке
-  // 2 в ряд, см. референс мобильной страницы наставника.
-  function renderEventCardMobile(ev: MentorEvent) {
+  // Карточка пары ("pairA"/"pairB") — та же разметка, что renderFeaturedCard
+  // на /events, но без строки с именем автора (это и так страница самого
+  // наставника) — сразу картинка, заголовок, дата/категория.
+  function renderMentorFeaturedCard(args: {
+    key: string; coverUrl: string | null; title: string; meta: string;
+    onPress: () => void; index: 0 | 1; variant: 'A' | 'B'; dimmed?: boolean;
+  }) {
+    const { key, coverUrl, title, meta, onPress, index, variant, dimmed } = args;
+    const isSecond = index === 1;
+    const cardStyle = [isSecond ? styles.mentorFeaturedCardTwo : styles.mentorFeaturedCardOne, dimmed && styles.eventDimmed];
+    const innerStyle = isSecond ? (variant === 'B' ? styles.mentorFeaturedInnerTwoB : styles.mentorFeaturedInnerTwo) : undefined;
+    const imageStyle = isSecond && variant === 'A' ? styles.mentorFeaturedImageTwo : { aspectRatio: MENTOR_FEATURED_ASPECT[index] };
+    const labelStyle = variant === 'B'
+      ? (isSecond ? styles.mentorFeaturedLabelTwoB : styles.mentorFeaturedLabelOneB)
+      : (isSecond ? styles.mentorFeaturedLabelTwo : styles.mentorFeaturedLabelOne);
+    const titleStyle = variant === 'B'
+      ? (isSecond ? styles.mentorFeaturedTitleTwoB : styles.mentorFeaturedTitleOneB)
+      : (isSecond ? styles.mentorFeaturedTitleTwo : styles.mentorFeaturedTitleOne);
     return (
-      <Pressable key={ev.id} style={styles.eventRowMobile} onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}>
-        {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
-        <View style={styles.eventRowBodyMobile}>
-          <View>
-            {ev.format ? <Text style={styles.eventFormatMobile}>{ev.format}</Text> : null}
-            <Text style={styles.eventCardTitleMobile} numberOfLines={3}>{ev.title}</Text>
-          </View>
-          <Text style={styles.eventRowMetaMobile}>
-            {formatEventDate(ev.datetimeStart)}
-            {ev.price != null ? `    ${ev.price.toLocaleString('ru-RU')} Р` : ''}
-          </Text>
+      <Pressable key={key} style={cardStyle} disabled={dimmed} onPress={dimmed ? undefined : onPress}>
+        <View style={innerStyle}>
+          {coverUrl ? (
+            <Image source={{ uri: coverUrl }} style={[styles.mentorFeaturedImage, imageStyle]} resizeMode="cover" />
+          ) : (
+            <View style={[styles.mentorFeaturedImage, styles.eventCoverPlaceholder, imageStyle]} />
+          )}
+          <View style={labelStyle} />
+          <Text style={[styles.mentorCardTitleText, titleStyle]}>{title}</Text>
+          {meta ? <Text style={styles.mentorCardDate}>{meta}</Text> : null}
         </View>
       </Pressable>
     );
   }
 
-  function renderEventCard(ev: MentorEvent, widthVariant: 'grid3' | 'half' | 'full' = 'grid3') {
+  // Mobile: одно событие — одна полноширинная строка (миниатюра слева,
+  // текст справа, дата/цена прижаты к низу справа) — не карточка в сетке
+  // 2 в ряд, см. референс мобильной страницы наставника.
+  // Прошедшие события — полностью осветлённые (тот же opacity:0.5, что у
+  // глобального hover-затемнения любого Pressable, см. app/_layout.tsx
+  // HoverDimCalibrator, но здесь — постоянно, не по hover) и некликабельные
+  // (disabled снимает курсор/hover у Pressable, см. тот же _layout.tsx).
+  function renderEventCardMobile(ev: MentorEvent, isPast = false) {
+    return (
+      <Pressable
+        key={ev.id}
+        style={[styles.eventRowMobile, isPast && styles.eventDimmed]}
+        disabled={isPast}
+        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+        {...({ dataSet: { card: 'app/(tabs)/explore/[id].web.tsx:renderEventCardMobile' } } as any)}
+      >
+        {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
+        <View style={styles.eventRowBodyMobile}>
+          <View>
+            <Text style={styles.eventCardTitleMobile}>{ev.title}</Text>
+          </View>
+          <Text style={styles.eventRowDateMobile}>{formatEventDate(ev.datetimeStart)}</Text>
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderEventCard(ev: MentorEvent, widthVariant: 'grid3' | 'half' | 'full' = 'grid3', isPast = false) {
     return (
       <Pressable
         key={ev.id}
@@ -193,16 +275,17 @@ export default function TutorCardScreenWeb() {
           isMobile && styles.eventCardMobile,
           !isMobile && widthVariant === 'half' && styles.eventCardHalf,
           !isMobile && widthVariant === 'full' && styles.eventCardFull,
+          isPast && styles.eventDimmed,
         ]}
-        onPress={() => router.push(`/(tabs)/events/${ev.id}` as any)}
+        disabled={isPast}
+        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventCardBody}>
-          {ev.format ? <Text style={styles.eventFormat}>{ev.format}</Text> : null}
-          <Text style={styles.eventCardTitle} numberOfLines={2}>{ev.title}</Text>
+          <Text style={styles.eventCardTitle}>{ev.title}</Text>
           <Text style={styles.eventCardMeta}>
             {formatEventDate(ev.datetimeStart)}
-            {isMobile && ev.price != null ? ` · ${ev.price.toLocaleString('ru-RU')} ₽` : ''}
+            {isMobile && ev.price != null ? ` · ${ev.price.toLocaleString('ru-RU')} Р` : ''}
           </Text>
         </View>
       </Pressable>
@@ -226,46 +309,180 @@ export default function TutorCardScreenWeb() {
         <View style={styles.eventsSection}>
           <Text style={[styles.eventsSectionTitle, isMobile && styles.eventsSectionTitleMobile]}>Прошедшие события</Text>
           {isMobile ? (
-            <View style={styles.eventsListMobile}>{pastEvents.map((e) => renderEventCardMobile(e))}</View>
+            <View style={styles.eventsListMobile}>{pastEvents.map((e) => renderEventCardMobile(e, true))}</View>
           ) : (
-            <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e))}</View>
+            <View style={styles.eventsGrid}>{pastEvents.map((e) => renderEventCard(e, 'grid3', true))}</View>
           )}
         </View>
       ) : null}
     </>
   );
 
-  // Desktop: настоящий CSS Grid (не два независимых flex-столбца) — иначе
-  // строка карточек справа (под фото) не может ровно совпасть по высоте со
-  // строкой карточек слева: у каждой "логической строки" (герой/фото,
-  // заголовок/пусто, карточки-слева/карточки-справа) обе ячейки — прямые
-  // дети грида в одном и том же порядке, поэтому высота строки — это
-  // максимум из двух ячеек, и содержимое всегда стартует на одном уровне.
-  function eventsGridRow(title: string, left: MentorEvent[], right: MentorEvent[]) {
-    if (left.length === 0 && right.length === 0) return null;
+  function renderMentorGridCard(ev: MentorEvent, posInRow: 0 | 1 | 2, isPast = false) {
     return (
-      <>
-        <Text style={[styles.eventsSectionTitle, styles.eventsSectionTitleGrid]}>{title}</Text>
-        <View />
-        <View style={styles.eventsGridLeft}>{left.map((e) => renderEventCard(e, 'half'))}</View>
-        <View style={styles.eventsGridRight}>{right.map((e) => renderEventCard(e, 'full'))}</View>
-      </>
+      <Pressable
+        key={ev.id}
+        style={[{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any, isPast && styles.eventDimmed]}
+        disabled={isPast}
+        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+      >
+        {ev.coverUrl ? (
+          <Image
+            source={{ uri: ev.coverUrl }}
+            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
+        )}
+        <View style={styles.mentorRowLabel} />
+        <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{ev.title}</Text>
+        <Text style={styles.mentorCardDate}>{formatEventDate(ev.datetimeStart)}</Text>
+      </Pressable>
     );
   }
+
+  function renderMentorEventsGrid(title: string, events: MentorEvent[], isPast = false) {
+    if (events.length === 0) return null;
+    const rows = buildMentorRows(events);
+    return (
+      <View style={styles.mentorEventsSection}>
+        <Text style={styles.eventsSectionTitle}>{title}</Text>
+        {rows.map((row, rowIdx) => (
+          <View
+            key={row.items.map((r) => r.id).join('-')}
+            style={[row.type === 'triple' ? styles.mentorEventsRow : row.type === 'pairA' ? styles.mentorFeaturedRow : styles.mentorPairBRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}
+          >
+            {row.type === 'triple' ? (
+              row.items.map((ev, pos) => renderMentorGridCard(ev, pos as 0 | 1 | 2, isPast))
+            ) : (
+              <>
+                {renderMentorFeaturedCard({
+                  key: row.items[0].id,
+                  coverUrl: row.items[0].coverUrl ?? null,
+                  title: row.items[0].title,
+                  meta: formatEventDate(row.items[0].datetimeStart),
+                  onPress: () => router.push(`/(tabs)/events/${row.items[0].id}` as any),
+                  index: 0,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                  dimmed: isPast,
+                })}
+                {row.items.length > 1 ? <View /> : null}
+                {row.items.length > 1 ? renderMentorFeaturedCard({
+                  key: row.items[1].id,
+                  coverUrl: row.items[1].coverUrl ?? null,
+                  title: row.items[1].title,
+                  meta: formatEventDate(row.items[1].datetimeStart),
+                  onPress: () => router.push(`/(tabs)/events/${row.items[1].id}` as any),
+                  index: 1,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                  dimmed: isPast,
+                }) : null}
+              </>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  // "О чём пишет" — тот же формат блоков (карточка/сетка), что у "События
+  // наставника" выше, но статьи ведут на /journal/:id, не "прошедших" нет.
+  function renderArticleCardMobile(a: MentorArticle) {
+    return (
+      <Pressable key={a.id} style={styles.eventRowMobile} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/explore/[id].web.tsx:renderArticleCardMobile' } } as any)}>
+        {a.coverUrl ? <Image source={{ uri: a.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
+        <View style={styles.eventRowBodyMobile}>
+          <View>
+            <Text style={styles.eventCardTitleMobile}>{a.title}</Text>
+          </View>
+          {a.category ? <Text style={styles.eventRowMetaMobile}>{a.category}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderMentorArticleGridCard(a: MentorArticle, posInRow: 0 | 1 | 2) {
+    return (
+      <Pressable key={a.id} style={{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${a.slug || a.id}` as any)}>
+        {a.coverUrl ? (
+          <Image
+            source={{ uri: a.coverUrl }}
+            style={[styles.mentorGridImage, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
+        )}
+        <View style={styles.mentorRowLabel} />
+        <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{a.title}</Text>
+        {a.category ? <Text style={styles.mentorCardDate}>{a.category}</Text> : null}
+      </Pressable>
+    );
+  }
+
+  function renderMentorArticlesGrid() {
+    if (mentorArticles.length === 0) return null;
+    const rows = buildMentorRows(mentorArticles);
+    return (
+      <View style={styles.mentorEventsSection}>
+        <Text style={styles.eventsSectionTitle}>О чём пишет</Text>
+        {rows.map((row, rowIdx) => (
+          <View
+            key={row.items.map((r) => r.id).join('-')}
+            style={[row.type === 'triple' ? styles.mentorEventsRow : row.type === 'pairA' ? styles.mentorFeaturedRow : styles.mentorPairBRow, rowIdx > 0 && styles.mentorEventsRowSpacing]}
+          >
+            {row.type === 'triple' ? (
+              row.items.map((a, pos) => renderMentorArticleGridCard(a, pos as 0 | 1 | 2))
+            ) : (
+              <>
+                {renderMentorFeaturedCard({
+                  key: row.items[0].id,
+                  coverUrl: row.items[0].coverUrl,
+                  title: row.items[0].title,
+                  meta: row.items[0].category ?? '',
+                  onPress: () => router.push(`/journal/${row.items[0].slug || row.items[0].id}` as any),
+                  index: 0,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                })}
+                {row.items.length > 1 ? <View /> : null}
+                {row.items.length > 1 ? renderMentorFeaturedCard({
+                  key: row.items[1].id,
+                  coverUrl: row.items[1].coverUrl,
+                  title: row.items[1].title,
+                  meta: row.items[1].category ?? '',
+                  onPress: () => router.push(`/journal/${row.items[1].slug || row.items[1].id}` as any),
+                  index: 1,
+                  variant: row.type === 'pairB' ? 'B' : 'A',
+                }) : null}
+              </>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  const articlesSectionMobile = mentorArticles.length > 0 ? (
+    <View style={styles.eventsSection}>
+      <Text style={[styles.eventsSectionTitle, isMobile && styles.eventsSectionTitleMobile]}>О чём пишет</Text>
+      <View style={styles.eventsListMobile}>{mentorArticles.map((a) => renderArticleCardMobile(a))}</View>
+    </View>
+  ) : null;
 
   const actions = (
     <>
       {!isOwnProfile && isMentorVerified ? (
         <Pressable
           style={isMobile && styles.chipHalf}
-          onPress={() => router.push(`/(tabs)/explore/${id}/slots` as any)}
+          onPress={() => setShowSlotsModal(true)}
         >
-          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться на встречу</Text>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>Записаться</Text>
         </Pressable>
       ) : null}
       {!isOwnProfile ? (
         <Pressable style={isMobile && styles.chipHalf} onPress={handleWrite}>
-          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>{isMobile ? 'Связаться' : 'Написать наставнику'}</Text>
+          <Text style={isMobile ? styles.chipHalfText : styles.actionLink}>{isMobile ? 'Связаться' : 'Написать'}</Text>
         </Pressable>
       ) : null}
       {instagramUrl ? (
@@ -280,29 +497,53 @@ export default function TutorCardScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
+  // og:* — см. подробный комментарий у headElement в journal/[slug].web.tsx:
+  // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
+  // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
+  const pageDescription = displayRole || displayBio;
+  const headElement = displayName ? (
+    <Head>
+      <title>{displayName}</title>
+      {pageDescription ? <meta name="description" content={pageDescription.slice(0, 160)} /> : null}
+      <meta property="og:type" content="profile" />
+      <meta property="og:title" content={displayName} />
+      {pageDescription ? <meta property="og:description" content={pageDescription.slice(0, 160)} /> : null}
+      <meta property="og:url" content={`https://platformaapp.ru/explore/${id}`} />
+      {avatarUrl && !avatarUrl.startsWith('blob:') ? <meta property="og:image" content={avatarUrl} /> : null}
+      <meta name="twitter:card" content={avatarUrl && !avatarUrl.startsWith('blob:') ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={displayName} />
+    </Head>
+  ) : null;
+
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
-        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/explore' as any))} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-
+      {headElement}
+      <ScrollView contentContainerStyle={isMobile ? styles.scrollContentMobile : styles.scrollContent}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
-            <Text style={[styles.name, styles.nameMobile]}>{displayName || 'Наставник'}</Text>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, styles.nameMobile, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
+              <TagList tags={tags} textStyle={[styles.name, styles.nameMobile]} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
+            </View>
 
             <View style={styles.headerRowMobile}>
+              {/* Без data-mentor-avatar — на собственной странице наставника
+                  фото всегда цветное (чб-эффект — только в сетке на
+                  /explore, см. комментарий у правила в app/+html.tsx). */}
               <Image source={imageSource} style={styles.avatarMobile} />
               <View style={styles.headerInfoMobile}>
                 {displayRole ? <Text style={[styles.role, styles.roleMobile]}>{displayRole}</Text> : null}
                 {displayPrice ? (
-                  <Text style={styles.priceTextMobile}>Стоимость консультации {displayPrice}</Text>
+                  <View>
+                    <Text style={styles.priceTextMobile}>Стоимость консультации</Text>
+                    <Text style={styles.priceTextMobile}>{displayPrice}</Text>
+                  </View>
                 ) : null}
               </View>
             </View>
 
-            {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
+            {displayBio ? <Text style={[styles.bio, styles.bioMobile]}>{fixHangingPrepositions(displayBio)}</Text> : null}
 
             <View style={styles.actionsRowMobile}>{actions}</View>
             {instagramUrl ? (
@@ -312,16 +553,21 @@ export default function TutorCardScreenWeb() {
             ) : null}
 
             {eventsSections}
+            {articlesSectionMobile}
           </View>
         ) : (
           // Пустая полоса между текстом и фото (по референсу, не баг) — это
-          // columnGap между двумя колонками грида. Каждая "строка" — пара
-          // прямых детей (лево/право), см. eventsGridRow.
+          // columnGap между двумя колонками грида. Сетка событий наставника
+          // — отдельная полноширинная сетка ниже, не часть этого грида, см.
+          // renderMentorEventsGrid.
           <View style={styles.desktopGrid}>
             <View style={styles.actionsRowContainer}>
-              <Text style={styles.name}>{displayName || 'Наставник'}</Text>
+              <View style={styles.nameRow}>
+                <Text style={[styles.name, styles.nameShrink]}>{displayName || 'Наставник'}</Text>
+                <TagList tags={tags} textStyle={styles.name} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
+              </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
-              {displayBio ? <Text style={styles.bio}>{displayBio}</Text> : null}
+              {displayBio ? <Text style={styles.bio}>{fixHangingPrepositions(displayBio)}</Text> : null}
 
               {displayPrice ? (
                 <View style={styles.priceRow}>
@@ -337,26 +583,36 @@ export default function TutorCardScreenWeb() {
                 </Text>
               ) : null}
             </View>
-            <Image source={imageSource} style={styles.avatarLarge} />
-
-            {eventsGridRow('События наставника', upcomingSplit.left, upcomingSplit.right)}
-            {eventsGridRow('Прошедшие события', pastSplit.left, pastSplit.right)}
+            <View style={styles.avatarLargeBox}>
+              <Image source={imageSource} style={styles.avatarLarge} resizeMode="cover" />
+            </View>
           </View>
         )}
+
+        {!isMobile ? (
+          <>
+            {renderMentorEventsGrid('События наставника', upcomingEvents)}
+            {renderMentorEventsGrid('Прошедшие события', pastEvents, true)}
+            {renderMentorArticlesGrid()}
+          </>
+        ) : null}
       </View>
 
         <SiteFooter />
       </ScrollView>
+      {id ? <TutorSlotsModal tutorId={id} visible={showSlotsModal} onClose={() => setShowSlotsModal(false)} /> : null}
     </SiteShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 0, paddingBottom: 24,     marginTop: 106 },
+  // marginTop:0 — отступ до контента на мобильном теперь даёт только
+  // стрелка "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 25, color: '#010101' },
 
   // Desktop: настоящий CSS Grid, а не два независимых flex-столбца — нужно,
   // чтобы строка карточек справа (под фото) совпадала по высоте со строкой
@@ -364,70 +620,173 @@ const styles = StyleSheet.create({
   // между текстом/фото по референсу (не баг). display:'grid' — не входит в
   // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
   // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
-  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 360px', columnGap: 308, alignItems: 'start', position: 'relative' } as any,
-  avatarLarge: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
+  // alignItems убран (был 'start'): без него работает дефолт CSS Grid —
+  // 'stretch' — только тогда actionsRowContainer реально получает высоту
+  // строки (фото avatarLargeBox с его фиксированными 345px), и actionsRow
+  // (position:'absolute', bottom:0) внутри него садится ровно на нижний
+  // край фото, а не куда попало (раньше actionsRowContainer с height:'100%'
+  // ничего не наследовал — alignItems:'start' не растягивает ячейки).
+  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, position: 'relative' } as any,
+  // 339×409 по референсу (339/1512 от общей ширины страницы = 22.42%) —
+  // прямоугольное портретное фото вместо квадратного. paddingBottom-в-%
+  // вместо aspectRatio — тот ломается для RN Image с локальным
+  // плейсхолдером (react-native-web подставляет inline height по
+  // натуральным пикселям самой картинки, игнорируя aspectRatio; та же
+  // проблема и тот же фикс, что и на /explore, см. комментарий там).
+  avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: 0,     height: 345,  },
+  // avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: `${(409 / 339) * 100}%` },
+  avatarLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
   // Mobile: имя отдельной строкой сверху, ниже — портретное фото слева и
   // роль/цена справа от него (см. референс мобильной страницы наставника).
-  headerRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
+  // marginTop/marginBottom: 24 — тот же интервал между блоками (имя/фото/
+  // текст/кнопки), что уже выработан в журнале (journal/[slug].web.tsx:
+  // titleMobile/authorRow/mobileMediaBlock — везде 24).
+  headerRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 24, marginBottom: 24 },
   headerInfoMobile: { flex: 1, gap: 16 },
   avatarMobile: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
   priceTextMobile: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
 
   name: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  nameMobile: { fontSize: 25, lineHeight: 28 },
-  role: { fontSize: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 18 },
-  roleMobile: { fontSize: 16, lineHeight: 22, marginTop: 0 },
-  bio: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
-  priceRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
-  priceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  priceValue: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  // Тот же размер заголовка, что в журнале (titleMobile: 30/30) — раньше
+  // было 25/28, имя наставника смотрелось заметно мельче заголовка статьи.
+  nameMobile: { fontSize: 30, lineHeight: 30 },
+  // Теги (#хэштег) — напротив имени, тем же размером шрифта, выровнены по
+  // правому краю (строка full-width, как и само имя-заголовок).
+  nameRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+  // minWidth:0 — без него имя (как flex-item) не сжимается уже своего
+  // контента (min-width:auto в CSS flexbox) и при нехватке места сжимает
+  // теги вместо себя — см. тот же приём в events/[id].web.tsx.
+  nameShrink: { flexShrink: 1, minWidth: 0 },
+  // Короткое био (shortBio) — серым (см. displayRole/styles.role: несмотря
+  // на название, сюда попадает именно shortBio, не роль/должность).
+  role: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
+  // Единый размер для всех серых подписей-метаданных на мобильном сайте
+  // (роль наставника, дата события, категория статьи) — по просьбе
+  // пользователя: font-size:10/line-height:10 везде, где раньше были
+  // разные значения (14/18, 8/—, 13/—).
+  roleMobile: { fontSize: 10, lineHeight: 10, marginTop: 0 },
+  // lineHeight:26 — тот же межстрочный интервал, что у текста статьи в
+  // журнале (body: lineHeight:26) — раньше на десктопе оставался 18
+  // (только мобильный уже был пофикшен отдельным bioMobile, см. ниже).
+  bio: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginVertical: 16 },
+  // На мобильном — тот же межстрочный интервал, что у текста статьи в
+  // журнале (body: lineHeight:26) — 18 читался слишком плотно. marginTop:0/
+  // marginBottom:24 — заменяют десктопный marginVertical:16 тем же
+  // журнальным интервалом между блоками, что и везде на этой странице.
+  bioMobile: { lineHeight: 26, marginTop: 0, marginBottom: 24 },
+  // Стоимость — на отдельной строке под подписью (не в один ряд).
+  priceRow: { flexDirection: 'column', gap: 2, marginBottom: 24, marginTop: 24 },
+  priceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18 },
+  priceValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', lineHeight: 18 },
 
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
-    bottom: 0 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+    bottom: 0,     width: '100%',
+    justifyContent: 'space-between' },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
   actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
-  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
+  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
 
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
   eventsSection: { marginTop: 40 },
-  eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 93 },
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
-  // Доп. отступ сверху для заголовка-строки грида (сама eventsSectionTitle
-  // без него — используется и в мобильной eventsSection, где отступ уже
-  // на обёртке).
-  eventsSectionTitleGrid: { marginTop: 300 },
-  eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
-  // Левая колонка грида — 2 карточки в ряд; правая (под фото) — 1 карточка
-  // в столбик, см. splitForColumns/renderEventCard(widthVariant) выше — по
-  // референсу карточки событий распределены между обеими колонками
-  // страницы, а не все сразу в одной.
-  eventsGridLeft: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
-  eventsGridRight: { gap: 32 },
+  eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
+
+  // Полноширинная сетка "События наставника"/"О чём пишет" — своя,
+  // отдельная от 2-колоночного desktopGrid выше (текст/фото), см.
+  // renderMentorEventsGrid/renderMentorGridCard. Колонки 1/3/5 — карточки
+  // (см. MENTOR_ROW_COLUMNS), 2/4 — зазоры. Строка-тройка — одна из трёх
+  // разновидностей цикла pairA/triple/pairB/triple (см. buildMentorRows) —
+  // те же пары, что и на /events (featuredRow/pairBRow там), ниже.
+  // marginTop:140 — тот же единый интервал, что у "Окей, что ещё" в
+  // журнале (relatedSection) — раньше было 273, из-за чего и отступ от
+  // кнопок до "События наставника", и отступ между "События наставника"
+  // и "О чём пишет" (обе секции используют этот же стиль) были гораздо
+  // больше, чем тот же переход в статье.
+  mentorEventsSection: { marginTop: 140 },
+  mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  mentorEventsRowSpacing: { marginTop: 113 },
+  mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
+
+  // pairA/pairB — те же пропорции (649:84:716 и 481:165:611:193), что и
+  // featuredRow/pairBRow на главной странице событий (/events) — раньше
+  // здесь была только тройка, повторяющаяся из строки в строку (блоки
+  // получались одинаковыми по размеру); теперь ряды чередуются, как там.
+  mentorFeaturedRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
+  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
+  // overflow:'hidden' — подстраховка от визуального вылезания картинки за
+  // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
+  mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },
+  mentorFeaturedCardTwo: { width: '100%', overflow: 'hidden' },
+  mentorFeaturedInnerTwo: { width: '72.8%', overflow: 'hidden' },
+  mentorFeaturedInnerTwoB: { width: '100%', overflow: 'hidden' },
+  mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  mentorFeaturedImageTwo: { height: 248 },
+  // Отступы label/title под картинкой — буквально те же значения, что у
+  // featuredLabelOne/Two(B)/featuredTitleOne/Two(B) на /events: карточки
+  // в паре имеют разную высоту картинки (72.8%/248 у второй), и этот сдвиг
+  // (20/23 у пустого label-спейсера, 13/15 у заголовка) выравнивает их
+  // между собой так же, как там — отсюда и "скопируй вёрстку как в /events".
+  mentorFeaturedLabelOne: { marginTop: 20 },
+  mentorFeaturedLabelTwo: { marginTop: 23 },
+  mentorFeaturedTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25 },
+  mentorFeaturedTitleTwo: { marginTop: 15, lineHeight: 25 },
+  mentorFeaturedLabelOneB: { marginTop: 20 },
+  mentorFeaturedLabelTwoB: { marginTop: 23 },
+  mentorFeaturedTitleOneB: { marginTop: 13, fontSize: 25, lineHeight: 25 },
+  mentorFeaturedTitleTwoB: { marginTop: 15, lineHeight: 25 },
+  // Строка-тройка — те же rowLabel/rowTitle, что на /events (18/12).
+  mentorRowLabel: { marginTop: 18 },
+  mentorRowTitle: { marginTop: 12 },
+  // Базовый заголовок/дата карточки — те же cardTitleText/cardDate, что на
+  // /events (без marginBottom/paddingTop — тех отступов там нет).
+  mentorCardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  mentorCardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, textAlign: 'right', marginTop: 27 },
+
   eventCard: { width: '31%' },
   eventCardMobile: { width: '47%' },
   eventCardHalf: { width: '47%' },
   eventCardFull: { width: '100%' },
   eventCover: { width: '100%', aspectRatio: 1.2, backgroundColor: '#E5E5E5' },
   eventCoverPlaceholder: { backgroundColor: '#E5E5E5' },
+  // Прошедшие события наставника — постоянно в том же затемнении, что и
+  // hover-эффект любого кликабельного блока сайта (opacity:0.5, см.
+  // app/_layout.tsx), но навсегда, не только при наведении.
+  eventDimmed: { opacity: 0.5 },
   eventCardBody: { paddingTop: 10 },
-  eventFormat: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', marginBottom: 4 },
-  eventCardTitle: { fontSize: 25, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4 },
-  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  eventCardTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'regular', color: '#010101', marginBottom: 4, marginTop: 12, lineHeight: 25 },
+  // Серый, как категория/дата в журнале (cardCategory/relatedCategory:
+  // color:'#687076') — раньше была чёрная (#000), заметно выделялась на
+  // фоне остальных подписей на сайте.
+  eventCardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 27, lineHeight: 1, textAlign: 'right' },
 
   // Mobile: полноширинная строка на событие (миниатюра + текст), а не
   // карточки в сетке — см. renderEventCardMobile / референс.
-  eventsListMobile: { gap: 24 },
+  // Формат — как на /events (width+height заданы явно вместе, без расчёта
+  // через один только aspectRatio), по просьбе пользователя унифицировать
+  // карточки сайта.
+  eventsListMobile: { gap: 28 },
   eventRowMobile: { flexDirection: 'row', gap: 16 },
-  eventThumbMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', flexShrink: 0 },
-  eventRowBodyMobile: { flex: 1, minHeight: 90, justifyContent: 'space-between' },
-  eventFormatMobile: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4 },
-  eventCardTitleMobile: { fontSize: 16, lineHeight: 20, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  eventRowMetaMobile: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
+  eventThumbMobile: { width: 165, height: 120, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', flexShrink: 0 },
+  eventRowBodyMobile: { flex: 1, minHeight: 120, justifyContent: 'space-between' },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  // marginTop:0 — заголовок тут всегда первый/единственный элемент в
+  // eventRowBodyMobile (justifyContent:'space-between', без лейбла над
+  // ним, см. renderEventCardMobile/renderArticleCardMobile), отступ сверху
+  // просто сдвигал его вниз от края картинки.
+  eventCardTitleMobile: { fontSize: 14, lineHeight: 13.3, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 0 },
+  // Категория статьи в "О чём пишет" — серым и мелко, как дата у события
+  // (eventRowDateMobile) — раньше была чёрной и крупной (14px).
+  eventRowMetaMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076', textAlign: 'right' },
+  // Дата у карточки события — серым и мельче, как в карточках на /events
+  // (mobileDate там же), а не чёрным текстом в размер category-лейбла.
+  eventRowDateMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });

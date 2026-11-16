@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, TextStyle, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 type PlusFieldProps = {
   label: string;
   hint?: string;
+  placeholder?: string;
   value: string;
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
@@ -14,6 +15,11 @@ type PlusFieldProps = {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   maxLength?: number;
   editable?: boolean;
+  // Опциональные переопределения размера текста — не трогают дефолтный
+  // вид (используется на страницах логина/регистрации), нужны только там,
+  // где поле стоит внутри попапа с единым размером текста 18px.
+  labelStyle?: TextStyle;
+  inputStyle?: TextStyle;
 };
 
 /**
@@ -23,15 +29,19 @@ type PlusFieldProps = {
  * Поле с уже введённым значением (например, при возврате на шаг назад)
  * сразу открыто.
  */
-export function PlusField({ label, hint, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true }: PlusFieldProps) {
+export function PlusField({ label, hint, placeholder, value, onChangeText, secureTextEntry, multiline, error, keyboardType, autoCapitalize, maxLength, editable = true, labelStyle, inputStyle }: PlusFieldProps) {
   const [active, setActive] = useState(false);
   const [secureVisible, setSecureVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const expanded = active || value.length > 0 || !editable;
+  // Многострочные поля растут вместе с текстом вместо своего внутреннего
+  // скролла — без этого длинный текст обрезался бы в рамках фиксированной
+  // высоты textarea, хотя вокруг может быть ещё место.
+  const [multilineHeight, setMultilineHeight] = useState<number | undefined>(undefined);
 
   return (
     <View style={styles.wrap}>
-      <Text style={[styles.label, error && styles.labelError]}>
+      <Text style={[styles.label, error && styles.labelError, labelStyle]}>
         {label}
         {hint ? <Text style={styles.hint}> {hint}</Text> : null}
       </Text>
@@ -39,9 +49,18 @@ export function PlusField({ label, hint, value, onChangeText, secureTextEntry, m
         <View style={styles.inputRow}>
           <TextInput
             ref={inputRef}
-            style={styles.input}
+            style={[
+              styles.input,
+              !multiline && styles.inputSingleLine,
+              multiline && styles.inputMultiline,
+              multiline && multilineHeight ? { height: multilineHeight } : null,
+              inputStyle,
+            ]}
             value={value}
             onChangeText={onChangeText}
+            onContentSizeChange={multiline ? (e) => setMultilineHeight(e.nativeEvent.contentSize.height) : undefined}
+            placeholder={placeholder}
+            placeholderTextColor="#9B9B9B"
             autoFocus={active}
             onBlur={() => { if (!value) setActive(false); }}
             secureTextEntry={secureTextEntry && !secureVisible}
@@ -78,11 +97,14 @@ const styles = StyleSheet.create({
   label: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101', marginBottom: 8 },
   labelError: { color: '#E02D2D' },
   hint: { color: '#9B9B9B' },
-  plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
+  // Плюс (20×20) и однострочный инпут должны иметь одинаковую высоту —
+  // иначе при клике по плюсу вся форма ниже прыгает вверх/вниз.
+  plusButton: { height: 24, justifyContent: 'center', alignSelf: 'flex-start' },
   inputRow: { position: 'relative' },
   input: {
     fontFamily: 'Gramatika-Regular',
     fontSize: 15,
+    lineHeight: 20,
     color: '#010101',
     paddingVertical: 4,
     paddingHorizontal: 0,
@@ -91,6 +113,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     outlineStyle: 'none',
   } as any,
+  inputSingleLine: { height: 24, paddingVertical: 2 },
+  // minHeight — стартовая высота в одну строку, пока onContentSizeChange
+  // ещё не отмерил реальную; textAlignVertical — курсор/текст у верхнего
+  // края поля, а не по центру пустой growing-textarea.
+  inputMultiline: { minHeight: 24, textAlignVertical: 'top' },
   eye: { position: 'absolute', right: 0, top: 4 },
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 12, color: '#E02D2D', marginTop: 4 },
 });

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,10 @@ type AdminArticle = {
   coverUrl: string | null;
   author?: { name?: string };
   createdAt?: string;
+  /** 'pending_review' — заявка наставника (POST /tutor/articles), ещё не
+   *  опубликована и не видна на /journal — см. бейдж "На модерации" ниже и
+   *  переключатель в admin/journal-detail.tsx. */
+  status?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,6 +49,7 @@ function normalizeArticle(raw: Record<string, unknown>): AdminArticle {
     coverUrl: resolveUrl(raw.cover_url),
     author: author ? { name: String(author.name ?? '') } : undefined,
     createdAt: (raw.created_at as string) ?? undefined,
+    status: (raw.status as string) ?? undefined,
   };
 }
 
@@ -118,6 +124,9 @@ export default function AdminJournalScreen() {
         <Text style={styles.cardTitle} numberOfLines={2}>{item.title || '—'}</Text>
         {item.author?.name ? <Text style={styles.cardMeta}>{item.author.name}</Text> : null}
         <View style={styles.cardFooter}>
+          {item.status === 'pending_review' ? (
+            <View style={styles.pendingBadge}><Text style={styles.pendingBadgeText}>На модерации</Text></View>
+          ) : null}
           {item.category ? (
             <View style={styles.categoryBadge}><Text style={styles.categoryBadgeText}>{item.category}</Text></View>
           ) : null}
@@ -130,7 +139,7 @@ export default function AdminJournalScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/dashboard')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>ЖУРНАЛ</Text>
@@ -190,12 +199,12 @@ const styles = StyleSheet.create({
   createBtn: { paddingVertical: 8, paddingHorizontal: 14, backgroundColor: '#181818' },
   createBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#fff' },
 
-  searchRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: '#E5E5E5' },
-  searchInput: { flex: 1, borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  searchRow: { width: '100%', maxWidth: 840, alignSelf: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: '#E5E5E5' },
+  searchInput: { flex: 1, borderBottomWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   searchBtn: { borderWidth: 1, borderColor: '#181818', paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   searchBtnText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  list: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
   card: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
   cover: { width: 72, height: 72 },
   coverPlaceholder: { backgroundColor: '#E5E5E5' },
@@ -205,6 +214,8 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categoryBadge: { backgroundColor: '#E5E5E5', paddingHorizontal: 7, paddingVertical: 2 },
   categoryBadgeText: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  pendingBadge: { backgroundColor: '#FFF3CD', paddingHorizontal: 7, paddingVertical: 2 },
+  pendingBadgeText: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#856404' },
   cardDate: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 12 },

@@ -16,40 +16,57 @@ export default function Root({ children }: { children: React.ReactNode }) {
           (нужен для анимации перехода между экранами), который стоит ВЫШЕ
           контента страницы в DOM — что бы мы ни делали с html/body/#root,
           всё, что не влезает в этот контейнер, просто обрезается и никаким
-          скроллом не достаётся. Поэтому скроллит именно ScrollView страницы
-          (как и задумано RN), а не документ — просто прячем его скроллбар
-          визуально (scrollbar-width/::-webkit-scrollbar), сам скролл при
-          этом остаётся полностью рабочим (колесо, клавиши, тач, драг).
+          скроллом не достаётся. Поэтому скроллит именно scrollArea из
+          SiteShell (components/web/site-shell.tsx) — она включает и шапку,
+          и контент страницы, поэтому шапка прокручивается вместе со
+          страницей, а не остаётся зафиксированной сверху — просто прячем
+          скроллбар визуально (scrollbar-width/::-webkit-scrollbar), сам
+          скролл при этом остаётся полностью рабочим (колесо, клавиши, тач,
+          драг).
         */}
         <style dangerouslySetInnerHTML={{
           __html: `
             html, body, #root { height: 100%; background-color: #ffffff; margin: 0; padding: 0; overflow: hidden; }
             #root { display: flex; }
-            [data-site-content="true"] > div { scrollbar-width: none; -ms-overflow-style: none; }
-            [data-site-content="true"] > div::-webkit-scrollbar { display: none; width: 0; height: 0; }
-            /*
-              Hover-затемнение для ЛЮБОГО кликабельного блока (Pressable)
-              сайта разом, без правки каждого использования по отдельности.
-              r-cursor-1loqt21 — не смысловой класс, а атомарный CSS-класс,
-              который react-native-web детерминированно генерирует для
-              cursor:'pointer' (см. styles.active в
-              node_modules/react-native-web/.../Pressable/index.js) — этот
-              стиль применяется КО ВСЕМ не-disabled Pressable, поэтому класс
-              общий для них всех. Если версия react-native-web изменится и
-              хеш класса станет другим — проверить этот селектор заново.
-              @media(hover:hover) — чтобы не залипало на touch-устройствах.
-            */
+            [data-site-content="true"] { scrollbar-width: none; -ms-overflow-style: none; }
+            [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
+            /* Чб со снятием фильтра по наведению — только для карточек в
+               сетках/списках (сетка наставников на /explore, см.
+               dataSet в explore/index.web.tsx — единственное место,
+               которое теперь ставит data-mentor-avatar). На тач-устройствах
+               реального hover нет, поэтому там фото остаётся чб всегда —
+               это и нужно на /explore. Фото наставника на ЕГО СОБСТВЕННОЙ
+               странице (explore/[id].web.tsx) и в карточке наставника на
+               странице события (events/[id].web.tsx) этот атрибут больше
+               не ставят вовсе — те всегда цветные, независимо от
+               устройства (раньше были обёрнуты в @media(hover:hover) ради
+               мобильных, но этим заодно гасили чб и в сетке /explore на
+               мобильном, где оно, наоборот, нужно). */
+            [data-mentor-avatar="true"] { filter: grayscale(100%); transition: filter 0.2s ease; }
             @media (hover: hover) and (pointer: fine) {
-              .r-cursor-1loqt21 { transition: opacity 0.18s ease; }
-              .r-cursor-1loqt21:hover { opacity: 0.5; }
-              /*
-                Внутри попапов (react-native-web ставит aria-modal="true" на
-                корневой div любого <Modal>, независимо от конкретного попапа)
-                затемнение при наведении не нужно — селектор с более высокой
-                специфичностью (attribute+class+pseudo) всегда перебивает
-                правило выше без !important.
-              */
-              [aria-modal="true"] .r-cursor-1loqt21:hover { opacity: 1; }
+              [data-mentor-avatar="true"]:hover { filter: none; }
+            }
+            /* Текстовые ссылки (имя автора статьи, теги, инлайн-ссылки в
+               тексте статьи — см. dataSet в journal/[slug].web.tsx,
+               tag-list.tsx, lib/markdown-inline.tsx) — только подчёркивание
+               при наведении, без затемнения (opacity), в отличие от общего
+               правила hover-dim в app/_layout.tsx. !important обязателен:
+               этот <style> в <head> идёт РАНЬШЕ #hover-dim-style (тот
+               добавляется в рантайме после монтирования), без !important
+               более поздняя по DOM-порядку .cursorClass:hover{opacity:.5}
+               выигрывала бы при равной специфичности. Не переиспользуем
+               общий механизм детекции "красного" цвета из _layout.tsx — он
+               ищет CSS-класс с нужным цветом через :has(), а
+               react-native-web для ВЛОЖЕННОГО Text (Text внутри другого
+               Text, ровно наш случай — ссылка внутри абзаца) применяет
+               color/textDecoration инлайн-стилем, а не классом, так что
+               :has(.класс) там в принципе никогда не совпадёт. */
+            @media (hover: hover) and (pointer: fine) {
+              [data-text-link="true"]:hover {
+                opacity: 1 !important;
+                text-decoration: underline !important;
+                text-underline-offset: 3px;
+              }
             }
           `
         }} />

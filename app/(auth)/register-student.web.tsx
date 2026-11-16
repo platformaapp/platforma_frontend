@@ -9,6 +9,7 @@ import { SiteShell } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { uploadEventImage } from '@/lib/api/events';
 import { getStudentProfile, updateStudentProfile } from '@/lib/api/student';
+import { openInNewTab } from '@/lib/open-in-new-tab';
 import { extractRefreshTokenFromResponse, extractTokenFromResponse, extractUserFromResponse, saveAuthToken, UserProfile } from '@/lib/auth';
 
 const REGISTER_URL = endpoints.register;
@@ -42,6 +43,9 @@ export default function RegisterStudentScreenWeb() {
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string; password2?: string }>({});
+  // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
+  // тогда router.back() молча ничего не делает, и попап нечем закрыть.
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any));
 
   async function pickImage() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -178,12 +182,12 @@ export default function RegisterStudentScreenWeb() {
       <Stack.Screen options={{ headerShown: false }} />
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
-      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
       <View style={styles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Регистрация ученика</Text>
-          <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+          <Pressable onPress={handleClose}><Text style={styles.close}>✕</Text></Pressable>
         </View>
 
         <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -193,7 +197,7 @@ export default function RegisterStudentScreenWeb() {
         <PlusField label="Почта" value={email} error={errors.email} autoCapitalize="none" keyboardType="email-address"
           onChangeText={(t) => { setEmail(t); if (errors.email) setErrors((e) => ({ ...e, email: undefined })); }} />
 
-        <PlusField label="Телеграм" value={telegram} autoCapitalize="none"
+        <PlusField label="Телеграм" value={telegram} autoCapitalize="none" placeholder="Телеграм без @"
           onChangeText={(t) => setTelegram(t.replace(/^@/, ''))} />
 
         <View style={styles.fieldWrap}>
@@ -220,7 +224,7 @@ export default function RegisterStudentScreenWeb() {
         <PlusField label="Еще раз пароль" value={password2} error={errors.password2} secureTextEntry
           onChangeText={(t) => { setPassword2(t); if (errors.password2) setErrors((e) => ({ ...e, password2: undefined })); }} />
 
-        <Text style={styles.hint}>Пароль должен быть не менее 7 символов и содержать буквы, цифры и спецсимволы</Text>
+        <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
 
         {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
         </ScrollView>
@@ -228,9 +232,9 @@ export default function RegisterStudentScreenWeb() {
         <View style={styles.footerRow}>
           <Text style={styles.terms}>
             Нажимая кнопку «Далее», вы принимаете{' '}
-            <Text style={styles.termsLink} onPress={() => router.push('/offer' as any)}>публичную оферту</Text>
+            <Text style={styles.termsLink} onPress={() => openInNewTab('/offer')}>публичную оферту</Text>
             {' '}и{' '}
-            <Text style={styles.termsLink} onPress={() => router.push('/privacy' as any)}>политику конфиденциальности</Text>
+            <Text style={styles.termsLink} onPress={() => openInNewTab('/privacy')}>политику конфиденциальности</Text>
           </Text>
           <Pressable onPress={onSubmit} disabled={isSubmitting}>
             <Text style={styles.nextLink}>{isSubmitting ? 'Отправляем…' : 'Далее'}</Text>
@@ -250,16 +254,16 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101' },
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginBottom: 12 },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginBottom: 4 },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginBottom: 12 },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
   fieldWrap: { marginBottom: 24 },
-  label: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#010101', marginBottom: 8 },
+  label: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101', marginBottom: 8 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
-  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
+  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginTop: 16 },
-  terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#010101' },
+  terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#010101' },
   termsLink: { textDecorationLine: 'underline' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

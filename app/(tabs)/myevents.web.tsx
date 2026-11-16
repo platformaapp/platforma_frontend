@@ -10,7 +10,31 @@ import { AuthError } from '@/lib/api/auth-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
+import { parseFeedItems } from '@/lib/event-feed';
 import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
+
+type RecommendedEvent = { id: string; title: string; coverUrl?: string; mentorName?: string; datetimeStart?: string };
+
+// Та же подпись автора/даты, что и на карточках /events (см. formatEventDate
+// в events/index.web.tsx) — полное название месяца, без времени, в отличие
+// от formatDatetime ниже (тот — для уже забронированных встреч/событий, там
+// другой формат с коротким месяцем и временем).
+const RECOMMENDED_MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+function formatRecommendedEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${RECOMMENDED_MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return '';
+  }
+}
+
+function resolveUploadUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_BASE}${url}`;
+}
 
 type EventItem = MyEventItem & { datetimeStart?: string; mentor?: { id: string; name: string; avatarUrl?: string | null }; registeredCount?: number };
 
@@ -28,6 +52,21 @@ type BookingItem = {
 };
 
 type Tab = 'events' | 'meetings';
+
+// Та же сетка, что в "События наставника" на /explore/[id] (см. комментарий
+// там): CSS grid 403fr:75fr:365fr:266fr:340fr, карточки в колонках 1/3/5.
+// Строки по 3 карточки, пара строк образует повторяющийся блок — в чётных
+// строках третья картинка уже (84.4% вместо 100%, card--d на референсе).
+// Общая и для рекомендаций в пустом состоянии, и для настоящего списка
+// записей (см. renderEventsGrid).
+const CARD_ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const CARD_ROW_COLUMNS: [string, string, string] = ['1', '3', '5'];
+
+function chunk3<T>(items: T[]): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += 3) rows.push(items.slice(i, i + 3));
+  return rows;
+}
 
 const MONTHS_GEN = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
@@ -98,13 +137,8 @@ export default function MyEventsScreenWeb() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
   const [error, setError] = useState('');
-  // router.push() не размонтирует этот экран — expo-router (React
-  // Navigation) держит предыдущий экран стека смонтированным, поэтому
-  // Modal с visible={true} по условию isEmpty продолжал бы висеть поверх
-  // /events даже после смены адреса. Явное состояние закрытия решает это
-  // независимо от того, размонтируется экран или нет; сбрасывается при
-  // каждом новом фокусе на страницу (см. useFocusEffect ниже).
-  const [emptyModalDismissed, setEmptyModalDismissed] = useState(false);
+  // Рекомендуем до 6 событий прямо на странице "нет записей" (2 строки по 3) — вместо пустого текста.
+  const [recommended, setRecommended] = useState<RecommendedEvent[]>([]);
 
   const [cancelTarget, setCancelTarget] = useState<BookingItem | null>(null);
   const [cancelPhase, setCancelPhase] = useState<'confirm' | 'success'>('confirm');
@@ -150,7 +184,14 @@ export default function MyEventsScreenWeb() {
           mergedBookings.push({
             id: eid, date: e.start_at?.split('T')[0], time: e.start_at?.split('T')[1]?.slice(0, 5),
             scheduled_at: e.start_at, status: e.status, price: e.price,
-            tutor: ta ? { id: String(ta.id ?? ''), name: (ta.name ?? ta.fullName ?? ta.full_name ?? '') as string } : undefined,
+            tutor: ta ? {
+              id: String(ta.id ?? ''),
+              name: (ta.name ?? ta.fullName ?? ta.full_name ?? '') as string,
+              // Поле наставника из /api/events/my — UserInfoDto {id, name, avatar}
+              // (см. backend/src/events/dto/my-events-response.dto.ts), не
+              // avatarUrl/avatar_url — те оставлены фолбэком на случай другой формы.
+              avatarUrl: resolveUploadUrl((ta.avatar ?? ta.avatarUrl ?? ta.avatar_url) as string | undefined),
+            } : undefined,
             _viewerRole: sessionRole,
           });
         }
@@ -178,7 +219,7 @@ export default function MyEventsScreenWeb() {
     }
   }, [router]);
 
-  useFocusEffect(useCallback(() => { setLoading(true); setEmptyModalDismissed(false); load(); }, [load]));
+  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
 
   async function performCancelBooking(booking: BookingItem): Promise<boolean> {
     const viewerRole = booking._viewerRole ?? role;
@@ -231,6 +272,31 @@ export default function MyEventsScreenWeb() {
   const currentUpcoming = activeTab === 'events' ? upcomingEvents : upcomingBookings;
   const currentPast = activeTab === 'events' ? pastEvents : pastBookings;
   const isEmpty = currentUpcoming.length === 0 && currentPast.length === 0;
+  // Блок "А пока советуем" — всегда, когда нет ПРЕДСТОЯЩИХ записей (даже
+  // если прошедшие есть), не только при полностью пустой вкладке.
+  const showRecommended = currentUpcoming.length === 0;
+
+  useEffect(() => {
+    if (!showRecommended) return;
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=3`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = parseFeedItems(data) as Record<string, unknown>[];
+        if (!active) return;
+        setRecommended(raw.slice(0, 3).map((r) => ({
+          id: String(r.id ?? ''),
+          title: String(r.title ?? ''),
+          coverUrl: resolveUploadUrl((r.coverUrl ?? r.cover_url) as string | undefined),
+          datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
+          mentorName: r.mentor ? String((r.mentor as any).name ?? (r.mentor as any).fullName ?? (r.mentor as any).full_name ?? '') : undefined,
+        })));
+      } catch { /* тихо — попап и без рекомендаций покажет ссылку "Посмотреть события" */ }
+    })();
+    return () => { active = false; };
+  }, [showRecommended]);
 
   // "Открыть видео" в шапке — ведёт на ближайшую предстоящую личную встречу, если она есть.
   const nextBooking = upcomingBookings[0];
@@ -244,7 +310,7 @@ export default function MyEventsScreenWeb() {
     return {
       id: obj?.id ?? fallbackId,
       name: obj?.fullName ?? obj?.full_name ?? obj?.name ?? (isViewerTutor ? 'Ученик' : 'Наставник'),
-      avatarUrl: obj?.avatarUrl ?? obj?.avatar_url ?? null,
+      avatarUrl: resolveUploadUrl(obj?.avatarUrl ?? obj?.avatar_url) ?? null,
       isViewerTutor,
     };
   }
@@ -257,32 +323,46 @@ export default function MyEventsScreenWeb() {
     return other.isViewerTutor ? `/(tabs)/profile/student/${other.id}` : `/(tabs)/explore/${other.id}`;
   }
 
-  function renderEventCard(item: EventItem, muted = false) {
+  // Мобильная полноширинная строка (см. renderEventsGrid — на десктопе
+  // вместо неё теперь карточки в grid-строках по 3, renderEventGridCard).
+  // Формат карточки — как на /events (mobileRow/mobileThumb/mobileInfo/
+  // mobileTitleText), по просьбе пользователя ("нужно все как в /events").
+  function renderEventListRowMobile(item: EventItem, muted = false) {
     const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
-
-    if (isMobile) {
-      return (
-        <Pressable key={item.id} style={styles.listRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
-          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.listThumb} resizeMode="cover" /> : <View style={[styles.listThumb, styles.cardImagePlaceholder]} />}
-          <View style={styles.listBody}>
-            <Text style={[styles.listLabel, muted && styles.textMuted]}>Событие</Text>
-            <Text style={[styles.listTitle, muted && styles.textMuted]} numberOfLines={2}>{item.title}</Text>
-            {dateText ? <Text style={[styles.listDate, muted && styles.textMuted]}>{dateText}</Text> : null}
-          </View>
-        </Pressable>
-      );
-    }
-
     return (
-      <Pressable key={item.id} style={[styles.card, muted && styles.cardMuted]} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderEventListRowMobile' } } as any)}>
+        {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
+        <View style={styles.mobileInfo}>
+          <View>
+            <Text style={[styles.mobileAuthor, muted && styles.textMuted]}>{item.mentor?.name || 'Событие'}</Text>
+            <Text style={[styles.mobileTitleText, muted && styles.textMuted]}>{item.title}</Text>
+          </View>
+          {dateText ? <Text style={[styles.mobileDate, muted && styles.textMuted]}>{dateText}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  // Та же асимметричная сетка (403/365/340, см. CARD_ROW_ASPECTS выше), что
+  // и у рекомендаций в пустом состоянии — раньше тут была равномерная
+  // flex-wrap сетка (styles.grid/card), по референсу список тоже должен
+  // идти строками по 3 с повторяющимся card--d на каждой второй строке.
+  function renderEventGridCard(item: EventItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
+    const dateText = item.datetimeStart ? formatDatetime(item.datetimeStart) : '';
+    return (
+      <Pressable
+        key={item.id}
+        style={[{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any, muted && styles.cardMuted]}
+        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+      >
         {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={styles.cardImage} resizeMode="cover" />
+          <Image source={{ uri: item.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
         ) : (
-          <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
         )}
         <View style={styles.cardBody}>
           {item.registeredCount != null ? <Text style={styles.cardMeta}>Записалось: {item.registeredCount} чел.</Text> : null}
-          <Text style={styles.cardTitle} numberOfLines={3}>{item.title}</Text>
+          <Text style={styles.cardTitle}>{item.title}</Text>
           <View style={styles.cardMetaRow}>
             <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
             {dateText ? <Text style={styles.cardDateText}>{dateText}</Text> : null}
@@ -292,13 +372,59 @@ export default function MyEventsScreenWeb() {
     );
   }
 
+  function renderEventsGrid(items: EventItem[], muted = false) {
+    if (items.length === 0) return null;
+    if (isMobile) return <View style={styles.mobileList}>{items.map((e) => renderEventListRowMobile(e, muted))}</View>;
+    return (
+      <>
+        {chunk3(items).map((row, rowIdx) => (
+          <View key={row.map((e) => e.id).join('-')} style={[styles.cardsGridRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
+            {row.map((e, pos) => renderEventGridCard(e, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2, muted))}
+          </View>
+        ))}
+      </>
+    );
+  }
+
+  // Мобильная карточка (2 в ряд, flex-wrap) — на десктопе вместо неё
+  // карточки в grid-строках по 3, см. renderBookingGridCard/renderBookingsGrid.
+  // Формат карточки — как на /events (mobileRow/mobileThumb/mobileInfo/
+  // mobileTitleText), по просьбе пользователя ("нужно все как в /events").
   function renderBookingCard(item: BookingItem, muted = false) {
     const other = otherPartyOf(item);
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
 
     return (
-      <Pressable key={item.id} style={[styles.card, isMobile && styles.cardMobile, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)}>
-        {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.cardImage} resizeMode="cover" /> : <View style={[styles.cardImage, styles.cardImagePlaceholder]} />}
+      <Pressable key={item.id} style={[styles.mobileRow, muted && styles.cardMuted]} onPress={() => setViewingBooking(item)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderBookingCard' } } as any)}>
+        {other.avatarUrl ? <Image source={{ uri: other.avatarUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
+        <View style={styles.mobileInfo}>
+          <View>
+            <Text style={styles.mobileAuthor}>Личная встреча</Text>
+            <Text style={styles.mobileTitleText}>{other.name}</Text>
+          </View>
+          {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  // Та же асимметричная сетка (403/365/340), что у событий (см.
+  // renderEventGridCard) — "Личные встречи" раньше были равномерной
+  // flex-wrap сеткой (styles.grid/card) на обеих раскладках.
+  function renderBookingGridCard(item: BookingItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
+    const other = otherPartyOf(item);
+    const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
+    return (
+      <Pressable
+        key={item.id}
+        style={[{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any, muted && styles.cardMuted]}
+        onPress={() => setViewingBooking(item)}
+      >
+        {other.avatarUrl ? (
+          <Image source={{ uri: other.avatarUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+        )}
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{other.name}</Text>
           <View style={styles.cardMetaRow}>
@@ -310,23 +436,98 @@ export default function MyEventsScreenWeb() {
     );
   }
 
-  function renderBookingGroups(items: BookingItem[], muted = false) {
+  function renderBookingsGrid(items: BookingItem[], muted = false) {
     if (items.length === 0) return null;
-    if (role !== 'tutor') return <View style={styles.grid}>{items.map((b) => renderBookingCard(b, muted))}</View>;
-    const asTutor = items.filter((b) => b._viewerRole === 'tutor');
-    const asStudent = items.filter((b) => b._viewerRole === 'student');
+    if (isMobile) return <View style={styles.mobileList}>{items.map((b) => renderBookingCard(b, muted))}</View>;
     return (
       <>
-        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text><View style={styles.grid}>{asTutor.map((b) => renderBookingCard(b, muted))}</View></>}
-        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text><View style={styles.grid}>{asStudent.map((b) => renderBookingCard(b, muted))}</View></>}
+        {chunk3(items).map((row, rowIdx) => (
+          <View key={row.map((b) => b.id).join('-')} style={[styles.cardsGridRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
+            {row.map((b, pos) => renderBookingGridCard(b, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2, muted))}
+          </View>
+        ))}
       </>
     );
   }
 
+  function renderRecommendedCard(r: RecommendedEvent, posInRow: 0 | 1 | 2, narrowImage: boolean) {
+    return (
+      <Pressable
+        key={r.id}
+        style={{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any}
+        onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
+      >
+        {r.coverUrl ? (
+          <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+        )}
+        {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
+        <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
+        {r.datetimeStart ? <Text style={styles.emptyRecommendedDate}>{formatRecommendedEventDate(r.datetimeStart)}</Text> : null}
+      </Pressable>
+    );
+  }
+
+  // Мобильный формат рекомендаций — тот же блок, что "Окей, что ещё" на
+  // /journal и странице события (карточка-строка как на /events), но
+  // озаглавлен "А пока советуем".
+  function renderRecommendedCardMobile(r: RecommendedEvent) {
+    const dateText = r.datetimeStart ? formatRecommendedEventDate(r.datetimeStart) : '';
+    return (
+      <Pressable key={r.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${r.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderRecommendedCardMobile' } } as any)}>
+        {r.coverUrl ? <Image source={{ uri: r.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+        <View style={styles.mobileInfo}>
+          <View>
+            {r.mentorName ? <Text style={styles.mobileAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
+            <Text style={styles.mobileTitleText}>{r.title}</Text>
+          </View>
+          {dateText ? <Text style={styles.mobileDate}>{dateText}</Text> : null}
+        </View>
+      </Pressable>
+    );
+  }
+
+  function renderBookingGroups(items: BookingItem[], muted = false) {
+    if (items.length === 0) return null;
+    if (role !== 'tutor') return renderBookingsGrid(items, muted);
+    const asTutor = items.filter((b) => b._viewerRole === 'tutor');
+    const asStudent = items.filter((b) => b._viewerRole === 'student');
+    return (
+      <>
+        {asTutor.length > 0 && <><Text style={styles.groupHeader}>Мои студенты</Text>{renderBookingsGrid(asTutor, muted)}</>}
+        {asStudent.length > 0 && <><Text style={styles.groupHeader}>Мои наставники</Text>{renderBookingsGrid(asStudent, muted)}</>}
+      </>
+    );
+  }
+
+  // "А пока советуем" — показывается всегда, когда нет предстоящих записей
+  // (showRecommended), и в полностью пустом состоянии, и когда есть только
+  // прошедшие записи (см. ниже).
+  const recommendedBlock = recommended.length > 0 ? (
+    isMobile ? (
+      <View style={styles.recommendedSection}>
+        <Text style={[styles.recommendedSectionTitle, isMobile && styles.recommendedSectionTitleMobile]}>А пока советуем</Text>
+        <View style={styles.mobileList}>
+          {recommended.map((r) => renderRecommendedCardMobile(r))}
+        </View>
+      </View>
+    ) : (
+      <View style={styles.recommendedSection}>
+        <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
+        {chunk3(recommended).map((row, rowIdx) => (
+          <View key={row.map((r) => r.id).join('-')} style={[styles.emptyRecommendedRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
+            {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
+          </View>
+        ))}
+      </View>
+    )
+  ) : null;
+
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={styles.titleRow}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Мои записи</Text>
           {nextBooking && !isMobile ? (
@@ -341,9 +542,9 @@ export default function MyEventsScreenWeb() {
           ) : null}
         </View>
 
-        <View style={styles.tabsRow}>
-          <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
-          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, activeTab === 'meetings' && styles.tabTextActive]}>Личные встречи</Text></Pressable>
+        <View style={[styles.tabsRow, isMobile && styles.tabsRowMobile]}>
+          <Pressable onPress={() => setActiveTab('events')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'events' && styles.tabTextActive]}>События</Text></Pressable>
+          <Pressable onPress={() => setActiveTab('meetings')}><Text style={[styles.tabText, isMobile && styles.tabTextMobile, activeTab === 'meetings' && styles.tabTextActive]}>Встречи</Text></Pressable>
         </View>
 
         {loading ? (
@@ -351,34 +552,19 @@ export default function MyEventsScreenWeb() {
         ) : error && activeTab === 'events' && isEmpty ? (
           <Text style={styles.errorText}>Не удалось загрузить события: {error}</Text>
         ) : isEmpty ? (
-          // Modal (не обычный View с flex:1) — гарантированно перекрывает всю
-          // страницу независимо от окружающего flex-контекста, см. cookie-banner.
-          // visible={!emptyModalDismissed}, а не жёстко true — router.push не
-          // размонтирует этот экран (expo-router держит предыдущие экраны
-          // стека смонтированными), поэтому одной навигации недостаточно:
-          // без явного dismissed-состояния попап продолжал бы висеть поверх
-          // /events и после перехода.
-          <Modal transparent animationType="fade" visible={!emptyModalDismissed} onRequestClose={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
-            <View style={[styles.emptyOverlay, { pointerEvents: 'box-none' }]}>
-              <View style={styles.emptyCard}>
-                <View style={styles.emptyHeaderRow}>
-                  <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
-                  <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}><Text style={styles.emptyClose}>✕</Text></Pressable>
-                </View>
-                <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
-                <Pressable onPress={() => { setEmptyModalDismissed(true); router.push('/events' as any); }}>
-                  <Text style={styles.emptyLink}>Посмотреть события</Text>
-                </Pressable>
-              </View>
-            </View>
-          </Modal>
+          <View style={styles.emptyBlock}>
+            <Text style={styles.emptyTitle}>У вас еще нет ни одной записи</Text>
+            <Text style={styles.emptyText}>Зарегистрируйтесь на событие или подберите себе наставника, и здесь появится кнопка для подключения</Text>
+            <Pressable style={styles.emptyRegisterButton} onPress={() => router.push('/events' as any)}>
+              <Text style={styles.emptyRegisterButtonText}>Зарегистрироваться</Text>
+            </Pressable>
+            {recommendedBlock}
+          </View>
         ) : (
           <>
-            {activeTab === 'events' ? (
-              upcomingEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{upcomingEvents.map((e) => renderEventCard(e))}</View>
-            ) : (
-              renderBookingGroups(upcomingBookings)
-            )}
+            {currentUpcoming.length > 0
+              ? (activeTab === 'events' ? renderEventsGrid(upcomingEvents) : renderBookingGroups(upcomingBookings))
+              : recommendedBlock}
 
             {nextBooking && isMobile ? (
               <View style={styles.mobileVideoBar}>
@@ -395,13 +581,9 @@ export default function MyEventsScreenWeb() {
             ) : null}
 
             {currentPast.length > 0 ? (
-              <Text style={styles.pastSeparator}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
+              <Text style={[styles.pastSeparator, isMobile && styles.pastSeparatorMobile]}>{activeTab === 'events' ? 'Прошедшие события' : 'Прошедшие встречи'}</Text>
             ) : null}
-            {activeTab === 'events' ? (
-              pastEvents.length > 0 && <View style={isMobile ? styles.list : styles.grid}>{pastEvents.map((e) => renderEventCard(e, true))}</View>
-            ) : (
-              renderBookingGroups(pastBookings, true)
-            )}
+            {activeTab === 'events' ? renderEventsGrid(pastEvents, true) : renderBookingGroups(pastBookings, true)}
           </>
         )}
       </View>
@@ -488,51 +670,85 @@ export default function MyEventsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
+  // paddingTop:0 — отступ до заголовка на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  title: { fontSize: 45, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 62 },
+  titleMobile: { fontSize: 25, lineHeight: 28, marginTop: 0 },
   headerVideoBlock: { alignItems: 'flex-end' },
   headerVideoButton: { backgroundColor: '#010101', paddingVertical: 12, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   headerVideoButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
   headerCountdownText: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', textAlign: 'right' },
-  tabsRow: { flexDirection: 'row', gap: 24, marginBottom: 80, marginTop: 59 },
+  tabsRow: { flexDirection: 'row', gap: 46, marginBottom: 80, marginTop: 59 },
+  // Мобильный — десктопные 59/80 слишком большие для узкого экрана.
+  tabsRowMobile: { marginBottom: 24, marginTop: 24 },
   tabText: { fontFamily: 'Gramatika-Regular', fontSize: 30, lineHeight: 27, color: '#838383' },
+  tabTextMobile: { fontSize: 25, lineHeight: 28 },
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  emptyOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  emptyCard: { backgroundColor: '#fff', padding: 24, width: '100%', maxWidth: 680 },
-  emptyHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', flex: 1 },
-  emptyClose: { fontSize: 18, color: '#010101' },
-  emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20, maxWidth: 480 },
-  emptyLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#E02D2D', alignSelf: 'flex-end' },
+  emptyBlock: { paddingTop: 24, paddingBottom: 24 },
+  emptyTitle: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12 },
+  emptyText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 32, maxWidth: 480 },
+  emptyRecommendedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
+  // "А пока советуем" — тот же интервал до блока, что у "Окей, что ещё" на
+  // /journal и странице события (relatedSection: marginTop:140) — раньше
+  // было 40, секция стояла заметно ближе к кнопке/тексту выше, чем там.
+  recommendedSection: { marginTop: 140 },
+  recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  recommendedSectionTitleMobile: { fontSize: 25, lineHeight: 28 },
+  emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
+  // card--d по референсу — третья карточка каждой второй строки уже
+  // остальных (84.4% вместо 100%), только картинка.
+  emptyRecommendedImageNarrow: { width: '84.4%' },
+  // Те же значения (включая отступы), что у карточек на главной странице
+  // событий (events/index.web.tsx: cardAuthor/rowLabel/cardTitleText/
+  // rowTitle/cardDate) — раньше тут был свой межстрочный интервал/отступы
+  // (без marginTop у подписи наставника и заголовка, дата — серая и слева,
+  // а не чёрная и по правому краю, как там).
+  emptyRecommendedAuthor: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginTop: 18 },
+  emptyRecommendedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 12 },
+  // Серым, как на /events (cardDate) — раньше была чёрной.
+  emptyRecommendedDate: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', textAlign: 'right', marginTop: 27 },
+  // Настоящая кнопка (как "Посмотреть события" в нативной версии, см.
+  // myevents.tsx: emptySheetButton), а не малозаметная текстовая ссылка —
+  // раньше тут был красный Text без фона (styles.emptyLink, убран).
+  emptyRegisterButton: { backgroundColor: '#111', alignSelf: 'flex-start', paddingVertical: 16, paddingHorizontal: 32, marginBottom: 32 },
+  emptyRegisterButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
   groupHeader: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 8, marginBottom: 12 },
-  pastSeparator: { fontSize: 25, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 },
-  list: { gap: 20, marginBottom: 24 },
-  card: { flexBasis: 280, flexGrow: 1, minWidth: 240, maxWidth: 360, backgroundColor: '#fff', position: 'relative' },
-  // Личные встречи остаются карточками (не строками списка) и на мобильном —
-  // здесь у карточки нет минимальной ширины по умолчанию, поэтому переопределяем.
-  cardMobile: { flexBasis: '47%', minWidth: 0, maxWidth: '48%' },
+  pastSeparator: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 32, marginBottom: 16 },
+  pastSeparatorMobile: { marginTop: 16, fontSize: 25, lineHeight: 28 },
+  // Настоящий список записей (не пустое состояние) — та же асимметричная
+  // сетка 403/75/365/266/340, что и emptyRecommendedRow, но без её
+  // marginTop:254 на первой строке (список начинается сразу под вкладками,
+  // а не после текста "нет записей") — отступ только между строками.
+  cardsGridRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr', marginBottom: 32 } as any,
+  cardsGridRowSpacing: { marginTop: 113 },
   cardMuted: { opacity: 0.45 },
-  cardImage: { width: '100%', height: 180 },
   cardImagePlaceholder: { backgroundColor: '#E5E5E5' },
   cardBody: { paddingTop: 14 },
   cardMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
-  cardTitle: { fontSize: 30, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 8 },
+  // Размер — как на /events (featuredTitleOne: fontSize:25, lineHeight:25).
+  cardTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 8 },
   cardMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
   cardMentorName: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   cardDateText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
 
-  listRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, position: 'relative' },
-  listRowMain: { flexDirection: 'row', flex: 1, gap: 12 },
-  listThumb: { width: 72, height: 72, backgroundColor: '#E5E5E5' },
-  listBody: { flex: 1, minHeight: 72, justifyContent: 'space-between' },
-  listLabel: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  listTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  listDate: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
+  // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
+  // mobileList/mobileRow/mobileThumb/mobileInfo/mobileTitleText), по просьбе
+  // пользователя унифицировать карточки "Мои записи" с /events.
+  mobileList: { gap: 28, marginBottom: 24 },
+  mobileRow: { flexDirection: 'row', gap: 20 },
+  mobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  mobileInfo: { flex: 1, justifyContent: 'space-between' },
+  mobileAuthor: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5, marginBottom: 0, lineHeight: 10 },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  mobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
   textMuted: { opacity: 0.45 },
 
   mobileVideoBar: { backgroundColor: '#010101', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, paddingHorizontal: 16, marginTop: 8, marginBottom: 24 },
@@ -548,21 +764,21 @@ const styles = StyleSheet.create({
 
   confirmCard: { width: '100%', maxWidth: 360, backgroundColor: '#fff', padding: 24 },
   confirmTitle: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 28, color: '#010101', textTransform: 'uppercase', marginBottom: 12 },
-  confirmText: { fontFamily: 'Gramatika-Regular', fontSize: 13, lineHeight: 18, color: '#687076', marginBottom: 24 },
+  confirmText: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 24 },
   confirmBtnOutline: { borderWidth: 1, borderColor: '#1E1E1E', paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  confirmBtnOutlineText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#010101' },
+  confirmBtnOutlineText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#010101' },
   confirmBtnDanger: { backgroundColor: '#E02D2D', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  confirmBtnDangerText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
+  confirmBtnDangerText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#fff' },
   confirmBtnDark: { backgroundColor: '#010101', paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  confirmBtnDarkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
+  confirmBtnDarkText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#fff' },
 
   bookingModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24 },
-  bookingModalMeta: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
-  bookingModalDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  bookingModalMeta: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 4 },
+  bookingModalDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   modalTitle: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 25, lineHeight: 23, color: '#010101' },
   modalClose: { fontSize: 20, color: '#010101' },
   modalFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
-  modalCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  modalCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
+  modalSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

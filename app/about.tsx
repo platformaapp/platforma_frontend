@@ -3,6 +3,9 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
+import { openInNewTab } from '@/lib/open-in-new-tab';
+
 export default function AboutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -10,8 +13,9 @@ export default function AboutScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable style={styles.backBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any)}>
-          <Text style={styles.backText}>← Назад</Text>
+        <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any)}>
+          <BackArrowIcon width={16} height={15} />
+          <Text style={styles.backText}>Назад</Text>
         </Pressable>
       </View>
 
@@ -102,11 +106,14 @@ export default function AboutScreen() {
             Настоящий сайт является публичной офертой. Регистрируясь на платформе или оплачивая мероприятие, пользователь принимает условия публичной оферты и политики конфиденциальности.
           </Text>
           <View style={styles.legalLinks}>
-            <Pressable onPress={() => router.push('/offer' as any)}>
+            <Pressable onPress={() => openInNewTab('/offer')}>
               <Text style={styles.legalLink}>Публичная оферта →</Text>
             </Pressable>
-            <Pressable onPress={() => router.push('/privacy' as any)}>
+            <Pressable onPress={() => openInNewTab('/privacy')}>
               <Text style={styles.legalLink}>Политика конфиденциальности →</Text>
+            </Pressable>
+            <Pressable onPress={() => openInNewTab('/tutor-offer')}>
+              <Text style={styles.legalLink}>Оферта для наставников →</Text>
             </Pressable>
           </View>
         </View>
@@ -140,6 +147,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 16, paddingVertical: 12 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 4 },
+  backBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
   content: { paddingHorizontal: 16, paddingBottom: 40 },
   mainTitle: {

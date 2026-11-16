@@ -1,22 +1,68 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
+import { TOPICS } from '@/constants/topics';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
-import { bindPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
+import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
 import {
-  createTutorEventFull, createTutorSlot, deleteTutorSlot,
+  createTutorArticle, createTutorEventFull, createTutorSlot, deleteTutorSlot,
+  getTutorEvents,
   getTutorPayouts,
   getTutorPayoutsBalance,
-  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot,
+  getTutorProfile, getTutorSlots, updateTutorProfile, type Payout, type Slot, type TutorOwnEvent,
 } from '@/lib/api/tutor';
-import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { AuthError } from '@/lib/api/auth-error';
+import { clearAuth, getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
+import { slotDateTimeMs } from '@/lib/slots-utils';
+
+// Бэкенд требует datetime_start И datetime_end (сам считает durationMinutes
+// из разницы) — в форме есть только "Время" (начало), длительность не
+// спрашиваем, поэтому фиксируем 60 минут по умолчанию.
+const DEFAULT_EVENT_DURATION_MINUTES = 60;
+const EVENT_DESCRIPTION_MAX_CHARS = 500;
+const EVENT_DESCRIPTION_MAX_WORDS = 100;
+// Тот же лимит, что у нативной формы создания события (new-event.tsx)
+// — на вебе он отсутствовал вовсе, название можно было вводить без границ.
+const EVENT_TITLE_MAX_CHARS = 70;
+
+// Тот же формат, что фильтр на /events (см. events/index.web.tsx FORMATS) —
+// подписи те же, а слаги — под backend EventCategory. Без выбора формата
+// created-событие никогда не попадало ни под один фильтр (category
+// оставался null навсегда — его негде было установить).
+const EVENT_FORMATS: { label: string; slug: string }[] = [
+  { label: 'Трансляция', slug: 'broadcast' },
+  { label: 'Лекция', slug: 'lecture' },
+  { label: 'Практика', slug: 'practices' },
+  { label: 'Встреча', slug: 'meeting' },
+  { label: 'Обсуждение', slug: 'discussion' },
+];
+
+/** Режет текст до 500 символов и до 100 слов — что наступит раньше. */
+function clampEventDescription(text: string): string {
+  const clipped = text.slice(0, EVENT_DESCRIPTION_MAX_CHARS);
+  const words = clipped.split(/(\s+)/);
+  let wordCount = 0;
+  let cut = clipped.length;
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].trim()) {
+      wordCount++;
+      if (wordCount > EVENT_DESCRIPTION_MAX_WORDS) {
+        cut = words.slice(0, i).join('').length;
+        break;
+      }
+    }
+  }
+  return clipped.slice(0, cut);
+}
 
 /** Группирует слоты по дате (для отображения "13 мая: 14:00 15:00 20:00"), сортируя даты и время. */
 function groupSlotsByDate<T extends { date: string; time: string }>(slots: T[]): { date: string; slots: T[] }[] {
@@ -82,8 +128,21 @@ function formatSlotDateLabel(date: string): string {
  */
 export default function ProfileScreenWeb() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  // ?open=event|article — см. events/journal "Создать событие"/"Написать
+  // текст": авторизованного наставника ведут сюда с этим параметром, чтобы
+  // открыть попап создания сразу, без лишнего клика по ссылке на этой же
+  // странице (см. useEffect ниже, который его читает один раз и открывает
+  // соответствующую модалку после загрузки профиля).
+  const { open: openParam } = useLocalSearchParams<{ open?: string }>();
+  const { width, height: windowHeight } = useWindowDimensions();
   const isMobile = width < MOBILE_BREAKPOINT;
+  // 320 — высота под самую короткую из форм, переиспользующих этот стиль
+  // (слоты); для формы наставника (Имя/Описание/Почта/Телеграм/...до
+  // Пароля) этого не хватает — поле "Телеграм" обрезалось строго по
+  // границе 320px, и было не прокрутить до него колесом мыши (вложенный
+  // ScrollView внутри модалки). Берём высоту от окна, чтобы длинные формы
+  // показывали больше полей сразу, не упираясь в небо на маленьких экранах.
+  const modalScrollMaxHeight = Math.max(320, Math.min(560, windowHeight - 260));
   const [role, setRole] = useState<'student' | 'tutor'>('student');
   const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState('');
@@ -94,7 +153,13 @@ export default function ProfileScreenWeb() {
   const [bio, setBio] = useState('');
   const [shortBio, setShortBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
+  const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
+  // Пока заявка наставника не одобрена (pending) — нельзя создавать
+  // события/статьи/слоты, см. actionsRow ниже и гейты в handleCreateEvent/
+  // openNewArticleModal/toggleTimePickerForDate/createAndAddSlot.
+  const [applicationStatus, setApplicationStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
+  const isPendingTutor = applicationStatus === 'pending';
 
   const [slots, setSlots] = useState<Slot[]>([]);
   const [newSlotDate, setNewSlotDate] = useState('');
@@ -116,6 +181,10 @@ export default function ProfileScreenWeb() {
   // а по явному нажатию "Выбрать".
   const [timePickerOpenDate, setTimePickerOpenDate] = useState<string | null>(null);
   const [timePickerDraft, setTimePickerDraft] = useState('');
+  // Общий на весь экран id открытого попапа даты/времени — чтобы никогда не
+  // было двух попапов одновременно: открытие одного (см. DateFieldWithPicker/
+  // TimeFieldWithPicker) закрывает любой другой, где бы он ни был на экране.
+  const [openPickerId, setOpenPickerId] = useState<string | null>(null);
 
   // ── Tutor-only modals ───────────────────────────────────────────────────────
   const [tutorEditModalVisible, setTutorEditModalVisible] = useState(false);
@@ -126,13 +195,38 @@ export default function ProfileScreenWeb() {
   const [eventTime, setEventTime] = useState('');
   const [eventPrice, setEventPrice] = useState('');
   const [eventMax, setEventMax] = useState('');
+  const [eventTopic, setEventTopic] = useState<string | null>(null);
+  const [eventFormat, setEventFormat] = useState<string | null>(null);
+  const { topics: adminTopics } = useSiteSettings();
+  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [eventCoverUri, setEventCoverUri] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
   const [eventError, setEventError] = useState('');
   const [eventCreated, setEventCreated] = useState(false);
+  const [eventErrorModalVisible, setEventErrorModalVisible] = useState(false);
   const [tutorSaving, setTutorSaving] = useState(false);
   const [tutorSaveError, setTutorSaveError] = useState('');
   const [tutorSaveOk, setTutorSaveOk] = useState(false);
+
+  // ── Заявка на статью — та же схема модалок, что и "Создать событие" выше,
+  // но полей меньше (без текста статьи, см. комментарий у
+  // CreateTutorArticleDto на бэкенде) и кнопка "Отправить заявку" вместо
+  // "Сохранить": статья уходит на модерацию (status='pending_review'), а не
+  // публикуется сразу — редактор дооформляет и публикует её в админке.
+  const [newArticleModalVisible, setNewArticleModalVisible] = useState(false);
+  const [articleTitle, setArticleTitle] = useState('');
+  const [articleCoverUri, setArticleCoverUri] = useState<string | null>(null);
+  const [articleExcerpt, setArticleExcerpt] = useState('');
+  const [articleEvents, setArticleEvents] = useState<TutorOwnEvent[]>([]);
+  const [articleEventsLoading, setArticleEventsLoading] = useState(false);
+  const [articleEventId, setArticleEventId] = useState<string | null>(null);
+  // Поиск по названию — как в админке журнала (поле "Событие — CTA"): список
+  // появляется только когда начали печатать, а не весь целиком сразу.
+  const [articleEventQuery, setArticleEventQuery] = useState('');
+  const [creatingArticle, setCreatingArticle] = useState(false);
+  const [articleError, setArticleError] = useState('');
+  const [articleSubmitted, setArticleSubmitted] = useState(false);
+  const [articleErrorModalVisible, setArticleErrorModalVisible] = useState(false);
 
   // ── Student modals ─────────────────────────────────────────────────────────
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -141,6 +235,9 @@ export default function ProfileScreenWeb() {
   const [paymentCards, setPaymentCards] = useState<Card[]>([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [deletingCardId, setDeletingCardId] = useState<string | null>(null);
+  const [deleteCardError, setDeleteCardError] = useState('');
+  const [isLinkingCard, setIsLinkingCard] = useState(false);
+  const [linkCardError, setLinkCardError] = useState('');
   const [editCardModalVisible, setEditCardModalVisible] = useState(false);
   const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [editCardExpiry, setEditCardExpiry] = useState('');
@@ -188,12 +285,24 @@ export default function ProfileScreenWeb() {
           setEmail(tp.email ?? profile?.email ?? '');
           setBio(tp.bio ?? '');
           setShortBio(tp.shortBio ?? tp.short_bio ?? '');
+          setSpecialization(tp.specialization ?? null);
           setTelegram(tp.telegram ?? '');
+          setApplicationStatus(tp.applicationStatus ?? null);
+          // Postgres-колонка hourly_rate — decimal без transformer'а, бэкенд
+          // отдаёт её строкой ("7000.00"), а не числом — typeof rate ===
+          // 'number' всегда был false, поле молча оставалось пустым при
+          // каждой перезагрузке страницы, хотя на бэкенде значение сохранено.
           const rate = tp.hourlyRate ?? tp.hourly_rate ?? tp.pricePerHour;
-          if (typeof rate === 'number') setHourlyRate(String(rate));
+          const rateNum = typeof rate === 'string' ? parseFloat(rate) : rate;
+          if (typeof rateNum === 'number' && !isNaN(rateNum)) setHourlyRate(String(rateNum));
           setAvatarUrl(tp.avatarUrl ?? tp.avatar_url ?? '');
           const nowTs = Date.now();
-          setSlots(tutorSlots.filter((s) => new Date(`${s.date}T${s.time}:00`).getTime() > nowTs));
+          // s.time — Postgres time-колонка, приходит как "HH:MM:SS" (с
+          // секундами) — раньше сюда всегда дописывалось ещё ":00" (расчёт
+          // на "HH:MM" из нативного time-инпута), что после перезагрузки
+          // страницы давало невалидную дату ("...T10:00:00:00") и все слоты
+          // молча считались прошедшими и пропадали из списка.
+          setSlots(tutorSlots.filter((s) => slotDateTimeMs(s.date, s.time) > nowTs));
         } else {
           const sp = await getStudentProfile();
           if (!active) return;
@@ -202,11 +311,46 @@ export default function ProfileScreenWeb() {
           setTelegram(sp.telegram ?? '');
           setAvatarUrl(sp.avatar_url ?? sp.avatarUrl ?? '');
         }
-      } catch { /* show empty form on failure */ }
-      finally { if (active) setLoading(false); }
+      } catch (e) {
+        // AuthError — handle401 (внутри getTutorProfile/getStudentProfile)
+        // уже попытался обновить токен и, если не вышло, очистил его; здесь
+        // просто уводим на логин, а НЕ рендерим страницу дальше — раньше
+        // ошибка полностью проглатывалась, и пользователь видел полностью
+        // рабочие "Изменить личные данные"/"Платежи"/т.д. с пустыми полями
+        // поверх битого токена, хотя запрос вернул 401.
+        if (e instanceof AuthError) {
+          // Не вызываем setLoading(false) здесь — страница и так уходит на
+          // /login, лишний рендер формы с пустыми полями не нужен даже на
+          // долю секунды.
+          if (active) router.replace('/login' as any);
+          return;
+        }
+        // Прочие ошибки (сеть и т.п.) — молча показываем пустую форму, как
+        // и раньше.
+      }
+      if (active) setLoading(false);
     })();
     return () => { active = false; };
   }, [router]);
+
+  // ?open=event|article — см. events/journal: открываем попап создания
+  // сразу по приходу на страницу (вместо лишнего клика по "Создать
+  // событие"/"Создать статью" здесь же). openedFromParamRef — чтобы не
+  // открыть повторно при каждом ре-рендере, пока параметр остаётся в URL.
+  const openedFromParamRef = useRef(false);
+  useEffect(() => {
+    if (loading || openedFromParamRef.current || role !== 'tutor' || isPendingTutor) return;
+    if (openParam === 'event') {
+      openedFromParamRef.current = true;
+      setEventCreated(false);
+      setEventError('');
+      setNewEventModalVisible(true);
+    } else if (openParam === 'article') {
+      openedFromParamRef.current = true;
+      setArticleSubmitted(false);
+      openNewArticleModal();
+    }
+  }, [loading, role, openParam, isPendingTutor]);
 
   async function pickAvatar(): Promise<string | undefined> {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -273,12 +417,35 @@ export default function ProfileScreenWeb() {
 
   async function handleDeleteCard(card: Card) {
     setDeletingCardId(card.id);
+    setDeleteCardError('');
     try {
-      await deletePaymentMethod(card.id);
+      try {
+        await deletePaymentMethod(card.id);
+      } catch {
+        // Бэкенд может не поддерживать удаление по id — пробуем legacy-эндпоинт
+        // "отвязать текущую карту" (см. payments.web.tsx, та же логика).
+        await deleteCurrentPaymentMethod();
+      }
       setPaymentCards((prev) => prev.filter((c) => c.id !== card.id));
-    } catch { /* keep card in list, user can retry */ }
-    finally {
+    } catch (e: any) {
+      setDeleteCardError(e?.message ?? 'Не удалось удалить карту');
+    } finally {
       setDeletingCardId(null);
+    }
+  }
+
+  async function handleLinkCard() {
+    if (isLinkingCard || paymentCards.length >= MAX_CARDS) return;
+    setIsLinkingCard(true);
+    setLinkCardError('');
+    try {
+      const { confirmationUrl } = await bindPaymentMethod();
+      const w = (globalThis as any).window;
+      if (w) w.location.href = confirmationUrl;
+    } catch (e: any) {
+      setLinkCardError(e?.message ?? 'Не удалось привязать карту');
+    } finally {
+      setIsLinkingCard(false);
     }
   }
 
@@ -386,7 +553,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>Деньги отправлены!</Text>
               <Pressable onPress={() => setWithdrawSuccessVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} ₽.</Text>
+            <Text style={styles.withdrawMessage}>Мы отправим вам на карту {payoutBalance.toLocaleString('ru-RU')} Р.</Text>
             <Text style={styles.withdrawMessage}>{WITHDRAWAL_TOOLTIP}.</Text>
           </Pressable>
         </Pressable>
@@ -520,7 +687,7 @@ export default function ProfileScreenWeb() {
                       </View>
                     </View>
                     <Text style={styles.historyDate}>{formatHistoryDate(p.createdAt ?? p.created_at ?? '')}</Text>
-                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} ₽</Text>
+                    <Text style={styles.historyAmountRight}>{p.amount.toLocaleString('ru-RU')} Р</Text>
                   </View>
                 ))}
               </ScrollView>
@@ -536,7 +703,7 @@ export default function ProfileScreenWeb() {
                     {item.subtitle ? <Text style={styles.historySubtitle}>{item.subtitle}</Text> : null}
                     <View style={styles.historyBottomRow}>
                       <Text style={styles.historyDate}>{formatHistoryDate(item.created_at)}</Text>
-                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} ₽</Text>
+                      <Text style={styles.historyAmount}>{item.amount.toLocaleString('ru-RU')} Р</Text>
                     </View>
                   </View>
                 ))}
@@ -561,8 +728,6 @@ export default function ProfileScreenWeb() {
 
             {paymentsLoading ? (
               <ActivityIndicator color="#010101" />
-            ) : paymentCards.length === 0 ? (
-              <Text style={styles.emptyText}>Карта не привязана</Text>
             ) : (
               paymentCards.map((card) => (
                 <View key={card.id} style={styles.paymentCardBlock}>
@@ -610,9 +775,21 @@ export default function ProfileScreenWeb() {
                       </Pressable>
                     </View>
                   </View>
+                  {deleteCardError ? <Text style={styles.errorText}>{deleteCardError}</Text> : null}
                 </View>
               ))
             )}
+
+            {!paymentsLoading && paymentCards.length < MAX_CARDS ? (
+              <>
+                <Pressable style={styles.linkRow} onPress={handleLinkCard} disabled={isLinkingCard}>
+                  <View style={styles.plusBox}><Text style={styles.plusText}>+</Text></View>
+                  <View style={styles.linkTextBox}><Text style={styles.linkText}>{isLinkingCard ? 'Привязка...' : 'Привязать карту'}</Text></View>
+                </Pressable>
+                <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
+                {linkCardError ? <Text style={styles.errorText}>{linkCardError}</Text> : null}
+              </>
+            ) : null}
           </Pressable>
         </Pressable>
       </Modal>
@@ -621,6 +798,14 @@ export default function ProfileScreenWeb() {
 
   // ── Tutor handlers (unchanged) ────────────────────────────────────────────
   async function handleTutorSave() {
+    if (!telegram.trim()) {
+      setTutorSaveError('Укажите Telegram, чтобы сохранить профиль');
+      return;
+    }
+    if (slots.length === 0) {
+      setTutorSaveError('Добавьте хотя бы один слот, чтобы сохранить профиль');
+      return;
+    }
     setTutorSaving(true);
     setTutorSaveError('');
     setTutorSaveOk(false);
@@ -629,6 +814,7 @@ export default function ProfileScreenWeb() {
         fullName, bio, shortBio, telegram,
         avatarUrl: avatarUrl || undefined,
         hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
+        specialization: specialization ?? undefined,
       });
       setTutorSaveOk(true);
       setTutorEditModalVisible(false);
@@ -656,15 +842,26 @@ export default function ProfileScreenWeb() {
   }
 
   /** Создаёт слот сразу на бэкенде (не откладывает до "Сохранить" — та кнопка
-   * теперь просто закрывает попап, см. запрос пользователя). */
+   * теперь просто закрывает попап, см. запрос пользователя). Бэкенд требует
+   * price в CreateSlotDto — берём его из "Стоимость часа" профиля, отдельного
+   * поля цены в этом попапе нет. */
   async function createAndAddSlot(date: string, time: string) {
     if (!date || !time) return;
+    if (isPendingTutor) {
+      setSlotsSaveError('Заявка на рассмотрении — слоты станут доступны после одобрения');
+      return;
+    }
+    const price = Number(hourlyRate);
+    if (!price || price <= 0) {
+      setSlotsSaveError('Укажите стоимость часа в личных данных, чтобы создавать слоты');
+      return;
+    }
     setSlotsSaveError('');
     try {
-      const slot = await createTutorSlot({ date, time });
+      const slot = await createTutorSlot({ date, time, price });
       setSlots((prev) => [...prev, slot]);
-    } catch {
-      setSlotsSaveError('Не удалось создать слот — попробуйте ещё раз');
+    } catch (e: any) {
+      setSlotsSaveError(e?.message ?? 'Не удалось создать слот — попробуйте ещё раз');
     }
   }
 
@@ -684,19 +881,27 @@ export default function ProfileScreenWeb() {
   }
 
   async function handleCreateEvent() {
+    if (isPendingTutor) return;
     setCreatingEvent(true);
     setEventError('');
     try {
       let coverUrl: string | undefined;
       if (eventCoverUri) coverUrl = await uploadEventImage(eventCoverUri);
+      const startDate = new Date(`${eventDate}T${eventTime}:00`);
+      const endDate = new Date(startDate.getTime() + DEFAULT_EVENT_DURATION_MINUTES * 60000);
       await createTutorEventFull({
-        title: eventTitle, description: eventDescription, date: eventDate, time: eventTime,
-        price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0, cover_image: coverUrl,
+        title: eventTitle, description: eventDescription,
+        datetime_start: startDate.toISOString(), datetime_end: endDate.toISOString(),
+        price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0,
+        coverUrl, topic: eventTopic ?? undefined, category: eventFormat ?? undefined,
       });
+      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTopic(null); setEventFormat(null); setEventCoverUri(null);
+      setNewEventModalVisible(false);
       setEventCreated(true);
-      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventCoverUri(null);
     } catch (e: any) {
       setEventError(e?.message ?? 'Не удалось создать событие');
+      setNewEventModalVisible(false);
+      setEventErrorModalVisible(true);
     } finally {
       setCreatingEvent(false);
     }
@@ -709,9 +914,69 @@ export default function ProfileScreenWeb() {
     if (!result.canceled && result.assets[0]) setEventCoverUri(result.assets[0].uri);
   }
 
+  // ── Заявка на статью ─────────────────────────────────────────────────────
+  async function handlePickArticleCover() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.8 });
+    if (!result.canceled && result.assets[0]) setArticleCoverUri(result.assets[0].uri);
+  }
+
+  // Список своих событий — для выбора "Событие для интеграции в текст";
+  // грузим лениво, только при открытии модалки (а не сразу на странице),
+  // чтобы не делать лишний запрос для наставников, которые статью не пишут.
+  function openNewArticleModal() {
+    setArticleError('');
+    setNewArticleModalVisible(true);
+    if (articleEvents.length === 0 && !articleEventsLoading) {
+      setArticleEventsLoading(true);
+      getTutorEvents().then(setArticleEvents).catch(() => {}).finally(() => setArticleEventsLoading(false));
+    }
+  }
+
+  async function handleCreateArticle() {
+    if (isPendingTutor) return;
+    setCreatingArticle(true);
+    setArticleError('');
+    try {
+      let coverUrl: string | undefined;
+      if (articleCoverUri) coverUrl = await uploadEventImage(articleCoverUri);
+      await createTutorArticle({
+        title: articleTitle,
+        cover_url: coverUrl,
+        excerpt: articleExcerpt || undefined,
+        event_id: articleEventId ?? undefined,
+      });
+      setArticleTitle(''); setArticleCoverUri(null); setArticleExcerpt(''); setArticleEventId(null);
+      setNewArticleModalVisible(false);
+      setArticleSubmitted(true);
+    } catch (e: any) {
+      setArticleError(e?.message ?? 'Не удалось отправить заявку');
+      setNewArticleModalVisible(false);
+      setArticleErrorModalVisible(true);
+    } finally {
+      setCreatingArticle(false);
+    }
+  }
+
   if (loading) {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
+
+  // Выйти/удалить аккаунт — в нативной версии профиля (см. profile/[id].tsx)
+  // уже были, в веб-версию не попали. Общий блок для студента и наставника —
+  // те же красные текстовые ссылки, что "Изменить личные данные"/"Платежи",
+  // не отдельные окантованные кнопки.
+  const accountActions = (
+    <View style={styles.accountActionsRow}>
+      <Pressable onPress={async () => { await clearAuth(); router.replace('/login' as any); }}>
+        <Text style={styles.actionLink}>Выйти из аккаунта</Text>
+      </Pressable>
+      <Pressable onPress={() => router.push('/(tabs)/profile/delete-account' as any)}>
+        <Text style={styles.actionLink}>Удалить аккаунт</Text>
+      </Pressable>
+    </View>
+  );
 
   // ─── Student view ──────────────────────────────────────────────────────────
   if (role === 'student') {
@@ -728,22 +993,18 @@ export default function ProfileScreenWeb() {
 
     return (
       <SiteShell>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.pageContent}>
-          <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
-
+        <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
+        <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
           {isMobile ? (
             <View>
-              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+              <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
               {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
               <View style={styles.actionsRowMobile}>{studentActions}</View>
             </View>
           ) : (
             <View style={styles.profileDesktopLayout}>
               <View style={styles.profileLeftCol}>
-                <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+                <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
                 <View style={styles.actionsRow}>{studentActions}</View>
               </View>
               <View style={styles.profileRightCol}>
@@ -751,6 +1012,8 @@ export default function ProfileScreenWeb() {
               </View>
             </View>
           )}
+
+          {accountActions}
         </View>
 
           <SiteFooter />
@@ -766,7 +1029,7 @@ export default function ProfileScreenWeb() {
               </View>
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
-              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
+              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -790,16 +1053,16 @@ export default function ProfileScreenWeb() {
               <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
                 <View style={styles.modalHeaderLeft}>
                   <Pressable onPress={() => { setPasswordModalVisible(false); setEditModalVisible(true); }} hitSlop={8}>
-                    <Text style={styles.backArrow}>←</Text>
+                    <BackArrowIcon />
                   </Pressable>
                   <Text style={styles.modalTitle}>Новый пароль</Text>
                 </View>
                 <Pressable onPress={() => setPasswordModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
               </View>
-              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
-              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прописных символов</Text>
+              <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
                 <Text style={styles.modalSaveText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
@@ -825,22 +1088,37 @@ export default function ProfileScreenWeb() {
       {bio.trim() ? <Text style={styles.bioText}>{bio.trim()}</Text> : null}
     </>
   );
-  const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.bigAvatar} /> : <View style={[styles.bigAvatar, styles.bigAvatarPlaceholder]} />;
+  const tutorAvatar = avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.tutorAvatarImg} resizeMode="cover" /> : <View style={[styles.tutorAvatarImg, styles.bigAvatarPlaceholder]} />;
 
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.pageContent}>
-        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile' as any))} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
-            <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
-            {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarMobile} /> : <View style={[styles.avatarMobile, styles.bigAvatarPlaceholder]} />}
-            {tutorBioBlock}
+            <View style={styles.nameRow}>
+              <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
+              {isPendingTutor ? (
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingBadgeText}>Заявка на рассмотрении</Text>
+                </View>
+              ) : null}
+            </View>
+            {/* За основу — публичная страница наставника (explore/[id].web.tsx):
+                фото и короткое "О себе" стоят в ряд, а не отдельными блоками
+                друг под другом — раньше фото было на всю ширину квадратом,
+                а подпись и био шли сплошным текстом без того же межстрочного
+                интервала/размера, что и везде на сайте. */}
+            <View style={styles.tutorHeaderRowMobile}>
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.tutorAvatarMobile} /> : <View style={[styles.tutorAvatarMobile, styles.bigAvatarPlaceholder]} />}
+              {shortBio.trim() ? (
+                <View style={styles.tutorHeaderInfoMobile}>
+                  <Text style={styles.tutorShortBioMobile}>{shortBio.trim()}</Text>
+                </View>
+              ) : null}
+            </View>
+            {bio.trim() ? <Text style={[styles.bioText, styles.bioTextMobile]}>{bio.trim()}</Text> : null}
             <View style={styles.actionsRowMobile}>
               <Pressable style={styles.chipHalf} onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
                 <Text style={styles.chipHalfText}>Личные данные</Text>
@@ -851,9 +1129,16 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ) : (
-          <View style={styles.profileDesktopLayout}>
-            <View style={styles.profileLeftCol}>
-              <Text style={styles.studentName}>{fullName || 'Профиль'}</Text>
+          <View style={styles.tutorDesktopGrid}>
+            <View style={styles.tutorInfoContainer}>
+              <View style={styles.nameRow}>
+                <Text style={[styles.studentName, isMobile && styles.studentNameMobile]}>{fullName || 'Профиль'}</Text>
+                {isPendingTutor ? (
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingBadgeText}>Заявка на рассмотрении</Text>
+                  </View>
+                ) : null}
+              </View>
               {tutorBioBlock}
               <View style={styles.actionsRow}>
                 <Pressable onPress={() => { setTutorSaveError(''); setTutorSaveOk(false); setTutorEditModalVisible(true); }}>
@@ -862,12 +1147,25 @@ export default function ProfileScreenWeb() {
                 <Pressable onPress={openPaymentsModal}>
                   <Text style={styles.actionLink}>Платежи</Text>
                 </Pressable>
-                <Pressable onPress={() => { setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}>
-                  <Text style={styles.actionLink}>Создать событие</Text>
+                {/* Пока заявка наставника не одобрена — нет доступа ни к
+                    созданию событий/статей, ни к слотам (см. ниже); вместо
+                    скрытия ссылок показываем их серыми и некликабельными —
+                    понятнее, чем пропавшие кнопки. */}
+                <Pressable
+                  onPress={() => { if (isPendingTutor) return; setEventCreated(false); setEventError(''); setNewEventModalVisible(true); }}
+                  disabled={isPendingTutor}
+                >
+                  <Text style={[styles.actionLink, isPendingTutor && styles.actionLinkDisabled]}>Создать событие</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => { if (isPendingTutor) return; setArticleSubmitted(false); openNewArticleModal(); }}
+                  disabled={isPendingTutor}
+                >
+                  <Text style={[styles.actionLink, isPendingTutor && styles.actionLinkDisabled]}>Создать статью</Text>
                 </Pressable>
               </View>
             </View>
-            <View style={styles.profileRightCol}>{tutorAvatar}</View>
+            <View style={styles.tutorAvatarBox}>{tutorAvatar}</View>
           </View>
         )}
 
@@ -880,9 +1178,15 @@ export default function ProfileScreenWeb() {
             </View>
           </View>
         ))}
-        <Pressable style={[styles.addSlotButton, isMobile && styles.mobileChip]} onPress={() => { setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}>
-          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText]}>Добавить слот</Text>
+        <Pressable
+          style={[styles.addSlotButton, isMobile && styles.mobileChip]}
+          onPress={() => { if (isPendingTutor) return; setSelectedSlotId(null); setSlotsSaveError(''); setSlotsModalVisible(true); }}
+          disabled={isPendingTutor}
+        >
+          <Text style={[styles.addSlotLink, isMobile && styles.mobileChipText, isPendingTutor && styles.actionLinkDisabled]}>Добавить слот</Text>
         </Pressable>
+
+        {accountActions}
       </View>
 
         <SiteFooter />
@@ -892,17 +1196,31 @@ export default function ProfileScreenWeb() {
       <Modal transparent animationType="fade" visible={tutorEditModalVisible} onRequestClose={() => setTutorEditModalVisible(false)}>
         <Pressable style={styles.overlay} onPress={() => setTutorEditModalVisible(false)}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
-            <ScrollView style={styles.slotsModalScroll}>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
               <Text style={styles.modalTitle}>Изменение данных</Text>
               <FieldWithPlus label="Имя" value={fullName} onChangeText={setFullName} />
               <FieldWithPlus label="Описание" value={shortBio} onChangeText={setShortBio} />
               <FieldWithPlus label="Почта" value={email} editable={false} />
-              <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" />
+              <FieldWithPlus label="Телеграм *" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
               <FieldWithPlus label="Доп. информация" value={bio} onChangeText={setBio} multiline />
               <FieldWithPlus label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
               {hourlyRate && Number(hourlyRate) > 0 ? (
-                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} ₽</Text>
+                <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(Number(hourlyRate) * 0.9)} Р</Text>
               ) : null}
+              {/* Без этого поля специализация наставника никогда не устанавливалась
+                  и не менялась после регистрации — наставник навсегда выпадал из
+                  всех фильтров рубрикатора на /explore. */}
+              <Text style={styles.fieldLabel}>Специализация</Text>
+              <View style={styles.eventTopicsRow}>
+                {topicsList.map((t) => {
+                  const active = t === specialization;
+                  return (
+                    <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
+                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -913,11 +1231,16 @@ export default function ProfileScreenWeb() {
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
               {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
+              {/* Telegram — обязательное поле (иначе наставника не с кем
+                  связаться по записи), без хотя бы одного слота наставник
+                  не бронируется — не даём сохранить профиль, пока их нет. */}
+              {!telegram.trim() ? <Text style={styles.hint}>Укажите Telegram, чтобы сохранить профиль</Text> : null}
+              {slots.length === 0 ? <Text style={styles.hint}>Добавьте хотя бы один слот, чтобы сохранить профиль</Text> : null}
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setTutorEditModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleTutorSave} disabled={tutorSaving}>
-                <Text style={styles.modalSaveText}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              <Pressable onPress={handleTutorSave} disabled={tutorSaving || !telegram.trim() || slots.length === 0}>
+                <Text style={[styles.modalSaveText, (!telegram.trim() || slots.length === 0) && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -930,14 +1253,14 @@ export default function ProfileScreenWeb() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <View style={styles.modalHeaderRow}>
               <Pressable onPress={() => { setPasswordModalVisible(false); setTutorEditModalVisible(true); }} hitSlop={8}>
-                <Text style={styles.backArrow}>←</Text>
+                <BackArrowIcon />
               </Pressable>
               <Text style={styles.modalTitle}>Новый пароль</Text>
             </View>
-            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
-            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и спецсимволов</Text>
+            <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
+            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
               <Text style={styles.primaryButtonText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
@@ -961,14 +1284,56 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>Добавить событие</Text>
               <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
             </View>
-            <ScrollView style={styles.slotsModalScroll}>
-              {eventCreated ? <Text style={styles.successText}>Событие создано</Text> : null}
-              <FieldWithPlus label="Название" value={eventTitle} onChangeText={setEventTitle} />
-              <FieldWithPlus label="Описание" value={eventDescription} onChangeText={setEventDescription} multiline />
-              <DateFieldWithPicker label="Дата" value={eventDate} onChangeValue={setEventDate} />
-              <TimeFieldWithPicker label="Время" value={eventTime} onChangeValue={setEventTime} />
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
+              <FieldWithPlus
+                label="Название"
+                value={eventTitle}
+                onChangeText={(t) => t.length <= EVENT_TITLE_MAX_CHARS && setEventTitle(t)}
+                maxLength={EVENT_TITLE_MAX_CHARS}
+              />
+              <Text style={styles.hint}>Ограничение: {EVENT_TITLE_MAX_CHARS} символов</Text>
+              <FieldWithPlus
+                label="Описание"
+                value={eventDescription}
+                onChangeText={(t) => setEventDescription(clampEventDescription(t))}
+                multiline
+                maxLength={EVENT_DESCRIPTION_MAX_CHARS}
+              />
+              <Text style={styles.hint}>Ограничение: {EVENT_DESCRIPTION_MAX_CHARS} символов или {EVENT_DESCRIPTION_MAX_WORDS} слов</Text>
+              <DateFieldWithPicker
+                label="Дата" value={eventDate} onChangeValue={setEventDate}
+                pickerId="new-event-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+              />
+              <TimeFieldWithPicker
+                label="Время" value={eventTime} onChangeValue={setEventTime} referenceDate={eventDate}
+                pickerId="new-event-time" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+              />
               <FieldWithPlus label="Стоимость участия" value={eventPrice} onChangeText={setEventPrice} keyboardType="numeric" />
               <FieldWithPlus label="Максимальное количество участников" value={eventMax} onChangeText={setEventMax} keyboardType="numeric" />
+              {/* Без выбора формата событие никогда не получало category — не
+                  попадало ни под один фильтр на /events, кроме "Все". */}
+              <Text style={styles.fieldLabel}>Формат</Text>
+              <View style={styles.eventTopicsRow}>
+                {EVENT_FORMATS.map(({ label, slug }) => {
+                  const active = slug === eventFormat;
+                  return (
+                    <Pressable key={slug} onPress={() => setEventFormat(active ? null : slug)}>
+                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.fieldLabel}>Рубрика</Text>
+              <View style={styles.eventTopicsRow}>
+                {topicsList.map((t) => {
+                  const active = t === eventTopic;
+                  return (
+                    <Pressable key={t} onPress={() => setEventTopic(active ? null : t)}>
+                      <Text style={[styles.eventTopicPillText, active && styles.eventTopicPillTextActive]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
               <Text style={styles.fieldLabel}>Обложка</Text>
               <Pressable style={styles.fieldInputWrap} onPress={handlePickCover}>
                 {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : (
@@ -978,12 +1343,159 @@ export default function ProfileScreenWeb() {
                   </Svg>
                 )}
               </Pressable>
-              {eventError ? <Text style={styles.errorText}>{eventError}</Text> : null}
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setNewEventModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
               <Pressable onPress={handleCreateEvent} disabled={creatingEvent}>
                 <Text style={styles.modalSaveText}>{creatingEvent ? 'Создаём…' : 'Сохранить'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Событие создано!" modal — после успешного создания события ──── */}
+      <Modal transparent animationType="fade" visible={eventCreated} onRequestClose={() => setEventCreated(false)}>
+        <Pressable style={styles.overlay} onPress={() => setEventCreated(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Событие создано!</Text>
+              <Pressable onPress={() => setEventCreated(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.withdrawMessage}>Событие опубликовано и уже доступно для записи.</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Не удалось создать событие" modal — ошибка создания ──────────── */}
+      <Modal transparent animationType="fade" visible={eventErrorModalVisible} onRequestClose={() => setEventErrorModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setEventErrorModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={[styles.modalTitle, styles.modalTitleError]}>Не удалось создать событие</Text>
+              <Pressable onPress={() => setEventErrorModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.errorText}>{eventError}</Text>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setEventErrorModalVisible(false)}><Text style={styles.modalCancelText}>Закрыть</Text></Pressable>
+              <Pressable onPress={() => { setEventErrorModalVisible(false); setNewEventModalVisible(true); }}>
+                <Text style={styles.modalSaveText}>Попробовать ещё раз</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── Заявка на статью ─────────────────────────────────────────── */}
+      <Modal transparent animationType="fade" visible={newArticleModalVisible} onRequestClose={() => setNewArticleModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setNewArticleModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Новая статья</Text>
+              <Pressable onPress={() => setNewArticleModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
+              <FieldWithPlus label="Заголовок" value={articleTitle} onChangeText={setArticleTitle} />
+
+              <Text style={styles.fieldLabel}>Обложка</Text>
+              <Pressable style={styles.fieldInputWrap} onPress={handlePickArticleCover}>
+                {articleCoverUri ? <Image source={{ uri: articleCoverUri }} style={styles.avatarThumb} /> : (
+                  <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
+                    <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
+                  </Svg>
+                )}
+              </Pressable>
+
+              <FieldWithPlus label="Описание" value={articleExcerpt} onChangeText={setArticleExcerpt} multiline maxLength={300} />
+              <Text style={styles.hint}>Расскажите коротко о теме вашей статьи</Text>
+
+              <Text style={styles.fieldLabel}>Событие для интеграции в текст</Text>
+              {articleEventsLoading ? (
+                <ActivityIndicator color="#010101" style={{ marginTop: 8 }} />
+              ) : articleEvents.length === 0 ? (
+                <Text style={styles.hint}>У вас пока нет событий</Text>
+              ) : articleEventId ? (
+                // Выбранное событие — отдельной строкой, со ссылкой "Изменить"
+                // (вместо списка всех событий сразу).
+                (() => {
+                  const selected = articleEvents.find((e) => e.id === articleEventId);
+                  if (!selected) return null;
+                  return (
+                    <View style={[styles.articleEventRow, styles.articleEventRowActive]}>
+                      <Text style={[styles.articleEventRowTitle, styles.articleEventRowTitleActive]} numberOfLines={1}>{selected.title}</Text>
+                      <Pressable onPress={() => { setArticleEventId(null); setArticleEventQuery(''); }}>
+                        <Text style={styles.removeLink}>Изменить</Text>
+                      </Pressable>
+                    </View>
+                  );
+                })()
+              ) : (
+                // Поиск по названию — как в админке журнала (поле "Событие —
+                // CTA"): список появляется только когда начали печатать.
+                <>
+                  <TextInput
+                    style={styles.eventSearchInput}
+                    value={articleEventQuery}
+                    onChangeText={setArticleEventQuery}
+                    placeholder="Поиск события по названию"
+                    placeholderTextColor="#9B9B9B"
+                  />
+                  {articleEventQuery.trim() ? (
+                    <View style={styles.articleEventList}>
+                      {articleEvents
+                        .filter((e) => e.title.toLowerCase().includes(articleEventQuery.trim().toLowerCase()))
+                        .map((e) => (
+                          <Pressable
+                            key={e.id}
+                            style={styles.articleEventRow}
+                            onPress={() => { setArticleEventId(e.id); setArticleEventQuery(''); }}
+                          >
+                            <Text style={styles.articleEventRowTitle} numberOfLines={1}>{e.title}</Text>
+                            {e.start_at ? <Text style={styles.articleEventRowDate}>{formatHistoryDate(e.start_at)}</Text> : null}
+                          </Pressable>
+                        ))}
+                    </View>
+                  ) : null}
+                </>
+              )}
+            </ScrollView>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setNewArticleModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
+              <Pressable onPress={handleCreateArticle} disabled={creatingArticle || !articleTitle.trim()}>
+                <Text style={styles.modalSaveText}>{creatingArticle ? 'Отправляем…' : 'Отправить заявку'}</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Заявка отправлена!" modal — после успешной отправки заявки ──── */}
+      <Modal transparent animationType="fade" visible={articleSubmitted} onRequestClose={() => setArticleSubmitted(false)}>
+        <Pressable style={styles.overlay} onPress={() => setArticleSubmitted(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={styles.modalTitle}>Заявка отправлена!</Text>
+              <Pressable onPress={() => setArticleSubmitted(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.withdrawMessage}>Статья отправлена на модерацию. Мы свяжемся с вами и опубликуем материал после проверки.</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ─── "Не удалось отправить заявку" modal — ошибка отправки ─────────── */}
+      <Modal transparent animationType="fade" visible={articleErrorModalVisible} onRequestClose={() => setArticleErrorModalVisible(false)}>
+        <Pressable style={styles.overlay} onPress={() => setArticleErrorModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <View style={[styles.modalHeaderRow, styles.modalHeaderRowSpread]}>
+              <Text style={[styles.modalTitle, styles.modalTitleError]}>Не удалось отправить заявку</Text>
+              <Pressable onPress={() => setArticleErrorModalVisible(false)}><Text style={styles.backArrow}>✕</Text></Pressable>
+            </View>
+            <Text style={styles.errorText}>{articleError}</Text>
+            <View style={styles.modalFooterRow}>
+              <Pressable onPress={() => setArticleErrorModalVisible(false)}><Text style={styles.modalCancelText}>Закрыть</Text></Pressable>
+              <Pressable onPress={() => { setArticleErrorModalVisible(false); setNewArticleModalVisible(true); }}>
+                <Text style={styles.modalSaveText}>Попробовать ещё раз</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -997,7 +1509,7 @@ export default function ProfileScreenWeb() {
               <Text style={styles.modalTitle}>{isMobile ? 'Редактировать слоты' : 'Редактировать слоты для записи'}</Text>
             </View>
 
-            <ScrollView style={styles.slotsModalScroll}>
+            <ScrollView style={[styles.slotsModalScroll, { maxHeight: modalScrollMaxHeight }]}>
               {groupSlotsByDate(slots).map((group) => (
                 <View key={group.date} style={styles.slotDateGroup}>
                   <Text style={styles.slotDateLabel}>{formatSlotDateLabel(group.date)}</Text>
@@ -1030,7 +1542,9 @@ export default function ProfileScreenWeb() {
                             onPress={(e) => { e.stopPropagation?.(); handleRemoveSlot(s.id); setSelectedSlotId(null); }}
                             hitSlop={6}
                           >
-                            <Text style={styles.slotRemoveChipText}>−</Text>
+                            <Svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                              <Path d="M1.5 5H8.5" stroke="#E02D2D" strokeWidth="1.5" strokeLinecap="round" />
+                            </Svg>
                           </Pressable>
                         </Pressable>
                       );
@@ -1042,19 +1556,16 @@ export default function ProfileScreenWeb() {
 
                   {timePickerOpenDate === group.date ? (
                     <View style={styles.slotTimePickerRow}>
-                      <input
-                        type="time"
-                        value={timePickerDraft}
-                        autoFocus
-                        style={styles.slotTimePickerInput as any}
-                        onChange={(e: any) => setTimePickerDraft(e.target.value)}
+                      <TimeFieldWithPicker
+                        value={timePickerDraft} onChangeValue={setTimePickerDraft} autoActive referenceDate={group.date}
+                        pickerId={`slot-time-${group.date}`} openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
                       />
                       <Pressable
-                        style={[styles.slotTimePickerConfirmInline, !timePickerDraft && styles.btnDisabled]}
+                        style={[styles.slotTimePickerConfirm, !timePickerDraft && styles.btnDisabled]}
                         onPress={confirmTimePickerSlot}
                         disabled={!timePickerDraft}
                       >
-                        <Text style={styles.slotTimePickerConfirmText}>Выбрать</Text>
+                        <Text style={styles.slotTimePickerConfirmText}>Добавить слот</Text>
                       </Pressable>
                     </View>
                   ) : null}
@@ -1062,14 +1573,20 @@ export default function ProfileScreenWeb() {
               ))}
             </ScrollView>
 
-            <DateFieldWithPicker label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate} />
-            <TimeFieldWithPicker label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} />
+            <DateFieldWithPicker
+              label="Дата" value={newSlotDate} onChangeValue={setNewSlotDate}
+              pickerId="new-slot-date" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+            />
+            <TimeFieldWithPicker
+              label="Время" value={newSlotTime} onChangeValue={setNewSlotTime} referenceDate={newSlotDate}
+              pickerId="new-slot-time" openPickerId={openPickerId} onOpenPicker={setOpenPickerId}
+            />
             {newSlotDate && newSlotTime ? (
               <Pressable
                 style={styles.slotTimePickerConfirm}
                 onPress={() => { createAndAddSlot(newSlotDate, newSlotTime); setNewSlotDate(''); setNewSlotTime(''); }}
               >
-                <Text style={styles.slotTimePickerConfirmText}>Выбрать</Text>
+                <Text style={styles.slotTimePickerConfirmText}>Добавить слот</Text>
               </Pressable>
             ) : null}
 
@@ -1096,7 +1613,7 @@ export default function ProfileScreenWeb() {
  * кружок с плюсом вместо рамки, клик по плюсу открывает настоящий инпут с
  * курсором (см. ту же логику на страницах авторизации/регистрации).
  */
-function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline }: {
+function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, autoCapitalize, multiline, maxLength, placeholder }: {
   label: string;
   value: string;
   onChangeText?: (text: string) => void;
@@ -1104,6 +1621,8 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   multiline?: boolean;
+  maxLength?: number;
+  placeholder?: string;
 }) {
   return (
     <PlusField
@@ -1114,44 +1633,177 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       keyboardType={keyboardType}
       autoCapitalize={autoCapitalize}
       multiline={multiline}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      labelStyle={styles.popupFieldLabel}
+      inputStyle={styles.popupFieldInput}
     />
+  );
+}
+
+const MONTHS_NOM = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Примерная высота попапов — используется, чтобы решить, помещается ли попап
+// снизу от поля, или его нужно открыть вверх (см. useFlipDirection ниже).
+const TIME_POPOVER_HEIGHT = 290;
+const DATE_POPOVER_HEIGHT = 390;
+
+/**
+ * Меряет положение якоря относительно окна в момент открытия попапа и решает,
+ * в какую сторону он поместится: вниз (по умолчанию) или вверх, если снизу
+ * не хватает места, а сверху его больше. Пересчитывается при каждом открытии
+ * (positions could change, e.g. after scrolling), не при каждом рендере.
+ */
+function useFlipDirection(open: boolean, popoverHeight: number): [React.RefObject<any>, 'down' | 'up'] {
+  const anchorRef = useRef<any>(null);
+  const [direction, setDirection] = useState<'down' | 'up'>('down');
+  useEffect(() => {
+    if (!open) return;
+    const node = anchorRef.current;
+    if (!node || typeof node.getBoundingClientRect !== 'function') return;
+    const rect = node.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    setDirection(spaceBelow < popoverHeight && spaceAbove > spaceBelow ? 'up' : 'down');
+  }, [open, popoverHeight]);
+  return [anchorRef, direction];
+}
+
+/**
+ * Закрывает попап по клику вне области якоря (поле + сам попап) — без этого
+ * открытый date/timepicker можно было закрыть только повторным кликом по
+ * значению или (для времени) кнопкой "Выбрать", а клик мимо ни на что не
+ * влиял, попап просто оставался висеть поверх контента.
+ */
+function useOutsideClick(ref: React.RefObject<any>, active: boolean, onOutside: () => void) {
+  const onOutsideRef = useRef(onOutside);
+  onOutsideRef.current = onOutside;
+  useEffect(() => {
+    if (!active) return;
+    function handlePointerDown(e: any) {
+      const node = ref.current;
+      if (node && typeof node.contains === 'function' && e.target && !node.contains(e.target)) {
+        onOutsideRef.current();
+      }
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [active, ref]);
+}
+
+/**
+ * Свой календарь вместо нативного <input type="date"> — тот же приём, что
+ * и у TimeWheelPicker ниже (свой UI вместо непере-крашиваемого браузерного
+ * попапа), плюс сразу решает "нельзя выбрать прошедшую дату": дни до
+ * сегодняшнего в сетке недоступны для клика, а не просто выглядят иначе.
+ */
+function DateWheelPicker({ value, onPick, openUp, onConfirm }: { value: string; onPick: (v: string) => void; openUp?: boolean; onConfirm: () => void }) {
+  const today = startOfToday();
+  const initial = value ? new Date(`${value}T00:00:00`) : today;
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  // getDay(): 0=вс..6=сб — сдвигаем так, чтобы неделя начиналась с понедельника.
+  const leadingBlanks = (firstOfMonth.getDay() + 6) % 7;
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const cells: (Date | null)[] = [
+    ...Array(leadingBlanks).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => new Date(viewYear, viewMonth, i + 1)),
+  ];
+
+  function goMonth(delta: number) {
+    const d = new Date(viewYear, viewMonth + delta, 1);
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  }
+
+  return (
+    <View style={[styles.dateWheelPopover, openUp ? styles.dateWheelPopoverUp : styles.dateWheelPopoverDown]}>
+      <View style={styles.dateWheelHeader}>
+        <Pressable onPress={() => goMonth(-1)} hitSlop={8}><Text style={styles.dateWheelNav}>‹</Text></Pressable>
+        <Text style={styles.dateWheelHeaderText}>{MONTHS_NOM[viewMonth]} {viewYear}</Text>
+        <Pressable onPress={() => goMonth(1)} hitSlop={8}><Text style={styles.dateWheelNav}>›</Text></Pressable>
+      </View>
+      <View style={styles.dateWheelWeekRow}>
+        {WEEKDAYS_SHORT.map((w) => <Text key={w} style={styles.dateWheelWeekday}>{w}</Text>)}
+      </View>
+      <View style={styles.dateWheelGrid}>
+        {cells.map((d, i) => {
+          if (!d) return <View key={`blank-${i}`} style={styles.dateWheelCell} />;
+          const key = toDateKey(d);
+          const disabled = d.getTime() < today.getTime();
+          const active = key === value;
+          return (
+            <Pressable
+              key={key}
+              style={[styles.dateWheelCell, active && styles.dateWheelCellActive]}
+              disabled={disabled}
+              onPress={() => onPick(key)}
+            >
+              <Text style={[styles.dateWheelCellText, disabled && styles.dateWheelCellTextDisabled, active && styles.dateWheelCellTextActive]}>
+                {d.getDate()}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Pressable style={[styles.wheelConfirmBtn, !value && styles.btnDisabled]} disabled={!value} onPress={onConfirm}>
+        <Text style={styles.wheelConfirmBtnText}>Выбрать</Text>
+      </Pressable>
+    </View>
   );
 }
 
 /**
  * Дата/время в том же визуальном стиле, что PlusField (подпись + кружок с
- * плюсом), но вместо текстового инпута — настоящий нативный date/time picker
- * браузера (невидимый <input> поверх кликабельного значения, тот же приём,
- * что в new-event.tsx). Этот файл — веб-онли (.web.tsx), поэтому без
- * iOS/Android-веток.
+ * плюсом), но вместо текстового инпута — свой попап-пикер (см.
+ * DateWheelPicker/TimeWheelPicker), абсолютно спозиционированный поверх
+ * остального контента — раньше открытый пикер был частью обычного потока
+ * разметки и раздвигал родительскую модалку по высоте.
  */
-function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
+function DateFieldWithPicker({ label, value, onChangeValue, pickerId, openPickerId, onOpenPicker }: {
+  label: string; value: string; onChangeValue: (v: string) => void;
+  pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
+}) {
   const [active, setActive] = useState(false);
-  const webRef = useRef<any>(null);
+  const pickerOpen = openPickerId === pickerId;
   const expanded = active || value.length > 0;
   const dateObj = value ? new Date(`${value}T00:00:00`) : null;
   const display = dateObj && !isNaN(dateObj.getTime())
     ? `${String(dateObj.getDate()).padStart(2, '0')}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${dateObj.getFullYear()}`
     : '';
+  const [anchorRef, direction] = useFlipDirection(pickerOpen, DATE_POPOVER_HEIGHT);
+  useOutsideClick(anchorRef, pickerOpen, () => onOpenPicker(null));
 
   return (
-    <View style={styles.plusFieldWrap}>
+    <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
       <Text style={styles.plusFieldLabel}>{label}</Text>
       {expanded ? (
-        <Pressable
-          style={styles.plusFieldValueRow}
-          onPress={() => { try { webRef.current?.showPicker?.(); } catch { webRef.current?.click?.(); } }}
-        >
-          <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
-          <input
-            ref={webRef}
-            type="date"
-            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
-            onChange={(e: any) => { if (e.target.value) onChangeValue(e.target.value); }}
-          />
-        </Pressable>
+        <View style={styles.pickerAnchor} ref={anchorRef}>
+          <Pressable style={styles.plusFieldValueRow} onPress={() => onOpenPicker(pickerOpen ? null : pickerId)}>
+            <Text style={styles.plusFieldValueText}>{display || 'Выберите дату'}</Text>
+          </Pressable>
+          {/* Попап закрывается кнопкой "Выбрать" внутри него (или кликом
+              мимо), а не сразу по клику на день — иначе нельзя было
+              рассмотреть выбранную дату перед подтверждением. */}
+          {pickerOpen ? (
+            <DateWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} onConfirm={() => onOpenPicker(null)} />
+          ) : null}
+        </View>
       ) : (
-        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { setActive(true); onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1162,29 +1814,104 @@ function DateFieldWithPicker({ label, value, onChangeValue }: { label: string; v
   );
 }
 
-function TimeFieldWithPicker({ label, value, onChangeValue }: { label: string; value: string; onChangeValue: (v: string) => void }) {
-  const [active, setActive] = useState(false);
-  const webRef = useRef<any>(null);
+const WHEEL_HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const WHEEL_MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+/**
+ * Свой пикер времени вместо нативного <input type="time"> — у выпадающего
+ * попапа браузера (Chrome) выделенная ячейка синяя и никак не перекрашивается
+ * через CSS (это внутренний UA-shadow-DOM браузера, не наша разметка).
+ * Две прокручиваемые колонки, часы/минуты, выбранная ячейка — фирменный
+ * красный, как остальные акценты сайта.
+ */
+function TimeWheelPicker({ value, onPick, openUp, onConfirm, minTime }: {
+  value: string; onPick: (v: string) => void; openUp?: boolean; onConfirm: () => void;
+  minTime?: { hour: number; minute: number };
+}) {
+  const [h, m] = value ? value.split(':') : ['', ''];
+  // Пока час ещё не выбран, onPick подставляет "00" (см. ниже) — те же "00"
+  // берём и здесь, чтобы список минут дизейблился ровно так же, как реально
+  // выберется час при клике по минуте.
+  const effectiveHour = h ? Number(h) : 0;
+  const hourDisabled = (hh: string) => !!minTime && Number(hh) < minTime.hour;
+  const minuteDisabled = (mm: string) => {
+    if (!minTime) return false;
+    if (effectiveHour > minTime.hour) return false;
+    if (effectiveHour < minTime.hour) return true;
+    return Number(mm) < minTime.minute;
+  };
+  return (
+    <View style={[styles.timeWheelPopover, openUp ? styles.timeWheelPopoverUp : styles.timeWheelPopoverDown]}>
+      <View style={styles.timeWheelColumnsRow}>
+        <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
+          {WHEEL_HOURS.map((hh) => {
+            const disabled = hourDisabled(hh);
+            return (
+              <Pressable key={hh} style={[styles.timeWheelCell, hh === h && styles.timeWheelCellActive]} disabled={disabled} onPress={() => onPick(`${hh}:${m || '00'}`)}>
+                <Text style={[styles.timeWheelCellText, disabled && styles.timeWheelCellTextDisabled, hh === h && styles.timeWheelCellTextActive]}>{hh}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <ScrollView style={styles.timeWheelColumn} showsVerticalScrollIndicator={false}>
+          {WHEEL_MINUTES.map((mm) => {
+            const disabled = minuteDisabled(mm);
+            return (
+              <Pressable key={mm} style={[styles.timeWheelCell, mm === m && styles.timeWheelCellActive]} disabled={disabled} onPress={() => onPick(`${h || '00'}:${mm}`)}>
+                <Text style={[styles.timeWheelCellText, disabled && styles.timeWheelCellTextDisabled, mm === m && styles.timeWheelCellTextActive]}>{mm}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+      <Pressable style={[styles.wheelConfirmBtn, !(h && m) && styles.btnDisabled]} disabled={!(h && m)} onPress={onConfirm}>
+        <Text style={styles.wheelConfirmBtnText}>Выбрать</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function TimeFieldWithPicker({ label, value, onChangeValue, autoActive, referenceDate, pickerId, openPickerId, onOpenPicker }: {
+  label?: string; value: string; onChangeValue: (v: string) => void; autoActive?: boolean; referenceDate?: string;
+  pickerId: string; openPickerId: string | null; onOpenPicker: (id: string | null) => void;
+}) {
+  const [active, setActive] = useState(!!autoActive);
+  const pickerOpen = openPickerId === pickerId;
   const expanded = active || value.length > 0;
+  const [anchorRef, direction] = useFlipDirection(pickerOpen, TIME_POPOVER_HEIGHT);
+  useOutsideClick(anchorRef, pickerOpen, () => onOpenPicker(null));
+
+  // autoActive — попап должен быть открыт сразу при появлении поля (см.
+  // инлайн-время-пикер для конкретной даты), а не только по клику.
+  useEffect(() => {
+    if (autoActive) onOpenPicker(pickerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Прошедшее время недоступно для выбора, но только если выбранная дата —
+  // сегодня; для будущих дат все часы/минуты открыты.
+  const now = new Date();
+  const minTime = referenceDate && referenceDate === toDateKey(now)
+    ? { hour: now.getHours(), minute: now.getMinutes() }
+    : undefined;
 
   return (
-    <View style={styles.plusFieldWrap}>
-      <Text style={styles.plusFieldLabel}>{label}</Text>
+    <View style={[styles.plusFieldWrap, pickerOpen && styles.plusFieldWrapElevated]}>
+      {label ? <Text style={styles.plusFieldLabel}>{label}</Text> : null}
       {expanded ? (
-        <Pressable
-          style={styles.plusFieldValueRow}
-          onPress={() => { try { webRef.current?.showPicker?.(); } catch { webRef.current?.click?.(); } }}
-        >
-          <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
-          <input
-            ref={webRef}
-            type="time"
-            style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' } as any}
-            onChange={(e: any) => { if (e.target.value) onChangeValue(e.target.value); }}
-          />
-        </Pressable>
+        <View style={styles.pickerAnchor} ref={anchorRef}>
+          <Pressable style={styles.plusFieldValueRow} onPress={() => onOpenPicker(pickerOpen ? null : pickerId)}>
+            <Text style={styles.plusFieldValueText}>{value || 'Выберите время'}</Text>
+          </Pressable>
+          {/* Часы и минуты — два отдельных клика за одно открытие, поэтому
+              попап не закрывается сам по себе; закрывается кнопкой "Выбрать"
+              внутри него (или кликом мимо). */}
+          {pickerOpen ? (
+            <TimeWheelPicker value={value} onPick={onChangeValue} openUp={direction === 'up'} onConfirm={() => onOpenPicker(null)} minTime={minTime} />
+          ) : null}
+        </View>
       ) : (
-        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusFieldButton}>
+        <Pressable onPress={() => { setActive(true); onOpenPicker(pickerId); }} hitSlop={8} style={styles.plusFieldButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />
@@ -1197,34 +1924,77 @@ function TimeFieldWithPicker({ label, value, onChangeValue }: { label: string; v
 
 const styles = StyleSheet.create({
   scrollContent: { paddingTop: 24, paddingBottom: 48 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingTop: 0 },
   pageContent: { paddingHorizontal: 32 },
+  pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
+
+  // Выйти/удалить аккаунт — общие для студента и наставника, тот же стиль
+  // красной текстовой ссылки, что actionLink ("Изменить личные данные" и т.д.).
+  accountActionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 40 },
 
   // DateFieldWithPicker/TimeFieldWithPicker — те же значения, что в PlusField
   // (components/web/plus-field.tsx), для визуальной согласованности.
+  // Переопределение размера текста общего PlusField/FieldWithPlus — во всех
+  // попапах этой страницы текст 18px, кроме заголовка модалки.
+  popupFieldLabel: { fontSize: 18 },
+  popupFieldInput: { fontSize: 18, lineHeight: 22 },
   plusFieldWrap: { marginBottom: 24 },
+  // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
+  // текст следующих полей/кнопок (напр. "Время", "Отменить") рисуется
+  // поверх попапа вместо того, чтобы быть под ним (z-index попапа сам по
+  // себе сравнивается только с соседями внутри своего родителя).
+  plusFieldWrapElevated: { zIndex: 50 },
   plusFieldLabel: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000', marginBottom: 8 },
   plusFieldButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   plusFieldValueRow: { position: 'relative', paddingVertical: 4 },
   plusFieldValueText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#000' },
+  // Якорь для попапов даты/времени — сами попапы position:'absolute'
+  // относительно этого блока, чтобы не раздвигать родительскую модалку.
+  pickerAnchor: { position: 'relative' },
 
   // Student view
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5' },
-  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5' },
+  bigAvatar: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', height: 345 },
+  bigAvatarPlaceholder: { backgroundColor: '#E5E5E5', height: 345 },
   studentName: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative'},
+  // Основной заголовок страницы на мобильном — 25px, как на /events,
+  // /explore, /journal и т.д.
+  studentNameMobile: { fontSize: 25, lineHeight: 28 },
+  // Имя + плашка "Заявка на рассмотрении" (pendingBadge) рядом — см.
+  // isPendingTutor.
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },
+  pendingBadge: { backgroundColor: '#FFF3CD', paddingHorizontal: 10, paddingVertical: 4 },
+  pendingBadgeText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#856404' },
+  profileDesktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', marginTop: 40},
   profileLeftCol: { flexBasis: 520, flexGrow: 1, flexShrink: 1, maxWidth: 659, height: '100%' },
-  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 400 },
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0 },
+  profileRightCol: { flexBasis: 360, flexShrink: 0, maxWidth: 285,     width: '22.42%', aspectRatio: 339 / 409 },
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginTop: 16, position: 'absolute', bottom: 0, justifyContent: 'space-between', width: '100%' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
-  avatarMobile: { width: 90, height: 90, backgroundColor: '#E5E5E5', marginVertical: 16 },
+  // Пока заявка на рассмотрении/нет слотов — ссылка/кнопка серая и
+  // некликабельная (disabled на самом Pressable), а не просто скрыта.
+  actionLinkDisabled: { color: '#9B9B9B' },
+
+  // Tutor view (собственный профиль наставника) — та же сетка, что и на
+  // публичной странице наставника (/explore/[id].web.tsx: desktopGrid),
+  // а не отдельная flex-вёрстка: фикс. px-колонки + columnGap дают
+  // правильный отступ фото от правого края страницы, в отличие от
+  // profileRightCol (width в % вперемешку с maxWidth/flexBasis).
+  tutorDesktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, alignItems: 'start', position: 'relative', marginTop: 40 } as any,
+  tutorInfoContainer: { position: 'relative', height: '100%' },
+  tutorAvatarBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', height: 345 },
+  tutorAvatarImg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+  // На всю ширину (была мелкая 90×90) — тот же квадратный aspectRatio:1, что
+  // и у десктопной bigAvatar/tutorAvatarBox, просто без фикс. высоты 345
+  // (на узком экране высота подстраивается под ширину).
+  avatarMobile: { width: '100%', aspectRatio: 1, backgroundColor: '#E5E5E5', marginVertical: 16 },
   actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
-  // Filled light-blue button used for action chips on mobile widths (see mobile mockups).
-  mobileChip: { backgroundColor: '#F0F5FB', borderWidth: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  mobileChipText: { color: '#68717A', fontSize: 15 },
+  chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
+  // Filled black button used for action chips on mobile widths (see mobile mockups).
+  mobileChip: { backgroundColor: '#111', borderWidth: 0, minWidth: 0, paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  mobileChipText: { color: '#FAFAFA', fontSize: 15 },
 
   // Modals (shared)
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center', padding: 16 },
@@ -1233,30 +2003,37 @@ const styles = StyleSheet.create({
   modalHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
   modalHeaderRowSpread: { justifyContent: 'space-between' },
   modalHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  passwordDots: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101', paddingVertical: 10 },
+  passwordDots: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', paddingVertical: 10 },
   modalSaveLink: { alignSelf: 'flex-end', marginTop: 12 },
   backArrow: { fontSize: 25, color: '#010101' },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  hint: { fontSize: 12, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
+  hint: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: -4, marginBottom: 12 },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 0, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 2 },
   paymentCardBank: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 2 },
+  // "Привязать карту" — тот же вид, что и на /profile/payments.
+  linkRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#010101', height: 56, marginTop: 16, marginBottom: 8 },
+  plusBox: { width: 56, backgroundColor: '#010101', alignItems: 'center', justifyContent: 'center' },
+  plusText: { fontSize: 22, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  linkTextBox: { flex: 1, justifyContent: 'center', paddingHorizontal: 16 },
+  linkText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  verificationNote: { marginTop: 8, fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   editCardNumberBlock: { marginBottom: 16 },
   editCardRow: { flexDirection: 'row', gap: 16 },
   editCardRowItem: { flex: 1 },
   historyScroll: { maxHeight: 420 },
   historyItem: { paddingVertical: 16, borderTopWidth: 1, borderColor: '#E5E5E5' },
   historyTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  historyOrderNumber: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  historyStatus: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  historyTitle: { fontSize: 14, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
-  historySubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  historyOrderNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  historyStatus: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  historyTitle: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
+  historySubtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   historyBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  historyDate: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#687076' },
-  historyAmount: { fontSize: 13, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  historyDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  historyAmount: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   infoIconText: { fontSize: 14, color: '#9B9B9B' },
   historyAmountRight: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right', marginTop: 8 },
   // Обёртка вокруг значка ⓘ — точка отсчёта для абсолютно спозиционированного
@@ -1264,11 +2041,11 @@ const styles = StyleSheet.create({
   tooltipAnchor: { position: 'relative' },
   payoutTooltipBubble: { position: 'absolute', top: 22, right: 0, width: 150, backgroundColor: '#010101', padding: 8, zIndex: 10 },
   balanceRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 20 },
-  balanceLabel: { fontSize: 30, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  balanceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   balanceInfoIcon: { marginTop: 2 },
   balanceTooltipBubble: { position: 'absolute', top: 24, left: 0, width: 180, backgroundColor: '#010101', padding: 8, zIndex: 10 },
-  tooltipBubbleText: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#fff' },
-  withdrawMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101' },
+  tooltipBubbleText: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#fff' },
+  withdrawMessage: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
   modalTitleError: { color: '#E02D2D' },
   paymentActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   paymentHistoryLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
@@ -1289,10 +2066,39 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24, maxWidth: 560 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12 },
+  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 12 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
-  bioText: { fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 16 },
-  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginTop: 6 },
+  eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
+  eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
+  eventTopicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
+  // Выбор события для заявки на статью — список своих событий (title+дата),
+  // не пилюли (может не поместиться в строку) и не поиск, как в админке
+  // (наставник выбирает из своего короткого списка, не ищет по всем).
+  articleEventList: { marginTop: 8, marginBottom: 8, gap: 1 },
+  articleEventRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderColor: '#E5E5E5', paddingVertical: 10 },
+  articleEventRowActive: { borderColor: '#E02D2D' },
+  articleEventRowTitle: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101' },
+  articleEventRowTitleActive: { color: '#E02D2D' },
+  articleEventRowDate: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#9B9B9B', marginLeft: 12 },
+  eventSearchInput: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101', borderBottomWidth: 1, borderColor: '#E5E5E5', paddingVertical: 10, marginTop: 8, outlineStyle: 'none' } as any,
+  removeLink: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
+  // lineHeight:26/marginVertical:16 — те же значения, что у "bio" на
+  // публичной странице наставника (explore/[id].web.tsx) — раньше здесь
+  // был свой межстрочный интервал (18) и отступ (marginTop:30).
+  bioText: { fontSize: 18, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#000', marginVertical: 16 },
+  // Серая подпись и отступ — как у "role" на публичной странице
+  // наставника (explore/[id].web.tsx) — раньше была чёрной (#000) с
+  // другим отступом (16 вместо 18).
+  tutorShortBio: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 18 },
+  // Мобильный хедер наставника — как на публичной странице наставника
+  // (explore/[id].web.tsx: headerRowMobile/avatarMobile/roleMobile/bioMobile).
+  tutorHeaderRowMobile: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginTop: 16, marginBottom: 16 },
+  tutorHeaderInfoMobile: { flex: 1 },
+  tutorAvatarMobile: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
+  tutorShortBioMobile: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  // Тот же межстрочный интервал, что у текста статьи в журнале — 18 читался
+  // слишком плотно (см. тот же фикс на explore/[id].web.tsx: bioMobile).
+  bioTextMobile: { lineHeight: 26, marginTop: 16 },
   sectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 72, marginBottom: 36 },
   emptyText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076',  marginTop: 24, marginBottom: 8 },
   slotDateGroup: { marginBottom: 12 },
@@ -1306,7 +2112,6 @@ const styles = StyleSheet.create({
   // красный и с минусом вместо плюса.
   slotRemoveChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#E02D2D', alignItems: 'center', justifyContent: 'center' },
   slotRemoveChipHidden: { opacity: 0, pointerEvents: 'none' },
-  slotRemoveChipText: { fontSize: 14, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   addSlotButton: { alignSelf: 'flex-start', marginTop: 8 },
   addSlotLink: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
   slotAddChip: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#010101', alignItems: 'center', justifyContent: 'center' },
@@ -1314,15 +2119,65 @@ const styles = StyleSheet.create({
   // Мини-пикер времени под группой даты — виден целиком (не спрятанный
   // <input>), с явной кнопкой "Выбрать", чтобы можно было покликать по часам
   // и минутам сколько нужно, не создавая слот раньше времени.
-  slotTimePickerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-  slotTimePickerInput: { fontFamily: 'Gramatika-Regular', fontSize: 16, color: '#010101', borderWidth: 1, borderColor: '#010101', paddingVertical: 6, paddingHorizontal: 10, backgroundColor: 'transparent' },
-  slotTimePickerConfirmInline: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16 },
-  slotTimePickerConfirm: { backgroundColor: '#F0F5FB', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
-  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#68717A' },
+  slotTimePickerRow: { marginTop: 12 },
+  slotTimePickerConfirm: { backgroundColor: '#111', paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginTop: 12 },
+  slotTimePickerConfirmText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FAFAFA' },
+
+  // Свой пикер времени — см. TimeWheelPicker. Красный акцент вместо синего
+  // выделения нативного браузерного попапа (тот не перекрашивается).
+  // position:'absolute' — попап лежит поверх контента, а не в потоке
+  // разметки, иначе раскрытый пикер раздвигал родительскую модалку.
+  timeWheelPopover: {
+    position: 'absolute', left: 0, zIndex: 30, width: 224,
+    borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 8,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  timeWheelColumnsRow: { flexDirection: 'row', gap: 16 },
+  // Направление раскрытия — отдельные стили, а не top:undefined поверх
+  // timeWheelPopoverDown: в RN стиль-массивах undefined не "снимает" ранее
+  // заданное значение при флэттенинге, оба свойства применяются разом, и
+  // абсолютный блок с одновременными top И bottom схлопывается по высоте.
+  timeWheelPopoverDown: { top: 32 },
+  // Если снизу не хватает места (см. useFlipDirection) — открываем вверх:
+  // тот же попап, но растёт от нижнего края якоря вместо верхнего.
+  timeWheelPopoverUp: { bottom: 32 },
+  timeWheelColumn: { width: 88, maxHeight: 224 },
+  timeWheelCell: { paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  timeWheelCellActive: { backgroundColor: '#E02D2D' },
+  timeWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  timeWheelCellTextDisabled: { color: '#D0D0D0' },
+  timeWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
+
+  // Свой календарь — см. DateWheelPicker. Тот же приём попапа, что у времени.
+  dateWheelPopover: {
+    position: 'absolute', left: 0, zIndex: 30, width: 280,
+    borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#fff', padding: 12,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  dateWheelPopoverDown: { top: 32 },
+  dateWheelPopoverUp: { bottom: 32 },
+  dateWheelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  dateWheelNav: { fontSize: 20, lineHeight: 22, color: '#010101', paddingHorizontal: 8 },
+  dateWheelHeaderText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  dateWheelWeekRow: { flexDirection: 'row', marginBottom: 4 },
+  dateWheelWeekday: { width: `${100 / 7}%`, textAlign: 'center', fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#9B9B9B' },
+  dateWheelGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  dateWheelCell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
+  dateWheelCellActive: { backgroundColor: '#E02D2D' },
+  dateWheelCellText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  dateWheelCellTextDisabled: { color: '#D0D0D0' },
+  dateWheelCellTextActive: { color: '#fff', fontWeight: 'bold' },
+
+  // Кнопка "Выбрать" внутри попапа (и у даты, и у времени) — подтверждает и
+  // закрывает именно этот попап; отдельно от кнопки "Добавить слот", которая
+  // сабмитит слот целиком, когда оба поля (дата и время) уже заполнены.
+  wheelConfirmBtn: { backgroundColor: '#010101', paddingVertical: 10, alignItems: 'center', marginTop: 10 },
+  wheelConfirmBtnText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#fff' },
+
   fieldInputWrap: { position: 'relative', marginBottom: 16 },
-  errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
-  successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
+  errorText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 4, marginBottom: 12 },
+  successText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#1E7E34', marginTop: 12 },
   primaryButton: { backgroundColor: '#010101', paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   btnDisabled: { opacity: 0.6 },
-  primaryButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FFFFFF' },
+  primaryButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FFFFFF' },
 });

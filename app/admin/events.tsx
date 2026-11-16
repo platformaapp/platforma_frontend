@@ -1,20 +1,21 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -178,7 +179,7 @@ export default function AdminEventsScreen() {
               </Text>
             </View>
             {item.price != null && (
-              <Text style={styles.priceBadge}>{item.price.toLocaleString('ru-RU')} ₽</Text>
+              <Text style={styles.priceBadge}>{item.price.toLocaleString('ru-RU')} Р</Text>
             )}
           </View>
         </View>
@@ -197,7 +198,7 @@ export default function AdminEventsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/dashboard')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>СОБЫТИЯ</Text>
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  list: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
   card: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10, backgroundColor: '#fff' },
   cardClickable: { flexDirection: 'row', flex: 1 },
   cover: { width: 72, height: 72 },

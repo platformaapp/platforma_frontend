@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { endpoints } from '@/constants/env';
 
 /**
@@ -90,8 +91,9 @@ export default function DeleteAccountPublicScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.select({ ios: 'padding', android: undefined })}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <Pressable style={styles.backBtn} onPress={() => router.replace('/')}>
-            <Text style={styles.backText}>← На главную</Text>
+          <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => router.replace('/')}>
+            <BackArrowIcon width={16} height={15} />
+            <Text style={styles.backText}>На главную</Text>
           </Pressable>
         </View>
 
@@ -159,6 +161,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 16, paddingTop: 8 },
   backBtn: { paddingVertical: 12 },
+  backBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
   content: { paddingHorizontal: 16, paddingBottom: 48, maxWidth: 480, width: '100%', alignSelf: 'center' },
   title: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 24, color: '#181818', marginTop: 24, marginBottom: 16 },

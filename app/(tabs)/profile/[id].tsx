@@ -8,8 +8,8 @@ import Svg, { Path } from 'react-native-svg';
 
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
-import { getTutorProfile, getTutorSlots } from '@/lib/api/tutor';
 import { getStudentProfile } from '@/lib/api/student';
+import { getTutorProfile, getTutorSlots } from '@/lib/api/tutor';
 import { clearAuth, extractRefreshTokenFromResponse, extractTokenFromResponse, getAuthRole, getAuthToken, getRefreshToken, getUserProfile, saveAuthToken, UserProfile } from '@/lib/auth';
 import { toDisplayDate } from '@/lib/slots-utils';
 
@@ -467,7 +467,7 @@ export default function ProfileByIdScreen() {
           <Text style={styles.profileName}>{displayName}</Text>
           {displayRole ? <Text style={styles.profileRole}>{displayRole}</Text> : null}
           {tutorHourlyRate ? (
-            <Text style={styles.profileRate}>{tutorHourlyRate.toLocaleString('ru-RU')} ₽ / час</Text>
+            <Text style={styles.profileRate}>{tutorHourlyRate.toLocaleString('ru-RU')} Р / час</Text>
           ) : null}
         </View>
       </View>

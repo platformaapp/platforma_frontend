@@ -3,9 +3,8 @@
  * Обязательно: role=student
  */
 
-import { endpoints } from '@/constants/env';
-import { getAuthToken } from '@/lib/auth';
-import { API_BASE } from '@/constants/env';
+import { endpoints, API_BASE } from '@/constants/env';
+import { authedFetch } from '@/lib/authed-fetch';
 import { friendlyHttpErrorMessage, looksLikeHtml } from '@/lib/api/http-error';
 
 function resolveUrl(url: unknown): string | null {
@@ -108,9 +107,6 @@ export function normalizeMyEventItem(raw: Record<string, unknown>): MyEventItem 
 export async function getMyEventsForStudent(
   query: Partial<MyEventsQuery> = {}
 ): Promise<{ items: MyEventItem[]; pagination: MyEventsPagination }> {
-  const token = await getAuthToken();
-  if (!token) throw new Error('Требуется авторизация');
-
   const params = new URLSearchParams();
   params.set('role', query.role ?? 'student');
   if (query.filter) params.set('filter', query.filter);
@@ -120,9 +116,10 @@ export async function getMyEventsForStudent(
 
   const url = `${endpoints.eventsMy}?${params.toString()}`;
 
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  // authedFetch (не голый fetch + getAuthToken()) — истёкший access-токен
+  // молча обновляется и запрос повторяется один раз, иначе любой протухший
+  // токен превращается в 401 "Token not found" от бэкенда прямо здесь.
+  const res = await authedFetch(url, {});
 
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');

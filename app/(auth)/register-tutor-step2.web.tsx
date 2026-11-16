@@ -6,8 +6,11 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
+import { TOPICS } from '@/constants/topics';
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
+import { openInNewTab } from '@/lib/open-in-new-tab';
 
 const SHORT_BIO_LIMIT = 70;
 const ABOUT_LIMIT = 400;
@@ -25,9 +28,15 @@ export default function RegisterTutorStep2ScreenWeb() {
   const [about, setAbout] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [groupMeetings, setGroupMeetings] = useState('');
+  const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const { topics: adminTopics } = useSiteSettings();
+  const topicsList = adminTopics.length > 0 ? adminTopics : TOPICS;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // canGoBack() может быть false (зашли по прямой ссылке/обновили страницу) —
+  // тогда router.back() молча ничего не делает, и попап нечем закрыть.
+  const handleClose = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)/events' as any));
 
   const rateValue = hourlyRate ? parseInt(hourlyRate) || 0 : 0;
 
@@ -50,6 +59,7 @@ export default function RegisterTutorStep2ScreenWeb() {
         bio: about.trim() || undefined,
         hourlyRate: rateValue > 0 ? rateValue : undefined,
         groupMeetings: groupMeetings.trim() || undefined,
+        specialization: specialization ?? undefined,
         avatarUrl,
       });
 
@@ -65,12 +75,12 @@ export default function RegisterTutorStep2ScreenWeb() {
     <SiteShell>
       {/* Modal (не обычный View с flex:1) — гарантированно перекрывает всю
           страницу независимо от окружающего flex-контекста, см. cookie-banner. */}
-      <Modal transparent animationType="fade" visible onRequestClose={() => router.back()}>
+      <Modal transparent animationType="fade" visible onRequestClose={handleClose}>
       <View style={[styles.page, { pointerEvents: 'box-none' }]}>
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Регистрация наставника</Text>
-            <Pressable onPress={() => router.back()}><Text style={styles.close}>✕</Text></Pressable>
+            <Pressable onPress={handleClose}><Text style={styles.close}>✕</Text></Pressable>
           </View>
 
           <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
@@ -90,9 +100,23 @@ export default function RegisterTutorStep2ScreenWeb() {
             />
 
             <PlusField label="Стоимость часа" value={hourlyRate} onChangeText={setHourlyRate} keyboardType="numeric" />
-            {rateValue > 0 ? <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(rateValue * 0.9)} ₽</Text> : null}
+            {rateValue > 0 ? <Text style={styles.hint}>Комиссия 10% — вы получите {Math.round(rateValue * 0.9)} Р</Text> : null}
 
             <PlusField label="Собираете ли вы групповые встречи? Как часто?" value={groupMeetings} onChangeText={setGroupMeetings} multiline />
+
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Специализация</Text>
+              <View style={styles.topicsRow}>
+                {topicsList.map((t) => {
+                  const active = t === specialization;
+                  return (
+                    <Pressable key={t} onPress={() => setSpecialization(active ? null : t)}>
+                      <Text style={[styles.topicPillText, active && styles.topicPillTextActive]}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
             <View style={styles.fieldWrap}>
               <Text style={styles.fieldLabel}>Фото</Text>
@@ -114,8 +138,13 @@ export default function RegisterTutorStep2ScreenWeb() {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
 
+          <Text style={styles.terms}>
+            Нажимая кнопку «Отправить заявку», вы принимаете{' '}
+            <Text style={styles.termsLink} onPress={() => openInNewTab('/tutor-offer')}>оферту для наставников</Text>
+          </Text>
+
           <View style={styles.footerRow}>
-            <Pressable onPress={() => router.back()}><Text style={styles.cancelLink}>Назад</Text></Pressable>
+            <Pressable onPress={handleClose}><Text style={styles.cancelLink}>Назад</Text></Pressable>
             <Pressable onPress={onSubmit} disabled={isSubmitting}>
               <Text style={styles.nextLink}>{isSubmitting ? 'Отправляем…' : 'Отправить заявку'}</Text>
             </Pressable>
@@ -135,14 +164,19 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
   fieldWrap: { marginBottom: 24 },
-  fieldLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 12, lineHeight: 16, color: '#687076', marginTop: -16, marginBottom: 16 },
+  fieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
+  topicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
+  topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
+  topicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
+  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginTop: -16, marginBottom: 16 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },
-  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#010101' },
-  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 13, color: '#E02D2D', marginTop: 4 },
+  replacePhotoText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101' },
+  errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginTop: 4 },
+  terms: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#010101', marginTop: 16 },
+  termsLink: { textDecorationLine: 'underline' },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
-  cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076' },
-  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 15, color: '#E02D2D' },
+  cancelLink: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
+  nextLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
 });

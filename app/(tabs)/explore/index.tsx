@@ -1,15 +1,15 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Image,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -130,7 +130,7 @@ export default function MentorsScreen() {
               {typeof rate === 'number' && rate > 0 ? (
                 <View style={styles.priceRow}>
                   <Text style={styles.priceLabel}>Стоимость консультации</Text>
-                  <Text style={styles.priceValue}>{rate.toLocaleString('ru-RU')} ₽ в час</Text>
+                  <Text style={styles.priceValue}>{rate.toLocaleString('ru-RU')} Р в час</Text>
                 </View>
               ) : null}
 
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80 },
   title: {
     paddingBottom: 12,
-    fontSize: 20, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#181818',
+    fontSize: 20, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#181818', 
   },
   card: { borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 16, backgroundColor: '#fff' },
   cardHeader: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#1E1E1E' },

@@ -4,18 +4,19 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import {
-  deleteCurrentPaymentMethod,
-  deletePaymentMethod,
-  getPaymentMethods,
-  getStudentPayments,
-  MAX_CARDS,
-  setDefaultPaymentMethod,
-  type Card,
-  type PaymentHistoryItem,
+    deleteCurrentPaymentMethod,
+    deletePaymentMethod,
+    getPaymentMethods,
+    getStudentPayments,
+    MAX_CARDS,
+    setDefaultPaymentMethod,
+    type Card,
+    type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
 import { getAuthToken } from '@/lib/auth';
 
@@ -29,7 +30,7 @@ function formatDate(iso: string): string {
 }
 
 function formatAmount(amount: number): string {
-  return `${amount.toLocaleString('ru-RU')} ₽`;
+  return `${amount.toLocaleString('ru-RU')} Р`;
 }
 
 function cardDisplay(card: Card): string {
@@ -234,9 +235,8 @@ export default function PaymentsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
         <View style={styles.titleRow}>
-          <Pressable onPress={() => router.replace('/(tabs)/profile' as any)}><Text style={styles.backArrow}>←</Text></Pressable>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
 
@@ -282,7 +282,7 @@ export default function PaymentsScreenWeb() {
               <View style={styles.plusBox}><Text style={styles.plusText}>+</Text></View>
               <View style={styles.linkTextBox}><Text style={styles.linkText}>{isLinking ? 'Привязка...' : 'Привязать карту'}</Text></View>
             </Pressable>
-            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
             <Text style={styles.legalText}>
               {'Нажимая «Привязать карту», вы принимаете оферту, политику конфиденциальности и условия сервиса'}
             </Text>
@@ -320,6 +320,8 @@ export default function PaymentsScreenWeb() {
         ) : (
           <View style={styles.historyEmpty}><Text style={styles.historyEmptyText}>История платежей пока пуста</Text></View>
         )}
+
+        <SiteFooter />
       </ScrollView>
 
       <Modal transparent animationType="fade" visible={isDeleteModalVisible} onRequestClose={handleDeleteModalKeep}>
@@ -363,6 +365,9 @@ export default function PaymentsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingHorizontal: 20, paddingTop: 0 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },
@@ -392,8 +397,8 @@ const styles = StyleSheet.create({
   cardActionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardActionDelete: {},
   cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
-  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
+  chip: { backgroundColor: '#111', paddingVertical: 8, paddingHorizontal: 14 },
+  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FAFAFA' },
   chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   historyCard: { borderWidth: 1, borderColor: '#E5E5E5', marginBottom: 8, padding: 12 },
@@ -417,8 +422,8 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 380, padding: 24 },
   modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 20, textTransform: 'uppercase', lineHeight: 28 },
   modalOutlineButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
-  modalOutlineButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  modalOutlineButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   modalDangerButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
-  modalDangerButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
+  modalDangerButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
 });

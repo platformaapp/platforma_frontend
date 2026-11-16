@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -15,12 +15,33 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdminTagsInput } from '@/components/admin/tags-input';
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
+import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
-const FORMATS = ['Подкаст', 'Текст', 'Интервью'] as const;
+const FORMATS = ['Обсудить', 'Посмотреть', 'Посетить'] as const;
+
+// Тулбар над "Текст" — каждая кнопка оборачивает выделенный фрагмент парой
+// маркеров; разбирает их parseInlineMarkdown (lib/markdown-inline.tsx) на
+// странице статьи. Не настоящий markdown — фиксированный набор пар под то,
+// что умеет тулбар (жирный/курсив/подчёркнутый/зачёркнутый/выделение
+// цветом/крупнее/мельче), ссылка — отдельной кнопкой с запросом URL.
+const TOOLBAR_ACTIONS: { label: string; title: string; before: string; after: string }[] = [
+  { label: 'Жирный', title: 'Жирный', before: '**', after: '**' },
+  { label: 'Курсив', title: 'Курсив', before: '*', after: '*' },
+  { label: 'Подчёркнутый', title: 'Подчёркнутый', before: '__', after: '__' },
+  { label: 'Зачёркнутый', title: 'Зачёркнутый', before: '~~', after: '~~' },
+  { label: 'Выделить цветом', title: 'Выделить цветом', before: '==', after: '==' },
+  { label: 'Крупнее', title: 'Крупнее', before: '{+', after: '+}' },
+  { label: 'Мельче', title: 'Мельче', before: '{-', after: '-}' },
+];
 
 type TutorOption = { id: string; fullName: string; email: string };
+type ArticleOption = { id: string; title: string; category: string | null };
+type EventOption = { id: string; title: string; datetimeStart: string | null };
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -31,14 +52,15 @@ function resolveUrl(url: unknown): string | null {
 async function uploadAdminImage(uri: string): Promise<string> {
   const token = await getAdminToken();
   if (!token) throw new Error('Требуется авторизация');
+  const resizedUri = await resizeImageForUpload(uri);
   const formData = new FormData();
   const filename = `article_${Date.now()}.jpg`;
   if (Platform.OS === 'web') {
-    const resp = await fetch(uri);
+    const resp = await fetch(resizedUri);
     const blob = await resp.blob();
     formData.append('file', blob, filename);
   } else {
-    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+    formData.append('file', { uri: resizedUri, name: filename, type: 'image/jpeg' } as any);
   }
   const res = await fetch(endpoints.uploadImage, {
     method: 'POST',
@@ -58,7 +80,8 @@ async function uploadAdminImage(uri: string): Promise<string> {
 async function pickImage(): Promise<string | null> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
+    if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert('Необходимо разрешение на доступ к фотографиям'); }
+    else Alert.alert('Ошибка', 'Необходимо разрешение на доступ к фотографиям');
     return null;
   }
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -95,17 +118,84 @@ export default function AdminJournalDetailScreen() {
   const [loadError, setLoadError] = useState('');
 
   const [title, setTitle] = useState('');
+  // 'pending_review' — заявка наставника (POST /tutor/articles), ещё не
+  // видна на /journal; новые статьи, созданные прямо в админке, — сразу
+  // 'published' (старое поведение). См. комментарий у Article.status на
+  // бэкенде.
+  const [status, setStatus] = useState<'published' | 'pending_review'>('published');
+  // Человекочитаемый URL (/journal/<slug>) — единственный публичный путь к
+  // статье. Пусто при создании = бэкенд сгенерирует сам из title; при
+  // редактировании пусто значит "не менять" (слаг НЕ пересчитывается из
+  // title автоматически — иначе правка заголовка молча ломала бы уже
+  // расшаренные ссылки).
+  const [slug, setSlug] = useState('');
   const [content, setContent] = useState('');
+  const [contentSelection, setContentSelection] = useState<{ start: number; end: number }>({ start: 0, end: 0 });
+  // onSelectionChange на "Текст" не обязан сработать на каждое нажатие
+  // клавиши (это отдельное от onChangeText событие) — если админ допечатал
+  // текст и сразу же нажал "Вставить в текст" без промежуточного клика/
+  // выделения, contentSelection в стейте может отставать от реальной
+  // позиции курсора, и маркер встаёт не там, где рассчитывал админ. На вебе
+  // RN TextInput форвардит ref на сам DOM <textarea> — читаем курсор прямо
+  // оттуда (selectionStart/End) на момент клика, а не из потенциально
+  // устаревшего стейта.
+  const contentInputRef = useRef<any>(null);
   const [category, setCategory] = useState<string>(FORMATS[1]);
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
+  // Alt-текст обложки — картиночный поиск и доступность.
+  const [coverAlt, setCoverAlt] = useState('');
   const [gallery, setGallery] = useState<string[]>([]);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryCaption, setGalleryCaption] = useState('');
+  // Alt-текст для каждой картинки галереи — galleryAlt[i] ↔ gallery[i].
+  const [galleryAlt, setGalleryAlt] = useState<string[]>([]);
+  // Баннер рядом со вторым подзаголовком — опционально, по умолчанию
+  // включён (старое поведение для уже существующих статей).
+  const [showBanner, setShowBanner] = useState(true);
+  const [tags, setTags] = useState<string[]>([]);
+  // SEO — необязательные поля, не влияют на вид статьи на сайте: seoTitle
+  // идёт в <title>, metaDescription — в <meta name="description">, h1 —
+  // видимый заголовок статьи ВМЕСТО обычного title (если задан).
+  const [seoTitle, setSeoTitle] = useState('');
+  const [h1, setH1] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
+  // Краткое описание для карточек в ленте/журнале — ОТДЕЛЬНО от Meta
+  // Description (та — сниппет в выдаче поиска).
+  const [excerpt, setExcerpt] = useState('');
+  // <link rel="canonical"> — для дублей/пересекающихся по теме статей.
+  const [canonicalUrl, setCanonicalUrl] = useState('');
+  // og:title/og:description — превью при шаринге, опционально
+  // переопределяют SEO Title/Meta Description.
+  const [ogTitle, setOgTitle] = useState('');
+  const [ogDescription, setOgDescription] = useState('');
+  // noindex/nofollow — точечно закрыть статью от индексации (черновики,
+  // слабый контент, дубли), не убирая её с сайта.
+  const [noindex, setNoindex] = useState(false);
+  const [nofollow, setNofollow] = useState(false);
+  // Дата публикации (YYYY-MM-DD) — для schema.org datePublished и сигнала
+  // свежести контента; по умолчанию при создании бэкенд ставит "сейчас".
+  const [publishedAt, setPublishedAt] = useState('');
 
   const [author, setAuthor] = useState<TutorOption | null>(null);
   const [authorQuery, setAuthorQuery] = useState('');
   const [authorOptions, setAuthorOptions] = useState<TutorOption[]>([]);
   const [authorSearching, setAuthorSearching] = useState(false);
+
+  // "Окей, что ещё" в конце статьи — до 3 связанных статей, выбранных
+  // здесь при создании/редактировании (см. [slug].web.tsx, блок вместо
+  // баннера в конце).
+  const [relatedArticles, setRelatedArticles] = useState<ArticleOption[]>([]);
+  const [relatedQuery, setRelatedQuery] = useState('');
+  const [relatedOptions, setRelatedOptions] = useState<ArticleOption[]>([]);
+  const [relatedSearching, setRelatedSearching] = useState(false);
+
+  // Событие, привязанное к статье — CTA "Записаться на событие" на странице
+  // статьи (см. [slug].web.tsx). В отличие от похожих статей — одно, не три.
+  const [event, setEvent] = useState<EventOption | null>(null);
+  const [eventQuery, setEventQuery] = useState('');
+  const [eventOptions, setEventOptions] = useState<EventOption[]>([]);
+  const [eventSearching, setEventSearching] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -130,11 +220,32 @@ export default function AdminJournalDetailScreen() {
         const a = await res.json();
         if (!active) return;
         setTitle(a.title ?? '');
+        setStatus(a.status === 'pending_review' ? 'pending_review' : 'published');
+        setSlug(a.slug ?? '');
         setContent(a.content ?? '');
         setCategory(a.category ?? FORMATS[1]);
         setCoverUri(resolveUrl(a.cover_url));
+        setCoverAlt(a.cover_alt ?? '');
         setGallery(Array.isArray(a.gallery) ? a.gallery.map((g: string) => resolveUrl(g) ?? g) : []);
+        setGalleryCaption(a.gallery_caption ?? '');
+        setGalleryAlt(Array.isArray(a.gallery_alt) ? a.gallery_alt : []);
+        setShowBanner(a.show_banner ?? true);
+        setTags(Array.isArray(a.tags) ? a.tags : []);
+        setSeoTitle(a.seo_title ?? '');
+        setH1(a.h1 ?? '');
+        setMetaDescription(a.meta_description ?? '');
+        setExcerpt(a.excerpt ?? '');
+        setCanonicalUrl(a.canonical_url ?? '');
+        setOgTitle(a.og_title ?? '');
+        setOgDescription(a.og_description ?? '');
+        setNoindex(a.noindex ?? false);
+        setNofollow(a.nofollow ?? false);
+        setPublishedAt(a.published_at ? String(a.published_at).slice(0, 10) : '');
         if (a.author) setAuthor({ id: a.author.id, fullName: a.author.name, email: '' });
+        if (Array.isArray(a.related_articles)) {
+          setRelatedArticles(a.related_articles.map((r: any) => ({ id: r.id, title: r.title, category: r.category ?? null })));
+        }
+        if (a.event) setEvent({ id: a.event.id, title: a.event.title, datetimeStart: a.event.datetime_start ?? null });
       } catch {
         if (active) setLoadError('Не удалось загрузить материал');
       } finally {
@@ -164,6 +275,62 @@ export default function AdminJournalDetailScreen() {
     return () => { active = false; clearTimeout(t); };
   }, [authorQuery]);
 
+  useEffect(() => {
+    if (!relatedQuery.trim()) { setRelatedOptions([]); return; }
+    let active = true;
+    const t = setTimeout(async () => {
+      const token = await getAdminToken();
+      if (!token) return;
+      setRelatedSearching(true);
+      try {
+        const params = new URLSearchParams({ search: relatedQuery.trim(), per_page: '10' });
+        const res = await fetch(`${endpoints.adminArticles}?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data?.data) ? data.data : [];
+        const selectedIds = new Set(relatedArticles.map((r) => r.id));
+        const opts = items
+          .map((a: any) => ({ id: a.id, title: a.title, category: a.category ?? null }))
+          .filter((a: ArticleOption) => a.id !== id && !selectedIds.has(a.id));
+        if (active) setRelatedOptions(opts);
+      } catch { /* ignore */ }
+      finally { if (active) setRelatedSearching(false); }
+    }, 300);
+    return () => { active = false; clearTimeout(t); };
+  }, [relatedQuery, relatedArticles, id]);
+
+  function addRelatedArticle(opt: ArticleOption) {
+    if (relatedArticles.length >= 3) return;
+    setRelatedArticles((prev) => [...prev, opt]);
+    setRelatedQuery('');
+    setRelatedOptions([]);
+  }
+
+  function removeRelatedArticle(articleId: string) {
+    setRelatedArticles((prev) => prev.filter((r) => r.id !== articleId));
+  }
+
+  useEffect(() => {
+    if (!eventQuery.trim()) { setEventOptions([]); return; }
+    let active = true;
+    const t = setTimeout(async () => {
+      const token = await getAdminToken();
+      if (!token) return;
+      setEventSearching(true);
+      try {
+        const params = new URLSearchParams({ search: eventQuery.trim(), per_page: '10' });
+        const res = await fetch(`${endpoints.adminEventsAdmin}?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const opts = items.map((e: any) => ({ id: e.id, title: e.title, datetimeStart: e.datetimeStart ?? null }));
+        if (active) setEventOptions(opts);
+      } catch { /* ignore */ }
+      finally { if (active) setEventSearching(false); }
+    }, 300);
+    return () => { active = false; clearTimeout(t); };
+  }, [eventQuery]);
+
   async function handlePickCover() {
     const uri = await pickImage();
     if (uri) setCoverUri(uri);
@@ -177,6 +344,97 @@ export default function AdminJournalDetailScreen() {
 
   function removeGalleryImage(idx: number) {
     setGallery((g) => g.filter((_, i) => i !== idx));
+    setGalleryAlt((a) => a.filter((_, i) => i !== idx));
+  }
+
+  function setGalleryAltAt(idx: number, value: string) {
+    setGalleryAlt((a) => {
+      const next = [...a];
+      while (next.length <= idx) next.push('');
+      next[idx] = value;
+      return next;
+    });
+  }
+
+  // Реальная позиция курсора на момент клика — предпочитаем её stateʼу
+  // contentSelection (см. комментарий у contentInputRef выше), иначе
+  // откатываемся на стейт (нативные платформы, либо web до первого рендера
+  // поля).
+  function getLiveSelection(): { start: number; end: number } {
+    const el = contentInputRef.current;
+    if (Platform.OS === 'web' && el && typeof el.selectionStart === 'number' && typeof el.selectionEnd === 'number') {
+      return { start: el.selectionStart, end: el.selectionEnd };
+    }
+    return contentSelection;
+  }
+
+  // Оборачивает текущее выделение в "Текст" парой маркеров тулбара (если
+  // ничего не выделено — вставляет пустую пару на месте курсора).
+  //
+  // После вставки обязательно обновляем contentSelection на новые индексы
+  // (там, где теперь лежит тот же исходный фрагмент, сдвинутый на длину
+  // before) — без этого второй клик по тулбару (второе форматирование той
+  // же фразы, напр. "A+" затем "Ж") использует СТАРЫЕ индексы уже на НОВОЙ
+  // (более длинной) строке текста, и маркеры попадают внутрь слова, а не
+  // вокруг него (ровно на длину первой вставленной пары символов).
+  function wrapContentSelection(before: string, after: string) {
+    const { start, end } = getLiveSelection();
+    const selected = content.slice(start, end);
+    setContent(content.slice(0, start) + before + selected + after + content.slice(end));
+    const newStart = start + before.length;
+    setContentSelection({ start: newStart, end: newStart + selected.length });
+  }
+
+  function insertLink() {
+    const url = typeof window !== 'undefined' ? window.prompt('Ссылка (URL)') : null;
+    if (!url) return;
+    const { start, end } = getLiveSelection();
+    const label = content.slice(start, end) || 'текст ссылки';
+    const inserted = `[${label}](${url})`;
+    setContent(content.slice(0, start) + inserted + content.slice(end));
+    const newPos = start + inserted.length;
+    setContentSelection({ start: newPos, end: newPos });
+  }
+
+  // Вставляет строку «## Подзаголовок» (см. parseContent в [slug].web.tsx) —
+  // отдельной кнопкой, а не парой маркеров вокруг выделения, т.к. это не
+  // инлайн-форматирование, а отдельный блок текста на своей строке.
+  function insertSubheading() {
+    const { start, end } = getLiveSelection();
+    const selected = content.slice(start, end);
+    const headingText = selected || 'Подзаголовок';
+    const prefix = '\n\n## ';
+    setContent(content.slice(0, start) + prefix + headingText + '\n\n' + content.slice(end));
+    const headingStart = start + prefix.length;
+    setContentSelection({ start: headingStart, end: headingStart + headingText.length });
+  }
+
+  // Вставляет маркер в позицию курсора в "Текст" — на странице статьи он
+  // заменяется на сам блок (CTA события / карточку похожей статьи) в этом же
+  // месте, а не в конце статьи (см. textItems/gridSplits в [slug].web.tsx).
+  // Если маркер нигде не вставлен — блок всё равно показывается в конце
+  // (старое поведение, для уже существующих статей).
+  //
+  // ВАЖНО: после вставки обязательно обновляем contentSelection, той же
+  // причине, что и в wrapContentSelection выше — без этого следующий клик
+  // (второй маркер, или повторный клик по тому же) использует СТАРЫЕ индексы
+  // на новой, более длинной строке и вставляет куда попало (в т.ч. в самое
+  // начало текста, если contentSelection так и не сдвинулась с {0,0} по
+  // умолчанию) — ровно то, что ломало вёрстку статьи при добавлении события.
+  function insertEventToken() {
+    const { start, end } = getLiveSelection();
+    const inserted = `\n\n{{event}}\n\n`;
+    setContent(content.slice(0, start) + inserted + content.slice(end));
+    const newPos = start + inserted.length;
+    setContentSelection({ start: newPos, end: newPos });
+  }
+
+  function insertRelatedToken(articleId: string) {
+    const { start, end } = getLiveSelection();
+    const inserted = `\n\n{{related:${articleId}}}\n\n`;
+    setContent(content.slice(0, start) + inserted + content.slice(end));
+    const newPos = start + inserted.length;
+    setContentSelection({ start: newPos, end: newPos });
   }
 
   async function handleSave() {
@@ -209,10 +467,34 @@ export default function AdminJournalDetailScreen() {
 
       const body: Record<string, unknown> = {
         title: title.trim(),
+        status,
+        // Пусто — не отправляем вовсе: бэкенд сам сгенерирует slug из title
+        // при создании, а при редактировании undefined значит "не менять"
+        // (см. UpdateArticleDto.slug на бэкенде).
+        slug: slug.trim() || undefined,
         content: content.trim() || undefined,
         category,
         cover_url: uploadedCover,
+        cover_alt: coverAlt.trim() || undefined,
         gallery: uploadedGallery,
+        gallery_caption: galleryCaption.trim() || undefined,
+        gallery_alt: galleryAlt.map((a) => a.trim()),
+        show_banner: showBanner,
+        tags,
+        seo_title: seoTitle.trim() || undefined,
+        h1: h1.trim() || undefined,
+        meta_description: metaDescription.trim() || undefined,
+        excerpt: excerpt.trim() || undefined,
+        canonical_url: canonicalUrl.trim() || undefined,
+        og_title: ogTitle.trim() || undefined,
+        og_description: ogDescription.trim() || undefined,
+        noindex,
+        nofollow,
+        // YYYY-MM-DD из <input type="date"> — бэкенду нужен валидный
+        // ISO-datetime (@IsDateString), достраиваем время в полночь UTC.
+        published_at: publishedAt.trim() ? `${publishedAt.trim()}T00:00:00.000Z` : undefined,
+        related_article_ids: relatedArticles.map((r) => r.id),
+        event_id: event ? event.id : null,
         author_id: author.id,
       };
 
@@ -227,7 +509,7 @@ export default function AdminJournalDetailScreen() {
         const d = await res.json().catch(() => ({}));
         throw new Error(d?.message ?? (Array.isArray(d?.message) ? d.message.join(', ') : `Ошибка ${res.status}`));
       }
-      router.back();
+      adminGoBack(router, '/admin/journal');
     } catch (e) {
       setSaveError((e as Error)?.message ?? 'Не удалось сохранить материал');
     } finally {
@@ -235,7 +517,15 @@ export default function AdminJournalDetailScreen() {
     }
   }
 
+  // Alert.alert с несколькими кнопками — react-native-web это полный no-op
+  // (см. node_modules/react-native-web/.../Alert: static alert() {}), поэтому
+  // окно подтверждения никогда не появлялось и handleDelete не вызывался.
+  // Админка работает на web — используем window.confirm напрямую.
   function confirmDelete() {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Удалить материал «${title}»?`)) handleDelete();
+      return;
+    }
     Alert.alert('Удалить материал?', title, [
       { text: 'Отмена', style: 'cancel' },
       { text: 'Удалить', style: 'destructive', onPress: handleDelete },
@@ -257,9 +547,11 @@ export default function AdminJournalDetailScreen() {
         const d = await res.json().catch(() => ({}));
         throw new Error(d?.message ?? `Ошибка ${res.status}`);
       }
-      router.back();
+      adminGoBack(router, '/admin/journal');
     } catch (e) {
-      Alert.alert('Ошибка', (e as Error)?.message ?? 'Не удалось удалить материал');
+      const msg = (e as Error)?.message ?? 'Не удалось удалить материал';
+      if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert(msg); }
+      else Alert.alert('Ошибка', msg);
     } finally {
       setDeleting(false);
     }
@@ -273,7 +565,10 @@ export default function AdminJournalDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{loadError}</Text>
-        <Pressable style={styles.backBtnOutline} onPress={() => router.back()}><Text style={styles.backBtnOutlineText}>← Назад</Text></Pressable>
+        <Pressable style={[styles.backBtnOutline, styles.backBtnOutlineRow]} onPress={() => adminGoBack(router, '/admin/journal')}>
+          <BackArrowIcon width={16} height={15} />
+          <Text style={styles.backBtnOutlineText}>Назад</Text>
+        </Pressable>
       </View>
     );
   }
@@ -281,7 +576,7 @@ export default function AdminJournalDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}><Text style={styles.backArrow}>‹</Text></Pressable>
+        <Pressable onPress={() => adminGoBack(router, '/admin/journal')} style={styles.backButton}><Text style={styles.backArrow}>‹</Text></Pressable>
         <Text style={styles.headerTitle}>{isNew ? 'НОВЫЙ МАТЕРИАЛ' : 'РЕДАКТИРОВАНИЕ'}</Text>
       </View>
 
@@ -291,9 +586,47 @@ export default function AdminJournalDetailScreen() {
           {coverUri ? <Image source={{ uri: coverUri }} style={styles.coverPreview} resizeMode="cover" /> : <Text style={styles.coverBtnText}>Выбрать изображение</Text>}
         </Pressable>
         {coverUri ? <Pressable onPress={() => setCoverUri(null)}><Text style={styles.removeLink}>Удалить обложку</Text></Pressable> : null}
+        {coverUri ? (
+          <TextInput
+            style={[styles.input, { marginTop: 8 }]}
+            value={coverAlt}
+            onChangeText={setCoverAlt}
+            placeholder="Alt-текст обложки (для картиночного поиска)"
+            placeholderTextColor="#9B9B9B"
+          />
+        ) : null}
 
         <Text style={styles.label}>Название</Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Название материала" placeholderTextColor="#9B9B9B" />
+
+        <Text style={styles.label}>Статус</Text>
+        <Text style={styles.hint}>
+          На модерации — заявка наставника (или ещё не готовая статья): не видна на /journal, пока не опубликована.
+        </Text>
+        <View style={styles.formatRow}>
+          <Pressable style={[styles.formatChip, status === 'published' && styles.formatChipActive]} onPress={() => setStatus('published')}>
+            <Text style={[styles.formatChipText, status === 'published' && styles.formatChipTextActive]}>Опубликовано</Text>
+          </Pressable>
+          <Pressable style={[styles.formatChip, status === 'pending_review' && styles.formatChipActive]} onPress={() => setStatus('pending_review')}>
+            <Text style={[styles.formatChipText, status === 'pending_review' && styles.formatChipTextActive]}>На модерации</Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.label}>Слаг (URL)</Text>
+        <Text style={styles.hint}>
+          Адрес статьи — platformaapp.ru/journal/<Text style={styles.hintStrong}>{slug.trim() || '...'}</Text>. Если оставить пустым — сгенерируется
+          автоматически из названия. Только строчные латинские буквы, цифры и дефисы. При смене названия уже сохранённый
+          слаг сам не меняется — ссылки на статью не ломаются.
+        </Text>
+        <TextInput
+          style={styles.input}
+          value={slug}
+          onChangeText={setSlug}
+          placeholder="kak-chitat-kritiku-na-kino"
+          placeholderTextColor="#9B9B9B"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
         <Text style={styles.label}>Формат</Text>
         <View style={styles.formatRow}>
@@ -330,17 +663,50 @@ export default function AdminJournalDetailScreen() {
         )}
 
         <Text style={styles.label}>Текст</Text>
-        <Text style={styles.hint}>Строка вида «## Подзаголовок» открывает второй блок статьи (подзаголовок + текст рядом с галереей).</Text>
+        <Text style={styles.hint}>
+          Строка вида «## Подзаголовок» добавляет подзаголовок — можно несколько таких строк подряд по тексту. Баннер на
+          странице статьи встаёт напротив ВТОРОГО по счёту подзаголовка (если он есть). Выделите
+          фрагмент и нажмите кнопку форматирования ниже — она обернёт выделение нужными символами. Выделение не должно
+          перескакивать через пустую строку (абзац) — форматирование применяется внутри одного абзаца, оборачивание
+          нескольких абзацев сразу не сработает ни у одного из них.
+        </Text>
+        <View style={styles.toolbarRow}>
+          <Pressable style={styles.toolbarBtn} onPress={insertSubheading} accessibilityLabel="Подзаголовок">
+            <Text style={styles.toolbarBtnText}>Подзаголовок</Text>
+          </Pressable>
+          {TOOLBAR_ACTIONS.map((a) => (
+            <Pressable key={a.label} style={styles.toolbarBtn} onPress={() => wrapContentSelection(a.before, a.after)} accessibilityLabel={a.title}>
+              <Text style={styles.toolbarBtnText}>{a.label}</Text>
+            </Pressable>
+          ))}
+          <Pressable style={styles.toolbarBtn} onPress={insertLink} accessibilityLabel="Ссылка">
+            <Text style={styles.toolbarBtnText}>Ссылка</Text>
+          </Pressable>
+        </View>
         <TextInput
-          style={[styles.input, styles.inputMultiline]}
+          ref={contentInputRef}
+          style={[styles.input, styles.inputMultiline, styles.contentInput]}
           value={content}
           onChangeText={setContent}
+          onSelectionChange={(e) => setContentSelection(e.nativeEvent.selection)}
+          selection={contentSelection}
           placeholder={'Первый абзац...\n\n## Подзаголовок\n\nТекст второго блока...'}
           placeholderTextColor="#9B9B9B"
           multiline
           numberOfLines={10}
           textAlignVertical="top"
         />
+
+        <Pressable style={styles.checkboxRow} onPress={() => setShowBanner((v) => !v)}>
+          <View style={[styles.checkboxBox, showBanner && styles.checkboxBoxChecked]}>
+            {showBanner ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkboxLabel}>Показывать баннер рядом со вторым подзаголовком</Text>
+        </Pressable>
+
+        <Text style={styles.label}>Теги</Text>
+        <Text style={styles.hint}>Показываются на странице статьи напротив имени автора (#тег).</Text>
+        <AdminTagsInput tags={tags} onChange={setTags} />
 
         <Text style={styles.label}>Галерея (до 2 изображений)</Text>
         <View style={styles.galleryRow}>
@@ -350,6 +716,13 @@ export default function AdminJournalDetailScreen() {
               <Pressable style={styles.galleryRemove} onPress={() => removeGalleryImage(i)}>
                 <Text style={styles.galleryRemoveText}>✕</Text>
               </Pressable>
+              <TextInput
+                style={[styles.input, styles.galleryAltInput]}
+                value={galleryAlt[i] ?? ''}
+                onChangeText={(v) => setGalleryAltAt(i, v)}
+                placeholder="Alt-текст"
+                placeholderTextColor="#9B9B9B"
+              />
             </View>
           ))}
           {gallery.length < 2 ? (
@@ -358,6 +731,192 @@ export default function AdminJournalDetailScreen() {
             </Pressable>
           ) : null}
         </View>
+        {gallery.length > 1 ? (
+          <>
+            <Text style={styles.label}>Подпись под второй фотографией</Text>
+            <TextInput
+              style={styles.input}
+              value={galleryCaption}
+              onChangeText={setGalleryCaption}
+              placeholder="Короткая подпись к фото"
+              placeholderTextColor="#9B9B9B"
+            />
+          </>
+        ) : null}
+
+        <Text style={styles.label}>«Окей, что ещё» — похожие статьи (до 3)</Text>
+        <Text style={styles.hint}>
+          По умолчанию показываются блоком в конце статьи. Чтобы разместить статью внутри текста — поставьте курсор в
+          нужное место в поле «Текст» и нажмите «Вставить в текст» у статьи ниже.
+        </Text>
+        {relatedArticles.length > 0 ? (
+          <View style={styles.relatedChipsRow}>
+            {relatedArticles.map((r) => (
+              <View key={r.id} style={styles.relatedChip}>
+                <Text style={styles.relatedChipText} numberOfLines={1}>{r.title}</Text>
+                <Pressable onPress={() => insertRelatedToken(r.id)}><Text style={styles.insertLinkText}>Вставить в текст</Text></Pressable>
+                <Pressable onPress={() => removeRelatedArticle(r.id)}><Text style={styles.relatedChipRemove}>✕</Text></Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {relatedArticles.length < 3 ? (
+          <>
+            <TextInput
+              style={styles.input}
+              value={relatedQuery}
+              onChangeText={setRelatedQuery}
+              placeholder="Поиск статьи по названию"
+              placeholderTextColor="#9B9B9B"
+            />
+            {relatedSearching ? <ActivityIndicator style={{ marginTop: 8 }} color="#181818" /> : null}
+            {relatedOptions.map((opt) => (
+              <Pressable key={opt.id} style={styles.authorOption} onPress={() => addRelatedArticle(opt)}>
+                <Text style={styles.authorOptionName}>{opt.title}</Text>
+                {opt.category ? <Text style={styles.authorOptionEmail}>{opt.category}</Text> : null}
+              </Pressable>
+            ))}
+          </>
+        ) : null}
+
+        <Text style={styles.label}>Событие — CTA «Записаться на событие» на странице статьи</Text>
+        <Text style={styles.hint}>
+          Показывается только внутри текста статьи — поставьте курсор в нужное место в поле «Текст» и нажмите
+          «Вставить в текст» ниже. Без этого CTA на странице статьи не появится.
+        </Text>
+        {event ? (
+          <View style={styles.authorSelected}>
+            <Text style={styles.authorSelectedText}>{event.title}</Text>
+            <Pressable onPress={() => insertEventToken()}><Text style={styles.insertLinkText}>Вставить в текст</Text></Pressable>
+            <Pressable onPress={() => setEvent(null)}><Text style={styles.removeLink}>Изменить</Text></Pressable>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              style={styles.input}
+              value={eventQuery}
+              onChangeText={setEventQuery}
+              placeholder="Поиск события по названию"
+              placeholderTextColor="#9B9B9B"
+            />
+            {eventSearching ? <ActivityIndicator style={{ marginTop: 8 }} color="#181818" /> : null}
+            {eventOptions.map((opt) => (
+              <Pressable key={opt.id} style={styles.authorOption} onPress={() => { setEvent(opt); setEventQuery(''); setEventOptions([]); }}>
+                <Text style={styles.authorOptionName}>{opt.title}</Text>
+                {opt.datetimeStart ? <Text style={styles.authorOptionEmail}>{new Date(opt.datetimeStart).toLocaleDateString('ru-RU')}</Text> : null}
+              </Pressable>
+            ))}
+          </>
+        )}
+
+        <Text style={styles.sectionDivider}>SEO-оформление</Text>
+        <Text style={styles.hint}>Необязательные поля, на вид статьи на сайте не влияют (кроме H1 — если задан, заменяет собой видимый заголовок статьи).</Text>
+
+        <Text style={styles.label}>SEO Title</Text>
+        <TextInput
+          style={styles.input}
+          value={seoTitle}
+          onChangeText={setSeoTitle}
+          placeholder="Заголовок для <title> — по умолчанию обычное название статьи"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Text style={styles.label}>H1</Text>
+        <TextInput
+          style={styles.input}
+          value={h1}
+          onChangeText={setH1}
+          placeholder="Видимый заголовок на странице — по умолчанию обычное название статьи"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Text style={styles.label}>Meta Description</Text>
+        <Text style={styles.hint}>Сниппет в выдаче поиска — 150–160 символов. Если оставить пустым, Google сам вырежет кусок текста статьи (часто криво).</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline, { minHeight: 88 }]}
+          value={metaDescription}
+          onChangeText={setMetaDescription}
+          placeholder="Короткое описание для поисковой выдачи"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Excerpt</Text>
+        <Text style={styles.hint}>Отдельно от Meta Description — этот текст показывается в карточках на /journal и в блоках похожих статей, а не в поисковой выдаче.</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline, { minHeight: 66 }]}
+          value={excerpt}
+          onChangeText={setExcerpt}
+          placeholder="Краткое описание для карточки статьи"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          numberOfLines={2}
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Canonical URL</Text>
+        <Text style={styles.hint}>
+          Для статей, пересекающихся по теме с другой — укажите здесь адрес «главной» версии, и поисковик будет
+          считать эту статью её дублем (не покажет обе в выдаче). Обычно не нужно — по умолчанию статья canonical сама на себя.
+        </Text>
+        <TextInput
+          style={styles.input}
+          value={canonicalUrl}
+          onChangeText={setCanonicalUrl}
+          placeholder="https://platformaapp.ru/journal/drugaya-statya"
+          placeholderTextColor="#9B9B9B"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>OG Title</Text>
+        <Text style={styles.hint}>Заголовок превью при шаринге в соцсети/мессенджеры — если пусто, берётся SEO Title.</Text>
+        <TextInput
+          style={styles.input}
+          value={ogTitle}
+          onChangeText={setOgTitle}
+          placeholder="По умолчанию — SEO Title"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Text style={styles.label}>OG Description</Text>
+        <Text style={styles.hint}>Описание превью при шаринге — если пусто, берётся Meta Description.</Text>
+        <TextInput
+          style={[styles.input, styles.inputMultiline, { minHeight: 66 }]}
+          value={ogDescription}
+          onChangeText={setOgDescription}
+          placeholder="По умолчанию — Meta Description"
+          placeholderTextColor="#9B9B9B"
+          multiline
+          numberOfLines={2}
+          textAlignVertical="top"
+        />
+
+        <Text style={styles.label}>Дата публикации</Text>
+        <Text style={styles.hint}>Для даты «опубликовано»/«обновлено» в поисковой выдаче. Если оставить пустым — при создании ставится сегодняшняя дата.</Text>
+        <TextInput
+          style={styles.input}
+          value={publishedAt}
+          onChangeText={setPublishedAt}
+          placeholder="ГГГГ-ММ-ДД"
+          placeholderTextColor="#9B9B9B"
+        />
+
+        <Pressable style={styles.checkboxRow} onPress={() => setNoindex((v) => !v)}>
+          <View style={[styles.checkboxBox, noindex && styles.checkboxBoxChecked]}>
+            {noindex ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkboxLabel}>noindex — закрыть статью от индексации (черновик/слабый контент/дубль). Статья остаётся на сайте как обычно.</Text>
+        </Pressable>
+
+        <Pressable style={styles.checkboxRow} onPress={() => setNofollow((v) => !v)}>
+          <View style={[styles.checkboxBox, nofollow && styles.checkboxBoxChecked]}>
+            {nofollow ? <Text style={styles.checkboxMark}>✓</Text> : null}
+          </View>
+          <Text style={styles.checkboxLabel}>nofollow — не передавать вес по ссылкам с этой страницы</Text>
+        </Pressable>
 
         {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
 
@@ -390,6 +949,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 12 },
   backBtnOutline: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 20, marginTop: 16 },
+  backBtnOutlineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backBtnOutlineText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
@@ -397,15 +957,35 @@ const styles = StyleSheet.create({
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { paddingHorizontal: 16, paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
   hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
+  hintStrong: { color: '#181818' },
+  sectionDivider: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 32, paddingTop: 18, borderTopWidth: 1, borderColor: '#1E1E1E' },
   input: {
-    borderWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderColor: '#E5E5E5', paddingHorizontal: 12, paddingVertical: 10,
     fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818', backgroundColor: '#FAFAFA',
   },
   inputMultiline: { minHeight: 200, textAlignVertical: 'top' },
+  // "Текст" (основное поле статьи) — заметно выше остальных многострочных
+  // полей (SEO-описания короткие, им хватает 200) + resize:vertical (веб-онли
+  // CSS-свойство — браузерный уголок-ручка для растягивания поля) — админ
+  // может сделать поле ещё выше сам, если текст статьи длинный.
+  contentInput: { minHeight: 420, resize: 'vertical' } as any,
+  toolbarRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  // Раньше кнопки были 32x32 с однобуквенной подписью (Ж/К/Ч/...) —
+  // заменены на словесные подписи, поэтому ширина теперь по контенту
+  // (paddingHorizontal), а не фиксированная.
+  toolbarBtn: { height: 32, paddingHorizontal: 10, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
+  toolbarBtnText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818' },
   removeLink: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },
+  insertLinkText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#181818', textDecorationLine: 'underline' },
+
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18 },
+  checkboxBox: { width: 20, height: 20, borderWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
+  checkboxBoxChecked: { backgroundColor: '#181818' },
+  checkboxMark: { fontSize: 13, color: '#fff', lineHeight: 14 },
+  checkboxLabel: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   coverBtn: { borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', height: 160, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   coverPreview: { width: '100%', height: 160 },
@@ -423,11 +1003,19 @@ const styles = StyleSheet.create({
   authorOptionName: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
   authorOptionEmail: { fontSize: 11, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
 
-  galleryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  galleryItem: { width: 96, height: 96, position: 'relative' },
-  galleryImage: { width: '100%', height: '100%' },
+  relatedChipsRow: { gap: 8, marginBottom: 8 },
+  relatedChip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderWidth: 1, borderColor: '#E5E5E5', paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#FAFAFA' },
+  relatedChipText: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  relatedChipRemove: { fontSize: 13, color: '#9B9B9B' },
+
+  galleryRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' },
+  // height убран (раньше был 96, как и ширина) — теперь под картинкой ещё
+  // инпут alt-текста, высота по контенту.
+  galleryItem: { width: 96, position: 'relative' },
+  galleryImage: { width: 96, height: 96 },
   galleryRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   galleryRemoveText: { fontSize: 11, color: '#fff' },
+  galleryAltInput: { width: 96, marginTop: 6, fontSize: 11, paddingHorizontal: 6, paddingVertical: 6 },
   galleryAdd: { width: 96, height: 96, borderWidth: 1, borderColor: '#E5E5E5', backgroundColor: '#FAFAFA', alignItems: 'center', justifyContent: 'center' },
   galleryAddText: { fontSize: 24, color: '#9B9B9B' },
 

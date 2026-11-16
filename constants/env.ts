@@ -32,10 +32,12 @@ export const endpoints = {
   // Student (Ученик) — профиль
   studentProfile: `${API_BASE}/api/student/profile`,
 
-  // Tutor (Наставник) — профиль, слоты, события, платежи
+  // Tutor (Наставник) — профиль, слоты, платежи
+  // (события у наставника создаются/читаются через общий /events, см. ниже —
+  // отдельного /api/tutor/events на бэкенде нет)
   tutorProfile: `${API_BASE}/api/tutor/profile`,
   tutorSlots: `${API_BASE}/api/tutor/slots`,
-  tutorEvents: `${API_BASE}/api/tutor/events`,
+  tutorArticles: `${API_BASE}/api/tutor/articles`,
   tutorPayments: `${API_BASE}/api/tutor/payments`,
   tutorPaymentsSummary: `${API_BASE}/api/tutor/payments/summary`,
   tutorPayoutsBalance: `${API_BASE}/api/tutor/payouts/balance`,
@@ -63,12 +65,16 @@ export const endpoints = {
   // Журнал (статьи) — публичный список/детали
   articles: `${API_BASE}/api/articles`,
 
+  // Настройки сайта (навигация/баннер/партнёры/рубрикатор) — публичное чтение
+  settingsSite: `${API_BASE}/api/settings/site`,
+
   // Admin
   adminLogin: `${API_BASE}/api/admin/auth/login`,
   adminApplications: `${API_BASE}/api/admin/tutor-applications`,
   adminUsers: `${API_BASE}/api/admin/users`,
   adminEventsAdmin: `${API_BASE}/api/admin/events`,
   adminSettings: `${API_BASE}/api/admin/settings`,
+  adminSettingsSite: `${API_BASE}/api/admin/settings/site`,
   adminArticles: `${API_BASE}/api/admin/articles`,
   adminPaymentsExport: `${API_BASE}/api/admin/payments/export`,
 };

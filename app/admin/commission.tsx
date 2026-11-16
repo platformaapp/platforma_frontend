@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
 
 export default function AdminCommissionScreen() {
   const router = useRouter();
@@ -86,7 +87,7 @@ export default function AdminCommissionScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/dashboard')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>КОМИССИИ</Text>
@@ -159,13 +160,13 @@ const styles = StyleSheet.create({
   backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   backBtnText: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 24 },
+  content: { flex: 1, width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 24 },
   section: { borderWidth: 1, borderColor: '#1E1E1E', padding: 16, marginBottom: 20 },
   sectionTitle: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginBottom: 6 },
   sectionSubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 16, lineHeight: 18 },
-  inputRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#1E1E1E', marginBottom: 10 },
+  inputRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#1E1E1E', marginBottom: 10 },
   input: { flex: 1, paddingHorizontal: 12, paddingVertical: 14, fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#181818' },
-  inputSuffix: { width: 44, borderLeftWidth: 1, borderColor: '#1E1E1E', alignItems: 'center', justifyContent: 'center' },
+  inputSuffix: { width: 44, alignItems: 'center', justifyContent: 'center' },
   inputSuffixText: { fontSize: 16, fontFamily: 'Gramatika-Regular', color: '#181818' },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 10 },
   successText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#155724', backgroundColor: '#D4EDDA', paddingHorizontal: 10, paddingVertical: 6, marginBottom: 10 },

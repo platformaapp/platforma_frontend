@@ -4,22 +4,23 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
 import { endpoints } from '@/constants/env';
 import {
-  deleteCurrentPaymentMethod,
-  getPaymentMethods,
-  type Card,
+    deleteCurrentPaymentMethod,
+    getPaymentMethods,
+    type Card,
 } from '@/lib/api/student-payments';
 import {
-  getTutorPayments,
-  getTutorPaymentsSummary,
-  getTutorPayouts,
-  getTutorPayoutsBalance,
-  type Payment,
-  type PaymentsSummary,
-  type Payout,
-  type PayoutBalance,
+    getTutorPayments,
+    getTutorPaymentsSummary,
+    getTutorPayouts,
+    getTutorPayoutsBalance,
+    type Payment,
+    type PaymentsSummary,
+    type Payout,
+    type PayoutBalance,
 } from '@/lib/api/tutor';
 import { getAuthToken } from '@/lib/auth';
 
@@ -40,7 +41,7 @@ function formatDate(iso: string | undefined | null): string {
 }
 
 function formatAmount(amount: number): string {
-  return `${amount.toLocaleString('ru-RU')} ₽`;
+  return `${amount.toLocaleString('ru-RU')} Р`;
 }
 
 function statusLabel(status: string): string {
@@ -287,11 +288,8 @@ export default function TutorPaymentsScreenWeb() {
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
         <View style={styles.titleRow}>
-          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any))}>
-            <Text style={styles.backArrow}>←</Text>
-          </Pressable>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Платежи</Text>
         </View>
 
@@ -369,6 +367,8 @@ export default function TutorPaymentsScreenWeb() {
           </View>
         ))}
         {payouts.length === 0 && payments.length === 0 ? <Text style={styles.emptyText}>История пуста</Text> : null}
+
+        <SiteFooter />
       </ScrollView>
 
       {/* ─── Запросить выплату ────────────────────────────────────────── */}
@@ -451,7 +451,7 @@ export default function TutorPaymentsScreenWeb() {
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>{activeCard ? 'Изменить карту' : 'Добавить карту'}</Text>
             <Text style={styles.vpnWarning}>Если используете VPN — отключите его перед привязкой карты. Банки блокируют зарубежные IP при 3D Secure.</Text>
-            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 ₽.</Text>
+            <Text style={styles.verificationNote}>С карты спишется проверочный платеж 1 Р.</Text>
             {bindError ? <Text style={styles.errorText}>{bindError}</Text> : null}
             <Pressable style={[styles.primaryButton, styles.modalButtonSpacing, isLinking && styles.btnDisabled]} onPress={handleEditSubmit} disabled={isLinking}>
               <Text style={styles.primaryButtonText}>{isLinking ? 'Открытие...' : 'Привязать карту'}</Text>
@@ -479,12 +479,15 @@ export default function TutorPaymentsScreenWeb() {
 
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 32, paddingTop: 24, paddingBottom: 48, maxWidth: 720 },
+  // paddingTop:0 — отступ до контента на мобильном даёт только стрелка
+  // "назад" в шапке (5px, см. site-header.tsx).
+  scrollContentMobile: { paddingHorizontal: 20, paddingTop: 0 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24 },
   backArrow: { fontSize: 25, color: '#010101' },
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   titleMobile: { fontSize: 25, lineHeight: 28 },
-  errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 12 },
+  errorText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginBottom: 12 },
 
   balanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#010101', paddingHorizontal: 16, paddingVertical: 16, marginBottom: 4 },
   balanceLabel: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#010101' },
@@ -506,8 +509,8 @@ const styles = StyleSheet.create({
   cardAction: { paddingVertical: 6 },
   cardActionText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#010101' },
   cardActionDeleteText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D' },
-  chip: { backgroundColor: '#F0F5FB', paddingVertical: 8, paddingHorizontal: 14 },
-  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#68717A' },
+  chip: { backgroundColor: '#111', paddingVertical: 8, paddingHorizontal: 14 },
+  chipText: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#FAFAFA' },
   chipTextDanger: { fontSize: 12, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#E02D2D' },
 
   linkCardRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#010101', height: 56, marginBottom: 24 },
@@ -532,20 +535,20 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: '#fff', width: '100%', maxWidth: 400, padding: 24 },
   modalTitle: { fontSize: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 12, textTransform: 'uppercase', lineHeight: 28 },
   modalTitleDanger: { color: '#E02D2D' },
-  modalMessage: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
+  modalMessage: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 8 },
   modalMessageDanger: { color: '#E02D2D' },
   modalEventCard: { borderWidth: 1, borderColor: '#010101', paddingHorizontal: 16, paddingVertical: 16, marginTop: 8 },
-  modalEventTitle: { fontSize: 15, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
-  modalEventSubtitle: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 4 },
+  modalEventTitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  modalEventSubtitle: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 4 },
   modalButtonSpacing: { marginTop: 16 },
   primaryButton: { backgroundColor: '#010101', paddingVertical: 14, alignItems: 'center' },
-  primaryButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
+  primaryButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
   modalOutlineButton: { borderWidth: 1, borderColor: '#010101', paddingVertical: 14, alignItems: 'center', marginTop: 12 },
-  modalOutlineButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
+  modalOutlineButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
   modalDangerButton: { backgroundColor: '#E02D2D', paddingVertical: 14, alignItems: 'center' },
-  modalDangerButtonText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
+  modalDangerButtonText: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#fff' },
   btnDisabled: { opacity: 0.6 },
-  vpnWarning: { fontSize: 12, lineHeight: 17, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12, marginBottom: 8 },
-  verificationNote: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
-  legalText: { marginTop: 12, fontSize: 11, lineHeight: 16, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textAlign: 'center' },
+  vpnWarning: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 12, marginBottom: 8 },
+  verificationNote: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 4 },
+  legalText: { marginTop: 12, fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textAlign: 'center' },
 });

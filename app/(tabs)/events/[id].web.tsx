@@ -1,18 +1,32 @@
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
+import { TagList } from '@/components/web/tag-list';
 import { API_BASE, endpoints } from '@/constants/env';
 import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthToken, getUserProfile } from '@/lib/auth';
-import { isRegisteredOnEventItem, unwrapApiData } from '@/lib/event-feed';
+import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
+import { fixHangingPrepositions, preventOrphanLastWord } from '@/lib/typography';
+
+// "Окей, что ещё" внизу страницы события — та же сетка-тройка (403/365/340),
+// что у похожих статей на /journal/[slug] (см. RELATED_ASPECTS там).
+const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
+const RELATED_EVENTS_COUNT = 3;
+
+type RelatedEventItem = { id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
+// Тот же лимит, что у нативной формы редактирования события (edit-event.tsx)
+// — на вебе название при редактировании можно было вводить без границ.
+const EDIT_TITLE_MAX_CHARS = 100;
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -27,11 +41,30 @@ type EventDetail = {
   datetimeStart?: string;
   price?: number;
   coverUrl?: string | null;
+  format?: string;
   mentor?: { id: string; name: string; avatarUrl?: string | null; bio?: string; shortBio?: string };
   isRegistered?: boolean;
   maxParticipants?: number;
   hasPaidRegistrations?: boolean;
+  tags?: string[];
 };
+
+// Тип события — показывается только здесь (страница события) и в
+// рубрикаторе фильтров, не в карточках списка /events (см. resolveFormat
+// в events/index.web.tsx, та же логика).
+const CATEGORY_LABELS: Record<string, string> = {
+  broadcast: 'Трансляция',
+  lecture: 'Лекция',
+  mediation: 'Медиация',
+  practices: 'Практика',
+  meeting: 'Встреча',
+  discussion: 'Обсуждение',
+};
+function resolveFormat(raw: Record<string, unknown>): string | undefined {
+  const category = raw.category as string | null | undefined;
+  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
+  return (raw.format as string) ?? (raw.type as string) ?? undefined;
+}
 
 function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   const r = (unwrapApiData<Record<string, unknown>>(raw) ?? raw) as Record<string, unknown>;
@@ -60,14 +93,27 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
     datetimeStart,
     price,
     coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
+    format: resolveFormat(r),
     mentor,
     isRegistered: isRegisteredOnEventItem(r) || registeredFromCup,
     maxParticipants: Number.isFinite(maxParticipants) ? maxParticipants : undefined,
     hasPaidRegistrations,
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : undefined,
   };
 }
 
 const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+// На карточках "Окей, что ещё" — только дата, без времени (как на /events).
+function formatEventDate(iso?: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
+  } catch {
+    return '';
+  }
+}
 
 function formatDatetime(iso?: string): string {
   if (!iso) return '';
@@ -123,6 +169,8 @@ export default function EventDetailScreenWeb() {
   const [deleteStep, setDeleteStep] = useState<'none' | 'confirm'>('none');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  const [recentEvents, setRecentEvents] = useState<RelatedEventItem[]>([]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -184,6 +232,33 @@ export default function EventDetailScreenWeb() {
       } finally {
         if (active) setLoading(false);
       }
+    })();
+    return () => { active = false; };
+  }, [id]);
+
+  // "Окей, что ещё" — 3 последних события (по ленте, из неё же берутся
+  // карточки на /events), кроме текущего.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${endpoints.eventsFeed}?page=1&per_page=${RELATED_EVENTS_COUNT + 1}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const raw = parseFeedItems(data) as Record<string, unknown>[];
+        if (!active) return;
+        setRecentEvents(
+          raw
+            .filter((r) => String(r.id ?? '') !== id)
+            .slice(0, RELATED_EVENTS_COUNT)
+            .map((r) => ({
+              id: String(r.id ?? ''),
+              title: String(r.title ?? ''),
+              coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
+              datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined ?? null,
+            })),
+        );
+      } catch { /* тихо — просто не показываем секцию */ }
     })();
     return () => { active = false; };
   }, [id]);
@@ -381,6 +456,20 @@ export default function EventDetailScreenWeb() {
   }
 
   const isOwnEvent = currentUserId != null && event?.mentor?.id === currentUserId;
+  // Прошедшее событие нельзя ни редактировать/отменить (организатор), ни
+  // отменить запись на него (участник) — действие уже неактуально.
+  const isPastEvent = !!event?.datetimeStart && new Date(event.datetimeStart).getTime() < Date.now();
+
+  // Формат + теги — тот же блок, что "автор + теги" под заголовком статьи в
+  // журнале (journal/[slug].web.tsx: authorBlock/authorRow/author) — тем же
+  // мелким серым стилем, а не крупным, как заголовок (раньше теги стояли
+  // прямо в titleRow, тем же размером, что и сам заголовок).
+  const formatRow = event?.format ? (
+    <View style={styles.eventMetaRow}>
+      <Text style={[styles.eventFormatText, styles.eventFormatShrink]}>{event.format}</Text>
+      <TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
+    </View>
+  ) : null;
 
   const metaBlock = (
     <View style={styles.metaRow}>
@@ -395,65 +484,131 @@ export default function EventDetailScreenWeb() {
     </View>
   );
 
-  const mentorRow = event?.mentor ? (
-    <View style={styles.mentorRow}>
-      <View style={styles.mentorInfo}>
-        <Text style={styles.mentorName}>{event.mentor.name}</Text>
-        {event.mentor.shortBio ? <Text style={styles.mentorBio}>{event.mentor.shortBio}</Text> : null}
+  // На мобильном — формат карточки как на /events (mobileRow/mobileThumb/
+  // mobileInfo/mobileTitleText), по просьбе пользователя унифицировать с
+  // /events. Названия стилей с префиксом related* — чтобы не конфликтовать
+  // с mobileThumb/mobileMetaRow выше (те — для обложки самого события).
+  function renderRelatedEventCard(item: RelatedEventItem, posInRow: 0 | 1 | 2) {
+    if (isMobile) {
+      return (
+        <Pressable key={item.id} style={styles.relatedMobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/[id].web.tsx:renderRelatedEventCard' } } as any)}>
+          {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.relatedMobileThumb} resizeMode="cover" /> : <View style={styles.relatedMobileThumb} />}
+          <View style={styles.relatedMobileInfo}>
+            <Text style={[styles.relatedMobileTitleText, styles.relatedMobileTitleTextNoLabel]}>{preventOrphanLastWord(item.title)}</Text>
+            {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
+          </View>
+        </Pressable>
+      );
+    }
+    return (
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+        {item.coverUrl ? (
+          <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
+        ) : (
+          <View style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} />
+        )}
+        <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>
+      </Pressable>
+    );
+  }
+
+  const relatedBlock = recentEvents.length > 0 ? (
+    <View style={styles.relatedSection}>
+      <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Окей, что ещё</Text>
+      <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
+        {recentEvents.map((e, i) => renderRelatedEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
       </View>
+    </View>
+  ) : null;
+
+  // "Перейти в профиль" (десктоп) — внутри mentorInfo, прижат к низу через
+  // justifyContent:'space-between' на колонке + alignItems:'stretch' на
+  // mentorRow (сама строка растягивается на высоту фото, 132px) — ровно по
+  // нижнему краю фотки наставника. Раньше был отдельным Pressable строкой
+  // ниже mentorRow (обычный поток, без привязки к фото); сейчас — просто
+  // текст внутри уже кликабельного mentorRow (ведёт туда же). На мобильном
+  // своя отдельная кнопка-чип под mentorRow (см. mobileMentorBlock ниже) —
+  // здесь её не дублируем.
+  const mentorRow = event?.mentor ? (
+    <Pressable style={styles.mentorRow} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+      <View style={styles.mentorInfo}>
+        <View>
+          <Text style={styles.mentorName}>{event.mentor.name}</Text>
+          {event.mentor.shortBio ? <Text style={[styles.mentorBio, isMobile && styles.mentorBioMobile]}>{event.mentor.shortBio}</Text> : null}
+        </View>
+        {!isMobile ? <Text style={styles.actionLink}>Перейти в профиль</Text> : null}
+      </View>
+      {/* Без data-mentor-avatar — чб-эффект только в сетке на /explore
+          (см. комментарий у правила в app/+html.tsx), здесь фото
+          наставника всегда цветное. */}
       <Image
         source={event.mentor.avatarUrl && !event.mentor.avatarUrl.startsWith('blob:') ? { uri: event.mentor.avatarUrl } : PLACEHOLDER_AVATAR}
         style={styles.mentorAvatar}
         resizeMode="cover"
       />
-    </View>
+    </Pressable>
+  ) : null;
+
+  // og:* — см. подробный комментарий у headElement в journal/[slug].web.tsx:
+  // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
+  // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
+  const headElement = event ? (
+    <Head>
+      <title>{event.title}</title>
+      {event.description ? <meta name="description" content={event.description.slice(0, 160)} /> : null}
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content={event.title} />
+      {event.description ? <meta property="og:description" content={event.description.slice(0, 160)} /> : null}
+      <meta property="og:url" content={`https://platformaapp.ru/events/${id}`} />
+      {event.coverUrl ? <meta property="og:image" content={event.coverUrl} /> : null}
+      <meta name="twitter:card" content={event.coverUrl ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={event.title} />
+    </Head>
   ) : null;
 
   return (
     <SiteShell>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      {headElement}
+      <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={styles.pageContent}>
-        <Pressable style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/events' as any))} hitSlop={8}>
-          <Text style={styles.backArrow}>←</Text>
-        </Pressable>
-
         {loading ? (
           <View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View>
         ) : error || !event ? (
           <View style={styles.centered}><Text style={styles.errorText}>{error || 'Событие не найдено'}</Text></View>
         ) : isMobile ? (
           <View>
-            <Text style={[styles.title, styles.titleMobile]}>{event.title}</Text>
+            <Text style={[styles.title, styles.titleMobile]}>{preventOrphanLastWord(event.title)}</Text>
+            {formatRow}
 
-            {event.coverUrl ? (
-              <View style={styles.mobileHeaderRow}>
-                <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" />
-                <View style={styles.mobileMetaCol}>
-                  <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
-                  <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
-                </View>
-              </View>
-            ) : metaBlock}
+            <View style={styles.mobileMetaRow}>
+              <Text style={styles.mobileMetaValue}>{formatDatetime(event.datetimeStart)}</Text>
+              <Text style={styles.mobileMetaValue}>{formatPrice(event.price)}</Text>
+            </View>
+            {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
-            {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+            {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
 
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
             {isOwnEvent ? (
-              <>
-                <Pressable style={styles.chipButton} onPress={openEditModal}>
-                  <Text style={styles.chipButtonText}>Редактировать событие</Text>
-                </Pressable>
-                <Pressable style={styles.chipButton} onPress={() => setDeleteStep('confirm')}>
-                  <Text style={styles.chipButtonText}>Отменить событие</Text>
-                </Pressable>
-              </>
+              isPastEvent ? null : (
+                <>
+                  <Pressable style={styles.chipButton} onPress={openEditModal}>
+                    <Text style={styles.chipButtonText}>Редактировать событие</Text>
+                  </Pressable>
+                  <Pressable style={styles.chipButton} onPress={() => setDeleteStep('confirm')}>
+                    <Text style={styles.chipButtonText}>Отменить событие</Text>
+                  </Pressable>
+                </>
+              )
             ) : (
               <>
                 {event.isRegistered ? (
-                  <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
-                    <Text style={styles.chipButtonText}>Отменить запись</Text>
-                  </Pressable>
+                  isPastEvent ? null : (
+                    <Pressable style={styles.chipButton} onPress={() => setCancelStep('confirm')}>
+                      <Text style={styles.chipButtonText}>Отменить запись</Text>
+                    </Pressable>
+                  )
                 ) : (
                   <Pressable style={[styles.chipButton, isRegistering && styles.btnDisabled]} onPress={handleRegister} disabled={isRegistering}>
                     <Text style={styles.chipButtonText}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
@@ -465,7 +620,7 @@ export default function EventDetailScreenWeb() {
             {event.mentor ? (
               <View style={styles.mobileMentorBlock}>
                 {mentorRow}
-                <Pressable style={styles.chipButton} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                <Pressable style={[styles.chipButton, styles.mentorProfileButtonMobile]} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
                   <Text style={styles.chipButtonText}>Перейти в профиль</Text>
                 </Pressable>
               </View>
@@ -474,35 +629,40 @@ export default function EventDetailScreenWeb() {
         ) : (
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
-              <Text style={styles.title}>{event.title}</Text>
-              {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+              <Text style={styles.title}>{preventOrphanLastWord(event.title)}</Text>
+              {formatRow}
+              {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
               {metaBlock}
 
               {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
               <View style={styles.actionsRow}>
                 {isOwnEvent ? (
-                  <>
-                    <Pressable onPress={openEditModal}>
-                      <Text style={styles.actionLink}>Редактировать событие</Text>
-                    </Pressable>
-                    <Pressable onPress={() => setDeleteStep('confirm')}>
-                      <Text style={styles.actionLink}>Отменить событие</Text>
-                    </Pressable>
-                  </>
+                  isPastEvent ? null : (
+                    <>
+                      <Pressable onPress={openEditModal}>
+                        <Text style={styles.actionLink}>Редактировать событие</Text>
+                      </Pressable>
+                      <Pressable onPress={() => setDeleteStep('confirm')}>
+                        <Text style={styles.actionLink}>Отменить событие</Text>
+                      </Pressable>
+                    </>
+                  )
                 ) : (
                   <>
                     {event.isRegistered ? (
-                      <Pressable onPress={() => setCancelStep('confirm')}>
-                        <Text style={styles.actionLink}>Отменить запись</Text>
-                      </Pressable>
+                      isPastEvent ? null : (
+                        <Pressable onPress={() => setCancelStep('confirm')}>
+                          <Text style={styles.actionLink}>Отменить запись</Text>
+                        </Pressable>
+                      )
                     ) : (
-                      <Pressable onPress={handleRegister} disabled={isRegistering}>
+                      <Pressable style={styles.actionLinkWrapper} onPress={handleRegister} disabled={isRegistering}>
                         <Text style={[styles.actionLink, isRegistering && styles.actionLinkDisabled]}>{isRegistering ? 'Регистрируем…' : 'Зарегистрироваться'}</Text>
                       </Pressable>
                     )}
-                    <Pressable onPress={handleShare}>
-                      <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться событием'}</Text>
+                    <Pressable style={styles.actionLinkWrapper} onPress={handleShare}>
+                      <Text style={styles.actionLink}>{shareCopied ? 'Ссылка скопирована' : 'Поделиться'}</Text>
                     </Pressable>
                   </>
                 )}
@@ -511,17 +671,12 @@ export default function EventDetailScreenWeb() {
 
             <View style={styles.rightCol}>
               {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
-              {event.mentor ? (
-                <View>
-                  {mentorRow}
-                  <Pressable onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
-                    <Text style={styles.actionLink}>Перейти в профиль</Text>
-                  </Pressable>
-                </View>
-              ) : null}
+              {event.mentor ? <View>{mentorRow}</View> : null}
             </View>
           </View>
         )}
+
+        {relatedBlock}
       </View>
 
         <SiteFooter />
@@ -598,10 +753,11 @@ export default function EventDetailScreenWeb() {
                 <Text style={styles.editFieldLabel}>Название</Text>
                 <TextInput
                   value={editTitle}
-                  onChangeText={setEditTitle}
+                  onChangeText={(t) => t.length <= EDIT_TITLE_MAX_CHARS && setEditTitle(t)}
                   style={[styles.editFieldInput, { height: editTitleHeight }]}
                   multiline
                   scrollEnabled={false}
+                  maxLength={EDIT_TITLE_MAX_CHARS}
                   onContentSizeChange={(e) => setEditTitleHeight(Math.max(24, Math.ceil(e.nativeEvent.contentSize.height)))}
                   editable={!event?.hasPaidRegistrations}
                 />
@@ -720,54 +876,113 @@ export default function EventDetailScreenWeb() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingTop: 24, paddingBottom: 24 },
+  scrollContent: { paddingTop: 0, paddingBottom: 24, marginTop: 86 },
+  // marginTop:0 — отступ до контента на мобильном теперь даёт только
+  // стрелка "назад" в шапке (5px, см. site-header.tsx), а не десктопный 86.
+  scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
-  backButton: { alignSelf: 'flex-start', marginBottom: 16 },
-  backArrow: { fontSize: 20, color: '#010101' },
 
   // Desktop: узкая текстовая колонка слева (заголовок оборачивается в
   // 2-3 строки, как на референсе), картинка (альбомная, не фикс. высота)
   // + карточка наставника — в широкой колонке справа.
-  desktopLayout: { flexDirection: 'row', gap: 48, alignItems: 'flex-start', justifyContent: 'space-between' },
-  leftCol: { flexBasis: 420, maxWidth: 420, flexShrink: 1 },
-  rightCol: { flex: 1, minWidth: 0, maxWidth: 709 },
+  // alignItems убран (был 'flex-start'): без него работает дефолт CSS
+  // Grid — 'stretch' — только тогда leftCol реально растягивается на
+  // высоту строки (как на странице наставника, см. тот же приём в
+  // explore/[id].web.tsx: desktopGrid), и actionsRow (position:'absolute',
+  // bottom:0) внутри него садится на нижний край колонки, а не куда
+  // попало. leftCol также получил position:'relative' — без него
+  // actionsRow (абсолютный, bottom:0) не находил позиционированного
+  // предка и улетал к первому найденному выше по дереву, наезжая на текст
+  // статьи/события.
+  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
+  leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1, height: '100%', position: 'relative' },
+  rightCol: { flex: 1, minWidth: 0, maxWidth: 709, position: 'relative', top: 5, right: 0, width: '100%', overflow: 'hidden' },
   cover: { width: '100%', aspectRatio: 1.44, marginBottom: 24, backgroundColor: '#E5E5E5' },
 
-  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 16 },
-  titleMobile: { fontSize: 25, lineHeight: 28 },
-  description: { fontSize: 19, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24 },
+  // marginBottom:100 — тот же отступ до строки "формат + теги", что у
+  // заголовка статьи в журнале на десктопе (title.marginBottom:100) —
+  // раньше было 0 (отступ давала не строка формата, которой не было, а
+  // фиксированный marginTop:40 у текста, см. description ниже).
+  title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 100 },
+  // fontSize/lineHeight:30 и marginBottom:24 — тот же размер заголовка и
+  // интервал до следующего блока (строки формата/даты), что уже
+  // выработан в журнале (journal/[slug].web.tsx: titleMobile/authorRow —
+  // везде 24, заголовок — 30/30): раньше здесь был и свой размер
+  // заголовка (25/28), и у каждого блока свой случайный отступ (0, 20+24,
+  // 16, 40).
+  titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
+  // Формат события + теги — тот же блок, что "автор + теги" под
+  // заголовком статьи в журнале (authorRow/author): мелкий серый текст,
+  // формат слева, теги справа. Раньше теги стояли прямо рядом с
+  // заголовком, тем же крупным размером, что и сам заголовок.
+  eventMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  eventFormatText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
+  // minWidth:0 — без него flex-item по умолчанию не сжимается уже самого
+  // контента (min-width:auto в CSS flexbox), и при нехватке места сжимает
+  // теги вместо формата (та же проблема, что и у имени автора в журнале).
+  eventFormatShrink: { flexShrink: 1, minWidth: 0 },
+  // lineHeight:26, без maxWidth — тот же межстрочный интервал и та же
+  // "длина текста" (во всю ширину колонки, не уже), что у текста статьи в
+  // журнале (body: lineHeight:26, без своего maxWidth у textCol) — раньше
+  // текст события был уже (504px) самой колонки (605px) и плотнее (18).
+  // marginTop:0 — отступ до текста теперь даёт formatRow.marginBottom
+  // (24) выше, а не фиксированный 40.
+  description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 0, fontSize: 18, lineHeight: 26 },
   metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
   metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
   metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24 },
-  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+  // gap:280 — вероятно, опечатка (взят из другого макета): при узкой
+  // leftCol (420–605px) «Зарегистрироваться» и «Поделиться» с таким
+  // зазором не помещались в одну строку и переносились через flexWrap.
+  // 24 — тот же зазор, что у идентичного actionsRow на странице наставника
+  // (explore/[id].web.tsx).
+  actionsRow: { flexDirection: 'row', gap: 24, marginTop: 0,     position: 'absolute', bottom: 0 },
+  actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
+  actionLinkWrapper: { justifyContent: 'flex-end' },
   actionLinkDisabled: { color: '#9B9B9B' },
   btnDisabled: { opacity: 0.6 },
 
-  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  // alignItems убран (был 'flex-start'): дефолт CSS flexbox — 'stretch' —
+  // растягивает mentorInfo на высоту строки (132px, задаёт mentorAvatar),
+  // иначе justifyContent:'space-between' на mentorInfo (ниже) прижимать
+  // "Перейти в профиль" было бы не к чему — колонка была бы ровно по
+  // высоте своего контента (имя+био), а не по высоте фото рядом.
+  mentorRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 0 },
   // maxWidth обязателен: rightCol — flex:1 (под широкое фото), без него
   // текстовый блок (особенно с добавленным bio) растягивался бы почти на
   // всю ширину колонки вместо компактной подписи рядом с аватаром.
-  mentorInfo: { flex: 1, maxWidth: 360 },
+  // justifyContent:'space-between' — имя+био сверху, "Перейти в профиль"
+  // снизу (по нижнему краю фото, см. mentorRow выше).
+  mentorInfo: { flex: 1, maxWidth: 360, justifyContent: 'space-between' },
   mentorName: { fontSize: 25, lineHeight: 28, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 4 },
-  mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
+  mentorBio: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076' },
+  // На мобильном — подпись мельче (как на самой странице наставника, см.
+  // roleMobile в explore/[id].web.tsx).
+  mentorBioMobile: { fontSize: 14, lineHeight: 18 },
   // Крупный портретный кадр (как на /explore), а не маленький квадратный
   // значок — см. референс страницы события.
   mentorAvatar: { width: 110, height: 132, backgroundColor: '#E5E5E5', flexShrink: 0 },
 
-  // Mobile: широкая обложка (не квадратная миниатюра) слева, дата/цена
-  // справа по верхнему краю — см. референс мобильной карточки события.
-  mobileHeaderRow: { flexDirection: 'row', gap: 16, alignItems: 'flex-start', marginBottom: 16 },
-  mobileThumb: { flex: 1, height: 160, backgroundColor: '#E5E5E5' },
-  mobileMetaCol: { gap: 6, paddingTop: 4 },
-  mobileMetaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', textAlign: 'right' },
+  // Mobile: дата/цена над картинкой (не сбоку), картинка — на всю ширину
+  // (не доля строки рядом с текстом, как раньше). Размер/интервалы — по
+  // просьбе пользователя: та же мелкая приглушённая подпись, что и везде
+  // на сайте (10/10). marginTop не нужен — отступ сверху уже даёт
+  // titleMobile.marginBottom (24, см. выше); marginBottom — тот же
+  // журнальный интервал между блоками (24), что и everywhere ниже.
+  mobileMetaRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  mobileThumb: { width: '100%', aspectRatio: 649 / 360, backgroundColor: '#E5E5E5', marginBottom: 24 },
+  mobileMetaValue: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', opacity: 0.5 },
   // Заметный отступ перед блоком наставника — см. референс.
   mobileMentorBlock: { marginTop: 56 },
-  chipButton: { backgroundColor: '#F0F5FB', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#68717A' },
+  // Тот же отступ, что между текстом события и кнопкой "Зарегистрироваться"
+  // (description.marginBottom) — раньше кнопка стояла вплотную под фото
+  // наставника без зазора.
+  mentorProfileButtonMobile: { marginTop: 24 },
+  chipButton: { backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  chipButtonText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#FAFAFA' },
 
   cancelOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(24,24,24,0.45)', padding: 16 },
   cancelModalCard: { width: '100%', maxWidth: 420, backgroundColor: '#fff', padding: 24, position: 'relative' },
@@ -791,10 +1006,10 @@ const styles = StyleSheet.create({
   editCloseText: { fontSize: 22, color: '#010101', marginTop: 4 },
   editScroll: { flexGrow: 0 },
   editScrollContent: { paddingBottom: 8 },
-  editLockedNote: { fontSize: 13, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
+  editLockedNote: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
   editFieldWrap: { marginBottom: 28 },
   editFieldLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 6 },
-  editFieldInput: { fontSize: 16, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none', textAlignVertical: 'top' } as any,
+  editFieldInput: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none', textAlignVertical: 'top' } as any,
   editFieldValueRow: { position: 'relative' },
   editFieldValue: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },
   editCommissionText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 6 },
@@ -805,4 +1020,28 @@ const styles = StyleSheet.create({
   editFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   editCancelText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#687076' },
   editSaveText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D' },
+
+  // "Окей, что ещё" — та же сетка-тройка (403/365/340), что у похожих статей
+  // на /journal/[slug] (см. RELATED_ASPECTS там).
+  relatedSection: { marginTop: 140, marginBottom: 40 },
+  relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
+  // На мобильном — тот же размер, что у заголовка самого события (titleMobile).
+  relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
+  relatedRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  relatedRowMobile: { display: 'flex', flexDirection: 'column', gap: 28 } as any,
+  relatedImage: { width: '100%', backgroundColor: '#E5E5E5' },
+  relatedTitle: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 12 },
+  // Формат мобильной карточки — тот же, что на /events (events/index.web.tsx:
+  // mobileRow/mobileThumb/mobileInfo/mobileTitleText).
+  relatedMobileRow: { flexDirection: 'row', gap: 20 },
+  relatedMobileThumb: { height: 120, width: 165, aspectRatio: 649 / 360, backgroundColor: '#E5E5E5' },
+  relatedMobileInfo: { flex: 1, justifyContent: 'space-between' },
+  // lineHeight:13.3 — в RN это абсолютные px, не множитель как в CSS;
+  // 0.95 × fontSize(14) = 13.3.
+  relatedMobileTitleText: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 8, fontSize: 14, lineHeight: 13.3 },
+  // marginTop:0 — заголовок тут всегда первый/единственный элемент в
+  // relatedMobileInfo (justifyContent:'space-between', без лейбла над ним),
+  // стандартный marginTop:8 просто сдвигал его вниз от края картинки.
+  relatedMobileTitleTextNoLabel: { marginTop: 0 },
+  mobileDate: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', color: '#687076', alignSelf: 'flex-end' },
 });

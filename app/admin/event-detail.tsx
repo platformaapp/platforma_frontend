@@ -2,33 +2,38 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdminTagsInput } from '@/components/admin/tags-input';
+import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
 import { clearAdminToken, getAdminToken } from '@/lib/admin-auth';
+import { adminGoBack } from '@/lib/admin-nav';
+import { resizeImageForUpload } from '@/lib/resize-image-for-upload';
 
 async function uploadAdminCoverImage(uri: string): Promise<string> {
   const token = await getAdminToken();
   if (!token) throw new Error('Требуется авторизация');
+  const resizedUri = await resizeImageForUpload(uri);
   const formData = new FormData();
   const filename = `cover_${Date.now()}.jpg`;
   if (Platform.OS === 'web') {
-    const resp = await fetch(uri);
+    const resp = await fetch(resizedUri);
     const blob = await resp.blob();
     formData.append('file', blob, filename);
   } else {
-    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any);
+    formData.append('file', { uri: resizedUri, name: filename, type: 'image/jpeg' } as any);
   }
   const res = await fetch(endpoints.uploadImage, {
     method: 'POST',
@@ -64,6 +69,7 @@ type EventDetail = {
   sessionId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  tags?: string[];
   mentor?: { id: string; fullName: string; email: string; avatarUrl?: string | null } | null;
   videoRoom?: {
     id?: string;
@@ -109,7 +115,7 @@ function fmtDate(iso?: string | null): string {
 
 function fmtMoney(v?: number | null): string | null {
   if (v == null) return null;
-  return `${Number(v).toLocaleString('ru-RU')} ₽`;
+  return `${Number(v).toLocaleString('ru-RU')} Р`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -140,6 +146,7 @@ export default function AdminEventDetailScreen() {
 
   const [modVisible, setModVisible] = useState(false);
   const [modFields, setModFields] = useState({ title: '', description: '', comment: '' });
+  const [modTags, setModTags] = useState<string[]>([]);
   const [modCoverUri, setModCoverUri] = useState<string | null>(null);
   const [modCoverUploading, setModCoverUploading] = useState(false);
   const [modSaving, setModSaving] = useState(false);
@@ -185,6 +192,7 @@ export default function AdminEventDetailScreen() {
           datetimeStart: r.datetimeStart ?? r.datetime_start ?? null,
           datetimeEnd: r.datetimeEnd ?? r.datetime_end ?? null,
           coverUrl: resolveUrl(r.coverUrl ?? r.cover_url),
+          tags: Array.isArray(r.tags) ? r.tags : [],
           recordingUrl: r.recordingUrl ?? r.recording_url ?? null,
           sessionId: r.sessionId ?? r.session_id ?? null,
           createdAt: r.createdAt ?? r.created_at,
@@ -198,6 +206,7 @@ export default function AdminEventDetailScreen() {
           videoRoom: r.videoRoom ?? r.video_room ?? null,
           participants: r.participants ?? null,
         });
+        if (active) setModTags(Array.isArray(r.tags) ? r.tags : []);
       } catch {
         if (active) setError('Не удалось загрузить данные');
       } finally {
@@ -249,7 +258,7 @@ export default function AdminEventDetailScreen() {
       const token = await getAdminToken();
       if (!token) { router.replace('/admin/login'); return; }
 
-      const body: Record<string, string> = {};
+      const body: Record<string, string | string[]> = {};
 
       if (modCoverUri) {
         setModCoverUploading(true);
@@ -266,6 +275,7 @@ export default function AdminEventDetailScreen() {
 
       if (modFields.title.trim()) body.title = modFields.title.trim();
       if (modFields.description.trim()) body.description = modFields.description.trim();
+      body.tags = modTags;
       const adminComment = modFields.comment.trim();
       body.comment = adminComment
         ? `${TEAM_COMMENT}\n\n${adminComment}`
@@ -307,8 +317,9 @@ export default function AdminEventDetailScreen() {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <Text style={styles.errorText}>{error || 'Событие не найдено'}</Text>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Text style={styles.backBtnText}>← Назад</Text>
+        <Pressable style={[styles.backBtn, styles.backBtnRow]} onPress={() => adminGoBack(router, '/admin/events')}>
+          <BackArrowIcon width={16} height={15} />
+          <Text style={styles.backBtnText}>Назад</Text>
         </Pressable>
       </View>
     );
@@ -320,7 +331,7 @@ export default function AdminEventDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => adminGoBack(router, '/admin/events')} style={styles.backButton}>
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{event.title}</Text>
@@ -364,6 +375,7 @@ export default function AdminEventDetailScreen() {
             </View>
           ) : null}
           <Row label="sessionId" value={event.sessionId} />
+          {event.tags && event.tags.length > 0 ? <Row label="Теги" value={event.tags.map((t) => `#${t}`).join(' ')} /> : null}
         </Section>
 
         {/* Schedule */}
@@ -466,6 +478,9 @@ export default function AdminEventDetailScreen() {
                 </Pressable>
               ) : null}
 
+              <Text style={styles.modLabel}>Теги</Text>
+              <AdminTagsInput tags={modTags} onChange={setModTags} />
+
               <Text style={styles.modLabel}>Название</Text>
               <TextInput
                 style={styles.modInput}
@@ -532,6 +547,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   errorText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#E02D2D', textAlign: 'center', marginBottom: 16 },
   backBtn: { borderWidth: 1, borderColor: '#181818', paddingVertical: 10, paddingHorizontal: 20 },
+  backBtnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backBtnText: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
@@ -539,7 +555,7 @@ const styles = StyleSheet.create({
   backArrow: { fontSize: 28, lineHeight: 30, color: '#181818', marginTop: -2 },
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
-  content: { paddingBottom: 48 },
+  content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingBottom: 48 },
 
   cover: { width: '100%', height: 200, backgroundColor: '#E5E5E5' },
   coverPlaceholder: { width: '100%', height: 120, backgroundColor: '#E5E5E5' },
@@ -554,11 +570,11 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
 
   row: { flexDirection: 'row', paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
-  rowLabel: { width: 160, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
-  rowValue: { flex: 1, fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818' },
+  rowLabel: { width: 160, fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
+  rowValue: { flex: 1, fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#181818' },
 
   descBlock: { paddingVertical: 7, borderTopWidth: 1, borderColor: '#F0F0F0' },
-  descText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818', lineHeight: 20, marginTop: 4 },
+  descText: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#181818', lineHeight: 20, marginTop: 4 },
 
   mentorRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderColor: '#F0F0F0' },
   mentorAvatar: { width: 48, height: 48, backgroundColor: '#E5E5E5' },
@@ -578,7 +594,7 @@ const styles = StyleSheet.create({
   modTeamCommentLabel: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
   modTeamCommentText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#444', lineHeight: 18 },
   modInput: {
-    borderWidth: 1,
+    borderBottomWidth: 1,
     borderColor: '#E5E5E5',
     paddingHorizontal: 12,
     paddingVertical: 10,

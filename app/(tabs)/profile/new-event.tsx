@@ -3,18 +3,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
@@ -371,7 +371,7 @@ export default function NewEventScreen() {
           {price && !isEditingPrice ? (
             <Pressable style={styles.priceDisplayWrap} onPress={() => setIsEditingPrice(true)}>
               <Text style={styles.priceDisplay} numberOfLines={1}>
-                {priceValue > 0 ? `Стоимость участия — ${priceValue} ₽` : 'Стоимость участия — Бесплатно'}
+                {priceValue > 0 ? `Стоимость участия — ${priceValue} Р` : 'Стоимость участия — Бесплатно'}
               </Text>
             </Pressable>
           ) : (
@@ -388,7 +388,7 @@ export default function NewEventScreen() {
           {price && priceValue > 0 ? (
             <View style={styles.commissionInfo}>
               <Text style={styles.commissionText}>Комиссия 10%</Text>
-              <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} ₽</Text>
+              <Text style={styles.finalAmountText}>Вы получите {Math.round(finalAmount)} Р</Text>
             </View>
           ) : price && priceValue === 0 ? (
             <Text style={styles.commissionText}>Без комиссии</Text>
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1, borderColor: '#1E1E1E',
     paddingHorizontal: 12, paddingVertical: 12,
-    fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular',
+    fontSize: 18, lineHeight: 20, fontFamily: 'Gramatika-Regular',
     color: '#181818', marginBottom: 12,
     justifyContent: 'center',
     position: 'relative',

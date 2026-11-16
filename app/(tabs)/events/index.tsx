@@ -2,20 +2,20 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Pressable,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
-import { parseFeedItems } from '@/lib/event-feed';
 import { getAuthToken } from '@/lib/auth';
+import { parseFeedItems } from '@/lib/event-feed';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
@@ -196,7 +196,7 @@ export default function EventsScreen() {
                 <Text style={styles.footerTime}>{formatEventTime(item.datetimeStart)}</Text>
                 {typeof item.price === 'number' ? (
                   <View style={styles.priceContainer}>
-                    <Text style={styles.footerPrice}>{item.price.toLocaleString('ru-RU')} ₽</Text>
+                    <Text style={styles.footerPrice}>{item.price.toLocaleString('ru-RU')} Р</Text>
                   </View>
                 ) : null}
               </View>

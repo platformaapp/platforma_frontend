@@ -4,17 +4,19 @@ import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
+    ActivityIndicator,
+    Image,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+    useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path } from 'react-native-svg';
 
 function openUrl(url: string) {
   if (Platform.OS === 'web') {
@@ -23,25 +25,23 @@ function openUrl(url: string) {
     Linking.openURL(url);
   }
 }
-import Svg, { Path } from 'react-native-svg';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { API_BASE, endpoints } from '@/constants/env';
+import { fetchPaymentBindingCallback, getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
+import { getPublicTutorList } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken } from '@/lib/auth';
+import { authedFetch } from '@/lib/authed-fetch';
+import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
+import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 function resolveUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') return null;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   return `${API_BASE}${url}`;
 }
-import { getPaymentMethods, fetchPaymentBindingCallback, type PaymentMethod } from '@/lib/api/student-payments';
-import { getPublicTutorList } from '@/lib/api/tutor';
-import { authedFetch } from '@/lib/authed-fetch';
-import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
 const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp.ru/conf.pdf';
-import { isRegisteredOnEventItem, parseFeedItems, unwrapApiData } from '@/lib/event-feed';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -195,7 +195,7 @@ function formatDatetime(iso?: string): string {
 
 function formatPrice(price?: number): string {
   if (price == null) return '';
-  return `${price.toLocaleString('ru-RU')} ₽`;
+  return `${price.toLocaleString('ru-RU')} Р`;
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────

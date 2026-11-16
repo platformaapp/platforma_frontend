@@ -2,26 +2,26 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Mask, Path } from 'react-native-svg';
 
-import { endpoints, API_BASE } from '@/constants/env';
+import { API_BASE, endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import { friendlyHttpErrorMessage } from '@/lib/api/http-error';
 import { getMyEventsForStudent, teacherName, type MyEventItem } from '@/lib/api/student-events';
+import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 import { authedFetch } from '@/lib/authed-fetch';
-import { getAuthToken, getAuthRole, getUserProfile } from '@/lib/auth';
 import { buildJitsiUrl, openJitsi } from '@/lib/jitsi';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ const MONTHS_GEN = ['янв','фев','мар','апр','мая','июн','ию�
 function formatPrice(price?: number): string | null {
   if (price == null) return null;
   if (price === 0) return 'Бесплатно';
-  return `${price.toLocaleString('ru-RU')} ₽`;
+  return `${price.toLocaleString('ru-RU')} Р`;
 }
 
 function formatDatetime(iso?: string): string {

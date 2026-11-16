@@ -30,11 +30,15 @@ export interface TutorProfile {
   short_bio?: string;
   telegram?: string;
   phone?: string;
-  hourlyRate?: number;
-  hourly_rate?: number;
-  pricePerHour?: number;
+  // number в типах, но Postgres decimal без transformer'а бэкенд реально
+  // отдаёт строкой ("7000.00") — не число.
+  hourlyRate?: number | string;
+  hourly_rate?: number | string;
+  pricePerHour?: number | string;
   groupMeetings?: string;
   group_meetings?: string;
+  /** Рубрикатор — тема специализации (см. constants/topics.ts) */
+  specialization?: string;
   role?: 'tutor';
   created_at?: string;
   updated_at?: string;
@@ -59,6 +63,7 @@ export interface TutorProfileUpdate {
   pricePerHour?: number;
   groupMeetings?: string;
   group_meetings?: string;
+  specialization?: string;
 }
 
 /** free (или available) | booked | cancelled */
@@ -69,6 +74,7 @@ export interface Slot {
   tutor_id?: string;
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
+  price?: number;
   status: SlotStatus;
   created_at?: string;
   updated_at?: string;
@@ -77,6 +83,9 @@ export interface Slot {
 export interface SlotCreate {
   date: string;
   time: string;
+  // Обязательное поле у бэкенда (CreateSlotDto) — без него POST /tutor/slots
+  // отклоняется валидацией, и слот не создаётся.
+  price: number;
 }
 
 export interface SlotUpdate {
@@ -103,15 +112,25 @@ export interface EventCreate {
   title?: string;
 }
 
-/** Полный payload для создания события из формы new-event */
+/**
+ * Полный payload для создания события из формы "Добавить событие".
+ * Имена полей — как у бэкенда (CreateEventDto): datetime_start/datetime_end
+ * (ISO, оба обязательны — бэкенд сам считает durationMinutes из разницы),
+ * coverUrl (не cover_image). date/time по отдельности бэкенд не принимает.
+ */
 export interface EventCreateFull {
   title: string;
   description: string;
-  date: string;
-  time: string;
+  datetime_start: string;
+  datetime_end: string;
   price: number;
   max_participants: number;
-  cover_image?: string;
+  coverUrl?: string;
+  topic?: string;
+  /** Формат события (broadcast/lecture/practices/meeting/discussion) — см.
+   * EventCategory на бэкенде. Без него /events фильтр по формату не работает
+   * ни для одного созданного события (category всегда остаётся null). */
+  category?: string;
 }
 
 export interface EventUpdate {
@@ -273,19 +292,35 @@ export async function deleteTutorSlots(slotIds: string[]): Promise<void> {
 }
 
 // --- События/занятия ---
+// У бэкенда нет отдельного /tutor/events — события общие, см. /events (было
+// 404 "Cannot POST /api/tutor/events" при создании события наставником).
 
-/** GET /tutor/events — список событий (привязанных к слотам) */
-export async function getTutorEvents(): Promise<Event[]> {
-  const res = await fetch(endpoints.tutorEvents, {
-    headers: await authHeaders(),
-  });
-  const data = await handleResponse<Event[] | { events?: Event[] }>(res);
-  return Array.isArray(data) ? data : (data.events ?? []);
+/** Карточка своего события — поля ответа GET /events/my (MyEventItemDto на
+ *  бэкенде), НЕ то же самое, что Event выше (тот — обёртка вокруг слота/
+ *  брони, не общая карточка события). Используется для выбора "Событие для
+ *  интеграции в текст" в заявке на статью (см. createTutorArticle). */
+export interface TutorOwnEvent {
+  id: string;
+  title: string;
+  start_at: string | null;
+  cover_url: string | null;
 }
 
-/** POST /tutor/events — создать событие (если добавляем сразу занятие) */
+/** GET /events/my?role=tutor — список своих событий (наставник видит
+ *  созданные им). role — обязательный параметр на бэкенде (MyEventsQueryDto),
+ *  без него запрос падает с 400 — раньше тут его не было вовсе, функция
+ *  была фактически нерабочей (и нигде не вызывалась). */
+export async function getTutorEvents(): Promise<TutorOwnEvent[]> {
+  const res = await fetch(`${endpoints.eventsMy}?role=tutor&filter=events&per_page=50`, {
+    headers: await authHeaders(),
+  });
+  const data = await handleResponse<{ data?: { id: string; title: string; start_at: string | null; cover_url: string | null }[] }>(res);
+  return (data.data ?? []).map((e) => ({ id: e.id, title: e.title, start_at: e.start_at, cover_url: e.cover_url }));
+}
+
+/** POST /events — создать событие (если добавляем сразу занятие) */
 export async function createTutorEvent(event: EventCreate): Promise<Event> {
-  const res = await fetch(endpoints.tutorEvents, {
+  const res = await fetch(endpoints.events, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(event),
@@ -293,9 +328,9 @@ export async function createTutorEvent(event: EventCreate): Promise<Event> {
   return handleResponse<Event>(res);
 }
 
-/** POST /tutor/events — создать событие с полными данными (Название, Описание, Дата, Время, Стоимость, Участники, Обложка) */
+/** POST /events — создать событие с полными данными (Название, Описание, Дата, Время, Стоимость, Участники, Обложка) */
 export async function createTutorEventFull(event: EventCreateFull): Promise<Event> {
-  const res = await fetch(endpoints.tutorEvents, {
+  const res = await fetch(endpoints.events, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify(event),
@@ -303,14 +338,36 @@ export async function createTutorEventFull(event: EventCreateFull): Promise<Even
   return handleResponse<Event>(res);
 }
 
-/** PUT /tutor/events/{id} — обновить статус урока */
+/** PATCH /events/{id} — обновить статус урока */
 export async function updateTutorEvent(id: string, data: EventUpdate): Promise<Event> {
-  const res = await fetch(`${endpoints.tutorEvents}/${id}`, {
-    method: 'PUT',
+  const res = await fetch(`${endpoints.events}/${id}`, {
+    method: 'PATCH',
     headers: await authHeaders(),
     body: JSON.stringify(data),
   });
   return handleResponse<Event>(res);
+}
+
+// --- Заявка на статью ---
+
+export interface TutorArticlePitch {
+  title: string;
+  cover_url?: string;
+  excerpt?: string;
+  event_id?: string;
+}
+
+/** POST /tutor/articles — заявка наставника на статью (облегчённая форма:
+ *  без текста, см. комментарий у CreateTutorArticleDto на бэкенде) — падает
+ *  в админку со статусом "на модерации", админ дооформляет и публикует
+ *  (см. admin/journal.tsx/journal-detail.tsx, бейдж "На модерации"). */
+export async function createTutorArticle(pitch: TutorArticlePitch): Promise<void> {
+  const res = await fetch(endpoints.tutorArticles, {
+    method: 'POST',
+    headers: await authHeaders(),
+    body: JSON.stringify(pitch),
+  });
+  await handleResponse(res);
 }
 
 // --- Платежи ---
@@ -376,6 +433,10 @@ export interface PublicTutor {
   telegram_username?: string;
   /** Whether the mentor has been verified by admins */
   isVerified?: boolean;
+  /** Рубрикатор — тема специализации (см. constants/topics.ts) */
+  specialization?: string;
+  /** Хэштеги (без "#") — задаются в админке, показываются рядом с именем. */
+  tags?: string[];
 }
 
 /**
@@ -394,6 +455,8 @@ export interface PublicTutorBasic {
   avatarUrl?: string;
   bio?: string;
   shortBio?: string;
+  specialization?: string;
+  tags?: string[];
 }
 
 /**
@@ -417,6 +480,8 @@ export async function getPublicTutors(): Promise<PublicTutorBasic[]> {
       avatarUrl: resolveUrl(u.avatarUrl ?? u.avatar_url) ?? undefined,
       bio: (u.bio ?? undefined) as string | undefined,
       shortBio: (u.shortBio ?? u.short_bio ?? u.roleLabel ?? u.role_label ?? u.specialty ?? undefined) as string | undefined,
+      specialization: (u.specialization ?? undefined) as string | undefined,
+      tags: Array.isArray(u.tags) ? (u.tags as string[]) : undefined,
     }));
   } catch {
     return [];

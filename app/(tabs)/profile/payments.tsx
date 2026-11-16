@@ -4,15 +4,15 @@ import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 
 const OFERTA_URL = Platform.OS === 'web' ? '/oferta.pdf' : 'https://platformaapp.ru/oferta.pdf';
@@ -21,14 +21,14 @@ const CONF_URL   = Platform.OS === 'web' ? '/conf.pdf'   : 'https://platformaapp
 import { endpoints } from '@/constants/env';
 import { AuthError } from '@/lib/api/auth-error';
 import {
-  deleteCurrentPaymentMethod,
-  deletePaymentMethod,
-  getPaymentMethods,
-  getStudentPayments,
-  MAX_CARDS,
-  setDefaultPaymentMethod,
-  type Card,
-  type PaymentHistoryItem,
+    deleteCurrentPaymentMethod,
+    deletePaymentMethod,
+    getPaymentMethods,
+    getStudentPayments,
+    MAX_CARDS,
+    setDefaultPaymentMethod,
+    type Card,
+    type PaymentHistoryItem,
 } from '@/lib/api/student-payments';
 import { getAuthToken } from '@/lib/auth';
 
@@ -48,7 +48,7 @@ function formatDate(iso: string): string {
 }
 
 function formatAmount(amount: number): string {
-  return `${amount.toLocaleString('ru-RU')} ₽`;
+  return `${amount.toLocaleString('ru-RU')} Р`;
 }
 
 function cardDisplay(card: Card): string {
@@ -309,7 +309,7 @@ export default function PaymentsScreen() {
               </View>
             </Pressable>
             <Text style={styles.verificationNote}>
-              С карты спишется проверочный платеж 1 ₽.
+              С карты спишется проверочный платеж 1 Р.
             </Text>
             <Text style={styles.legalText}>
               {'Нажимая «Привязать карту», вы принимаете оферту, политику конфиденциальности и условия сервиса'}
