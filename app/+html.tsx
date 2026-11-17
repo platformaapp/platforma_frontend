@@ -5,6 +5,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
     <html lang="ru">
       <head>
         <meta charSet="utf-8" />
+        <meta
+          name="google-site-verification"
+          content="vZC28A2FFsqExCxmiQ0tZmpJ4zaxdkk_WF72Nv7IVE0"
+        />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta
           name="viewport"
