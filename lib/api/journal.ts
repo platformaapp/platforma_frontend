@@ -63,6 +63,8 @@ export interface Article {
   // Баннер рядом со вторым подзаголовком — опционально, настраивается в
   // админке (см. admin/journal-detail.tsx).
   showBanner: boolean;
+  bannerImageUrl: string | null;
+  bannerLinkUrl: string | null;
   // Хэштеги (без "#") — показываются напротив имени автора на странице
   // статьи, задаются в админке.
   tags: string[];
@@ -155,6 +157,8 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
         })()
       : null,
     showBanner: raw.show_banner !== false,
+    bannerImageUrl: resolveUrl(raw.banner_image_url as string | undefined),
+    bannerLinkUrl: (raw.banner_link_url as string) ?? null,
     tags: Array.isArray(raw.tags) ? (raw.tags as string[]) : [],
     seoTitle: (raw.seo_title as string) ?? null,
     h1: (raw.h1 as string) ?? null,

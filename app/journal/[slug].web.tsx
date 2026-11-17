@@ -34,8 +34,8 @@ const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 // Баннер рядом со вторым подзаголовком — свой, отдельный от PromoBanner
 // (того, что на /journal и /events): конкретная портретная картинка
-// 720×1280 (текст сверху, фото снизу), не админско-настраиваемый промо-
-// баннер списков. Квадратная обёртка (см. sectionBannerWrap) показывает
+// 720×1280 (текст сверху, фото снизу), может быть заменена в редакторе статьи.
+// Это не промо-баннер списков. Квадратная обёртка (см. sectionBannerWrap) показывает
 // только верхнюю (текстовую) часть, см. комментарий у bannerBlock.
 const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
 
@@ -380,8 +380,8 @@ export default function ArticleScreenWeb() {
   // sectionBannerWrapMobile меняет только width/paddingBottom, крупность
   // кропа (квадрат) остаётся та же, т.к. картинка-источник уже квадратная.
   const bannerBlock = article.showBanner ? (
-    <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(SECTION_BANNER_TELEGRAM_URL)}>
-      <Image source={SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
+    <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(article.bannerLinkUrl || SECTION_BANNER_TELEGRAM_URL)}>
+      <Image source={article.bannerImageUrl ? { uri: article.bannerImageUrl } : SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
 
