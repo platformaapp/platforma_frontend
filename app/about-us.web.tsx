@@ -45,7 +45,8 @@ export default function AboutUsScreenWeb() {
 
   const heading = aboutUs.heading || DEFAULT_HEADING;
   const text = fixHangingPrepositions(aboutUs.text || DEFAULT_TEXT);
-  // Обёртка с paddingBottom-трюком (аспект через % от своей же ширины) +
+  // На десктопе фото имеет фиксированный размер 339 × 409 px.
+  // На мобильном обёртка с paddingBottom (аспект через % от своей ширины) +
   // картинка внутри position:absolute/inset:0 — для photoUrl с бэкенда (uri)
   // простой aspectRatio на самом Image тоже работал, но ломается именно для
   // ЛОКАЛЬНОГО DEFAULT_PHOTO (require()): react-native-web подставляет
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
   desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%', alignSelf: 'flex-start', overflow: 'hidden' },
-  cover: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', backgroundColor: '#E5E5E5' },
+  cover: { width: 339, height: 409, position: 'relative', backgroundColor: '#E5E5E5' },
   mobileThumb: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 24 },
   photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
