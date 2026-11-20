@@ -18,6 +18,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { eventPath, mentorPath } = require('../lib/public-paths');
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'https://platformaapp.ru';
 const SITE_BASE_URL = (process.env.SITE_BASE_URL || API_BASE).replace(/\/+$/, '');
@@ -56,9 +57,12 @@ async function fetchAllPages(baseUrl, perPage) {
   // Защита от бесконечного цикла, если бэкенд не поддерживает пагинацию —
   // максимум 50 страниц (с per_page=200 это 10000 материалов, с запасом).
   for (; page <= 50; page++) {
-    const payload = await fetchJson(`${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${page}&per_page=${perPage}`);
+    const payload = await fetchJson(`${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${page}&per_page=${perPage}&limit=${Math.min(perPage, 100)}&include_past=true`);
     const items = itemsOf(payload);
-    all.push(...items);
+    const existing = new Set(all.map(item => item.id));
+    const fresh = items.filter(item => !existing.has(item.id));
+    all.push(...fresh);
+    if (!fresh.length || Array.isArray(payload)) break;
     const total = payload?.pagination?.total ?? payload?.meta?.total;
     if (items.length < perPage) break;
     if (typeof total === 'number' && all.length >= total) break;
@@ -100,8 +104,8 @@ async function main() {
       // статье (см. ArticlesController.findOne на бэкенде).
       toEntry: (a) => urlEntry(`/journal/${a.slug}`, { changefreq: 'monthly', priority: '0.6', lastmod: isoDate(a.updated_at) }),
     },
-    { name: 'события', listUrl: `${API_BASE}/api/events/feed`, perPage: 100, toEntry: (e) => urlEntry(`/events/${e.id}`, { changefreq: 'weekly', priority: '0.6', lastmod: isoDate(e.updated_at) }) },
-    { name: 'наставники', listUrl: `${API_BASE}/api/users/tutors`, perPage: 200, toEntry: (t) => urlEntry(`/explore/${t.id}`, { changefreq: 'monthly', priority: '0.5' }) },
+    { name: 'события', listUrl: `${API_BASE}/api/events/feed`, perPage: 100, toEntry: (e) => urlEntry(eventPath(e), { changefreq: 'weekly', priority: '0.6', lastmod: isoDate(e.updated_at) }) },
+    { name: 'наставники', listUrl: `${API_BASE}/api/users/tutors`, perPage: 200, toEntry: (t) => urlEntry(mentorPath(t), { changefreq: 'monthly', priority: '0.5' }) },
   ];
 
   for (const section of sections) {

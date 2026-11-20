@@ -49,6 +49,7 @@ export function PlusField({ label, hint, placeholder, value, onChangeText, secur
         <View style={styles.inputRow}>
           <TextInput
             ref={inputRef}
+            accessibilityLabel={label}
             style={[
               styles.input,
               !multiline && styles.inputSingleLine,
@@ -80,7 +81,7 @@ export function PlusField({ label, hint, placeholder, value, onChangeText, secur
           ) : null}
         </View>
       ) : (
-        <Pressable onPress={() => setActive(true)} hitSlop={8} style={styles.plusButton}>
+        <Pressable accessibilityLabel={`Ввести ${label}`} onPress={() => setActive(true)} hitSlop={8} style={styles.plusButton}>
           <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <Circle cx="12" cy="12" r="10" stroke={error ? '#E02D2D' : '#010101'} strokeWidth="1" />
             <Path d="M12 7.5V16.5M7.5 12H16.5" stroke={error ? '#E02D2D' : '#010101'} strokeWidth="1" strokeLinecap="round" />

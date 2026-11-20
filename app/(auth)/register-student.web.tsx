@@ -40,6 +40,7 @@ export default function RegisterStudentScreenWeb() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarFileSize, setAvatarFileSize] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registration, setRegistration] = useState<any>(null);
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string; password2?: string }>({});
@@ -66,6 +67,7 @@ export default function RegisterStudentScreenWeb() {
         Alert.alert('Фото слишком большое', 'Размер файла превышает 8 МБ. Выберите фото меньшего размера.');
         return;
       }
+      setAvatarUploadError(null);
       setAvatarUri(asset.uri);
       setAvatarFileSize(asset.fileSize ?? null);
     }
@@ -84,6 +86,7 @@ export default function RegisterStudentScreenWeb() {
     setGeneralError(null);
     if (Object.keys(newErrors).length > 0) return;
 
+    if (!avatarUri) { setAvatarUploadError('Загрузите фотографию — это обязательное поле'); return; }
     const MAX_SIZE = 8 * 1024 * 1024;
     if (avatarUri && avatarFileSize && avatarFileSize > MAX_SIZE) {
       Alert.alert('Фото слишком большое', 'Выберите фото меньшего размера (до 8 МБ).');
@@ -101,7 +104,7 @@ export default function RegisterStudentScreenWeb() {
       };
       if (telegram.trim()) requestBody.telegram = telegram.trim().replace(/^@/, '');
 
-      const res = await fetch(REGISTER_URL, {
+      const res = registration ? { ok: true, status: 201, json: async () => registration } : await fetch(REGISTER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -137,7 +140,9 @@ export default function RegisterStudentScreenWeb() {
         return;
       }
 
+      setRegistration(data);
       const token = extractTokenFromResponse(data);
+      if (!token) throw new Error('Не удалось авторизоваться для загрузки фотографии');
       const refreshToken = extractRefreshTokenFromResponse(data);
       const user = extractUserFromResponse(data);
 
@@ -151,7 +156,8 @@ export default function RegisterStudentScreenWeb() {
             uploadedAvatarUrl = await uploadEventImage(avatarUri);
             await updateStudentProfile({ avatarUrl: uploadedAvatarUrl });
           } catch (uploadErr: any) {
-            setAvatarUploadError(uploadErr?.message ?? 'Не удалось загрузить фото. Добавьте его позже в профиле.');
+            setAvatarUploadError(uploadErr?.message ?? 'Не удалось загрузить фото. Повторите отправку.');
+            return;
           }
         }
 
@@ -201,14 +207,14 @@ export default function RegisterStudentScreenWeb() {
           onChangeText={(t) => setTelegram(t.replace(/^@/, ''))} />
 
         <View style={styles.fieldWrap}>
-          <Text style={styles.label}>Фото</Text>
+          <Text style={styles.label}>Фото *</Text>
           {avatarUri ? (
-            <Pressable style={styles.uploadWithPhoto} onPress={pickImage}>
+            <Pressable style={styles.uploadWithPhoto} accessibilityLabel="Загрузить фотографию" onPress={pickImage}>
               <Image source={{ uri: avatarUri }} style={styles.avatar} />
               <Text style={styles.replacePhotoText}>Заменить фото</Text>
             </Pressable>
           ) : (
-            <Pressable onPress={pickImage} hitSlop={8} style={styles.plusButton}>
+            <Pressable accessibilityLabel="Загрузить фотографию" onPress={pickImage} hitSlop={8} style={styles.plusButton}>
               <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                 <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
                 <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />

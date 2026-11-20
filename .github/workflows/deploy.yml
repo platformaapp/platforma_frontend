@@ -49,6 +49,7 @@ jobs:
         env:
           EXPO_PUBLIC_API_BASE: https://platformaapp.ru
         run: |
+          node scripts/generate-public-pages.js dist
           node scripts/generate-sitemap.js dist
 
       ###################################

@@ -1,3 +1,5 @@
+import { mentorPath } from '@/lib/public-paths';
+import { paginationPages } from '@/lib/pagination';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -54,13 +56,13 @@ const MOBILE_AVATAR_RATIO = 1.2;
 // и у него в принципе нет ":hover" на уровне StyleSheet. CSS-хover заодно
 // бесплатно не трогает тач-устройства — там filter остаётся chb всегда.
 function TutorCard({
-  tutor, isOwn, ratio, isMobile, onPress,
+  tutor, isOwn, ratio, isMobile, href,
 }: {
-  tutor: PublicTutor; isOwn: boolean; ratio: number; isMobile: boolean; onPress: () => void;
+  tutor: PublicTutor; isOwn: boolean; ratio: number; isMobile: boolean; href: string;
 }) {
   const shortBio = tutor.shortBio ?? tutor.short_bio ?? '';
   return (
-    <Pressable style={[styles.card, isMobile && styles.cardMobile]} onPress={onPress}>
+    <Pressable style={[styles.card, isMobile && styles.cardMobile]} {...({ href } as any)}>
       <View style={[styles.avatarBox, { paddingBottom: `${ratio * 100}%` }]}>
         <Image
           source={tutor.avatarUrl && !tutor.avatarUrl.startsWith('blob:') ? { uri: tutor.avatarUrl } : PLACEHOLDER_AVATAR}
@@ -213,7 +215,7 @@ export default function MentorsScreenWeb() {
                     isOwn={isOwn}
                     ratio={ratio}
                     isMobile={isMobile}
-                    onPress={() => router.push(`/(tabs)/explore/${tutor.id}` as any)}
+                    href={mentorPath(tutor)}
                   />
                 );
               })}
@@ -228,7 +230,7 @@ export default function MentorsScreenWeb() {
                 >
                   <Text style={styles.paginationArrowText}>‹</Text>
                 </Pressable>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                {paginationPages(page, totalPages).map((n) => (
                   <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => goToPage(n)}>
                     <Text style={[styles.paginationPageText, n === page && styles.paginationPageTextActive]}>{n}</Text>
                   </Pressable>

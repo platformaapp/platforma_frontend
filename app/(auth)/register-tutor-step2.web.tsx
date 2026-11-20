@@ -46,6 +46,7 @@ export default function RegisterTutorStep2ScreenWeb() {
 
   async function onSubmit() {
     setError(null);
+    if (!avatarUri) { setError('Загрузите фотографию — это обязательное поле'); return; }
     setIsSubmitting(true);
     try {
       let avatarUrl: string | undefined;
@@ -107,14 +108,14 @@ export default function RegisterTutorStep2ScreenWeb() {
             </View>
 
             <View style={styles.fieldWrap}>
-              <Text style={styles.fieldLabel}>Фото</Text>
+              <Text style={styles.fieldLabel}>Фото *</Text>
               {avatarUri ? (
-                <Pressable style={styles.uploadWithPhoto} onPress={pickImage}>
+                <Pressable style={styles.uploadWithPhoto} accessibilityLabel="Загрузить фотографию" onPress={pickImage}>
                   <Image source={{ uri: avatarUri }} style={styles.avatar} />
                   <Text style={styles.replacePhotoText}>Заменить фото</Text>
                 </Pressable>
               ) : (
-                <Pressable onPress={pickImage} hitSlop={8} style={styles.plusButton}>
+                <Pressable accessibilityLabel="Загрузить фотографию" onPress={pickImage} hitSlop={8} style={styles.plusButton}>
                   <Svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <Circle cx="12" cy="12" r="10" stroke="#010101" strokeWidth="1" />
                     <Path d="M12 7.5V16.5M7.5 12H16.5" stroke="#010101" strokeWidth="1" strokeLinecap="round" />

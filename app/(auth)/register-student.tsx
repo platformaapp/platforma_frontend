@@ -43,6 +43,7 @@ export default function RegisterStudentScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [avatarFileSize, setAvatarFileSize] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registration, setRegistration] = useState<any>(null);
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     fullName?: string;
@@ -78,6 +79,7 @@ export default function RegisterStudentScreen() {
         );
         return;
       }
+      setAvatarUploadError(null);
       setAvatarUri(asset.uri);
       setAvatarFileSize(asset.fileSize ?? null);
       // avatarUrl stays empty here — will upload after registration when we have a token
@@ -118,6 +120,7 @@ export default function RegisterStudentScreen() {
     }
 
     // Проверка размера фото перед отправкой
+    if (!avatarUri) { setAvatarUploadError('Загрузите фотографию — это обязательное поле'); return; }
     const MAX_SIZE = 8 * 1024 * 1024;
     if (avatarUri && avatarFileSize && avatarFileSize > MAX_SIZE) {
       Alert.alert('Фото слишком большое', 'Выберите фото меньшего размера (до 8 МБ).');
@@ -136,7 +139,7 @@ export default function RegisterStudentScreen() {
       };
       if (telegram.trim()) requestBody.telegram = telegram.trim().replace(/^@/, '');
       
-      const res = await fetch(REGISTER_URL, {
+      const res = registration ? { ok: true, status: 201, json: async () => registration } : await fetch(REGISTER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -201,7 +204,9 @@ export default function RegisterStudentScreen() {
         return;
       }
 
+      setRegistration(data);
       const token = extractTokenFromResponse(data);
+      if (!token) throw new Error('Не удалось авторизоваться для загрузки фотографии');
       const refreshToken = extractRefreshTokenFromResponse(data);
       const user = extractUserFromResponse(data);
       
@@ -217,7 +222,8 @@ export default function RegisterStudentScreen() {
             uploadedAvatarUrl = await uploadEventImage(avatarUri);
             await updateStudentProfile({ avatarUrl: uploadedAvatarUrl });
           } catch (uploadErr: any) {
-            setAvatarUploadError(uploadErr?.message ?? 'Не удалось загрузить фото. Добавьте его позже в профиле.');
+            setAvatarUploadError(uploadErr?.message ?? 'Не удалось загрузить фото. Повторите отправку.');
+            return;
           }
         }
 

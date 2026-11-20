@@ -154,6 +154,7 @@ export default function ProfileScreenWeb() {
   const [hourlyRate, setHourlyRate] = useState('');
   const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarChanged, setAvatarChanged] = useState(false);
   // Пока заявка наставника не одобрена (pending) — нельзя создавать
   // события/статьи/слоты, см. actionsRow ниже и гейты в handleCreateEvent/
   // openNewArticleModal/toggleTimePickerForDate/createAndAddSlot.
@@ -359,7 +360,7 @@ export default function ProfileScreenWeb() {
 
   async function handlePickAvatar() {
     const uploaded = await pickAvatar();
-    if (uploaded) setAvatarUrl(uploaded);
+    if (uploaded) { setAvatarUrl(uploaded); setAvatarChanged(true); }
   }
 
   // ── Student: save "Изменение данных" ──────────────────────────────────────
@@ -799,20 +800,17 @@ export default function ProfileScreenWeb() {
       setTutorSaveError('Укажите Telegram, чтобы сохранить профиль');
       return;
     }
-    if (slots.length === 0) {
-      setTutorSaveError('Добавьте хотя бы один слот, чтобы сохранить профиль');
-      return;
-    }
     setTutorSaving(true);
     setTutorSaveError('');
     setTutorSaveOk(false);
     try {
       await updateTutorProfile({
         fullName, bio, shortBio, telegram,
-        avatarUrl: avatarUrl || undefined,
+        avatarUrl: avatarChanged ? avatarUrl : undefined,
         hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
-        specialization: specialization ?? undefined,
+        specialization: specialization?.trim() ?? '',
       });
+      setAvatarChanged(false);
       setTutorSaveOk(true);
       setTutorEditModalVisible(false);
     } catch (e: any) {
@@ -1214,7 +1212,7 @@ export default function ProfileScreenWeb() {
                   и не менялась после регистрации — наставник навсегда выпадал из
                   всех фильтров рубрикатора на /explore. */}
               <Text style={styles.fieldLabel}>Специализация</Text>
-              <AdminTagsInput tags={(specialization || '').split(',').map((t) => t.trim()).filter(Boolean)} onChange={(tags) => setSpecialization(tags.join(', '))} placeholder="Добавьте одну или несколько специализаций" />
+              <TextInput style={styles.popupFieldInput} value={specialization ?? ''} onChangeText={setSpecialization} maxLength={1000} placeholder="Специализации через запятую" accessibilityLabel="Специализация" />
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
@@ -1225,16 +1223,13 @@ export default function ProfileScreenWeb() {
               </Pressable>
               {tutorSaveError ? <Text style={styles.errorText}>{tutorSaveError}</Text> : null}
               {tutorSaveOk ? <Text style={styles.successText}>Сохранено</Text> : null}
-              {/* Telegram — обязательное поле (иначе наставника не с кем
-                  связаться по записи), без хотя бы одного слота наставник
-                  не бронируется — не даём сохранить профиль, пока их нет. */}
+              {/* Слоты управляют записью на встречи, но не сохранением профиля. */}
               {!telegram.trim() ? <Text style={styles.hint}>Укажите Telegram, чтобы сохранить профиль</Text> : null}
-              {slots.length === 0 ? <Text style={styles.hint}>Добавьте хотя бы один слот, чтобы сохранить профиль</Text> : null}
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setTutorEditModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleTutorSave} disabled={tutorSaving || !telegram.trim() || slots.length === 0}>
-                <Text style={[styles.modalSaveText, (!telegram.trim() || slots.length === 0) && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              <Pressable onPress={handleTutorSave} disabled={tutorSaving || !telegram.trim()}>
+                <Text style={[styles.modalSaveText, !telegram.trim() && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </View>
           </Pressable>

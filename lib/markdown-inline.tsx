@@ -8,7 +8,7 @@
  * против индекса 1 для `**bold**`), без отдельной приоритетной логики.
  */
 import React from 'react';
-import { Linking, Text, type TextStyle } from 'react-native';
+import { Linking, Platform, Text, type TextStyle } from 'react-native';
 
 import { fixHangingPrepositions } from '@/lib/typography';
 
@@ -20,6 +20,7 @@ type InlineRule = {
 
 const RULES: InlineRule[] = [
   { re: /\[([^\]]+)\]\(([^)\s]+)\)/, isLink: true },
+  { re: /(https?:\/\/[^\s<>]+[^\s<>.,!?;:)])/i, isLink: true },
   { re: /\*\*([^*]+?)\*\*/, style: { fontWeight: 'bold' } },
   { re: /__([^_]+?)__/, style: { textDecorationLine: 'underline' } },
   { re: /~~([^~]+?)~~/, style: { textDecorationLine: 'line-through' } },
@@ -55,15 +56,16 @@ export function parseInlineMarkdown(text: string, keyPrefix = 'n'): React.ReactN
 
   if (earliestRule.isLink) {
     const label = earliestMatch[1];
-    const url = earliestMatch[2];
+    const url = earliestMatch[2] || earliestMatch[1];
+    const safe = /^(https?:\/\/|mailto:|tel:|\/(?!\/))/i.test(url);
     nodes.push(
       <Text
         key={`${keyPrefix}m`}
         style={linkStyle}
-        onPress={() => Linking.openURL(url)}
+        {...(safe ? (Platform.OS === 'web' ? { href: url, hrefAttrs: { target: '_blank', rel: 'noopener noreferrer' } } : { onPress: () => Linking.openURL(url) }) as any : {})}
         {...({ dataSet: { textLink: 'true' } } as any)}
       >
-        {parseInlineMarkdown(label, `${keyPrefix}mi`)}
+        {fixHangingPrepositions(label)}
       </Text>
     );
   } else {

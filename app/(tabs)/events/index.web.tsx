@@ -1,3 +1,4 @@
+import { eventPath } from '@/lib/public-paths';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -259,7 +260,7 @@ export default function EventsScreenWeb() {
       <Pressable
         key={item.id}
         style={cardStyle}
-        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+        {...({ href: eventPath(item) } as any)}
       >
         <View style={innerStyle}>
           {item.coverUrl ? (
@@ -279,7 +280,7 @@ export default function EventsScreenWeb() {
 
   function renderRowCard(item: EventFeedItem, posInRow: 0 | 1 | 2) {
     return (
-      <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} {...({ href: eventPath(item) } as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -377,7 +378,7 @@ export default function EventsScreenWeb() {
         ) : isMobile ? (
           <View style={styles.mobileList}>
             {filtered.map((item) => (
-              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/index.web.tsx:mobileRow' } } as any)}>
+              <Pressable key={item.id} style={styles.mobileRow} {...({ href: eventPath(item) } as any)} {...({ dataSet: { card: 'app/(tabs)/events/index.web.tsx:mobileRow' } } as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   <View>

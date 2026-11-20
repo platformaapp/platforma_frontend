@@ -1,3 +1,6 @@
+import { mentorPath } from '@/lib/public-paths';
+import { publicId } from '@/lib/public-paths';
+import { eventPath } from '@/lib/public-paths';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
@@ -72,7 +75,8 @@ function formatEventDate(iso?: string): string {
  */
 export default function TutorCardScreenWeb() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  const id = publicId(routeId);
   const isMobile = useIsMobileWeb();
 
   const [displayName, setDisplayName] = useState('');
@@ -123,14 +127,15 @@ export default function TutorCardScreenWeb() {
         }
 
         try {
-          const feedRes = await fetch(endpoints.eventsFeed);
-          if (feedRes.ok) {
+          const list: any[] = [];
+          for (let page = 1; page <= 100; page++) {
+            const feedRes = await fetch(`${endpoints.eventsFeed}?mentor_id=${id}&include_past=true&limit=100&page=${page}`);
+            if (!feedRes.ok) throw new Error('Не удалось загрузить события');
             const data = await feedRes.json();
-            let rawItems: unknown = data.items ?? data.data ?? data;
-            if (!Array.isArray(rawItems) && rawItems && typeof rawItems === 'object') {
-              rawItems = (rawItems as Record<string, unknown>).items ?? (rawItems as Record<string, unknown>).data ?? [];
-            }
-            const list = Array.isArray(rawItems) ? rawItems : [];
+            const items = Array.isArray(data) ? data : data.items ?? data.data ?? [];
+            list.push(...items);
+            if (data.pagination?.hasNext === false || items.length < 100) break;
+          }
             const events: MentorEvent[] = list
               .filter((r: any) => {
                 const mentorRaw = r.mentor ?? r.teacher ?? r.tutor;
@@ -147,7 +152,6 @@ export default function TutorCardScreenWeb() {
               }))
               .filter((e: MentorEvent) => e.id);
             if (active) setMentorEvents(events);
-          }
         } catch { /* events section stays empty */ }
 
         try {
@@ -210,9 +214,9 @@ export default function TutorCardScreenWeb() {
   // наставника) — сразу картинка, заголовок, дата/категория.
   function renderMentorFeaturedCard(args: {
     key: string; coverUrl: string | null; title: string; meta: string;
-    onPress: () => void; index: 0 | 1; variant: 'A' | 'B'; dimmed?: boolean;
+    href: string; index: 0 | 1; variant: 'A' | 'B'; dimmed?: boolean;
   }) {
-    const { key, coverUrl, title, meta, onPress, index, variant, dimmed } = args;
+    const { key, coverUrl, title, meta, href, index, variant, dimmed } = args;
     const isSecond = index === 1;
     const cardStyle = [isSecond ? styles.mentorFeaturedCardTwo : styles.mentorFeaturedCardOne, dimmed && styles.eventDimmed];
     const innerStyle = isSecond ? (variant === 'B' ? styles.mentorFeaturedInnerTwoB : styles.mentorFeaturedInnerTwo) : undefined;
@@ -224,7 +228,7 @@ export default function TutorCardScreenWeb() {
       ? (isSecond ? styles.mentorFeaturedTitleTwoB : styles.mentorFeaturedTitleOneB)
       : (isSecond ? styles.mentorFeaturedTitleTwo : styles.mentorFeaturedTitleOne);
     return (
-      <Pressable key={key} style={cardStyle} disabled={dimmed} onPress={dimmed ? undefined : onPress}>
+      <Pressable key={key} style={cardStyle} {...({ href } as any)}>
         <View style={innerStyle}>
           {coverUrl ? (
             <Image source={{ uri: coverUrl }} style={[styles.mentorFeaturedImage, imageStyle]} resizeMode="cover" />
@@ -251,8 +255,7 @@ export default function TutorCardScreenWeb() {
       <Pressable
         key={ev.id}
         style={[styles.eventRowMobile, isPast && styles.eventDimmed]}
-        disabled={isPast}
-        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+        {...({ href: eventPath(ev) } as any)}
         {...({ dataSet: { card: 'app/(tabs)/explore/[id].web.tsx:renderEventCardMobile' } } as any)}
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventThumbMobile} resizeMode="cover" /> : <View style={[styles.eventThumbMobile, styles.eventCoverPlaceholder]} />}
@@ -277,8 +280,7 @@ export default function TutorCardScreenWeb() {
           !isMobile && widthVariant === 'full' && styles.eventCardFull,
           isPast && styles.eventDimmed,
         ]}
-        disabled={isPast}
-        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+        {...({ href: eventPath(ev) } as any)}
       >
         {ev.coverUrl ? <Image source={{ uri: ev.coverUrl }} style={styles.eventCover} resizeMode="cover" /> : <View style={[styles.eventCover, styles.eventCoverPlaceholder]} />}
         <View style={styles.eventCardBody}>
@@ -323,8 +325,7 @@ export default function TutorCardScreenWeb() {
       <Pressable
         key={ev.id}
         style={[{ gridColumn: MENTOR_ROW_COLUMNS[posInRow] } as any, isPast && styles.eventDimmed]}
-        disabled={isPast}
-        onPress={isPast ? undefined : () => router.push(`/(tabs)/events/${ev.id}` as any)}
+        {...({ href: eventPath(ev) } as any)}
       >
         {ev.coverUrl ? (
           <Image
@@ -362,7 +363,7 @@ export default function TutorCardScreenWeb() {
                   coverUrl: row.items[0].coverUrl ?? null,
                   title: row.items[0].title,
                   meta: formatEventDate(row.items[0].datetimeStart),
-                  onPress: () => router.push(`/(tabs)/events/${row.items[0].id}` as any),
+                  href: eventPath(row.items[0]),
                   index: 0,
                   variant: row.type === 'pairB' ? 'B' : 'A',
                   dimmed: isPast,
@@ -373,7 +374,7 @@ export default function TutorCardScreenWeb() {
                   coverUrl: row.items[1].coverUrl ?? null,
                   title: row.items[1].title,
                   meta: formatEventDate(row.items[1].datetimeStart),
-                  onPress: () => router.push(`/(tabs)/events/${row.items[1].id}` as any),
+                  href: eventPath(row.items[1]),
                   index: 1,
                   variant: row.type === 'pairB' ? 'B' : 'A',
                   dimmed: isPast,
@@ -441,7 +442,7 @@ export default function TutorCardScreenWeb() {
                   coverUrl: row.items[0].coverUrl,
                   title: row.items[0].title,
                   meta: row.items[0].category ?? '',
-                  onPress: () => router.push(`/journal/${row.items[0].slug || row.items[0].id}` as any),
+                  href: `/journal/${row.items[0].slug || row.items[0].id}`,
                   index: 0,
                   variant: row.type === 'pairB' ? 'B' : 'A',
                 })}
@@ -451,7 +452,7 @@ export default function TutorCardScreenWeb() {
                   coverUrl: row.items[1].coverUrl,
                   title: row.items[1].title,
                   meta: row.items[1].category ?? '',
-                  onPress: () => router.push(`/journal/${row.items[1].slug || row.items[1].id}` as any),
+                  href: `/journal/${row.items[1].slug || row.items[1].id}`,
                   index: 1,
                   variant: row.type === 'pairB' ? 'B' : 'A',
                 }) : null}
@@ -497,9 +498,7 @@ export default function TutorCardScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
-  // og:* — см. подробный комментарий у headElement в journal/[slug].web.tsx:
-  // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
-  // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
+  // Keep client navigation metadata consistent with generated public SEO HTML.
   const pageDescription = displayRole || displayBio;
   const headElement = displayName ? (
     <Head>
@@ -508,7 +507,8 @@ export default function TutorCardScreenWeb() {
       <meta property="og:type" content="profile" />
       <meta property="og:title" content={displayName} />
       {pageDescription ? <meta property="og:description" content={pageDescription.slice(0, 160)} /> : null}
-      <meta property="og:url" content={`https://platformaapp.ru/explore/${id}`} />
+      <link rel="canonical" href={`https://platformaapp.ru${mentorPath({ id, fullName: displayName })}`} />
+      <meta property="og:url" content={`https://platformaapp.ru${mentorPath({ id, fullName: displayName })}`} />
       {avatarUrl && !avatarUrl.startsWith('blob:') ? <meta property="og:image" content={avatarUrl} /> : null}
       <meta name="twitter:card" content={avatarUrl && !avatarUrl.startsWith('blob:') ? 'summary_large_image' : 'summary'} />
       <meta name="twitter:title" content={displayName} />
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   // кнопок до "События наставника", и отступ между "События наставника"
   // и "О чём пишет" (обе секции используют этот же стиль) были гораздо
   // больше, чем тот же переход в статье.
-  mentorEventsSection: { marginTop: 140 },
+  mentorEventsSection: { marginTop: 140, width: '100%', maxWidth: 1215 },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
   // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
   mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },
   mentorFeaturedCardTwo: { width: '100%', overflow: 'hidden' },
-  mentorFeaturedInnerTwo: { width: '72.8%', overflow: 'hidden' },
+  mentorFeaturedInnerTwo: { width: '72.8%', alignSelf: 'flex-end', overflow: 'hidden' },
   mentorFeaturedInnerTwoB: { width: '100%', overflow: 'hidden' },
   mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   mentorFeaturedImageTwo: { height: 248 },

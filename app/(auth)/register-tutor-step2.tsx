@@ -1,3 +1,5 @@
+import { uploadEventImage } from '@/lib/api/events';
+import { updateTutorProfile } from '@/lib/api/tutor';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -49,11 +51,11 @@ export default function RegisterTutorStep2Screen() {
   }
 
   async function onSubmit() {
+    if (!avatarUri) { Alert.alert('Фото обязательно', 'Загрузите фотографию'); return; }
     setIsSubmitting(true);
     try {
-      // Здесь будет отправка данных второго шага на сервер
-      // await fetch(endpoints.tutorStep2, { ... });
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const avatarUrl = await uploadEventImage(avatarUri);
+      await updateTutorProfile({ avatarUrl, shortBio: shortBio.trim(), bio: about.trim(), hourlyRate: rateValue, groupMeetings: groupMeetings.trim() });
       router.replace('/tutor-application-sent');
     } catch (e: any) {
       Alert.alert('Ошибка', e?.message ?? 'Неизвестная ошибка');

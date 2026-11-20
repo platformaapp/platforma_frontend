@@ -1,3 +1,4 @@
+import { eventPath, mentorPath } from '@/lib/public-paths';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -309,7 +310,7 @@ export default function MyEventsScreenWeb() {
   function bookingProfileRoute(b: BookingItem): string | null {
     const other = otherPartyOf(b);
     if (!other.id) return null;
-    return other.isViewerTutor ? `/(tabs)/profile/student/${other.id}` : `/(tabs)/explore/${other.id}`;
+    return other.isViewerTutor ? `/(tabs)/profile/student/${other.id}` : mentorPath({ ...other, id: other.id });
   }
 
   // Мобильная полноширинная строка (см. renderEventsGrid — на десктопе
@@ -319,7 +320,7 @@ export default function MyEventsScreenWeb() {
   function renderEventListRowMobile(item: EventItem, muted = false) {
     const dateText = item.datetimeStart ? formatRecommendedEventDate(item.datetimeStart) : '';
     return (
-      <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderEventListRowMobile' } } as any)}>
+      <Pressable key={item.id} style={styles.mobileRow} {...({ href: eventPath(item) } as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderEventListRowMobile' } } as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={[styles.mobileThumb, styles.cardImagePlaceholder]} />}
         <View style={styles.mobileInfo}>
           <View>
@@ -345,7 +346,7 @@ export default function MyEventsScreenWeb() {
       <Pressable
         key={item.id}
         style={[{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any, muted && styles.cardMuted]}
-        onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}
+        {...({ href: eventPath(item) } as any)}
       >
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
@@ -447,7 +448,7 @@ export default function MyEventsScreenWeb() {
       <Pressable
         key={r.id}
         style={{ gridColumn: CARD_ROW_COLUMNS[posInRow] } as any}
-        onPress={() => router.push(`/(tabs)/events/${r.id}` as any)}
+        {...({ href: eventPath(r) } as any)}
       >
         {r.coverUrl ? (
           <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
@@ -467,7 +468,7 @@ export default function MyEventsScreenWeb() {
   function renderRecommendedCardMobile(r: RecommendedEvent) {
     const dateText = r.datetimeStart ? formatRecommendedEventDate(r.datetimeStart) : '';
     return (
-      <Pressable key={r.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${r.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderRecommendedCardMobile' } } as any)}>
+      <Pressable key={r.id} style={styles.mobileRow} {...({ href: eventPath(r) } as any)} {...({ dataSet: { card: 'app/(tabs)/myevents.web.tsx:renderRecommendedCardMobile' } } as any)}>
         {r.coverUrl ? <Image source={{ uri: r.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
         <View style={styles.mobileInfo}>
           <View>

@@ -1,3 +1,6 @@
+import { parseInlineMarkdown } from '@/lib/markdown-inline';
+import { publicId } from '@/lib/public-paths';
+import { eventPath, mentorPath } from '@/lib/public-paths';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
@@ -155,7 +158,8 @@ function stripLeadingZeroTime(t: string): string {
 export default function EventDetailScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  const id = publicId(routeId);
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -269,7 +273,7 @@ export default function EventDetailScreenWeb() {
     setRegisterError('');
     try {
       const [token, cards] = await Promise.all([getAuthToken(), getPaymentMethods().catch(() => [] as PaymentMethod[])]);
-      if (!token) { router.push(`/login?redirect=/events/${event.id}` as any); return; }
+      if (!token) { router.push(`/login?redirect=${encodeURIComponent(eventPath(event))}` as any); return; }
 
       const defaultCard = cards.find((c) => c.isDefault) ?? cards[0] ?? null;
       const body: Record<string, unknown> = {};
@@ -312,7 +316,7 @@ export default function EventDetailScreenWeb() {
     setCancelError('');
     try {
       const token = await getAuthToken();
-      if (!token) { router.push(`/login?redirect=/events/${event.id}` as any); return; }
+      if (!token) { router.push(`/login?redirect=${encodeURIComponent(eventPath(event))}` as any); return; }
       const headers = { Authorization: `Bearer ${token}` };
 
       let res = await fetch(`${endpoints.events}/${event.id}/registration`, { method: 'DELETE', headers });
@@ -346,7 +350,7 @@ export default function EventDetailScreenWeb() {
     setDeleteError('');
     try {
       const token = await getAuthToken();
-      if (!token) { router.push(`/login?redirect=/events/${event.id}` as any); return; }
+      if (!token) { router.push(`/login?redirect=${encodeURIComponent(eventPath(event))}` as any); return; }
       const res = await fetch(`${endpoints.events}/${event.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok && res.status !== 404) {
         const data = await res.json().catch(() => ({}));
@@ -491,7 +495,7 @@ export default function EventDetailScreenWeb() {
   function renderRelatedEventCard(item: RelatedEventItem, posInRow: 0 | 1 | 2) {
     if (isMobile) {
       return (
-        <Pressable key={item.id} style={styles.relatedMobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/(tabs)/events/[id].web.tsx:renderRelatedEventCard' } } as any)}>
+        <Pressable key={item.id} style={styles.relatedMobileRow} {...({ href: eventPath(item) } as any)} {...({ dataSet: { card: 'app/(tabs)/events/[id].web.tsx:renderRelatedEventCard' } } as any)}>
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.relatedMobileThumb} resizeMode="cover" /> : <View style={styles.relatedMobileThumb} />}
           <View style={styles.relatedMobileInfo}>
             <Text style={[styles.relatedMobileTitleText, styles.relatedMobileTitleTextNoLabel]}>{preventOrphanLastWord(item.title)}</Text>
@@ -501,7 +505,7 @@ export default function EventDetailScreenWeb() {
       );
     }
     return (
-      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} {...({ href: eventPath(item) } as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -522,7 +526,7 @@ export default function EventDetailScreenWeb() {
   ) : null;
 
   const mentorRow = event?.mentor ? (
-    <Pressable style={styles.mentorRow} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+    <Pressable style={styles.mentorRow} {...({ href: mentorPath(event.mentor!) } as any)}>
       <View style={styles.mentorInfo}>
         <View>
           <Text style={styles.mentorName}>{event.mentor.name}</Text>
@@ -540,9 +544,7 @@ export default function EventDetailScreenWeb() {
     </Pressable>
   ) : null;
 
-  // og:* — см. подробный комментарий у headElement в journal/[slug].web.tsx:
-  // тот же SPA-шелл без SSR, Google/Яндекс дорендерят JS и увидят эти теги,
-  // боты соцсетей (Telegram и т.п.) — нет, т.к. запрашивают без выполнения JS.
+  // Keep client navigation metadata consistent with generated public SEO HTML.
   const headElement = event ? (
     <Head>
       <title>{event.title}</title>
@@ -550,7 +552,8 @@ export default function EventDetailScreenWeb() {
       <meta property="og:type" content="website" />
       <meta property="og:title" content={event.title} />
       {event.description ? <meta property="og:description" content={event.description.slice(0, 160)} /> : null}
-      <meta property="og:url" content={`https://platformaapp.ru/events/${id}`} />
+      <link rel="canonical" href={`https://platformaapp.ru${eventPath(event)}`} />
+      <meta property="og:url" content={`https://platformaapp.ru${eventPath(event)}`} />
       {event.coverUrl ? <meta property="og:image" content={event.coverUrl} /> : null}
       <meta name="twitter:card" content={event.coverUrl ? 'summary_large_image' : 'summary'} />
       <meta name="twitter:title" content={event.title} />
@@ -575,7 +578,7 @@ export default function EventDetailScreenWeb() {
             </View>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
-            {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
+            {event.description ? <Text style={styles.description}>{parseInlineMarkdown(event.description)}</Text> : null}
 
             {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
@@ -609,7 +612,7 @@ export default function EventDetailScreenWeb() {
             {event.mentor ? (
               <View style={styles.mobileMentorBlock}>
                 {mentorRow}
-                <Pressable style={[styles.chipButton, styles.mentorProfileButtonMobile]} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                <Pressable style={[styles.chipButton, styles.mentorProfileButtonMobile]} {...({ href: mentorPath(event.mentor!) } as any)}>
                   <Text style={styles.chipButtonText}>Перейти в профиль</Text>
                 </Pressable>
               </View>
@@ -620,7 +623,7 @@ export default function EventDetailScreenWeb() {
             <View style={styles.leftCol}>
               <Text style={styles.title}>{preventOrphanLastWord(event.title)}</Text>
               {formatRow}
-              {event.description ? <Text style={styles.description}>{fixHangingPrepositions(event.description)}</Text> : null}
+              {event.description ? <Text style={styles.description}>{parseInlineMarkdown(event.description)}</Text> : null}
               {metaBlock}
 
               {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
@@ -662,7 +665,7 @@ export default function EventDetailScreenWeb() {
               {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
               {event.mentor ? <>
                 {mentorRow}
-                <Pressable style={styles.desktopMentorProfile} onPress={() => router.push(`/(tabs)/explore/${event.mentor!.id}` as any)}>
+                <Pressable style={styles.desktopMentorProfile} {...({ href: mentorPath(event.mentor!) } as any)}>
                   <Text style={styles.actionLink}>Перейти в профиль</Text>
                 </Pressable>
               </> : null}

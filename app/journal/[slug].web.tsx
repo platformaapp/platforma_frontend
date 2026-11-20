@@ -1,3 +1,4 @@
+import { eventPath, mentorPath } from '@/lib/public-paths';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -327,7 +328,7 @@ export default function ArticleScreenWeb() {
       {article.author.id ? (
         <Pressable
           style={styles.authorNameShrink}
-          onPress={() => router.push(`/(tabs)/explore/${article.author.id}` as any)}
+          {...({ href: mentorPath(article.author) } as any)}
           {...({ dataSet: { textLink: 'true' } } as any)}
         >
           <Text style={styles.author}>{article.author.name}</Text>
@@ -393,7 +394,7 @@ export default function ArticleScreenWeb() {
     const dateText = formatEventDate(item.datetimeStart ?? undefined);
     if (isMobile) {
       return (
-        <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderUpcomingEventCard' } } as any)}>
+        <Pressable key={item.id} style={styles.mobileRow} {...({ href: eventPath(item) } as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderUpcomingEventCard' } } as any)}>
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
           <View style={styles.mobileInfo}>
             <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]}>{preventOrphanLastWord(item.title)}</Text>
@@ -403,7 +404,7 @@ export default function ArticleScreenWeb() {
       );
     }
     return (
-      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/(tabs)/events/${item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} {...({ href: eventPath(item) } as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -485,14 +486,14 @@ export default function ArticleScreenWeb() {
       const dateTextMobile = formatEventDate(event.datetimeStart ?? undefined);
       return (
         <View style={styles.ctaBlock}>
-          <Pressable style={styles.mobileRow} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderEventCtaCard' } } as any)}>
+          <Pressable style={styles.mobileRow} {...({ href: eventPath(event) } as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderEventCtaCard' } } as any)}>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
             <View style={styles.mobileInfo}>
               <Text style={[styles.mobileTitleText, styles.mobileTitleTextNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
               {dateTextMobile ? <Text style={styles.mobileDate}>{dateTextMobile}</Text> : null}
             </View>
           </Pressable>
-          <Text style={styles.actionLinkTextMobile} onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>+ Записаться на событие</Text>
+          <Text style={styles.actionLinkTextMobile} {...({ href: eventPath(event) } as any)}>+ Записаться на событие</Text>
         </View>
       );
     }
@@ -508,7 +509,7 @@ export default function ArticleScreenWeb() {
               бы вся карточка была одним Pressable с красной ссылкой внутри,
               она вообще не осветлялась бы при наведении на картинку/заголовок,
               в отличие от обычных карточек событий. */}
-          <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+          <Pressable {...({ href: eventPath(event) } as any)}>
             {event.coverUrl ? (
               <Image source={{ uri: event.coverUrl }} style={styles.eventCtaImage} resizeMode="cover" />
             ) : (
@@ -517,7 +518,7 @@ export default function ArticleScreenWeb() {
             <Text style={[styles.ctaCardTitle, styles.ctaCardTitleNoLabel]}>{preventOrphanLastWord(event.title)}</Text>
           </Pressable>
           <View style={styles.eventCtaFooterRow}>
-            <Pressable onPress={() => router.push(`/(tabs)/events/${event.id}` as any)}>
+            <Pressable {...({ href: eventPath(event) } as any)}>
               <Text style={styles.actionLinkText}>+ Записаться на событие</Text>
             </Pressable>
             {dateText ? <Text style={styles.ctaCardMeta}>{dateText}</Text> : null}

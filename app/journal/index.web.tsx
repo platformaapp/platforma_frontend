@@ -1,3 +1,4 @@
+import { paginationPages } from '@/lib/pagination';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -221,7 +222,7 @@ export default function JournalScreenWeb() {
       <Pressable style={[styles.paginationArrow, page === 1 && styles.paginationArrowDisabled]} onPress={() => goToPage(Math.max(1, page - 1))} disabled={page === 1}>
         <Text style={styles.paginationArrowText}>‹</Text>
       </Pressable>
-      {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+      {paginationPages(page, totalPages).map((n) => (
         <Pressable key={n} style={[styles.paginationPage, n === page && styles.paginationPageActive]} onPress={() => goToPage(n)}>
           <Text style={[styles.paginationPageText, n === page && styles.paginationPageTextActive]}>{n}</Text>
         </Pressable>
