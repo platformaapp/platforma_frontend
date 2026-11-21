@@ -47,3 +47,35 @@ location / {
 `https://platformaapp.ru/sitemap.xml` и запросить переобход важных страниц.
 Точную причину исключения URL показывает проверка URL в кабинете поисковика;
 наличие URL в sitemap и техническая доступность не гарантируют включение в индекс.
+
+## Если `/sitemap.xml` показывает Unmatched Route
+
+Это означает, что запрос получил HTML приложения вместо XML. Проверить, что
+веб-сервер обслуживает `dist`, куда скопирован файл, и обрабатывает XML до
+перенаправления в Expo/SPA. Наличие файла в GitHub само по себе не меняет
+корневую директорию уже запущенного сервера.
+
+`public/sitemap.xml` — резервная карта постоянных публичных маршрутов,
+доступная также при обычном Expo export/start. Генератор заменяет её в `dist`
+полной картой статей, событий и наставников. Она не заменяет обязательный шаг
+генерации полной карты перед production-деплоем.
+
+Проверки:
+
+```sh
+python3 scripts/verify-sitemap.py dist/sitemap.xml
+python3 scripts/verify-sitemap.py https://platformaapp.ru/sitemap.xml --expect-file dist/sitemap.xml
+```
+
+Для nginx ресурс должен обслуживаться явно из того же каталога сборки:
+
+```nginx
+location = /sitemap.xml {
+    root /dist;
+    default_type application/xml;
+    try_files /sitemap.xml =404;
+}
+```
+
+Этот блок размещается перед общим SPA/proxy location. При другом пути
+размещения сборки заменить `/dist` реальным корневым каталогом.

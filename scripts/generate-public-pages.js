@@ -142,7 +142,7 @@ async function generatePublicPages(out = 'dist') {
     }
   }
   protect(out);
-  fs.writeFileSync(path.join(out, '_redirects'), redirects.join('\n') + '\n/* /index.html 200\n');
+  fs.writeFileSync(path.join(out, '_redirects'), '/sitemap.xml /sitemap.xml 200\n/robots.txt /robots.txt 200\n' + redirects.join('\n') + '\n/* /index.html 200\n');
   const htaccess = path.join(out, '.htaccess');
   if (fs.existsSync(htaccess)) {
     const rules = fs.readFileSync(htaccess, 'utf8').replace(/\n# BEGIN SEO REDIRECTS[\s\S]*?# END SEO REDIRECTS\n?/g, '');

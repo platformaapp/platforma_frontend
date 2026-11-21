@@ -53,6 +53,7 @@ jobs:
         run: |
           node scripts/generate-public-pages.js dist
           node scripts/generate-sitemap.js dist
+          python3 scripts/verify-sitemap.py dist/sitemap.xml
 
       ###################################
       # Deploy dist folder via SCP (SSH key pair)
@@ -72,3 +73,6 @@ jobs:
               -i ~/.ssh/github_deploy \
               -r dist/. \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/dist/
+
+      - name: Verify published sitemap is XML
+        run: python3 scripts/verify-sitemap.py https://platformaapp.ru/sitemap.xml --expect-file dist/sitemap.xml
