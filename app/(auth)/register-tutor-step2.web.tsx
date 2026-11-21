@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
   fieldWrap: { marginBottom: 24 },
-  fieldLabel: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 8 },
+  fieldLabel: { fontStyle: 'normal', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 8 },
   topicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
   topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   topicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },

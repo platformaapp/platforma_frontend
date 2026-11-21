@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     color: '#181818',
     marginBottom: 16,
   },
-  label: { fontStyle: 'italic',
+  label: { fontStyle: 'normal',
     fontSize: 12,
     lineHeight: 16,
     fontFamily: 'Gramatika-Regular',

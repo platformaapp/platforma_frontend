@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   title: { marginTop: 12, marginBottom: 20, fontSize: 20, lineHeight: 26, fontFamily: 'Gramatika-Regular', color: '#181818' },
   description: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 24 },
-  label: { fontStyle: 'italic', fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 6 },
+  label: { fontStyle: 'normal', fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#181818', marginBottom: 6 },
   input: { borderWidth: 1, borderColor: '#181818', paddingVertical: 12, paddingHorizontal: 12, fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#181818' },
   inputError: { borderColor: '#E02D2D' },
   errorText: { fontSize: 13, fontFamily: 'Gramatika-Regular', color: '#E02D2D', marginTop: 6 },

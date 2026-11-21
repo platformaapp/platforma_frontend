@@ -95,7 +95,7 @@ export function PlusField({ label, hint, placeholder, value, onChangeText, secur
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 24 },
-  label: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginBottom: 8 },
+  label: { fontStyle: 'normal', fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginBottom: 8 },
   labelError: { color: '#E02D2D' },
   hint: { fontStyle: 'italic', color: '#9B9B9B' },
   // Плюс (20×20) и однострочный инпут должны иметь одинаковую высоту —

@@ -461,7 +461,7 @@ export default function AdminSiteSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076', marginVertical: 8 },
+  label: { fontStyle: 'normal', fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076', marginVertical: 8 },
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },

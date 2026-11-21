@@ -1654,7 +1654,7 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       multiline={multiline}
       maxLength={maxLength}
       placeholder={placeholder}
-      labelStyle={label === 'Максимальное количество участников' ? { ...styles.popupFieldLabel, fontStyle: 'italic' } : styles.popupFieldLabel}
+      labelStyle={styles.popupFieldLabel}
       inputStyle={styles.popupFieldInput}
     />
   );
@@ -1956,7 +1956,7 @@ const styles = StyleSheet.create({
   // (components/web/plus-field.tsx), для визуальной согласованности.
   // Переопределение размера текста общего PlusField/FieldWithPlus — во всех
   // попапах этой страницы текст 18px, кроме заголовка модалки.
-  popupFieldLabel: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, color: '#687076' },
+  popupFieldLabel: { fontStyle: 'normal', fontSize: 14, lineHeight: 18, color: '#687076' },
   popupFieldInput: { fontSize: 18, lineHeight: 22 },
   plusFieldWrap: { marginBottom: 24 },
   // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
@@ -2084,7 +2084,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24, maxWidth: 560 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  fieldLabel: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 12, marginBottom: 8 },
+  fieldLabel: { fontStyle: 'normal', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 12, marginBottom: 8 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },

@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginBottom: 12 },
   hint: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
   fieldWrap: { marginBottom: 24 },
-  label: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101', marginBottom: 8 },
+  label: { fontStyle: 'normal', fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101', marginBottom: 8 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },

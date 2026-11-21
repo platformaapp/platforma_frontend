@@ -882,7 +882,7 @@ export default function EventDetailScreenWeb() {
               </View>
 
               <View style={styles.editFieldWrap}>
-                <Text style={[styles.editFieldLabel, { fontStyle: 'italic' }]}>Максимальное количество участников</Text>
+                <Text style={styles.editFieldLabel}>Максимальное количество участников</Text>
                 <TextInput
                   value={editMaxParticipants}
                   onChangeText={(t) => setEditMaxParticipants(t.replace(/\D/g, ''))}
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   editScrollContent: { paddingBottom: 8 },
   editLockedNote: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
   editFieldWrap: { marginBottom: 28 },
-  editFieldLabel: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
+  editFieldLabel: { fontStyle: 'normal', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   editFieldInput: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none', textAlignVertical: 'top' } as any,
   editFieldValueRow: { position: 'relative' },
   editFieldValue: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101' },

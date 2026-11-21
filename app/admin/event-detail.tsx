@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
   modToggle: { paddingHorizontal: 16, paddingVertical: 14 },
   modToggleText: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
   modForm: { paddingHorizontal: 16, paddingBottom: 24 },
-  modLabel: { fontStyle: 'italic', fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4, marginTop: 12 },
+  modLabel: { fontStyle: 'normal', fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 4, marginTop: 12 },
   modTeamCommentBox: { backgroundColor: '#F5F5F5', borderLeftWidth: 3, borderLeftColor: '#BDBDBD', padding: 12, marginTop: 12 },
   modTeamCommentLabel: { fontSize: 10, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
   modTeamCommentText: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#444', lineHeight: 18 },
