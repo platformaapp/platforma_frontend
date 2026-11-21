@@ -142,7 +142,7 @@ export default function JournalScreenWeb() {
       <Pressable
         key={item.id}
         style={cardStyle}
-        onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}
+        {...({ href: `/journal/${item.slug || item.id}` } as any)}
       >
         <View style={innerStyle}>
           {item.coverUrl ? (
@@ -161,7 +161,7 @@ export default function JournalScreenWeb() {
 
   function renderRowCard(item: Article, posInRow: 0 | 1 | 2) {
     return (
-      <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} {...({ href: `/journal/${item.slug || item.id}` } as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -294,7 +294,7 @@ export default function JournalScreenWeb() {
         ) : isMobile ? (
           <View style={styles.mobileList}>
             {pageMobileItems.map((item) => (
-              <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)} {...({ dataSet: { card: 'app/journal/index.web.tsx:mobileRow' } } as any)}>
+              <Pressable key={item.id} style={styles.mobileRow} {...({ href: `/journal/${item.slug || item.id}` } as any)} {...({ dataSet: { card: 'app/journal/index.web.tsx:mobileRow' } } as any)}>
                 {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   {item.category ? <Text style={styles.mobileCategory}>{item.category}</Text> : null}
