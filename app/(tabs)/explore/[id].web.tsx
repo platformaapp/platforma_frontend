@@ -189,7 +189,7 @@ export default function TutorCardScreenWeb() {
   // одинаковыми по размеру во всех строках. По просьбе пользователя взят
   // тот же подход, что на главной странице событий (/events): повторяющийся
   // цикл из 4 строк — 1) пара 649:84:716 ("pairA"), 2) тройка 403:365:340,
-  // 3) пара 481:165:611:193 ("pairB"), 4) снова тройка — см.
+  // 3) пара 481:165:611 ("pairB"), 4) снова тройка — см.
   // renderMentorEventsGrid/renderMentorArticlesGrid ниже.
   type MentorRow<T> = { type: 'pairA' | 'triple' | 'pairB'; items: T[] };
   function buildMentorRows<T>(items: T[]): MentorRow<T>[] {
@@ -686,20 +686,20 @@ const styles = StyleSheet.create({
   priceLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000000', lineHeight: 18 },
   priceValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#000', lineHeight: 18 },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 8,     position: 'absolute',
+  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, marginBottom: 0,     position: 'absolute',
     bottom: 0,     width: '100%',
     justifyContent: 'space-between' },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
   actionsRowContainer: { position: 'relative', height: '100%' },
 
   // Мобильные экшн-кнопки — два чипа в ряд, а не колонка на всю ширину.
-  actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 8 },
+  actionsRowMobile: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 0 },
   chipHalf: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#111', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   chipHalfText: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 14, color: '#FAFAFA' },
 
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
-  eventsSection: { marginTop: 40 },
+  eventsSection: { marginTop: 140 },
   eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 93 },
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
@@ -720,12 +720,10 @@ const styles = StyleSheet.create({
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
 
-  // pairA/pairB — те же пропорции (649:84:716 и 481:165:611:193), что и
-  // featuredRow/pairBRow на главной странице событий (/events) — раньше
-  // здесь была только тройка, повторяющаяся из строки в строку (блоки
-  // получались одинаковыми по размеру); теперь ряды чередуются, как там.
+  // Ряды чередуются, как на /events. В pairB нет пустой последней
+  // колонки: правая карточка заканчивается на общей границе сетки.
   mentorFeaturedRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
-  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
+  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr' } as any,
   // overflow:'hidden' — подстраховка от визуального вылезания картинки за
   // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
   mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },

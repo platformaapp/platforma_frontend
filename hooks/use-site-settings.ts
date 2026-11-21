@@ -2,12 +2,19 @@ import { useEffect, useState } from 'react';
 
 import { getSiteSettings, type SiteSettings } from '@/lib/api/site-settings';
 
-const EMPTY: SiteSettings = { navItems: [], banner: {}, partners: [], topics: [], aboutUs: {} };
+const EMPTY: SiteSettings = { navItems: [], banner: {}, articleBanner: {}, partners: [], topics: [], aboutUs: {} };
 
 // Модульный кэш — один фетч на всю сессию вкладки, а не по разу на каждый
 // компонент (шапка, футер, баннер и т.д. монтируются одновременно).
 let cache: SiteSettings | null = null;
 let inflight: Promise<SiteSettings> | null = null;
+
+// Keep the cache current even while only the admin screen is mounted.
+if (typeof window !== 'undefined') {
+  window.addEventListener('site-settings-updated', (event) => {
+    cache = (event as CustomEvent<SiteSettings>).detail;
+  });
+}
 
 function load(): Promise<SiteSettings> {
   if (cache) return Promise.resolve(cache);
@@ -28,7 +35,15 @@ export function useSiteSettings(): SiteSettings {
   useEffect(() => {
     let active = true;
     load().then((s) => { if (active) setSettings(s); });
-    return () => { active = false; };
+    const onUpdate = (event: Event) => {
+      cache = (event as CustomEvent<SiteSettings>).detail;
+      if (active && cache) setSettings(cache);
+    };
+    if (typeof window !== 'undefined') window.addEventListener('site-settings-updated', onUpdate);
+    return () => {
+      active = false;
+      if (typeof window !== 'undefined') window.removeEventListener('site-settings-updated', onUpdate);
+    };
   }, []);
 
   return settings;

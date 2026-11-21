@@ -1,3 +1,4 @@
+import { useSiteSettings } from '@/hooks/use-site-settings';
 import { eventPath, mentorPath } from '@/lib/public-paths';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
@@ -35,7 +36,7 @@ const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 // Баннер рядом со вторым подзаголовком — свой, отдельный от PromoBanner
 // (того, что на /journal и /events): конкретная портретная картинка
-// 720×1280 (текст сверху, фото снизу), может быть заменена в редакторе статьи.
+// 720×1280 (текст сверху, фото снизу), меняется для всех статей в настройках сайта.
 // Это не промо-баннер списков. Квадратная обёртка (см. sectionBannerWrap) показывает
 // только верхнюю (текстовую) часть, см. комментарий у bannerBlock.
 const SECTION_BANNER_IMAGE = require('@/assets/images/journal-section-banner.jpg');
@@ -152,6 +153,7 @@ function parseContent(content: string | null): { intro: string[]; sections: { he
 export default function ArticleScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
+  const { articleBanner } = useSiteSettings();
   const { slug } = useLocalSearchParams<{ slug: string }>();
 
   const [article, setArticle] = useState<Article | null>(null);
@@ -381,8 +383,8 @@ export default function ArticleScreenWeb() {
   // sectionBannerWrapMobile меняет только width/paddingBottom, крупность
   // кропа (квадрат) остаётся та же, т.к. картинка-источник уже квадратная.
   const bannerBlock = article.showBanner ? (
-    <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(article.bannerLinkUrl || SECTION_BANNER_TELEGRAM_URL)}>
-      <Image source={article.bannerImageUrl ? { uri: article.bannerImageUrl } : SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
+    <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(articleBanner.linkUrl || SECTION_BANNER_TELEGRAM_URL)}>
+      <Image source={articleBanner.imageUrl ? { uri: articleBanner.imageUrl } : SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
 
@@ -780,7 +782,7 @@ const styles = StyleSheet.create({
   // течёт своим потоком, сайдбар справа своим, одна не ждёт высоту другой.
   articleCols: { flexDirection: 'row', alignItems: 'flex-start', columnGap: 32, marginBottom: 40 },
   textCol: { flex: 1, minWidth: 0 },
-  mobileStack: { marginBottom: 40 },
+  mobileStack: { marginBottom: 0 },
   // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
   // события / карточки похожих статей), когда их несколько сразу.
   mobileMediaBlock: { marginBottom: 24, gap: 0 },
@@ -845,8 +847,8 @@ const styles = StyleSheet.create({
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
-  relatedSection: { marginTop: 140, marginBottom: 40 },
-  relatedSectionMobile: { marginTop: 0 },
+  relatedSection: { marginTop: 140, marginBottom: 0 },
+  relatedSectionMobile: { marginTop: 140 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самой статьи (titleMobile):
   // 40px десктопного была слишком крупной для "Окей, что ещё"/"Ближайшие

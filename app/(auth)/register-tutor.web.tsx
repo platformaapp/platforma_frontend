@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   close: { fontSize: 20, color: '#010101' },
   scroll: { flexGrow: 0 },
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginBottom: 12 },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
+  hint: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, marginTop: 16 },
   terms: { flex: 1, fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#010101' },
   termsLink: { textDecorationLine: 'underline' },

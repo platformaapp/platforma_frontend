@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: 24 },
   label: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginBottom: 8 },
   labelError: { color: '#E02D2D' },
-  hint: { color: '#9B9B9B' },
+  hint: { fontStyle: 'italic', color: '#9B9B9B' },
   // Плюс (20×20) и однострочный инпут должны иметь одинаковую высоту —
   // иначе при клике по плюсу вся форма ниже прыгает вверх/вниз.
   plusButton: { height: 24, justifyContent: 'center', alignSelf: 'flex-start' },

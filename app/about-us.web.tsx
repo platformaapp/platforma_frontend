@@ -86,7 +86,7 @@ export default function AboutUsScreenWeb() {
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
-          <View>
+          <View style={styles.mobileStack}>
             <Text style={[styles.title, styles.titleMobile]}>{heading}</Text>
             {photo}
             <Text style={[styles.description, isMobile && styles.descriptionMobile]}>{text}</Text>
@@ -121,18 +121,19 @@ const styles = StyleSheet.create({
   scrollContentMobile: { paddingTop: 0, marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
+  mobileStack: { gap: 24 },
   descriptionMobile: { marginTop: 0, maxWidth: '100%' },
   contactsHeadingMobile: { fontSize: 30, lineHeight: 30 },
 
   desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%', alignSelf: 'flex-start', overflow: 'hidden' },
-  cover: { width: 339, height: 409, position: 'relative', backgroundColor: '#E5E5E5', alignSelf: 'self-end' },
-  mobileThumb: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 24 },
-  photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%',     backgroundPosition: 'left' },
+  cover: { width: 339, height: 409, position: 'relative', backgroundColor: '#E5E5E5', alignSelf: 'flex-end' },
+  mobileThumb: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 0 },
+  photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%',     backgroundPosition: 'left' } as any,
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
-  titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
+  titleMobile: { fontSize: 30, lineHeight: 36, marginBottom: 0 },
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginTop: 40, maxWidth: 504, fontSize: 18, lineHeight: 26 },
 
   // Contacts follow the entire desktop row, below the photo as well as the text.

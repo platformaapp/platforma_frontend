@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   topicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
   topicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },
   topicPillTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
-  hint: { fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginTop: -16, marginBottom: 16 },
+  hint: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 14, lineHeight: 18, color: '#687076', marginTop: -16, marginBottom: 16 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },

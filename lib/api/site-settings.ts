@@ -27,12 +27,13 @@ export interface AboutUsSetting {
 export interface SiteSettings {
   navItems: NavItemSetting[];
   banner: BannerSetting;
+  articleBanner: BannerSetting;
   partners: PartnerSetting[];
   topics: string[];
   aboutUs: AboutUsSetting;
 }
 
-const EMPTY_SETTINGS: SiteSettings = { navItems: [], banner: {}, partners: [], topics: [], aboutUs: {} };
+const EMPTY_SETTINGS: SiteSettings = { navItems: [], banner: {}, articleBanner: {}, partners: [], topics: [], aboutUs: {} };
 
 /** GET /api/settings/site — публично, без авторизации. */
 export async function getSiteSettings(): Promise<SiteSettings> {
@@ -43,6 +44,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     return {
       navItems: Array.isArray(data?.navItems) ? data.navItems : [],
       banner: data?.banner ?? {},
+      articleBanner: data?.articleBanner ?? {},
       partners: Array.isArray(data?.partners) ? data.partners : [],
       topics: Array.isArray(data?.topics) ? data.topics : [],
       aboutUs: data?.aboutUs ?? {},
@@ -64,7 +66,9 @@ export async function updateSiteSettings(patch: Partial<SiteSettings>): Promise<
     const payload = await res.json().catch(() => ({}));
     throw new Error(payload?.message ?? 'Не удалось сохранить настройки');
   }
-  return res.json();
+  const settings = await res.json();
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('site-settings-updated', { detail: settings }));
+  return settings;
 }
 
 /** GET /api/admin/settings/site — только админ (то же тело, что и публичный). */

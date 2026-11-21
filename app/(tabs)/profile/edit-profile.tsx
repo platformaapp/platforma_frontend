@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     paddingRight: 50,
     textAlignVertical: 'top',
   },
-  counter: {
+  counter: { fontStyle: 'italic',
     position: 'absolute',
     top: 8,
     right: 8,
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     color: '#555',
     lineHeight: 18,
   },
-  avatarHint: {
+  avatarHint: { fontStyle: 'italic',
     fontFamily: 'Gramatika-Regular',
     fontSize: 12,
     color: '#9B9B9B',

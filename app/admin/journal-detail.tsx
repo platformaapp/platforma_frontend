@@ -153,8 +153,6 @@ export default function AdminJournalDetailScreen() {
   // Баннер рядом со вторым подзаголовком — опционально, по умолчанию
   // включён (старое поведение для уже существующих статей).
   const [showBanner, setShowBanner] = useState(true);
-  const [bannerImageUrl, setBannerImageUrl] = useState('');
-  const [bannerLinkUrl, setBannerLinkUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   // SEO — необязательные поля, не влияют на вид статьи на сайте: seoTitle
   // идёт в <title>, metaDescription — в <meta name="description">, h1 —
@@ -232,8 +230,6 @@ export default function AdminJournalDetailScreen() {
         setGalleryCaption(a.gallery_caption ?? '');
         setGalleryAlt(Array.isArray(a.gallery_alt) ? a.gallery_alt : []);
         setShowBanner(a.show_banner ?? true);
-        setBannerImageUrl(resolveUrl(a.banner_image_url) ?? '');
-        setBannerLinkUrl(a.banner_link_url ?? '');
         setTags(Array.isArray(a.tags) ? a.tags : []);
         setSeoTitle(a.seo_title ?? '');
         setH1(a.h1 ?? '');
@@ -444,25 +440,12 @@ export default function AdminJournalDetailScreen() {
   async function handleSave() {
     if (!title.trim()) { setSaveError('Укажите название'); return; }
     if (!author) { setSaveError('Выберите автора'); return; }
-    const isLocalBanner = /^(data:|blob:|file:|content:)/.test(bannerImageUrl);
-    for (const [label, value] of [['картинки баннера', isLocalBanner ? '' : bannerImageUrl], ['ссылки баннера', bannerLinkUrl]]) {
-      if (!value.trim()) continue;
-      try {
-        const url = new URL(value.trim());
-        if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
-      } catch { setSaveError(`Укажите корректный HTTP(S) URL для ${label}`); return; }
-    }
     setSaving(true);
     setSaveError('');
     try {
       const token = await getAdminToken();
       if (!token) { router.replace('/admin/login'); return; }
 
-      let uploadedBanner = bannerImageUrl.trim();
-      if (isLocalBanner) {
-        uploadedBanner = await uploadAdminImage(bannerImageUrl);
-        setBannerImageUrl(uploadedBanner);
-      }
       let uploadedCover: string | undefined;
       if (coverUri && coverUri.startsWith('data:')) {
         setCoverUploading(true);
@@ -497,8 +480,6 @@ export default function AdminJournalDetailScreen() {
         gallery_caption: galleryCaption.trim() || undefined,
         gallery_alt: galleryAlt.map((a) => a.trim()),
         show_banner: showBanner,
-        banner_image_url: uploadedBanner || null,
-        banner_link_url: bannerLinkUrl.trim() || null,
         tags,
         seo_title: seoTitle.trim() || undefined,
         h1: h1.trim() || undefined,
@@ -723,36 +704,9 @@ export default function AdminJournalDetailScreen() {
           <Text style={styles.checkboxLabel}>Показывать баннер рядом со вторым подзаголовком</Text>
         </Pressable>
 
-        <Text style={styles.label}>Картинка баннера статьи</Text>
-        <TextInput
-          style={styles.input}
-          value={bannerImageUrl}
-          onChangeText={setBannerImageUrl}
-          placeholder="https://example.com/banner.jpg"
-          accessibilityLabel="URL картинки баннера статьи"
-          placeholderTextColor="#9B9B9B"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <Pressable style={styles.coverBtn} onPress={async () => {
-          const uri = await pickImage();
-          if (uri) setBannerImageUrl(uri);
-        }}>
-          {bannerImageUrl ? <Image source={{ uri: bannerImageUrl }} style={styles.coverPreview} resizeMode="contain" /> : <Text style={styles.coverBtnText}>Загрузить картинку баннера</Text>}
+        <Pressable onPress={() => router.push('/admin/site-settings')}>
+          <Text style={styles.hint}>Картинка и ссылка Telegram-баннера меняются для всех статей в настройках сайта.</Text>
         </Pressable>
-        {bannerImageUrl ? <Pressable onPress={() => setBannerImageUrl('')}><Text style={styles.removeLink}>Вернуть стандартную картинку</Text></Pressable> : null}
-        <Text style={styles.label}>Ссылка баннера статьи</Text>
-        <TextInput
-          style={styles.input}
-          value={bannerLinkUrl}
-          onChangeText={setBannerLinkUrl}
-          placeholder="https://t.me/p34forma"
-          accessibilityLabel="Ссылка баннера статьи"
-          placeholderTextColor="#9B9B9B"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <Text style={styles.hint}>Пустые поля используют стандартную картинку и ссылку на Telegram. Настройки применяются только к этой статье.</Text>
 
         <Text style={styles.label}>Теги</Text>
         <Text style={styles.hint}>Показываются на странице статьи напротив имени автора (#тег).</Text>
@@ -1009,7 +963,7 @@ const styles = StyleSheet.create({
 
   content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 48 },
   label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
-  hint: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
+  hint: { fontStyle: 'italic', fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
   hintStrong: { color: '#181818' },
   sectionDivider: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 32, paddingTop: 18, borderTopWidth: 1, borderColor: '#1E1E1E' },
   input: {

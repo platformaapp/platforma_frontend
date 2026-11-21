@@ -851,7 +851,7 @@ export default function EventDetailScreenWeb() {
               </View>
 
               <View style={styles.editFieldWrap}>
-                <Text style={styles.editFieldLabel}>Максимальное количество участников</Text>
+                <Text style={[styles.editFieldLabel, { fontStyle: 'italic' }]}>Максимальное количество участников</Text>
                 <TextInput
                   value={editMaxParticipants}
                   onChangeText={(t) => setEditMaxParticipants(t.replace(/\D/g, ''))}

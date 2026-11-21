@@ -1654,7 +1654,7 @@ function FieldWithPlus({ label, value, onChangeText, editable, keyboardType, aut
       multiline={multiline}
       maxLength={maxLength}
       placeholder={placeholder}
-      labelStyle={styles.popupFieldLabel}
+      labelStyle={label === 'Максимальное количество участников' ? { ...styles.popupFieldLabel, fontStyle: 'italic' } : styles.popupFieldLabel}
       inputStyle={styles.popupFieldInput}
     />
   );
@@ -2027,7 +2027,7 @@ const styles = StyleSheet.create({
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   avatarThumb: { width: 44, height: 44, backgroundColor: '#E5E5E5' },
   avatarThumbPlaceholder: { backgroundColor: '#E5E5E5' },
-  hint: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: -4, marginBottom: 12 },
+  hint: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: -4, marginBottom: 12 },
   paymentCardBlock: { paddingVertical: 16, borderTopWidth: 0, borderColor: '#E5E5E5' },
   paymentCardLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000' },
   paymentCardNumber: { fontSize: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginTop: 2 },

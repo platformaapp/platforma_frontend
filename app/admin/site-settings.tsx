@@ -119,6 +119,7 @@ export default function AdminSiteSettingsScreen() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [navItems, setNavItems] = useState<NavItemSetting[]>(emptyNavItems());
+  const [articleBanner, setArticleBanner] = useState<BannerSetting>({});
   const [banner, setBanner] = useState<BannerSetting>({});
   const [partners, setPartners] = useState<PartnerSetting[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
@@ -133,6 +134,7 @@ export default function AdminSiteSettingsScreen() {
         const s = await getAdminSiteSettings();
         setNavItems(s.navItems.length === 5 ? s.navItems : emptyNavItems());
         setBanner(s.banner ?? {});
+        setArticleBanner(s.articleBanner ?? {});
         setPartners(s.partners ?? []);
         setTopics(s.topics ?? []);
         setAboutUs(s.aboutUs ?? {});
@@ -161,6 +163,11 @@ export default function AdminSiteSettingsScreen() {
         finalBanner = { ...banner, imageUrl: url };
         setBanner(finalBanner);
       }
+      let finalArticleBanner = articleBanner;
+      if (isLocalUri(articleBanner.imageUrl)) {
+        finalArticleBanner = { ...articleBanner, imageUrl: await uploadAdminImage(articleBanner.imageUrl as string) };
+        setArticleBanner(finalArticleBanner);
+      }
       let finalPartners = partners;
       if (partners.some((p) => isLocalUri(p.logoUrl))) {
         finalPartners = await Promise.all(
@@ -181,6 +188,7 @@ export default function AdminSiteSettingsScreen() {
       await updateSiteSettings({
         navItems: sanitizedNavItems,
         banner: sanitizedBanner,
+        articleBanner: { imageUrl: emptyToUndefined(finalArticleBanner.imageUrl), linkUrl: emptyToUndefined(finalArticleBanner.linkUrl) },
         partners: sanitizedPartners,
         topics,
         aboutUs: sanitizedAboutUs,
@@ -307,6 +315,20 @@ export default function AdminSiteSettingsScreen() {
               onChangeText={(t) => setBanner((b) => ({ ...b, linkUrl: t }))}
               autoCapitalize="none"
             />
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Telegram-баннер в статьях</Text>
+            <Text style={styles.sectionSubtitle}>Единая картинка и ссылка для всех статей. Пустые поля возвращают стандартный баннер.</Text>
+            <Pressable style={styles.imagePickBtn} onPress={async () => {
+              const uri = await pickImage();
+              if (uri) setArticleBanner((value) => ({ ...value, imageUrl: uri }));
+            }}>
+              {articleBanner.imageUrl ? <Image source={{ uri: articleBanner.imageUrl }} style={styles.imagePickPreview} resizeMode="contain" /> : <Text style={styles.imagePickBtnText}>Выбрать изображение</Text>}
+            </Pressable>
+            <TextInput style={styles.input} accessibilityLabel="URL Telegram-баннера в статьях" placeholder="URL изображения" value={articleBanner.imageUrl ?? ''} onChangeText={(imageUrl) => setArticleBanner((value) => ({ ...value, imageUrl }))} autoCapitalize="none" />
+            <TextInput style={styles.input} accessibilityLabel="Ссылка Telegram-баннера в статьях" placeholder="https://t.me/p34forma" value={articleBanner.linkUrl ?? ''} onChangeText={(linkUrl) => setArticleBanner((value) => ({ ...value, linkUrl }))} autoCapitalize="none" />
+            <Pressable onPress={() => setArticleBanner({})}><Text style={styles.removeLink}>Вернуть стандартный баннер</Text></Pressable>
           </View>
 
           {/* Партнёры */}

@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingRight: 50,
   },
-  counter: {
+  counter: { fontStyle: 'italic',
     position: 'absolute',
     top: 8,
     right: 8,

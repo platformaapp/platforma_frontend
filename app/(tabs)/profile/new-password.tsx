@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginLeft: 8,
   },
-  helperText: {
+  helperText: { fontStyle: 'italic',
     fontSize: 13,
     lineHeight: 18,
     fontFamily: 'Gramatika-Regular',

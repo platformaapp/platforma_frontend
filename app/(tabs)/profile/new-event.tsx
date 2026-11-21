@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   titleInputWrap: { position: 'relative', marginBottom: 12 },
   titleInput: { marginBottom: 0, paddingRight: 50 },
   titleCounter: { position: 'absolute', top: 8, right: 8, backgroundColor: '#181818', paddingHorizontal: 7, paddingVertical: 3, minWidth: 32, alignItems: 'center' },
-  titleCounterText: { fontFamily: 'Gramatika-Regular', fontSize: 11, color: '#fff' },
+  titleCounterText: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 11, color: '#fff' },
   titleCounterError: { color: '#E02D2D' },
   dateText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#181818' },
   placeholderText: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#9B9B9B' },
