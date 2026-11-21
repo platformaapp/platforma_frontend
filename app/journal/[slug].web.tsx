@@ -424,7 +424,7 @@ export default function ArticleScreenWeb() {
   function renderRelatedArticleCard(item: RelatedArticle, posInRow: 0 | 1 | 2) {
     if (isMobile) {
       return (
-        <Pressable key={item.id} style={styles.mobileRow} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderRelatedArticleCard' } } as any)}>
+        <Pressable key={item.id} style={styles.mobileRow} {...({ href: `/journal/${item.slug || item.id}` } as any)} {...({ dataSet: { card: 'app/journal/[slug].web.tsx:renderRelatedArticleCard' } } as any)}>
           {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
           <View style={styles.mobileInfo}>
             <View>
@@ -436,7 +436,7 @@ export default function ArticleScreenWeb() {
       );
     }
     return (
-      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+      <Pressable key={item.id} style={{ gridColumn: RELATED_GRID_COLUMNS[posInRow] } as any} {...({ href: `/journal/${item.slug || item.id}` } as any)}>
         {item.coverUrl ? (
           <Image source={{ uri: item.coverUrl }} style={[styles.relatedImage, { aspectRatio: RELATED_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
@@ -452,7 +452,7 @@ export default function ArticleScreenWeb() {
   // — компактная карточка в ширину текстовой колонки, а не строка грида-тройки.
   function renderRelatedInlineCard(item: RelatedArticle) {
     return (
-      <Pressable style={styles.inlineRelatedCard} onPress={() => router.push(`/journal/${item.slug || item.id}` as any)}>
+      <Pressable style={styles.inlineRelatedCard} {...({ href: `/journal/${item.slug || item.id}` } as any)}>
         {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.inlineRelatedImage} resizeMode="cover" /> : <View style={styles.inlineRelatedImage} />}
         {item.category ? <Text style={styles.relatedCategory}>{item.category}</Text> : null}
         <Text style={styles.relatedTitle}>{preventOrphanLastWord(item.title)}</Text>

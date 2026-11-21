@@ -55,7 +55,9 @@ export default function AboutUsScreenWeb() {
   // и у SECTION_BANNER_IMAGE в journal/[slug].web.tsx — см. тот же приём там).
   const photo = (
     <View style={isMobile ? styles.mobileThumb : styles.cover}>
+      <style>{'[data-about-us-photo="true"] > div { background-position: left !important; }'}</style>
       <Image
+        {...({ dataSet: { aboutUsPhoto: 'true' } } as any)}
         source={aboutUs.photoUrl ? { uri: aboutUs.photoUrl } : DEFAULT_PHOTO}
         style={styles.photoImage}
         resizeMode="cover"
