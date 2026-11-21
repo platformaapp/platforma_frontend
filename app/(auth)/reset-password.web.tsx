@@ -114,7 +114,7 @@ export default function ResetPasswordScreenWeb() {
             }}
           />
 
-          <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
+          <Text style={[styles.hint, { fontSize: 14, lineHeight: 18, fontStyle: 'italic' } ]}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
 
           <View style={styles.footerRow}>
             <Pressable onPress={onSubmit} disabled={isSubmitting}>

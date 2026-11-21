@@ -230,7 +230,7 @@ export default function RegisterStudentScreenWeb() {
         <PlusField label="Еще раз пароль" value={password2} error={errors.password2} secureTextEntry
           onChangeText={(t) => { setPassword2(t); if (errors.password2) setErrors((e) => ({ ...e, password2: undefined })); }} />
 
-        <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
+        <Text style={[styles.hint, { fontSize: 14, lineHeight: 18, fontStyle: 'italic' } ]}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
 
         {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
         </ScrollView>
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   errorText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', marginBottom: 12 },
   hint: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076', marginBottom: 4 },
   fieldWrap: { marginBottom: 24 },
-  label: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101', marginBottom: 8 },
+  label: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#010101', marginBottom: 8 },
   plusButton: { paddingVertical: 2, alignSelf: 'flex-start' },
   uploadWithPhoto: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: { width: 40, height: 40, backgroundColor: '#E5E5E5' },

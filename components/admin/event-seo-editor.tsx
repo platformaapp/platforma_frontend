@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   section: { padding: 16, borderBottomWidth: 1, borderColor: '#E5E5E5' },
   heading: { fontFamily: 'Gramatika-Regular', fontSize: 18, marginBottom: 16 },
   field: { marginBottom: 16 },
-  label: {
+  label: { fontStyle: 'italic',
     fontFamily: 'Gramatika-Regular',
     fontSize: 14,
     color: '#687076',

@@ -119,12 +119,14 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
 
   return (
     <View
+      {...({ dataSet: { siteFooter: 'true' } } as any)}
       style={[
         styles.footer,
         {
           marginHorizontal: -centerGap,
           paddingHorizontal: centerGap + PAGE_PADDING_HORIZONTAL,
-          marginTop: isMobile ? 48 : 305,
+          marginTop: 'auto',
+          paddingTop: isMobile ? 48 : 305,
           // На мобильном (без нижней строки и без партнёров) отступа снизу
           // не нужно вообще.
           paddingBottom: isMobile ? 0 : 0,

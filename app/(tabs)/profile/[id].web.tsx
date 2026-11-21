@@ -1094,7 +1094,7 @@ export default function ProfileScreenWeb() {
               <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
               <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
               <PlusField label="Повторите новый пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
-              <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
+              <Text style={[styles.hint, { fontSize: 14, lineHeight: 18, fontStyle: 'italic' } ]}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
               <Pressable style={[styles.modalSaveLink, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
                 <Text style={styles.modalSaveText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
@@ -1288,7 +1288,7 @@ export default function ProfileScreenWeb() {
             <PlusField label="Старый пароль" value={oldPassword} onChangeText={setOldPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <PlusField label="Новый пароль" value={newPassword} onChangeText={setNewPassword} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
             <PlusField label="Повторите пароль" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry labelStyle={styles.popupFieldLabel} inputStyle={styles.popupFieldInput} />
-            <Text style={styles.hint}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
+            <Text style={[styles.hint, { fontSize: 14, lineHeight: 18, fontStyle: 'italic' } ]}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             <Pressable style={[styles.primaryButton, passwordSaving && styles.btnDisabled]} onPress={handleSavePassword} disabled={passwordSaving}>
               <Text style={styles.primaryButtonText}>{passwordSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
@@ -1956,7 +1956,7 @@ const styles = StyleSheet.create({
   // (components/web/plus-field.tsx), для визуальной согласованности.
   // Переопределение размера текста общего PlusField/FieldWithPlus — во всех
   // попапах этой страницы текст 18px, кроме заголовка модалки.
-  popupFieldLabel: { fontSize: 14, lineHeight: 18, color: '#687076' },
+  popupFieldLabel: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, color: '#687076' },
   popupFieldInput: { fontSize: 18, lineHeight: 22 },
   plusFieldWrap: { marginBottom: 24 },
   // Поднимаем поле над соседями по стеку, пока его попап открыт — иначе
@@ -2084,7 +2084,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: '#010101', fontFamily: 'Gramatika-Regular', fontWeight: 'normal' },
   card: { borderWidth: 1, borderColor: '#E5E5E5', padding: 24, maxWidth: 560 },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#E5E5E5', marginBottom: 16 },
-  fieldLabel: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 12, marginBottom: 8 },
+  fieldLabel: { fontStyle: 'italic', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginTop: 12, marginBottom: 8 },
   fieldValue: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#010101' },
   eventTopicsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8, marginTop: 8, marginBottom: 8 },
   eventTopicPillText: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#838383' },

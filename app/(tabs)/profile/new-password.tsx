@@ -100,7 +100,7 @@ export default function NewPasswordScreen() {
                 <Text style={styles.emailValue}>{email || '—'}</Text>
               </View>
 
-              <Text style={styles.helperText}>
+              <Text style={[styles.helperText, { fontSize: 14, lineHeight: 18, fontStyle: 'italic' } ]}>
                 Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов
               </Text>
             </>

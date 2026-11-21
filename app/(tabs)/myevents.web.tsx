@@ -339,8 +339,8 @@ export default function MyEventsScreenWeb() {
   // Та же асимметричная сетка (403/365/340, см. CARD_ROW_ASPECTS выше), что
   // и у рекомендаций в пустом состоянии — раньше тут была равномерная
   // flex-wrap сетка (styles.grid/card), по референсу список тоже должен
-  // идти строками по 3 с повторяющимся card--d на каждой второй строке.
-  function renderEventGridCard(item: EventItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
+  // идти строками по 3, как в блоке «Окей, что ещё».
+  function renderEventGridCard(item: EventItem, posInRow: 0 | 1 | 2, muted: boolean) {
     const dateText = item.datetimeStart ? formatRecommendedEventDate(item.datetimeStart) : '';
     return (
       <Pressable
@@ -349,9 +349,9 @@ export default function MyEventsScreenWeb() {
         {...({ href: eventPath(item) } as any)}
       >
         {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+          <Image source={{ uri: item.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
-          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }]} />
         )}
         <View style={styles.cardBody}>
           <Text style={styles.cardMentorName}>{item.mentor?.name ?? ''}</Text>
@@ -372,7 +372,7 @@ export default function MyEventsScreenWeb() {
       <>
         {chunk3(items).map((row, rowIdx) => (
           <View key={row.map((e) => e.id).join('-')} style={[styles.cardsGridRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
-            {row.map((e, pos) => renderEventGridCard(e, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2, muted))}
+            {row.map((e, pos) => renderEventGridCard(e, pos as 0 | 1 | 2, muted))}
           </View>
         ))}
       </>
@@ -404,7 +404,7 @@ export default function MyEventsScreenWeb() {
   // Та же асимметричная сетка (403/365/340), что у событий (см.
   // renderEventGridCard) — "Личные встречи" раньше были равномерной
   // flex-wrap сеткой (styles.grid/card) на обеих раскладках.
-  function renderBookingGridCard(item: BookingItem, posInRow: 0 | 1 | 2, narrowImage: boolean, muted: boolean) {
+  function renderBookingGridCard(item: BookingItem, posInRow: 0 | 1 | 2, muted: boolean) {
     const other = otherPartyOf(item);
     const dateText = formatBookingDate(item.date ?? item.slot_date ?? item.slot?.date, item.time ?? item.slot_time ?? item.slot?.time);
     return (
@@ -414,9 +414,9 @@ export default function MyEventsScreenWeb() {
         onPress={() => setViewingBooking(item)}
       >
         {other.avatarUrl ? (
-          <Image source={{ uri: other.avatarUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+          <Image source={{ uri: other.avatarUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
-          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }]} />
         )}
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{other.name}</Text>
@@ -436,14 +436,14 @@ export default function MyEventsScreenWeb() {
       <>
         {chunk3(items).map((row, rowIdx) => (
           <View key={row.map((b) => b.id).join('-')} style={[styles.cardsGridRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
-            {row.map((b, pos) => renderBookingGridCard(b, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2, muted))}
+            {row.map((b, pos) => renderBookingGridCard(b, pos as 0 | 1 | 2, muted))}
           </View>
         ))}
       </>
     );
   }
 
-  function renderRecommendedCard(r: RecommendedEvent, posInRow: 0 | 1 | 2, narrowImage: boolean) {
+  function renderRecommendedCard(r: RecommendedEvent, posInRow: 0 | 1 | 2) {
     return (
       <Pressable
         key={r.id}
@@ -451,9 +451,9 @@ export default function MyEventsScreenWeb() {
         {...({ href: eventPath(r) } as any)}
       >
         {r.coverUrl ? (
-          <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} resizeMode="cover" />
+          <Image source={{ uri: r.coverUrl }} style={[styles.emptyRecommendedImage, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
-          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }, narrowImage && styles.emptyRecommendedImageNarrow]} />
+          <View style={[styles.emptyRecommendedImage, styles.cardImagePlaceholder, { aspectRatio: CARD_ROW_ASPECTS[posInRow] }]} />
         )}
         {r.mentorName ? <Text style={styles.emptyRecommendedAuthor} numberOfLines={1}>{r.mentorName}</Text> : null}
         <Text style={styles.emptyRecommendedTitle}>{r.title}</Text>
@@ -499,18 +499,18 @@ export default function MyEventsScreenWeb() {
   // прошедшие записи (см. ниже).
   const recommendedBlock = recommended.length > 0 ? (
     isMobile ? (
-      <View style={styles.recommendedSection}>
+      <View style={[styles.recommendedSection, isMobile && styles.recommendedSectionMobile]}>
         <Text style={[styles.recommendedSectionTitle, isMobile && styles.recommendedSectionTitleMobile]}>А пока советуем</Text>
         <View style={styles.mobileList}>
           {recommended.map((r) => renderRecommendedCardMobile(r))}
         </View>
       </View>
     ) : (
-      <View style={styles.recommendedSection}>
+      <View style={[styles.recommendedSection, isMobile && styles.recommendedSectionMobile]}>
         <Text style={styles.recommendedSectionTitle}>А пока советуем</Text>
         {chunk3(recommended).map((row, rowIdx) => (
           <View key={row.map((r) => r.id).join('-')} style={[styles.emptyRecommendedRow, rowIdx > 0 && styles.cardsGridRowSpacing]}>
-            {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2, rowIdx % 2 === 1 && pos === 2))}
+            {row.map((r, pos) => renderRecommendedCard(r, pos as 0 | 1 | 2))}
           </View>
         ))}
       </View>
@@ -694,12 +694,10 @@ const styles = StyleSheet.create({
   // /journal и странице события (relatedSection: marginTop:140) — раньше
   // было 40, секция стояла заметно ближе к кнопке/тексту выше, чем там.
   recommendedSection: { marginTop: 140 },
+  recommendedSectionMobile: { marginTop: 40 },
   recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   recommendedSectionTitleMobile: { fontSize: 25, lineHeight: 28 },
-  emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 8 },
-  // card--d по референсу — третья карточка каждой второй строки уже
-  // остальных (84.4% вместо 100%), только картинка.
-  emptyRecommendedImageNarrow: { width: '84.4%' },
+  emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 0 },
   // Те же значения (включая отступы), что у карточек на главной странице
   // событий (events/index.web.tsx: cardAuthor/rowLabel/cardTitleText/
   // rowTitle/cardDate) — раньше тут был свой межстрочный интервал/отступы

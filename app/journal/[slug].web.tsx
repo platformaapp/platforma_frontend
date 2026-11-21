@@ -381,11 +381,12 @@ export default function ArticleScreenWeb() {
   // игнорирует aspectRatio для Image из require(), см. git history).
   // На мобильном баннер — первым перед статьёй (см. mobileStack ниже) и по
   // ширине как обложка (100%, не 50%-квадрат по центру, как на десктопе) —
-  // sectionBannerWrapMobile меняет только width/paddingBottom, крупность
-  // кропа (квадрат) остаётся та же, т.к. картинка-источник уже квадратная.
+  // Отдельное мобильное изображение показываем в прямоугольнике 2:1.
+  // Если оно ещё не загружено, используем десктопную картинку.
+  const bannerImageUrl = isMobile ? articleBanner.mobileImageUrl || articleBanner.imageUrl : articleBanner.imageUrl;
   const bannerBlock = article.showBanner ? (
     <Pressable style={[styles.sectionBannerWrap, isMobile && styles.sectionBannerWrapMobile]} onPress={() => Linking.openURL(articleBanner.linkUrl || SECTION_BANNER_TELEGRAM_URL)}>
-      <Image source={articleBanner.imageUrl ? { uri: articleBanner.imageUrl } : SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
+      <Image source={bannerImageUrl ? { uri: bannerImageUrl } : SECTION_BANNER_IMAGE} style={styles.sectionBanner} resizeMode="cover" />
     </Pressable>
   ) : null;
 
@@ -843,7 +844,7 @@ const styles = StyleSheet.create({
   sectionBannerWrap: { width: '50%', alignSelf: 'center', position: 'relative', overflow: 'hidden', paddingBottom: '50%' } as any,
   // Мобильный вариант — по ширине как обложка (100%, не центрированный
   // 50%-квадрат), см. комментарий у bannerBlock.
-  sectionBannerWrapMobile: { width: '100%', alignSelf: 'stretch', paddingBottom: '100%', marginBottom: 24 } as any,
+  sectionBannerWrapMobile: { width: '100%', alignSelf: 'stretch', paddingBottom: '50%', marginBottom: 24 } as any,
   sectionBanner: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%', backgroundColor: '#E5E5E5' },
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/

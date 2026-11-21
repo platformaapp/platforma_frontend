@@ -38,7 +38,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         {/* SiteHeader сам решает, что показывать на мобильной ширине (только
             логотип) — навигация на мобильном в MobileBottomNav снизу. */}
         <SiteHeader />
-        <View style={styles.content}>{children}</View>
+        <View style={styles.content} {...({ dataSet: { sitePage: 'true' } } as any)}>{children}</View>
       </View>
       {isMobile && <MobileBottomNav />}
     </View>
@@ -70,5 +70,5 @@ export function scrollSiteContentToTop(anchor?: HTMLElement | null) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
   scrollArea: { flex: 1, width: '100%', overflowY: 'auto' } as any,
-  content: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
+  content: { flexGrow: 1, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
 });

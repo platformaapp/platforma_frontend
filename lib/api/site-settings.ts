@@ -7,6 +7,7 @@ export interface NavItemSetting {
 }
 
 export interface BannerSetting {
+  mobileImageUrl?: string;
   imageUrl?: string;
   linkUrl?: string;
 }

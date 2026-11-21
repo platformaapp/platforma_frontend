@@ -34,6 +34,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
             #root { display: flex; }
             [data-site-content="true"] { scrollbar-width: none; -ms-overflow-style: none; }
             [data-site-content="true"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
+            [data-site-page="true"] > div:has([data-site-footer="true"]),
+            [data-site-page="true"] div:has(> [data-site-footer="true"]) { flex-grow: 1; }
+            [data-site-footer="true"] { flex-shrink: 0; }
             /* Чб со снятием фильтра по наведению — только для карточек в
                сетках/списках (сетка наставников на /explore, см.
                dataSet в explore/index.web.tsx — единственное место,

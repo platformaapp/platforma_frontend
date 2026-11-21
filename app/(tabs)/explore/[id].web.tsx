@@ -716,15 +716,15 @@ const styles = StyleSheet.create({
   // кнопок до "События наставника", и отступ между "События наставника"
   // и "О чём пишет" (обе секции используют этот же стиль) были гораздо
   // больше, чем тот же переход в статье.
-  mentorEventsSection: { marginTop: 140, width: '100%', maxWidth: 1215 },
+  mentorEventsSection: { marginTop: 140, width: '100%' },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
 
   // Ряды чередуются, как на /events. В pairB нет пустой последней
-  // колонки: правая карточка заканчивается на общей границе сетки.
+  // колонки: её ширина добавлена к зазору, размеры карточек как на /events.
   mentorFeaturedRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
-  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr' } as any,
+  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 358fr 611fr' } as any,
   // overflow:'hidden' — подстраховка от визуального вылезания картинки за
   // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
   mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },

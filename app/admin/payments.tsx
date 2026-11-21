@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
 
   content: { width: '100%', maxWidth: 840, alignSelf: 'center', padding: 16 },
   description: { fontSize: 13, lineHeight: 19, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 20 },
-  label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
+  label: { fontStyle: 'italic', fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
   dateRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   dateInput: { flex: 1 },
   input: {

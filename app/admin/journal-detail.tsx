@@ -962,7 +962,7 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818' },
 
   content: { width: '100%', maxWidth: 840, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 48 },
-  label: { fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
+  label: { fontStyle: 'italic', fontSize: 12, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 6, marginTop: 18 },
   hint: { fontStyle: 'italic', fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginBottom: 8 },
   hintStrong: { color: '#181818' },
   sectionDivider: { fontSize: 14, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#181818', marginTop: 32, paddingTop: 18, borderTopWidth: 1, borderColor: '#1E1E1E' },

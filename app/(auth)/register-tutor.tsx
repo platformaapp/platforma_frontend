@@ -327,7 +327,7 @@ export default function RegisterTutorScreen() {
         )}
       </View>
 
-      <ThemedText style={{ marginVertical: 8, fontSize: 14, lineHeight: 18 }}>
+      <ThemedText style={{ marginVertical: 8, fontSize: 14, lineHeight: 18, fontStyle: 'italic' }}>
         Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов
       </ThemedText>
 

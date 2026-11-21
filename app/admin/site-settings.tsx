@@ -37,7 +37,7 @@ function emptyNavItems(): NavItemSetting[] {
 // выбор из галереи кладёт локальный uri (data:/blob) для превью сразу, сама
 // загрузка на сервер происходит только при "Сохранить" — там же заменяем
 // локальный uri на настоящий URL перед отправкой (см. handleSave).
-async function pickImage(): Promise<string | null> {
+async function pickImage(aspect?: [number, number]): Promise<string | null> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
     if (Platform.OS === 'web') { if (typeof window !== 'undefined') window.alert('Необходимо разрешение на доступ к фотографиям'); }
@@ -46,6 +46,7 @@ async function pickImage(): Promise<string | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: true,
+    aspect,
     quality: 0.8,
   });
   if (result.canceled || !result.assets[0]) return null;
@@ -168,6 +169,10 @@ export default function AdminSiteSettingsScreen() {
         finalArticleBanner = { ...articleBanner, imageUrl: await uploadAdminImage(articleBanner.imageUrl as string) };
         setArticleBanner(finalArticleBanner);
       }
+      if (isLocalUri(articleBanner.mobileImageUrl)) {
+        finalArticleBanner = { ...finalArticleBanner, mobileImageUrl: await uploadAdminImage(articleBanner.mobileImageUrl as string) };
+        setArticleBanner(finalArticleBanner);
+      }
       let finalPartners = partners;
       if (partners.some((p) => isLocalUri(p.logoUrl))) {
         finalPartners = await Promise.all(
@@ -188,7 +193,7 @@ export default function AdminSiteSettingsScreen() {
       await updateSiteSettings({
         navItems: sanitizedNavItems,
         banner: sanitizedBanner,
-        articleBanner: { imageUrl: emptyToUndefined(finalArticleBanner.imageUrl), linkUrl: emptyToUndefined(finalArticleBanner.linkUrl) },
+        articleBanner: { mobileImageUrl: emptyToUndefined(finalArticleBanner.mobileImageUrl), imageUrl: emptyToUndefined(finalArticleBanner.imageUrl), linkUrl: emptyToUndefined(finalArticleBanner.linkUrl) },
         partners: sanitizedPartners,
         topics,
         aboutUs: sanitizedAboutUs,
@@ -319,14 +324,24 @@ export default function AdminSiteSettingsScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Telegram-баннер в статьях</Text>
-            <Text style={styles.sectionSubtitle}>Единая картинка и ссылка для всех статей. Пустые поля возвращают стандартный баннер.</Text>
+            <Text style={styles.sectionSubtitle}>Общий баннер для всех статей: квадратный на десктопе, горизонтальный 2:1 на мобильном. Ссылка общая.</Text>
+            <Text style={styles.label}>Десктоп — квадрат 1:1</Text>
             <Pressable style={styles.imagePickBtn} onPress={async () => {
-              const uri = await pickImage();
+              const uri = await pickImage([1, 1]);
               if (uri) setArticleBanner((value) => ({ ...value, imageUrl: uri }));
             }}>
               {articleBanner.imageUrl ? <Image source={{ uri: articleBanner.imageUrl }} style={styles.imagePickPreview} resizeMode="contain" /> : <Text style={styles.imagePickBtnText}>Выбрать изображение</Text>}
             </Pressable>
             <TextInput style={styles.input} accessibilityLabel="URL Telegram-баннера в статьях" placeholder="URL изображения" value={articleBanner.imageUrl ?? ''} onChangeText={(imageUrl) => setArticleBanner((value) => ({ ...value, imageUrl }))} autoCapitalize="none" />
+            <Text style={styles.label}>Мобильный — прямоугольник 2:1</Text>
+            <Pressable style={styles.imagePickBtn} onPress={async () => {
+              const uri = await pickImage([2, 1]);
+              if (uri) setArticleBanner((value) => ({ ...value, mobileImageUrl: uri }));
+            }}>
+              {articleBanner.mobileImageUrl ? <Image source={{ uri: articleBanner.mobileImageUrl }} style={styles.imagePickPreview} resizeMode="contain" /> : <Text style={styles.imagePickBtnText}>Выбрать мобильное изображение</Text>}
+            </Pressable>
+            <TextInput style={styles.input} accessibilityLabel="URL мобильного Telegram-баннера в статьях" placeholder="URL мобильного изображения" value={articleBanner.mobileImageUrl ?? ''} onChangeText={(mobileImageUrl) => setArticleBanner((value) => ({ ...value, mobileImageUrl }))} autoCapitalize="none" />
+            <Text style={styles.sectionSubtitle}>Если мобильное изображение не задано, используется десктопное.</Text>
             <TextInput style={styles.input} accessibilityLabel="Ссылка Telegram-баннера в статьях" placeholder="https://t.me/p34forma" value={articleBanner.linkUrl ?? ''} onChangeText={(linkUrl) => setArticleBanner((value) => ({ ...value, linkUrl }))} autoCapitalize="none" />
             <Pressable onPress={() => setArticleBanner({})}><Text style={styles.removeLink}>Вернуть стандартный баннер</Text></Pressable>
           </View>
@@ -446,6 +461,7 @@ export default function AdminSiteSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  label: { fontStyle: 'italic', fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076', marginVertical: 8 },
   container: { flex: 1, backgroundColor: '#fff' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderColor: '#1E1E1E', gap: 12 },
