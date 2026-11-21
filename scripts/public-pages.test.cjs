@@ -104,3 +104,24 @@ test('pagination follows the reported total even if the API caps page size below
   });
   try { assert.equal((await collection(url, '/api/items')).length, 61); } finally { server.close(); }
 });
+
+test('event SEO overrides survive static export, old URLs redirect and index flags govern sitemap', async () => {
+  const tmp = fixture();
+  const custom = { ...event, slug: 'kino-i-gorod', slug_aliases: ['old-kino'], meta_title: 'Название для поиска', meta_description: 'Описание для поиска', og_title: 'Для Telegram', og_description: 'Описание для Telegram', og_image: 'https://example.test/og.png', coverUrl: 'https://example.test/cover.png', cover_alt: 'Наставник у окна', published_at: '2026-11-21T10:00:00Z', updated_at: '2026-11-21T11:00:00Z', nofollow: true, mentor: { ...mentor, bio: 'Мини-био наставника' }, tags: ['кино'] };
+  const excluded = [{ ...custom, id: 'hidden-event', slug: 'hidden-event', noindex: true, slug_aliases: [] }, { ...custom, id: 'duplicate-event', slug: 'duplicate-event', canonical_url: 'https://example.test/events/kino-i-gorod', slug_aliases: [] }];
+  const { server, url } = await serve((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(req.url.startsWith('/api/events') ? { items: [custom, ...excluded], pagination: { hasNext: false } } : []));
+  });
+  try {
+    assert.equal(eventPath(custom), '/events/kino-i-gorod');
+    let result = await run('scripts/generate-public-pages.js', tmp, url); assert.equal(result.code, 0, result.output);
+    result = await run('scripts/generate-sitemap.js', tmp, url); assert.equal(result.code, 0, result.output);
+    const html = fs.readFileSync(path.join(tmp, 'events/kino-i-gorod/index.html'), 'utf8');
+    for (const part of ['Название для поиска', '<h1>Разговор об искусстве</h1>', 'name="description" content="Описание для поиска"', 'property="og:title" content="Для Telegram"', 'property="og:description" content="Описание для Telegram"', 'property="og:image" content="https://example.test/og.png"', 'alt="Наставник у окна"', 'Мини-био наставника', 'content="index,nofollow"', '"datePublished":"2026-11-21T10:00:00Z"', '"dateModified":"2026-11-21T11:00:00Z"', '/events?tag=', '#кино']) assert.ok(html.includes(part), part);
+    const redirects = fs.readFileSync(path.join(tmp, '_redirects'), 'utf8');
+    for (const old of [`/events/${event.id}`, eventPath(event), '/events/old-kino']) assert.ok(redirects.includes(`${old} /events/kino-i-gorod 301`));
+    const xml = fs.readFileSync(path.join(tmp, 'sitemap.xml'), 'utf8');
+    assert.ok(xml.includes('/events/kino-i-gorod</loc>')); assert.ok(!xml.includes('/events/hidden-event</loc>')); assert.ok(!xml.includes('/events/duplicate-event</loc>'));
+  } finally { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); }
+});

@@ -25,7 +25,7 @@ const RELATED_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 2
 const RELATED_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 const RELATED_EVENTS_COUNT = 3;
 
-type RelatedEventItem = { id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
+type RelatedEventItem = { slug?: string; id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 // Тот же лимит, что у нативной формы редактирования события (edit-event.tsx)
@@ -39,6 +39,19 @@ function resolveUrl(url: unknown): string | null {
 }
 
 type EventDetail = {
+  slug?: string;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  og_image?: string | null;
+  og_title?: string | null;
+  og_description?: string | null;
+  canonical_url?: string | null;
+  noindex?: boolean;
+  nofollow?: boolean;
+  published_at?: string;
+  updated_at?: string;
+  excerpt?: string | null;
+  cover_alt?: string | null;
   id: string;
   title: string;
   description?: string;
@@ -92,7 +105,12 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
 
   return {
     id: String(r.id ?? ''),
+    slug: typeof r.slug === 'string' ? r.slug : undefined,
     title: String(r.title ?? ''),
+    meta_title: r.meta_title as string, meta_description: r.meta_description as string,
+    og_image: resolveUrl(r.og_image), og_title: r.og_title as string, og_description: r.og_description as string,
+    canonical_url: r.canonical_url as string, noindex: !!r.noindex, nofollow: !!r.nofollow,
+    published_at: r.published_at as string, updated_at: r.updated_at as string, cover_alt: r.cover_alt as string,
     description: (r.description as string) ?? undefined,
     datetimeStart,
     price,
@@ -160,8 +178,9 @@ export default function EventDetailScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
   const { id: routeId } = useLocalSearchParams<{ id: string }>();
-  const id = publicId(routeId);
+  const identifier = publicId(routeId);
   const [event, setEvent] = useState<EventDetail | null>(null);
+  const id = event?.id || identifier;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -208,7 +227,7 @@ export default function EventDetailScreenWeb() {
       try {
         setLoading(true);
         const token = await getAuthToken();
-        const res = await fetch(`${endpoints.events}/${id}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+        const res = await fetch(`${endpoints.events}/${encodeURIComponent(identifier)}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           if (active) setError(body?.message ?? body?.error ?? `Не удалось загрузить событие (${res.status})`);
@@ -216,7 +235,10 @@ export default function EventDetailScreenWeb() {
         }
         const data = await res.json();
         const normalized = normalizeEvent(data);
-        if (active) setEvent(normalized);
+        if (active) {
+          setEvent(normalized);
+          if (normalized.slug && routeId !== normalized.slug) router.replace(eventPath(normalized) as any);
+        }
 
         // API события отдаёт для наставника только bio (полный текст) и не
         // отдаёт shortBio (короткую подпись-роль вроде "Куратор, исследователь
@@ -239,7 +261,7 @@ export default function EventDetailScreenWeb() {
       }
     })();
     return () => { active = false; };
-  }, [id]);
+  }, [identifier]);
 
   // "Окей, что ещё" — 3 последних события (по ленте, из неё же берутся
   // карточки на /events), кроме текущего.
@@ -258,6 +280,7 @@ export default function EventDetailScreenWeb() {
             .slice(0, RELATED_EVENTS_COUNT)
             .map((r) => ({
               id: String(r.id ?? ''),
+              slug: typeof r.slug === 'string' ? r.slug : undefined,
               title: String(r.title ?? ''),
               coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
               datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined ?? null,
@@ -518,7 +541,7 @@ export default function EventDetailScreenWeb() {
   }
 
   const relatedBlock = recentEvents.length > 0 ? (
-    <View style={styles.relatedSection}>
+    <View style={[styles.relatedSection, isMobile && styles.relatedSectionMobile]}>
       <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Окей, что ещё</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
         {recentEvents.map((e, i) => renderRelatedEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
@@ -545,26 +568,34 @@ export default function EventDetailScreenWeb() {
     </Pressable>
   ) : null;
 
-  // Keep client navigation metadata consistent with generated public SEO HTML.
+  const canonical = event?.canonical_url || (event ? `https://platformaapp.ru${eventPath(event)}` : '');
+  const metaTitle = event?.meta_title || event?.title || '';
+  const metaDescription = (event?.meta_description || event?.description || '').slice(0, 160);
+  const ogImage = event?.og_image || event?.coverUrl;
+  const ogTitle = event?.og_title || metaTitle;
+  const ogDescription = event?.og_description || metaDescription;
   const headElement = event ? (
     <Head>
-      <title>{event.title}</title>
+      <title>{metaTitle}</title>
+      <meta name="description" content={metaDescription} />
+      <meta name="robots" content={`${event.noindex ? 'noindex' : 'index'},${event.nofollow ? 'nofollow' : 'follow'}`} />
+      <link rel="canonical" href={canonical} />
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content={ogTitle} />
+      <meta property="og:description" content={ogDescription} />
+      <meta property="og:url" content={canonical} />
+      {ogImage ? <meta property="og:image" content={ogImage} /> : null}
+      <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+      <meta name="twitter:title" content={ogTitle} />
+      <meta name="twitter:description" content={ogDescription} />
+      {ogImage ? <meta name="twitter:image" content={ogImage} /> : null}
       <script type="application/ld+json">{JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Event', name: event.title,
-        description: event.description, startDate: event.datetimeStart,
-        url: `https://platformaapp.ru${eventPath(event)}`,
+        description: event.description, startDate: event.datetimeStart, url: canonical,
+        datePublished: event.published_at, dateModified: event.updated_at,
         ...(event.coverUrl ? { image: event.coverUrl } : {}),
-        ...(event.mentor ? { organizer: { '@type': 'Person', name: event.mentor.name, url: `https://platformaapp.ru${mentorPath(event.mentor)}` } } : {}),
-      })}</script>
-      {event.description ? <meta name="description" content={event.description.slice(0, 160)} /> : null}
-      <meta property="og:type" content="website" />
-      <meta property="og:title" content={event.title} />
-      {event.description ? <meta property="og:description" content={event.description.slice(0, 160)} /> : null}
-      <link rel="canonical" href={`https://platformaapp.ru${eventPath(event)}`} />
-      <meta property="og:url" content={`https://platformaapp.ru${eventPath(event)}`} />
-      {event.coverUrl ? <meta property="og:image" content={event.coverUrl} /> : null}
-      <meta name="twitter:card" content={event.coverUrl ? 'summary_large_image' : 'summary'} />
-      <meta name="twitter:title" content={event.title} />
+        ...(event.mentor ? { organizer: { '@type': 'Person', name: event.mentor.name, description: event.mentor.bio, url: `https://platformaapp.ru${mentorPath(event.mentor)}` } } : {}),
+      }).replace(/</g, '\\u003c')}</script>
     </Head>
   ) : null;
 
@@ -585,7 +616,7 @@ export default function EventDetailScreenWeb() {
               <Text style={styles.eventFormatText}>{formatDatetime(event.datetimeStart)}</Text>
               <Text style={styles.eventFormatText}>{formatPrice(event.price)}</Text>
             </View>
-            {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
+            {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} accessibilityLabel={event.cover_alt || event.title} resizeMode="cover" /> : null}
 
             {event.description ? <Text style={styles.description}>{parseInlineMarkdown(event.description)}</Text> : null}
 
@@ -671,7 +702,7 @@ export default function EventDetailScreenWeb() {
             </View>
 
             <View style={styles.rightCol}>
-              {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} resizeMode="cover" /> : null}
+              {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.cover} accessibilityLabel={event.cover_alt || event.title} resizeMode="cover" /> : null}
               {event.mentor ? <>
                 {mentorRow}
                 <Pressable style={styles.desktopMentorProfile} {...({ href: mentorPath(event.mentor!) } as any)}>
@@ -1004,6 +1035,7 @@ const styles = StyleSheet.create({
   // "Окей, что ещё" — та же сетка-тройка (403/365/340), что у похожих статей
   // на /journal/[slug] (см. RELATED_ASPECTS там).
   relatedSection: { marginTop: 140, marginBottom: 40 },
+  relatedSectionMobile: { marginTop: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самого события (titleMobile).
   relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },

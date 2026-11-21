@@ -19,7 +19,7 @@ import { fixHangingPrepositions } from '@/lib/typography';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
-type MentorEvent = { id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
+type MentorEvent = { slug?: string; id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
 // "О чём пишет" — статьи этого наставника в журнале (см. GET
 // /api/articles?author_id=...), тот же формат блоков, что у "События
 // наставника" ниже, см. renderMentorArticlesGrid/renderArticleCardMobile.
@@ -144,6 +144,7 @@ export default function TutorCardScreenWeb() {
               })
               .map((r: any) => ({
                 id: String(r.id ?? ''),
+                slug: typeof r.slug === 'string' ? r.slug : undefined,
                 title: String(r.title ?? ''),
                 datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at ?? undefined,
                 price: typeof r.price === 'number' ? r.price : undefined,
@@ -699,7 +700,7 @@ const styles = StyleSheet.create({
 
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
-  eventsSection: { marginTop: 140 },
+  eventsSection: { marginTop: 40 },
   eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 93 },
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},

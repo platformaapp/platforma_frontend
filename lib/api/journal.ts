@@ -34,6 +34,7 @@ export interface RelatedArticle {
 
 export interface ArticleEvent {
   id: string;
+  slug?: string;
   title: string;
   coverUrl: string | null;
   datetimeStart: string | null;
@@ -148,6 +149,7 @@ function normalizeArticle(raw: Record<string, unknown>): Article {
           const e = raw.event as Record<string, unknown>;
           return {
             id: String(e.id ?? ''),
+            slug: typeof e.slug === 'string' ? e.slug : undefined,
             title: String(e.title ?? ''),
             coverUrl: resolveUrl(e.cover_url as string | undefined),
             datetimeStart: (e.datetime_start as string) ?? null,

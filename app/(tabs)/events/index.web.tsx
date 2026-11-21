@@ -33,10 +33,12 @@ function formatEventDate(iso?: string): string {
   }
 }
 
-type EventFeedItem = {
+type EventFeedItem = { slug?: string;
   id: string;
   title: string;
   description?: string;
+  excerpt?: string;
+  coverAlt?: string;
   datetimeStart?: string;
   coverUrl?: string | null;
   format?: string;
@@ -157,8 +159,11 @@ export default function EventsScreenWeb() {
     const rawList = parseFeedItems(data) as Record<string, unknown>[];
     const normalized: EventFeedItem[] = rawList.map((r) => ({
       id: String(r.id ?? ''),
+      slug: typeof r.slug === 'string' ? r.slug : undefined,
       title: String(r.title ?? ''),
       description: (r.description as string) ?? undefined,
+      excerpt: (r.excerpt as string) || undefined,
+      coverAlt: (r.cover_alt as string) || undefined,
       datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined,
       coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover ?? r.thumbnail ?? r.photo ?? r.photoUrl ?? r.photo_url),
       format: resolveFormat(r),
@@ -266,7 +271,7 @@ export default function EventsScreenWeb() {
       >
         <View style={innerStyle}>
           {item.coverUrl ? (
-            <Image source={{ uri: item.coverUrl }} style={[styles.featuredImage, isSecond && variant === 'A' ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
+            <Image source={{ uri: item.coverUrl }} accessibilityLabel={item.coverAlt || item.title} style={[styles.featuredImage, isSecond && variant === 'A' ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} resizeMode="cover" />
           ) : (
             <View style={[styles.featuredImage, isSecond && variant === 'A' ? styles.featuredImageTwo : { aspectRatio: FEATURED_ASPECT[index] }]} />
           )}
@@ -274,6 +279,7 @@ export default function EventsScreenWeb() {
             {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
           </View>
           <Text style={[styles.cardTitleText, titleStyle]}>{preventOrphanLastWord(item.title)}</Text>
+          {item.excerpt ? <Text numberOfLines={3} style={[styles.cardExcerpt, isMobile && styles.cardExcerptMobile]}>{item.excerpt}</Text> : null}
           {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
         </View>
       </Pressable>
@@ -284,7 +290,7 @@ export default function EventsScreenWeb() {
     return (
       <Pressable key={item.id} style={{ gridColumn: ROW_GRID_COLUMNS[posInRow] } as any} {...({ href: eventPath(item) } as any)}>
         {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
+          <Image source={{ uri: item.coverUrl }} accessibilityLabel={item.coverAlt || item.title} style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} resizeMode="cover" />
         ) : (
           <View style={[styles.rowImage, { aspectRatio: ROW_ASPECTS[posInRow] }]} />
         )}
@@ -292,6 +298,7 @@ export default function EventsScreenWeb() {
           {item.mentor?.name ? <Text style={styles.cardAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
         </View>
         <Text style={[styles.cardTitleText, styles.rowTitle]}>{preventOrphanLastWord(item.title)}</Text>
+          {item.excerpt ? <Text numberOfLines={3} style={[styles.cardExcerpt, isMobile && styles.cardExcerptMobile]}>{item.excerpt}</Text> : null}
         {item.datetimeStart ? <Text style={styles.cardDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
       </Pressable>
     );
@@ -381,11 +388,12 @@ export default function EventsScreenWeb() {
           <View style={styles.mobileList}>
             {filtered.map((item) => (
               <Pressable key={item.id} style={styles.mobileRow} {...({ href: eventPath(item) } as any)} {...({ dataSet: { card: 'app/(tabs)/events/index.web.tsx:mobileRow' } } as any)}>
-                {item.coverUrl ? <Image source={{ uri: item.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
+                {item.coverUrl ? <Image source={{ uri: item.coverUrl }} accessibilityLabel={item.coverAlt || item.title} style={styles.mobileThumb} resizeMode="cover" /> : <View style={styles.mobileThumb} />}
                 <View style={styles.mobileInfo}>
                   <View>
                     {item.mentor?.name ? <Text style={styles.mobileAuthor} numberOfLines={1}>{item.mentor.name}</Text> : null}
                     <Text style={styles.mobileTitleText}>{preventOrphanLastWord(item.title)}</Text>
+          {item.excerpt ? <Text numberOfLines={3} style={[styles.cardExcerpt, isMobile && styles.cardExcerptMobile]}>{item.excerpt}</Text> : null}
                   </View>
                   {item.datetimeStart ? <Text style={styles.mobileDate}>{formatEventDate(item.datetimeStart)}</Text> : null}
                 </View>
@@ -449,6 +457,8 @@ export default function EventsScreenWeb() {
 }
 
 const styles = StyleSheet.create({
+  cardExcerpt: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#687076', marginTop: 12 },
+  cardExcerptMobile: { fontSize: 14, lineHeight: 18, marginTop: 8 },
   // Отступы страницы — как .container/.page-head на vladyakunin.ru/projects/
   // (--pad:31px, заголовок 106px от шапки).
   scrollContent: { paddingTop: 63, paddingBottom: 24 },

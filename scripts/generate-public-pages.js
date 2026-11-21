@@ -34,18 +34,18 @@ async function collection(api, endpoint) {
   throw new Error(`${endpoint}: exceeded 1000 pages; refusing to publish an incomplete index`);
 }
 
-function metadata(html, { title, description, canonical, image, schema, noindex, nofollow }) {
+function metadata(html, { title, description, canonical, image, ogTitle, ogDescription, ogImage, schema, noindex, nofollow }) {
   html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
     .replace(/<meta\b[^>]*(?:name=["'](?:description|robots|twitter:[^"']*)["']|property=["']og:[^"']*["'])[^>]*>/gi, '')
     .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi, '');
   const robots = `${noindex ? 'noindex' : 'index'},${nofollow ? 'nofollow' : 'follow'}`;
-  const head = `<title>${esc(title)}</title><meta name="description" content="${esc(description.slice(0, 160))}"><link rel="canonical" href="${esc(canonical)}"><meta name="robots" content="${robots}"><meta property="og:site_name" content="p(34)"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description.slice(0, 160))}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="${schema?.['@type'] === 'Article' ? 'article' : schema?.['@type'] === 'Person' ? 'profile' : 'website'}"><meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">${image ? `<meta property="og:image" content="${esc(image)}">` : ''}${schema ? `<script type="application/ld+json">${json({ '@context': 'https://schema.org', ...schema, url: canonical })}</script>` : ''}`;
+  const head = `<title>${esc(title)}</title><meta name="description" content="${esc(description.slice(0, 160))}"><link rel="canonical" href="${esc(canonical)}"><meta name="robots" content="${robots}"><meta property="og:site_name" content="p(34)"><meta property="og:title" content="${esc(ogTitle || title)}"><meta property="og:description" content="${esc(ogDescription || description.slice(0, 160))}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="${schema?.['@type'] === 'Article' ? 'article' : schema?.['@type'] === 'Person' ? 'profile' : 'website'}"><meta name="twitter:card" content="${ogImage || image ? 'summary_large_image' : 'summary'}"><meta name="twitter:title" content="${esc(ogTitle || title)}"><meta name="twitter:description" content="${esc(ogDescription || description.slice(0, 160))}">${ogImage || image ? `<meta property="og:image" content="${esc(ogImage || image)}"><meta name="twitter:image" content="${esc(ogImage || image)}">` : ''}${schema ? `<script type="application/ld+json">${json({ '@context': 'https://schema.org', ...schema, url: canonical })}</script>` : ''}`;
   return html.replace('</head>', head.replace(/<(title|meta|link|script)\b/g, '<$1 data-rh="true"') + '</head>');
 }
 
-function fallback(html, { heading, description, image, body, route }) {
+function fallback(html, { heading, description, image, imageAlt, body, route }) {
   html = html.replace(/<main id="seo-content"[^>]*>[\s\S]*?<\/main>/g, '').replace(/<script id="seo-fallback-cleanup"[^>]*>[\s\S]*?<\/script>/g, '');
-  const content = `<main id="seo-content" style="position:fixed;inset:0;overflow:auto;background:white;z-index:1;padding:32px;font:18px/1.5 sans-serif"><h1>${esc(heading)}</h1>${image ? `<img src="${esc(image)}" alt="${esc(heading)}" style="max-width:339px;width:100%">` : ''}<p>${esc(description).replace(/\n/g, '<br>')}</p>${body}</main>`;
+  const content = `<main id="seo-content" style="position:fixed;inset:0;overflow:auto;background:white;z-index:1;padding:32px;font:18px/1.5 sans-serif"><h1>${esc(heading)}</h1>${image ? `<img src="${esc(image)}" alt="${esc(imageAlt || heading)}" style="max-width:339px;width:100%">` : ''}<p>${esc(description).replace(/\n/g, '<br>')}</p>${body}</main>`;
   const script = `<script id="seo-fallback-cleanup">(function(){function ready(){var root=document.getElementById('root'),fallback=document.getElementById('seo-content');if(root&&fallback){var text=root.textContent.replace(/\\s+/g,' ').trim();var heading=${json(heading)}.replace(/\\s+/g,' ').trim();if(location.pathname.replace(/\\/$/,'')!==${json(route === '/' ? '' : route)}||(text.includes(heading)&&!/Failed to fetch|Не удалось|Ошибка загрузки/i.test(text)&&!root.querySelector('[role="progressbar"]'))){fallback.remove();observer.disconnect();}}}var observer=new MutationObserver(ready);observer.observe(document.documentElement,{childList:true,subtree:true});ready();})();</script>`;
   return html.replace(/(<body[^>]*>)/, '$1' + content).replace('</body>', script + '</body>');
 }
@@ -114,11 +114,17 @@ async function generatePublicPages(out = 'dist') {
   for (const e of events) {
     const route = eventPath(e), date = e.datetimeStart || e.datetime_start, mentor = e.mentor;
     write(route, 'events/[id].html', {
-      title: e.title, heading: e.title, description: plain(e.description) || e.title, image: e.coverUrl || e.cover_url, lastmod: e.updated_at,
-      body: `${date ? `<p><time datetime="${esc(date)}">${esc(date)}</time></p>` : ''}${mentor ? `<a href="${esc(mentorPath(mentor))}">${esc(name(mentor))}</a>` : ''}`,
-      schema: { '@type': 'Event', name: e.title, description: plain(e.description), ...(date ? { startDate: date } : {}), eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode', location: { '@type': 'VirtualLocation', url: site + route }, ...(mentor ? { organizer: { '@type': 'Person', name: name(mentor), url: site + mentorPath(mentor) } } : {}) },
+      title: e.meta_title || e.title, heading: e.title, description: plain(e.meta_description || e.description) || e.title,
+      image: e.coverUrl || e.cover_url, imageAlt: e.cover_alt,
+      ogTitle: e.og_title, ogDescription: e.og_description, ogImage: e.og_image,
+      canonical: e.canonical_url || undefined, noindex: e.noindex, nofollow: e.nofollow, lastmod: e.updated_at,
+      body: `${date ? `<p><time datetime="${esc(date)}">${esc(date)}</time></p>` : ''}${mentor ? `<p>Наставник: <a href="${esc(mentorPath(mentor))}">${esc(name(mentor))}</a>${mentor.bio ? ` — ${esc(plain(mentor.bio))}` : ''}</p>` : ''}<p>${esc(plain(e.description))}</p>${e.tags?.length ? `<nav>${e.tags.map(tag => `<a href="/events?tag=${encodeURIComponent(tag)}">#${esc(tag)}</a>`).join(' ')}</nav>` : ''}`,
+      schema: { '@type': 'Event', name: e.title, description: plain(e.description), ...(date ? { startDate: date } : {}), ...(e.published_at ? { datePublished: e.published_at } : {}), ...(e.updated_at ? { dateModified: e.updated_at } : {}), eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode', location: { '@type': 'VirtualLocation', url: site + route }, ...(mentor ? { organizer: { '@type': 'Person', name: name(mentor), description: mentor.bio, url: site + mentorPath(mentor) } } : {}) },
     });
     alias(`/events/${e.id}`, route);
+    const legacy = eventPath({ id: e.id, title: e.title });
+    if (legacy !== route && legacy !== `/events/${e.id}`) alias(legacy, route);
+    for (const previous of e.slug_aliases || []) if (`/events/${previous}` !== route) alias(`/events/${previous}`, route);
   }
   for (const m of mentors) {
     const route = mentorPath(m), related = events.filter(e => e.mentor?.id === m.id);

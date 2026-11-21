@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EventSeoEditor, type EventSeoSettings } from '@/components/admin/event-seo-editor';
 import { AdminTagsInput } from '@/components/admin/tags-input';
 import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { API_BASE, endpoints } from '@/constants/env';
@@ -50,7 +51,7 @@ async function uploadAdminCoverImage(uri: string): Promise<string> {
   return url.startsWith('http') ? url : `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
-type EventDetail = {
+type EventDetail = EventSeoSettings & {
   id: string;
   title: string;
   description?: string | null;
@@ -178,6 +179,7 @@ export default function AdminEventDetailScreen() {
         const data = await res.json();
         const r = data?.data ?? data?.event ?? data;
         if (active) setEvent({
+          ...r,
           id: String(r.id ?? ''),
           title: r.title ?? '',
           description: r.description ?? null,
@@ -450,6 +452,8 @@ export default function AdminEventDetailScreen() {
           <Row label="Создано" value={fmtDate(event.createdAt)} />
           <Row label="Обновлено" value={fmtDate(event.updatedAt)} />
         </Section>
+
+        <EventSeoEditor key={event.id} id={event.id} initial={event} onSaved={seo => setEvent(previous => previous ? { ...previous, ...seo } : previous)} />
 
         {/* Moderation */}
         <View style={styles.modSection}>

@@ -18,7 +18,7 @@ import { preventOrphanLastWord } from '@/lib/typography';
 // привязанного к статье (article.event.category) — только когда оно есть;
 // без привязанного события показывать "из той же категории" не из чего,
 // блок просто не рендерится (см. categoryEvents/relatedBlock).
-type UpcomingCategoryEvent = { id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
+type UpcomingCategoryEvent = { slug?: string; id: string; title: string; coverUrl: string | null; datetimeStart: string | null };
 const UPCOMING_EVENTS_LIMIT = 3;
 
 function resolveEventCoverUrl(url: unknown): string | null {
@@ -199,6 +199,7 @@ export default function ArticleScreenWeb() {
           .filter((r) => String(r.id ?? '') !== linkedEvent.id && r.category === linkedEvent.category)
           .map((r) => ({
             id: String(r.id ?? ''),
+            slug: typeof r.slug === 'string' ? r.slug : undefined,
             title: String(r.title ?? ''),
             coverUrl: resolveEventCoverUrl(r.coverUrl ?? r.cover_url),
             datetimeStart: (r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at) as string | undefined ?? null,
@@ -603,7 +604,7 @@ export default function ArticleScreenWeb() {
   // к статье события (см. categoryEvents выше); без привязанного события
   // блок не рендерится вовсе — "та же категория" не из чего вывести.
   const relatedBlock = categoryEvents.length > 0 ? (
-    <View style={styles.relatedSection}>
+    <View style={[styles.relatedSection, isMobile && styles.relatedSectionMobile]}>
       <Text style={[styles.relatedSectionTitle, isMobile && styles.relatedSectionTitleMobile]}>Ближайшие события</Text>
       <View style={[styles.relatedRow, isMobile && styles.relatedRowMobile]}>
         {categoryEvents.map((e, i) => renderUpcomingEventCard(e, (isMobile ? 0 : i) as 0 | 1 | 2))}
@@ -848,7 +849,7 @@ const styles = StyleSheet.create({
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
   relatedSection: { marginTop: 140, marginBottom: 0 },
-  relatedSectionMobile: { marginTop: 140 },
+  relatedSectionMobile: { marginTop: 40 },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самой статьи (titleMobile):
   // 40px десктопного была слишком крупной для "Окей, что ещё"/"Ближайшие
