@@ -28,12 +28,13 @@ test('deployment verification detects SPA HTML and an outdated sitemap at the pu
   let mode = 'valid';
   const server = http.createServer((_req, res) => {
     res.setHeader('Content-Type', mode === 'html' ? 'text/html' : 'application/xml');
-    res.end(mode === 'html' ? '<html><body>Unmatched Route</body></html>' : mode === 'partial' ? '<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://platformaapp.ru/</loc></url></urlset>' : xml);
+    res.end(mode === 'html' ? '<html><body>Unmatched Route</body></html>' : mode === 'partial' ? '<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://platformaapp.ru/</loc></url></urlset>' : mode === 'extra' ? xml.toString().replace('</urlset>', '<url><loc>https://platformaapp.ru/new-public-page</loc></url></urlset>') : xml);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const url = `http://127.0.0.1:${server.address().port}/sitemap.xml`;
     const good = await verify([url, '--expect-file', fallbackFile]); assert.equal(good.code, 0, good.output);
+    mode = 'extra'; const extra = await verify([url, '--expect-file', fallbackFile, '--allow-additional']); assert.equal(extra.code, 0, extra.output);
     mode = 'html'; const html = await verify([url]); assert.notEqual(html.code, 0); assert.match(html.output, /HTML instead of sitemap XML/);
     mode = 'partial'; const partial = await verify([url, '--expect-file', fallbackFile]); assert.notEqual(partial.code, 0); assert.match(partial.output, /does not match/);
   } finally { server.close(); }

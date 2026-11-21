@@ -1,3 +1,4 @@
+import { authedFetch } from '@/lib/authed-fetch';
 /**
  * API-клиент для /api/events
  *
@@ -115,9 +116,9 @@ export async function uploadEventImage(uri: string): Promise<string> {
     formData.append('file', { uri: resizedUri, name: filename, type: 'image/jpeg' } as any);
   }
 
-  const res = await fetch(endpoints.uploadImage, {
+  const res = await authedFetch(endpoints.uploadImage, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Accept: 'application/json' },
     body: formData,
   });
 

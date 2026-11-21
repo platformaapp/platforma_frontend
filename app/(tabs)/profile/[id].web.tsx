@@ -155,6 +155,11 @@ export default function ProfileScreenWeb() {
   const [specialization, setSpecialization] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarChanged, setAvatarChanged] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const avatarUploadInFlight = useRef(false);
+  const [profileLoadError, setProfileLoadError] = useState('');
+  const [profileLoadAttempt, setProfileLoadAttempt] = useState(0);
   // Пока заявка наставника не одобрена (pending) — нельзя создавать
   // события/статьи/слоты, см. actionsRow ниже и гейты в handleCreateEvent/
   // openNewArticleModal/toggleTimePickerForDate/createAndAddSlot.
@@ -275,9 +280,10 @@ export default function ProfileScreenWeb() {
       if (!active) return;
       setRole(effectiveRole);
 
+      setProfileLoadError('');
       try {
         if (effectiveRole === 'tutor') {
-          const [tp, tutorSlots] = await Promise.all([getTutorProfile(), getTutorSlots()]);
+          const [tp, tutorSlots] = await Promise.all([getTutorProfile(), getTutorSlots().catch(() => [])]);
           if (!active) return;
           setFullName(tp.fullName ?? tp.full_name ?? profile?.full_name ?? '');
           setEmail(tp.email ?? profile?.email ?? '');
@@ -323,13 +329,12 @@ export default function ProfileScreenWeb() {
           if (active) router.replace('/login' as any);
           return;
         }
-        // Прочие ошибки (сеть и т.п.) — молча показываем пустую форму, как
-        // и раньше.
+        if (active) setProfileLoadError(e instanceof Error ? e.message : 'Не удалось загрузить профиль');
       }
       if (active) setLoading(false);
     })();
     return () => { active = false; };
-  }, [router]);
+  }, [router, profileLoadAttempt]);
 
   // ?open=event|article — см. events/journal: открываем попап создания
   // сразу по приходу на страницу (вместо лишнего клика по "Создать
@@ -359,16 +364,32 @@ export default function ProfileScreenWeb() {
   }
 
   async function handlePickAvatar() {
-    const uploaded = await pickAvatar();
-    if (uploaded) { setAvatarUrl(uploaded); setAvatarChanged(true); }
+    if (avatarUploadInFlight.current) return;
+    avatarUploadInFlight.current = true;
+    setAvatarUploading(true);
+    setAvatarError('');
+    try {
+      const uploaded = await pickAvatar();
+      if (uploaded) { setAvatarUrl(uploaded); setAvatarChanged(true); }
+    } catch (error) {
+      setAvatarError(error instanceof Error ? error.message : 'Не удалось загрузить фото');
+    } finally {
+      avatarUploadInFlight.current = false;
+      setAvatarUploading(false);
+    }
   }
 
   // ── Student: save "Изменение данных" ──────────────────────────────────────
   async function handleSaveStudentEdit() {
+    if (avatarUploadInFlight.current || avatarError) return;
     setEditSaving(true);
     setEditError('');
     try {
-      await updateStudentProfile({ fullName, telegram, avatarUrl: avatarUrl || undefined });
+      const saved = await updateStudentProfile({ fullName, telegram, avatarUrl: avatarChanged ? avatarUrl : undefined });
+      setFullName(saved.fullName ?? saved.full_name ?? fullName);
+      setAvatarUrl(saved.avatarUrl ?? saved.avatar_url ?? '');
+      setTelegram(saved.telegram ?? '');
+      setAvatarChanged(false);
       setEditModalVisible(false);
     } catch (e: any) {
       setEditError(e?.message ?? 'Не удалось сохранить');
@@ -796,6 +817,7 @@ export default function ProfileScreenWeb() {
 
   // ── Tutor handlers (unchanged) ────────────────────────────────────────────
   async function handleTutorSave() {
+    if (avatarUploadInFlight.current || avatarError) return;
     if (!telegram.trim()) {
       setTutorSaveError('Укажите Telegram, чтобы сохранить профиль');
       return;
@@ -804,12 +826,18 @@ export default function ProfileScreenWeb() {
     setTutorSaveError('');
     setTutorSaveOk(false);
     try {
-      await updateTutorProfile({
+      const saved = await updateTutorProfile({
         fullName, bio, shortBio, telegram,
         avatarUrl: avatarChanged ? avatarUrl : undefined,
         hourlyRate: hourlyRate ? Number(hourlyRate) : undefined,
         specialization: specialization?.trim() ?? '',
       });
+      setFullName(saved.fullName ?? saved.full_name ?? fullName);
+      setBio(saved.bio ?? '');
+      setShortBio(saved.shortBio ?? saved.short_bio ?? '');
+      setAvatarUrl(saved.avatarUrl ?? saved.avatar_url ?? '');
+      setTelegram(saved.telegram ?? '');
+      setSpecialization(saved.specialization ?? '');
       setAvatarChanged(false);
       setTutorSaveOk(true);
       setTutorEditModalVisible(false);
@@ -958,6 +986,13 @@ export default function ProfileScreenWeb() {
     return <SiteShell><View style={styles.centered}><ActivityIndicator size="large" color="#010101" /></View></SiteShell>;
   }
 
+  if (profileLoadError) {
+    return <SiteShell><View style={styles.centered}>
+      <Text style={styles.errorText}>{profileLoadError}</Text>
+      <Pressable onPress={() => { setLoading(true); setProfileLoadAttempt(n => n + 1); }}><Text>Повторить загрузку профиля</Text></Pressable>
+    </View></SiteShell>;
+  }
+
   // Выйти/удалить аккаунт — в нативной версии профиля (см. profile/[id].tsx)
   // уже были, в веб-версию не попали. Общий блок для студента и наставника —
   // те же красные текстовые ссылки, что "Изменить личные данные"/"Платежи",
@@ -1026,15 +1061,17 @@ export default function ProfileScreenWeb() {
               <FieldWithPlus label="Почта" value={email} editable={false} />
               <FieldWithPlus label="Телеграм" value={telegram} onChangeText={setTelegram} autoCapitalize="none" placeholder="Телеграм без @" />
               <Text style={styles.fieldLabel}>Фото</Text>
-              <Pressable style={styles.avatarRow} onPress={handlePickAvatar}>
+              <Pressable style={styles.avatarRow} accessibilityLabel="Изменить фото профиля" disabled={avatarUploading} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
               </Pressable>
+              {avatarUploading ? <Text>Загружаем фото…</Text> : null}
+              {avatarError ? <Text style={styles.errorText}>{avatarError}</Text> : null}
               <Text style={styles.fieldLabel}>Пароль</Text>
               <Pressable onPress={() => { setEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.passwordDots}>*********</Text>
               </Pressable>
               {editError ? <Text style={styles.errorText}>{editError}</Text> : null}
-              <Pressable style={[styles.modalSaveLink, editSaving && styles.btnDisabled]} onPress={handleSaveStudentEdit} disabled={editSaving}>
+              <Pressable style={[styles.modalSaveLink, editSaving && styles.btnDisabled]} onPress={handleSaveStudentEdit} disabled={editSaving || avatarUploading || !!avatarError}>
                 <Text style={styles.modalSaveText}>{editSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </Pressable>
@@ -1214,9 +1251,11 @@ export default function ProfileScreenWeb() {
               <Text style={styles.fieldLabel}>Специализация</Text>
               <TextInput style={styles.popupFieldInput} value={specialization ?? ''} onChangeText={setSpecialization} maxLength={1000} placeholder="Специализации через запятую" accessibilityLabel="Специализация" />
               <Text style={styles.fieldLabel}>Фото</Text>
-              <Pressable onPress={handlePickAvatar}>
+              <Pressable accessibilityLabel="Изменить фото профиля" disabled={avatarUploading} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}
               </Pressable>
+              {avatarUploading ? <Text>Загружаем фото…</Text> : null}
+              {avatarError ? <Text style={styles.errorText}>{avatarError}</Text> : null}
               <Text style={styles.fieldLabel}>Пароль</Text>
               <Pressable onPress={() => { setTutorEditModalVisible(false); setPasswordError(''); setPasswordModalVisible(true); }}>
                 <Text style={styles.passwordDots}>*********</Text>
@@ -1228,8 +1267,8 @@ export default function ProfileScreenWeb() {
             </ScrollView>
             <View style={styles.modalFooterRow}>
               <Pressable onPress={() => setTutorEditModalVisible(false)}><Text style={styles.modalCancelText}>Отменить</Text></Pressable>
-              <Pressable onPress={handleTutorSave} disabled={tutorSaving || !telegram.trim()}>
-                <Text style={[styles.modalSaveText, !telegram.trim() && styles.actionLinkDisabled]}>{tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
+              <Pressable onPress={handleTutorSave} disabled={tutorSaving || avatarUploading || !!avatarError || !telegram.trim()}>
+                <Text style={[styles.modalSaveText, !telegram.trim() && styles.actionLinkDisabled]}>{avatarUploading ? 'Загружаем фото…' : tutorSaving ? 'Сохраняем…' : 'Сохранить'}</Text>
               </Pressable>
             </View>
           </Pressable>

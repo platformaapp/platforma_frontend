@@ -22,7 +22,7 @@ def parse_xml(data):
     return set(urls)
 
 
-def verify(source, expected_file=None):
+def verify(source, expected_file=None, allow_additional=False):
     if source.startswith(('http://', 'https://')):
         separator = '&' if '?' in source else '?'
         request = urllib.request.Request(
@@ -38,8 +38,11 @@ def verify(source, expected_file=None):
     else:
         data = Path(source).read_bytes()
     urls = parse_xml(data)
-    if expected_file and urls != parse_xml(Path(expected_file).read_bytes()):
-        raise ValueError('Published sitemap does not match the generated artifact; check the deployment directory and server cache')
+    if expected_file:
+        expected = parse_xml(Path(expected_file).read_bytes())
+        matches = expected.issubset(urls) if allow_additional else urls == expected
+        if not matches:
+            raise ValueError('Published sitemap does not match the generated artifact; check the deployment directory and server cache')
     return len(urls)
 
 
@@ -47,11 +50,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('source')
     parser.add_argument('--expect-file')
+    parser.add_argument('--allow-additional', action='store_true', help='Allow new URLs added by the live API since this build')
     args = parser.parse_args()
     attempts = 3 if args.source.startswith(('http://', 'https://')) else 1
     for attempt in range(attempts):
         try:
-            count = verify(args.source, args.expect_file)
+            count = verify(args.source, args.expect_file, args.allow_additional)
             print(f'Sitemap verified: {count} HTTPS URLs ({args.source})')
             return
         except (OSError, ValueError, ET.ParseError) as error:

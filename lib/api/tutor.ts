@@ -1,3 +1,4 @@
+import { requireProfile, confirmProfileChanges } from '@/lib/api/profile-response';
 /**
  * API-клиент для эндпоинтов наставника (tutor).
  * Все запросы требуют JWT и роль role = tutor.
@@ -215,10 +216,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 /** GET /tutor/profile — получить данные профиля */
 export async function getTutorProfile(): Promise<TutorProfile> {
-  const res = await fetch(endpoints.tutorProfile, {
-    headers: await authHeaders(),
+  const res = await authedFetch(endpoints.tutorProfile, {
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
   });
-  return handleResponse<TutorProfile>(res);
+  return requireProfile<TutorProfile>(await handleResponse<unknown>(res));
 }
 
 /** PUT /tutor/profile — обновить личные данные (full_name, bio, avatar_url) */
@@ -230,7 +232,9 @@ export async function updateTutorProfile(data: TutorProfileUpdate): Promise<Tuto
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return handleResponse<TutorProfile>(res);
+  const saved = requireProfile<TutorProfile>(await handleResponse<unknown>(res));
+  confirmProfileChanges(saved, data);
+  return saved;
 }
 
 // --- Слоты для записи ---
@@ -246,8 +250,8 @@ export async function getTutorSlots(params?: {
   const qs = search.toString();
   const url = qs ? `${endpoints.tutorSlots}?${qs}` : endpoints.tutorSlots;
 
-  const res = await fetch(url, {
-    headers: await authHeaders(),
+  const res = await authedFetch(url, {
+    cache: 'no-store', headers: { Accept: 'application/json' },
   });
   const data = await handleResponse<Slot[] | { slots?: Slot[] }>(res);
   return Array.isArray(data) ? data : (data.slots ?? []);

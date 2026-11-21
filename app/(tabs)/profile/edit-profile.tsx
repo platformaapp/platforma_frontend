@@ -199,6 +199,7 @@ export default function EditProfileScreen() {
             payload.avatarUrl = uploaded;
           } catch (uploadErr: unknown) {
             setAvatarError((uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
+            return;
           }
         } else if (avatarUrl && !avatarUrl.startsWith('file://') && !avatarUrl.startsWith('blob:') && !avatarUrl.startsWith('data:')) {
           payload.avatarUrl = avatarUrl;
@@ -230,6 +231,7 @@ export default function EditProfileScreen() {
             payload.avatar_url = uploaded;
           } catch (uploadErr: unknown) {
             setAvatarError((uploadErr as Error)?.message ?? 'Не удалось загрузить фото');
+            return;
           }
         }
         await updateStudentProfile(payload);
