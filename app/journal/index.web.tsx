@@ -237,7 +237,7 @@ export default function JournalScreenWeb() {
     <SiteShell>
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View ref={contentRef} style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
-        <Pressable onPress={() => selectCategory(null)}>
+        <Pressable accessibilityRole="link" accessibilityLabel="Весь журнал" onPress={() => { selectCategory(null); clearTagFilter(); }}>
           <Text style={[styles.title, isMobile && styles.titleMobile]}>Журнал</Text>
         </Pressable>
 

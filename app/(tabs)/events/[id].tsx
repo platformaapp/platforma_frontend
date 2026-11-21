@@ -1,3 +1,5 @@
+import { TagList } from '@/components/web/tag-list';
+import { eventFormatLabel, eventFilterPath } from '@/lib/event-filters';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
@@ -58,6 +60,8 @@ type EventDetail = {
   isPaid?: boolean;
   maxParticipants?: number;
   registeredCount?: number;
+  tags?: string[];
+  format?: string;
   // Video conference fields
   canJoin?: boolean;
   videoRoom?: { url?: string | null; moderatorUrl?: string | null };
@@ -160,6 +164,8 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
   return {
     id: String(r.id ?? ''),
     title: String(r.title ?? ''),
+    tags: Array.isArray(r.tags) ? r.tags as string[] : [],
+    format: eventFormatLabel((r.category ?? r.format) as string),
     description: (r.description as string) ?? undefined,
     datetimeStart,
     price,
@@ -905,6 +911,10 @@ export default function EventDetailScreen() {
         )}
         <View style={styles.mainCardBody}>
           <Text style={styles.mainTitle}>{event.title}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4, marginBottom: 16 }}>
+            {event.format ? <Pressable onPress={() => router.push(eventFilterPath('format', event.format!) as any)}><Text>#{event.format}</Text></Pressable> : null}
+            <TagList tags={event.tags} onTagPress={t => router.push(eventFilterPath('tag', t) as any)} />
+          </View>
           {event.description ? (
             <Text style={styles.mainDescription}>{event.description}</Text>
           ) : null}
@@ -1271,7 +1281,7 @@ const styles = StyleSheet.create({
   mainCardBody: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, backgroundColor: '#fff' },
   mainTitle: { marginBottom: 14, fontSize: 20, lineHeight: 24, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#1E1E1E' },
   mainDescription: { fontSize: 14, lineHeight: 20, fontFamily: 'Gramatika-Regular', color: '#1E1E1E' },
-  mainFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 46 },
+  mainFooter: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, alignItems: 'flex-end', minHeight: 46 },
   mainFooterTime: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#1E1E1E', borderColor: '#1E1E1E', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderBottomWidth: 0, borderLeftWidth: 0 },
   mainPriceContainer: { borderWidth: 1, borderColor: '#1E1E1E', paddingHorizontal: 14, paddingVertical: 8, borderBottomWidth: 0, borderRightWidth: 0 },
   mainFooterPrice: { fontSize: 14, fontFamily: 'Gramatika-Regular', color: '#1E1E1E' },

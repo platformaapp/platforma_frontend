@@ -1,5 +1,6 @@
+import { eventFormatLabel, eventFormatSlug } from '@/lib/event-filters';
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
@@ -53,6 +54,9 @@ function formatEventTime(iso?: string): string {
 
 export default function EventsScreen() {
   const router = useRouter();
+  const { tag, format } = useLocalSearchParams<{ tag?: string; format?: string }>();
+  const activeTag = typeof tag === 'string' ? tag : undefined;
+  const activeFormat = eventFormatSlug(typeof format === 'string' ? format : undefined);
   const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +71,7 @@ export default function EventsScreen() {
       const timeoutId = setTimeout(() => controller.abort(), 15_000);
       let res: Response;
       try {
-        res = await fetch(endpoints.eventsFeed, { signal: controller.signal });
+        res = await fetch(`${endpoints.eventsFeed}?limit=100${activeTag ? `&tag=${encodeURIComponent(activeTag)}` : ''}${activeFormat ? `&category=${activeFormat}` : ''}`, { signal: controller.signal });
       } finally {
         clearTimeout(timeoutId);
       }
@@ -139,7 +143,7 @@ export default function EventsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [activeTag, activeFormat]);
 
   useFocusEffect(
     useCallback(() => {
@@ -159,11 +163,12 @@ export default function EventsScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.titleRow, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</Text>
+        <Pressable accessibilityLabel="Все события" onPress={() => router.replace('/events' as any)}><Text style={styles.titleText}>БЛИЖАЙШИЕ СОБЫТИЯ</Text></Pressable>
         <Pressable onPress={() => router.push('/about' as any)}>
           <Text style={styles.aboutLink}>О сервисе</Text>
         </Pressable>
       </View>
+      {activeTag || activeFormat ? <Pressable onPress={() => router.replace('/events' as any)} style={{ paddingHorizontal: 20, marginBottom: 16 }}><Text>#{activeTag || eventFormatLabel(activeFormat)}</Text></Pressable> : null}
       {error ? (
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>

@@ -8,7 +8,7 @@ import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
-import { AdminTagsInput } from '@/components/admin/tags-input';
+import { parseTags } from '@/lib/event-filters';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
@@ -195,7 +195,7 @@ export default function ProfileScreenWeb() {
   const [eventTime, setEventTime] = useState('');
   const [eventPrice, setEventPrice] = useState('');
   const [eventMax, setEventMax] = useState('');
-  const [eventTags, setEventTags] = useState<string[]>([]);
+  const [eventTagsInput, setEventTagsInput] = useState('');
   const [eventFormat, setEventFormat] = useState<string | null>(null);
   const [eventCoverUri, setEventCoverUri] = useState<string | null>(null);
   const [creatingEvent, setCreatingEvent] = useState(false);
@@ -888,9 +888,9 @@ export default function ProfileScreenWeb() {
         title: eventTitle, description: eventDescription,
         datetime_start: startDate.toISOString(), datetime_end: endDate.toISOString(),
         price: eventPrice ? Number(eventPrice) : 0, max_participants: eventMax ? Number(eventMax) : 0,
-        coverUrl, tags: eventTags, category: eventFormat ?? undefined,
+        coverUrl, tags: parseTags(eventTagsInput), category: eventFormat ?? undefined,
       });
-      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTags([]); setEventFormat(null); setEventCoverUri(null);
+      setEventTitle(''); setEventDescription(''); setEventDate(''); setEventTime(''); setEventPrice(''); setEventMax(''); setEventTagsInput(''); setEventFormat(null); setEventCoverUri(null);
       setNewEventModalVisible(false);
       setEventCreated(true);
     } catch (e: any) {
@@ -1312,8 +1312,8 @@ export default function ProfileScreenWeb() {
                   );
                 })}
               </View>
-              <Text style={styles.fieldLabel}>Теги</Text>
-              <AdminTagsInput tags={eventTags} onChange={setEventTags} />
+              <FieldWithPlus label="Теги" value={eventTagsInput} onChangeText={setEventTagsInput} placeholder="Например: искусство, кино, город" />
+              <Text style={styles.hint}>Впишите свои теги через запятую. Знак # добавится на странице события.</Text>
               <Text style={styles.fieldLabel}>Обложка</Text>
               <Pressable style={styles.fieldInputWrap} onPress={handlePickCover}>
                 {eventCoverUri ? <Image source={{ uri: eventCoverUri }} style={styles.avatarThumb} /> : (

@@ -59,11 +59,11 @@ function normalizeApplication(raw: Record<string, unknown>): TutorApplication {
       fullName: String(user.fullName ?? user.full_name ?? user.name ?? ''),
       email: String(user.email ?? ''),
       phone: (user.phone as string) ?? undefined,
-      bio: (user.bio ?? user.description as string) ?? undefined,
+      bio: typeof (user.bio ?? user.description) === 'string' ? String(user.bio ?? user.description) : undefined,
       specialization: (user.specialization as string) ?? undefined,
       avatarUrl: resolveUrl(user.avatarUrl ?? user.avatar_url),
     },
-    rejectionReason: (raw.rejectionReason ?? raw.rejection_reason as string) ?? undefined,
+    rejectionReason: typeof (raw.rejectionReason ?? raw.rejection_reason) === 'string' ? String(raw.rejectionReason ?? raw.rejection_reason) : undefined,
   };
 }
 

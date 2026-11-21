@@ -720,8 +720,8 @@ export default function MyEventsScreen() {
             </View>
           )}
           {activeTab === 'events'
-            ? currentUpcoming.map(renderEventCard)
-            : renderBookingGroups(currentUpcoming as BookingItem[], renderBookingCard)}
+            ? upcomingEvents.map(renderEventCard)
+            : renderBookingGroups(upcomingBookings, renderBookingCard)}
           {currentPast.length > 0 && (
             <>
               <View style={styles.pastSeparator}>
@@ -730,12 +730,12 @@ export default function MyEventsScreen() {
                 <View style={styles.pastSeparatorLine} />
               </View>
               {activeTab === 'events'
-                ? currentPast.map((item) => (
+                ? pastEvents.map((item) => (
                     <View key={`past-${(item as EventItem).id}`} style={styles.pastCardWrap}>
                       {renderEventCard(item as EventItem)}
                     </View>
                   ))
-                : renderBookingGroups(currentPast as BookingItem[], (item) => (
+                : renderBookingGroups(pastBookings, (item) => (
                     <View key={`past-${item.id}`} style={styles.pastCardWrap}>
                       {renderBookingCard(item)}
                     </View>

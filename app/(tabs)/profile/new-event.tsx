@@ -1,3 +1,4 @@
+import { parseTags } from '@/lib/event-filters';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -52,6 +53,7 @@ export default function NewEventScreen() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
 
   // Date state
   const [date, setDate] = useState<Date | null>(null);
@@ -145,6 +147,7 @@ export default function NewEventScreen() {
       await createEvent({
         title: title.trim(),
         description: description.trim(),
+        tags: parseTags(tagsInput),
         datetime_start: range.start,
         datetime_end: range.end,
         price: priceValue,
@@ -231,6 +234,7 @@ export default function NewEventScreen() {
             </Text>
           </View>
         </View>
+        <TextInput value={tagsInput} onChangeText={setTagsInput} placeholder="Теги через запятую" accessibilityLabel="Теги" style={styles.input} />
         <TextInput
           value={description}
           onChangeText={setDescription}

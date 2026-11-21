@@ -1,3 +1,4 @@
+import { eventFormatSlug, eventFormatLabel, eventFilterPath, EVENT_FORMATS } from '@/lib/event-filters';
 import { eventPath } from '@/lib/public-paths';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
@@ -45,7 +46,7 @@ type EventFeedItem = {
   [key: string]: unknown;
 };
 
-const FORMATS = ['Трансляция', 'Лекция', 'Практика', 'Встреча'];
+const FORMATS = EVENT_FORMATS.map(f => f.label);
 
 /**
  * Событие хранит формат в поле category (enum EventCategory на бэкенде —
@@ -86,11 +87,11 @@ export default function EventsScreenWeb() {
   const router = useRouter();
   const isMobile = useIsMobileWeb();
   // ?tag=... — переход по клику на хэштег на странице события (см.
-  // TagList/onTagPress там) — список событий с этим тегом. Фильтрует
-  // только уже загруженную страницу фида (как и обычный фильтр по
-  // формату ниже — сервер по тегам не фильтрует).
+  // TagList/onTagPress там) — список событий с этим тегом.
+  // Сервер применяет тег и формат до пагинации всей публичной ленты.
   const { tag: tagParam, format: formatParam } = useLocalSearchParams<{ tag?: string; format?: string }>();
-  const activeFormat = typeof formatParam === 'string' ? formatParam : Array.isArray(formatParam) ? formatParam[0] : null;
+  const rawFormat = typeof formatParam === 'string' ? formatParam : Array.isArray(formatParam) ? formatParam[0] : null;
+  const activeFormat = eventFormatLabel(rawFormat) || rawFormat;
   const activeTag = typeof tagParam === 'string' ? tagParam : Array.isArray(tagParam) ? tagParam[0] : null;
   const [events, setEvents] = useState<EventFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,7 +145,7 @@ export default function EventsScreenWeb() {
     const timeoutId = setTimeout(() => controller.abort(), 15_000);
     let res: Response;
     try {
-      res = await fetch(`${endpoints.eventsFeed}?page=${pageToLoad}&per_page=${PER_PAGE}`, { signal: controller.signal });
+      res = await fetch(`${endpoints.eventsFeed}?page=${pageToLoad}&limit=${PER_PAGE}${activeTag ? `&tag=${encodeURIComponent(activeTag)}` : ''}${eventFormatSlug(activeFormat) ? `&category=${eventFormatSlug(activeFormat)}` : ''}`, { signal: controller.signal });
     } finally {
       clearTimeout(timeoutId);
     }
@@ -179,7 +180,7 @@ export default function EventsScreenWeb() {
     const more = total != null ? pageToLoad * PER_PAGE < total : normalized.length === PER_PAGE;
 
     return { items: normalized, hasMore: more };
-  }, []);
+  }, [activeTag, activeFormat]);
 
   const load = useCallback(async () => {
     try {
@@ -236,6 +237,7 @@ export default function EventsScreenWeb() {
     .filter((e) => !activeTag || e.tags?.includes(activeTag));
 
   function clearTagFilter() {
+    setFormat(null);
     router.replace('/events' as any);
   }
 
@@ -321,7 +323,7 @@ export default function EventsScreenWeb() {
       <ScrollView contentContainerStyle={[styles.scrollContent, isMobile && styles.scrollContentMobile]}>
       <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         <View style={[styles.titleRow, isMobile && styles.titleRowMobile]}>
-          <Pressable onPress={() => setFormat(null)}>
+          <Pressable accessibilityRole="link" accessibilityLabel="Все события" onPress={clearTagFilter}>
             <Text style={[styles.title, isMobile && styles.titleMobile]}>Ближайшие события</Text>
           </Pressable>
           {isMobile ? (
@@ -347,7 +349,7 @@ export default function EventsScreenWeb() {
               ) : FORMATS.map((f) => {
                 const active = f === format;
                 return (
-                  <Pressable key={f} style={styles.filterPill} onPress={() => setFormat(active ? null : f)}>
+                  <Pressable key={f} style={styles.filterPill} onPress={() => active ? clearTagFilter() : router.push(eventFilterPath('format', f) as any)}>
                     <Text style={[styles.filterPillText, active && styles.filterPillTextActive]}>{f}</Text>
                   </Pressable>
                 );

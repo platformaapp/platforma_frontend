@@ -26,7 +26,7 @@ import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 const SHORT_BIO_LIMIT = 70;
 const ABOUT_LIMIT = 400;
 
-function pick<T>(obj: T | null | undefined, ...keys: (keyof T)[]): string {
+function pick<T>(obj: T | null | undefined, ...keys: string[]): string {
   if (!obj) return '';
   for (const k of keys) {
     const v = (obj as Record<string, unknown>)[k as string];

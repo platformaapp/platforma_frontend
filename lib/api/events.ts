@@ -19,6 +19,7 @@ export { AuthError };
 // --- Типы ---
 
 export interface EventCreateBody {
+  tags?: string[];
   title: string;
   description: string;
   datetime_start: string; // ISO 8601: "2025-03-01T10:00:00.000Z"

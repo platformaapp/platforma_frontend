@@ -1,3 +1,4 @@
+import { eventFilterPath } from '@/lib/event-filters';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { publicId } from '@/lib/public-paths';
 import { eventPath, mentorPath } from '@/lib/public-paths';
@@ -470,8 +471,8 @@ export default function EventDetailScreenWeb() {
   // прямо в titleRow, тем же размером, что и сам заголовок).
   const formatRow = event && (event.format || event.tags?.length) ? (
     <View style={styles.eventMetaRow}>
-      {event.format ? <Pressable onPress={() => router.push(`/events?format=${encodeURIComponent(event.format!)}` as any)}><Text style={[styles.eventFormatText, styles.eventFormatShrink]}>#{event.format}</Text></Pressable> : null}
-      <TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} />
+      {event.format ? <Pressable {...({ href: eventFilterPath('format', event.format!) } as any)}><Text style={[styles.eventFormatText, styles.eventFormatShrink]}>#{event.format}</Text></Pressable> : null}
+      <TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(eventFilterPath('tag', t) as any)} />
     </View>
   ) : null;
 
@@ -572,9 +573,10 @@ export default function EventDetailScreenWeb() {
         ) : isMobile ? (
           <View>
             <Text style={[styles.title, styles.titleMobile]}>{preventOrphanLastWord(event.title)}</Text>
+            {formatRow}
             <View style={styles.mobileMetaRow}>
-              <Text style={styles.eventFormatText}>{formatDatetime(event.datetimeStart)} · {formatPrice(event.price)}</Text>
-              <View style={styles.mobileTags}><TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(`/events?tag=${encodeURIComponent(t)}` as any)} /></View>
+              <Text style={styles.eventFormatText}>{formatDatetime(event.datetimeStart)}</Text>
+              <Text style={styles.eventFormatText}>{formatPrice(event.price)}</Text>
             </View>
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} resizeMode="cover" /> : null}
 
@@ -943,7 +945,7 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20 },
   mobileTags: { flex: 1, minWidth: 0 },
   desktopMentorProfile: { marginTop: 'auto', paddingTop: 24 },
-  mobileMetaRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  mobileMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 16, rowGap: 4, marginBottom: 24 },
   mobileThumb: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5', marginBottom: 24 },
   mobileMetaValue: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', opacity: 0.5 },
   // Заметный отступ перед блоком наставника — см. референс.
