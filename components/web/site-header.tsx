@@ -53,14 +53,14 @@ export function SiteHeader() {
           {NAV_ITEMS.map(({ key, label, href, icon }, index) => {
             const override = navOverrides[index];
             return (
-              <Pressable key={key} style={styles.navItem} onPress={() => router.push(href as any)}>
+              <Pressable key={key} style={styles.navItem} {...({ href } as any)}>
                 <Image source={override?.iconUrl ? { uri: override.iconUrl } : icon} style={styles.navIconImage} />
                 <Text style={styles.navLabel}>{override?.label || label}</Text>
               </Pressable>
             );
           })}
         </View>
-        <Pressable onPress={() => router.push('/about-us' as any)}>
+        <Pressable {...({ href: '/about-us' } as any)}>
           <Text style={styles.logo}>p(34)</Text>
         </Pressable>
       </View>

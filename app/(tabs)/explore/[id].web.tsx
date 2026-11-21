@@ -503,6 +503,11 @@ export default function TutorCardScreenWeb() {
   const headElement = displayName ? (
     <Head>
       <title>{displayName}</title>
+      <script type="application/ld+json">{JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Person', name: displayName,
+        description: pageDescription, url: `https://platformaapp.ru${mentorPath({ id, fullName: displayName })}`,
+        ...(avatarUrl ? { image: avatarUrl } : {}),
+      })}</script>
       {pageDescription ? <meta name="description" content={pageDescription.slice(0, 160)} /> : null}
       <meta property="og:type" content="profile" />
       <meta property="og:title" content={displayName} />

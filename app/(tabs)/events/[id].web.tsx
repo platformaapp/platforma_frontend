@@ -549,6 +549,13 @@ export default function EventDetailScreenWeb() {
   const headElement = event ? (
     <Head>
       <title>{event.title}</title>
+      <script type="application/ld+json">{JSON.stringify({
+        '@context': 'https://schema.org', '@type': 'Event', name: event.title,
+        description: event.description, startDate: event.datetimeStart,
+        url: `https://platformaapp.ru${eventPath(event)}`,
+        ...(event.coverUrl ? { image: event.coverUrl } : {}),
+        ...(event.mentor ? { organizer: { '@type': 'Person', name: event.mentor.name, url: `https://platformaapp.ru${mentorPath(event.mentor)}` } } : {}),
+      })}</script>
       {event.description ? <meta name="description" content={event.description.slice(0, 160)} /> : null}
       <meta property="og:type" content="website" />
       <meta property="og:title" content={event.title} />

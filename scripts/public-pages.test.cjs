@@ -6,32 +6,101 @@ const path = require('node:path');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
 const { eventPath, mentorPath, publicId } = require('../lib/public-paths');
-const event = { id:'11111111-1111-4111-8111-111111111111', title:'Разговор об искусстве', description:'Описание <script>alert(1)</script>', datetimeStart:'2026-12-01T12:00:00Z', mentor:{id:'22222222-2222-4222-8222-222222222222',name:'Анна Иванова'} };
+const { PUBLIC_PAGES } = require('../lib/seo-routes');
+const { collection } = require('./generate-public-pages');
+const mentor = { id: '22222222-2222-4222-8222-222222222222', name: 'Анна Иванова', bio: 'Биография наставника' };
+const event = { id: '11111111-1111-4111-8111-111111111111', title: 'Разговор об искусстве', description: 'Описание <script>alert(1)</script>', datetimeStart: '2026-12-01T12:00:00Z', mentor };
+const articles = [
+  { id: 'article-1', slug: 'iskusstvo', title: 'Искусство и город', content: 'Полный текст статьи о городе', author: mentor, seo_title: 'Искусство — авторская статья', updated_at: '2026-11-01T12:00:00Z' },
+  { id: 'article-2', slug: 'hidden', title: 'Не индексировать', content: 'Текст', noindex: true },
+  { id: 'article-3', slug: 'duplicate', title: 'Копия', content: 'Текст', canonical_url: 'https://other.example/original' },
+];
+const template = '<html><head><title>Generic</title><meta name="description" content="Generic"><meta name="google-site-verification" content="keep-me"></head><body><div id="root"></div></body></html>';
+function fixture() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'platforma-seo-'));
+  for (const file of [...PUBLIC_PAGES.map(page => page.template), 'events/[id].html', 'explore/[id].html', 'journal/[slug].html', 'login.html', 'profile/index.html']) {
+    fs.mkdirSync(path.dirname(path.join(tmp, file)), { recursive: true });
+    fs.writeFileSync(path.join(tmp, file), template);
+  }
+  fs.writeFileSync(path.join(tmp, '.htaccess'), 'RewriteEngine On\n');
+  return tmp;
+}
+async function run(script, out, api) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [script, out], { env: { ...process.env, EXPO_PUBLIC_API_BASE: api, SITE_BASE_URL: 'https://example.test' }, stdio: 'pipe' });
+    let output = '';
+    child.stdout.on('data', data => { output += data; }); child.stderr.on('data', data => { output += data; });
+    child.on('error', reject); child.on('exit', code => resolve({ code, output }));
+  });
+}
+async function serve(handler) {
+  const server = http.createServer(handler);
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  return { server, url: `http://127.0.0.1:${server.address().port}` };
+}
 
 test('readable public paths retain UUID identity and support old URLs', () => {
- assert.match(eventPath(event), /^\/events\/razgovor-ob-iskusstve-/);
- assert.equal(publicId(eventPath(event).split('/').pop()),event.id);
- assert.equal(publicId(event.id),event.id);
- assert.match(mentorPath(event.mentor),/^\/explore\/anna-ivanova-/);
+  assert.match(eventPath(event), /^\/events\/razgovor-ob-iskusstve-/);
+  assert.equal(publicId(eventPath(event).split('/').pop()), event.id);
+  assert.equal(publicId(event.id), event.id);
+  assert.match(mentorPath(mentor), /^\/explore\/anna-ivanova-/);
 });
 
-test('generated HTML exposes canonical metadata, content and crawlable relationships without JavaScript', async () => {
- const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'platforma-seo-'));
- const template='<html><head><title>Generic</title><meta name="description" content="Generic"></head><body><div id="root"></div></body></html>';
- for(const kind of ['events','explore']){fs.mkdirSync(path.join(tmp,kind));fs.writeFileSync(path.join(tmp,kind,'[id].html'),template);}
- const server=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url.startsWith('/api/events')?{items:[event],pagination:{hasNext:false}}:[{...event.mentor,bio:'Биография наставника'}]));});
- await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- try {
-  const code=await new Promise((resolve,reject)=>{const child=spawn(process.execPath,['scripts/generate-public-pages.js',tmp],{env:{...process.env,EXPO_PUBLIC_API_BASE:`http://127.0.0.1:${server.address().port}`,SITE_BASE_URL:'https://example.test'},stdio:'pipe'});child.on('error',reject);child.on('exit',resolve);});
-  assert.equal(code,0);
-  const html=fs.readFileSync(path.join(tmp,eventPath(event),'index.html'),'utf8');
-  assert.match(html,/<title>Разговор об искусстве<\/title>/);
-  assert.ok(html.includes(`rel="canonical" href="https://example.test${eventPath(event)}"`));
-  assert.match(html,/application\/ld\+json/);assert.match(html,/"@type":"Event"/);
-  assert.ok(html.includes(`href="${mentorPath(event.mentor)}"`));
-  assert.ok(!html.includes('<script>alert(1)</script>'));
-  const mentor=fs.readFileSync(path.join(tmp,mentorPath(event.mentor),'index.html'),'utf8');
-  assert.ok(mentor.includes('Биография наставника'));assert.ok(mentor.includes(`href="${eventPath(event)}"`));
-  assert.match(fs.readFileSync(path.join(tmp,'_redirects'),'utf8'),/ 301/);
- } finally {server.close();fs.rmSync(tmp,{recursive:true,force:true});}
+test('public catalogs, articles, events and mentors have HTML and a complete canonical sitemap without JavaScript', async () => {
+  const tmp = fixture();
+  const { server, url } = await serve((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(req.url.startsWith('/api/articles') ? { data: articles, pagination: { total: articles.length } } : req.url.startsWith('/api/events') ? { items: [event], pagination: { hasNext: false } } : [mentor]));
+  });
+  try {
+    const generated = await run('scripts/generate-public-pages.js', tmp, url);
+    assert.equal(generated.code, 0, generated.output);
+    const sitemap = await run('scripts/generate-sitemap.js', tmp, url);
+    assert.equal(sitemap.code, 0, sitemap.output);
+    const xml = fs.readFileSync(path.join(tmp, 'sitemap.xml'), 'utf8');
+    for (const page of PUBLIC_PAGES) {
+      assert.ok(xml.includes(`<loc>https://example.test${page.path}</loc>`), page.path);
+      assert.ok(fs.readFileSync(path.join(tmp, page.template), 'utf8').includes(`<title data-rh="true">${page.title}</title>`));
+    }
+    const html = fs.readFileSync(path.join(tmp, eventPath(event), 'index.html'), 'utf8');
+    assert.match(html, /<h1>Разговор об искусстве<\/h1>/);
+    assert.ok(html.includes(`rel="canonical" href="https://example.test${eventPath(event)}"`));
+    assert.match(html, /"@type":"Event"/);
+    assert.ok(html.includes(`href="${mentorPath(mentor)}"`));
+    assert.ok(!html.includes('<script>alert(1)</script>'));
+    const article = fs.readFileSync(path.join(tmp, 'journal/iskusstvo/index.html'), 'utf8');
+    assert.match(article, /Полный текст статьи о городе/); assert.match(article, /"@type":"Article"/);
+    assert.match(article, /<title[^>]*>Искусство — авторская статья<\/title>/);
+    const catalog = fs.readFileSync(path.join(tmp, 'journal/index.html'), 'utf8');
+    assert.match(catalog, /href="\/journal\/iskusstvo"/);
+    assert.ok(xml.includes('/journal/iskusstvo</loc>'));
+    assert.ok(!xml.includes('/journal/hidden')); assert.ok(!xml.includes('/journal/duplicate'));
+    assert.match(fs.readFileSync(path.join(tmp, 'journal/hidden/index.html'), 'utf8'), /content="noindex,follow"/);
+    assert.match(fs.readFileSync(path.join(tmp, 'login.html'), 'utf8'), /content="noindex,nofollow"/);
+    assert.match(fs.readFileSync(path.join(tmp, 'profile/index.html'), 'utf8'), /content="noindex,nofollow"/);
+    assert.match(fs.readFileSync(path.join(tmp, 'events/[id].html'), 'utf8'), /content="noindex,nofollow"/);
+    assert.match(fs.readFileSync(path.join(tmp, 'index.html'), 'utf8'), /google-site-verification/);
+    assert.match(fs.readFileSync(path.join(tmp, '_redirects'), 'utf8'), / 301/);
+    assert.match(fs.readFileSync(path.join(tmp, '.htaccess'), 'utf8'), /R=301/);
+    assert.equal((xml.match(/<loc>/g) || []).length, PUBLIC_PAGES.length + 3);
+  } finally { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('a failing API cannot silently replace a complete sitemap with a partial one', async () => {
+  const tmp = fixture(); fs.writeFileSync(path.join(tmp, 'sitemap.xml'), 'existing sitemap');
+  const { server, url } = await serve((_req, res) => { res.statusCode = 503; res.end('Unavailable'); });
+  try {
+    const result = await run('scripts/generate-sitemap.js', tmp, url);
+    assert.notEqual(result.code, 0);
+    assert.equal(fs.readFileSync(path.join(tmp, 'sitemap.xml'), 'utf8'), 'existing sitemap');
+  } finally { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+test('pagination follows the reported total even if the API caps page size below 100', async () => {
+  const { server, url } = await serve((req, res) => {
+    const page = Number(new URL(req.url, 'http://local').searchParams.get('page'));
+    const items = Array.from({ length: page < 3 ? 30 : 1 }, (_, i) => ({ id: String((page - 1) * 30 + i) }));
+    res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ items, pagination: { total: 61 } }));
+  });
+  try { assert.equal((await collection(url, '/api/items')).length, 61); } finally { server.close(); }
 });

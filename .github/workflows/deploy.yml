@@ -2,7 +2,11 @@ name: Build and Deploy Frontend (Expo Web)
 
 on:
   push:
-    branches: [ "main" ]   # IMPORTANT: main, not master
+    branches: [ "main" ]
+  workflow_dispatch:
+  # Refresh HTML/sitemap for newly published content without a code change.
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   deploy:
@@ -41,9 +45,7 @@ jobs:
           npx expo export --platform web --clear
 
       ###################################
-      # Generate sitemap.xml (site is a static SPA shell without SSR — see
-      # scripts/generate-sitemap.js — so it's built once here from the live
-      # API and shipped as a static file alongside the rest of dist/).
+      # Generate public HTML and a sitemap from the same content snapshot.
       ###################################
       - name: Generate sitemap.xml
         env:
@@ -68,5 +70,5 @@ jobs:
           echo "[INFO] Copying files"
           scp -o StrictHostKeyChecking=no \
               -i ~/.ssh/github_deploy \
-              -r dist/* \
+              -r dist/. \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/dist/

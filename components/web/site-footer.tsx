@@ -150,7 +150,7 @@ export function SiteFooter({ showPartners = false }: { showPartners?: boolean })
         <View style={[styles.bottomRow, displayPartners && styles.bottomRowWithPartners]}>
           {/* По клику — на "О нас" (та же страница, куда ведёт лого p(34)
               в шапке, см. site-header.tsx). */}
-          <Pressable onPress={() => router.push('/about-us' as any)}>
+          <Pressable {...({ href: '/about-us' } as any)}>
             <Text style={styles.copyright}>©2026, p(34)</Text>
           </Pressable>
           <Pressable onPress={() => setOpenDoc('offer')}>

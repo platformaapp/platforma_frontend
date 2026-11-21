@@ -37,7 +37,7 @@ export function MobileBottomNav() {
     const iconUrl = navOverrides[NAV_ITEMS.indexOf(item)]?.iconUrl;
     const active = isActive(pathname, match);
     return (
-      <Pressable key={key} style={styles.item} onPress={() => router.push(href as any)} hitSlop={12}>
+      <Pressable key={key} style={styles.item} {...({ href } as any)} hitSlop={12}>
         <Image source={iconUrl ? { uri: iconUrl } : icon} style={styles.iconImage} />
         {active ? <View style={styles.activeDot} /> : null}
       </Pressable>

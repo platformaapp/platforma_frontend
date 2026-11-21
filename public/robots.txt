@@ -1,4 +1,21 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /profile
+Disallow: /myevents
+Disallow: /login
+Disallow: /register-
+Disallow: /registration-complete
+Disallow: /tutor-application-sent
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /check-email
+Disallow: /conference
+Disallow: /payment-methods
+Disallow: /modal
+Disallow: /delete-account
+Disallow: /_sitemap
+Disallow: /_seo-manifest.json
 
 Sitemap: https://platformaapp.ru/sitemap.xml

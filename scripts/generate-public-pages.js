@@ -1,50 +1,156 @@
 #!/usr/bin/env node
-/** Generate indexable HTML for public events and mentors after Expo export. */
+/** Build crawlable HTML and a manifest for every canonical public page. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { eventPath, mentorPath } = require('../lib/public-paths');
-const api = (process.env.EXPO_PUBLIC_API_BASE || 'https://platformaapp.ru').replace(/\/$/, '');
-const site = (process.env.SITE_BASE_URL || 'https://platformaapp.ru').replace(/\/$/, '');
-const out = process.argv[2] || 'dist';
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const text = s => String(s || '').replace(/<[^>]*>/g, '').replace(/[#*_]/g, '').trim();
+const { PUBLIC_PAGES, isPrivatePath } = require('../lib/seo-routes');
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const plain = value => String(value || '').replace(/<[^>]*>/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*_]/g, '').trim();
 const json = value => JSON.stringify(value).replace(/</g, '\\u003c');
-async function all(endpoint) {
-  const result = new Map();
-  for (let page=1;page<=100;page++) {
-    const res=await fetch(`${api}${endpoint}?page=${page}&per_page=100&limit=100&include_past=true`);
-    if(!res.ok) throw Error(`${endpoint}: HTTP ${res.status}`);
-    const body=await res.json();const items=Array.isArray(body)?body:body.items || body.data || [];
-    let added=0;for(const item of items) if(item.id&&!result.has(item.id)){result.set(item.id,item);added++;}
-    if(!added || Array.isArray(body) || body.pagination?.hasNext===false || items.length<100) break;
+const MANIFEST = '_seo-manifest.json';
+
+async function collection(api, endpoint) {
+  const found = new Map();
+  for (let page = 1; page <= 1000; page++) {
+    const response = await fetch(`${api}${endpoint}?page=${page}&per_page=100&limit=100&include_past=true`, { signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`${endpoint}: HTTP ${response.status}`);
+    const payload = await response.json();
+    const items = Array.isArray(payload) ? payload : payload.items ?? payload.data;
+    if (!Array.isArray(items)) throw new Error(`${endpoint}: invalid list response`);
+    let added = 0;
+    for (const item of items) {
+      if (!item.id) throw new Error(`${endpoint}: item without an ID`);
+      if (!found.has(item.id)) { found.set(item.id, item); added++; }
+    }
+    const pagination = payload.pagination ?? payload.meta;
+    const total = pagination?.total;
+    if (Array.isArray(payload) || pagination?.hasNext === false || (typeof total === 'number' && found.size >= total)) return [...found.values()];
+    if (!items.length || !added) {
+      if (pagination?.hasNext === true || (typeof total === 'number' && found.size < total)) throw new Error(`${endpoint}: pagination stopped before all items were fetched`);
+      return [...found.values()];
+    }
+    if (pagination?.hasNext !== true && typeof total !== 'number' && items.length < 100) return [...found.values()];
   }
-  return [...result.values()];
+  throw new Error(`${endpoint}: exceeded 1000 pages; refusing to publish an incomplete index`);
 }
-function writePage(route, template, { title, description, image, schema, body }) {
-  let html=fs.readFileSync(path.join(out,template),'utf8');
-  html=html.replace(/<title[^>]*>[\s\S]*?<\/title>/gi,'').replace(/<meta\b[^>]*(?:name=["'](?:description|twitter:[^"']*)["']|property=["']og:[^"']*["'])[^>]*>/gi,'').replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi,'');
-  const url=site+route;
-  const head=`<title>${esc(title)}</title><meta name="description" content="${esc(description.slice(0,160))}"><link rel="canonical" href="${esc(url)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description.slice(0,160))}"><meta property="og:url" content="${esc(url)}"><meta property="og:type" content="${schema['@type']==='Person'?'profile':'website'}"><meta name="twitter:card" content="${image?'summary_large_image':'summary'}">${image?`<meta property="og:image" content="${esc(new URL(image,site).href)}">`:''}<script type="application/ld+json">${json({'@context':'https://schema.org',...schema,url})}</script>`;
-  html=html.replace('</head>',head+'</head>');
-  // Visible fallback is readable without JS. Remove it once the hydrated screen is ready.
-  const fallback=`<main id="seo-content" style="padding:32px;max-width:1100px;margin:auto;font:18px/1.5 sans-serif"><h1>${esc(title)}</h1>${image?`<img src="${esc(new URL(image,site).href)}" alt="${esc(title)}" style="max-width:339px;width:100%">`:''}<p>${esc(description).replace(/\n/g,'<br>')}</p>${body}</main>`;
-  const script=`<script>(function(){function ready(){var root=document.getElementById('root'),fallback=document.getElementById('seo-content');if(root&&fallback&&root.textContent.includes(${json(title)})){fallback.remove();observer.disconnect();}}var observer=new MutationObserver(ready);observer.observe(document.documentElement,{childList:true,subtree:true});ready();})();</script>`;
-  html=html.replace(/(<body[^>]*>)/, '$1'+fallback).replace('</body>',script+'</body>');
-  const dir=path.join(out,route);fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'index.html'),html);
-  // Also support hosts configured with try_files $uri.html before SPA fallback.
-  fs.writeFileSync(path.join(out,route+'.html'),html);
+
+function metadata(html, { title, description, canonical, image, schema, noindex, nofollow }) {
+  html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+    .replace(/<meta\b[^>]*(?:name=["'](?:description|robots|twitter:[^"']*)["']|property=["']og:[^"']*["'])[^>]*>/gi, '')
+    .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi, '');
+  const robots = `${noindex ? 'noindex' : 'index'},${nofollow ? 'nofollow' : 'follow'}`;
+  const head = `<title>${esc(title)}</title><meta name="description" content="${esc(description.slice(0, 160))}"><link rel="canonical" href="${esc(canonical)}"><meta name="robots" content="${robots}"><meta property="og:site_name" content="p(34)"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description.slice(0, 160))}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="${schema?.['@type'] === 'Article' ? 'article' : schema?.['@type'] === 'Person' ? 'profile' : 'website'}"><meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">${image ? `<meta property="og:image" content="${esc(image)}">` : ''}${schema ? `<script type="application/ld+json">${json({ '@context': 'https://schema.org', ...schema, url: canonical })}</script>` : ''}`;
+  return html.replace('</head>', head.replace(/<(title|meta|link|script)\b/g, '<$1 data-rh="true"') + '</head>');
 }
-async function main(){
- const [events,mentors]=await Promise.all([all('/api/events/feed'),all('/api/users/tutors')]);
- const redirects=[];
- for(const e of events){
-  const route=eventPath(e);const date=e.datetimeStart||e.datetime_start;const mentor=e.mentor;
-  const schema={'@type':'Event',name:e.title,description:text(e.description),...(date?{startDate:date}:{}),eventStatus:'https://schema.org/EventScheduled',eventAttendanceMode:'https://schema.org/OnlineEventAttendanceMode',location:{'@type':'VirtualLocation',url:site+route},...(e.coverUrl?{image:new URL(e.coverUrl,site).href}:{}),...(mentor?{organizer:{'@type':'Person',name:mentor.name,url:site+mentorPath(mentor)}}:{})};
-  writePage(route,'events/[id].html',{title:e.title,description:text(e.description),image:e.coverUrl,schema,body:`${date?`<p><time datetime="${esc(date)}">${esc(date)}</time></p>`:''}${mentor?`<a href="${esc(mentorPath(mentor))}">${esc(mentor.name)}</a>`:''}`});
-  redirects.push(`/events/${e.id} ${route} 301`,`${route} ${route}/index.html 200`);
- }
- for(const m of mentors){const route=mentorPath(m),name=m.fullName||m.full_name||m.name||'Наставник';const related=events.filter(e=>e.mentor?.id===m.id);writePage(route,'explore/[id].html',{title:name,description:text(m.bio||m.shortBio||m.short_bio||m.specialization),image:m.avatarUrl||m.avatar_url,schema:{'@type':'Person',name,description:text(m.bio||m.shortBio||m.specialization)},body:related.length?`<h2>События наставника</h2><ul>${related.map(e=>`<li><a href="${esc(eventPath(e))}">${esc(e.title)}</a></li>`).join('')}</ul>`:''});redirects.push(`/explore/${m.id} ${route} 301`,`${route} ${route}/index.html 200`);}
- const redirectFile=path.join(out,'_redirects');const existing=fs.existsSync(redirectFile)?fs.readFileSync(redirectFile,'utf8'):'/* /index.html 200\n';fs.writeFileSync(redirectFile,redirects.join('\n')+'\n'+existing);
- console.log(`Generated SEO HTML: ${events.length} events, ${mentors.length} mentors`);
+
+function fallback(html, { heading, description, image, body, route }) {
+  html = html.replace(/<main id="seo-content"[^>]*>[\s\S]*?<\/main>/g, '').replace(/<script id="seo-fallback-cleanup"[^>]*>[\s\S]*?<\/script>/g, '');
+  const content = `<main id="seo-content" style="position:fixed;inset:0;overflow:auto;background:white;z-index:1;padding:32px;font:18px/1.5 sans-serif"><h1>${esc(heading)}</h1>${image ? `<img src="${esc(image)}" alt="${esc(heading)}" style="max-width:339px;width:100%">` : ''}<p>${esc(description).replace(/\n/g, '<br>')}</p>${body}</main>`;
+  const script = `<script id="seo-fallback-cleanup">(function(){function ready(){var root=document.getElementById('root'),fallback=document.getElementById('seo-content');if(root&&fallback){var text=root.textContent.replace(/\\s+/g,' ').trim();var heading=${json(heading)}.replace(/\\s+/g,' ').trim();if(location.pathname.replace(/\\/$/,'')!==${json(route === '/' ? '' : route)}||(text.includes(heading)&&!/Failed to fetch|Не удалось|Ошибка загрузки/i.test(text)&&!root.querySelector('[role="progressbar"]'))){fallback.remove();observer.disconnect();}}}var observer=new MutationObserver(ready);observer.observe(document.documentElement,{childList:true,subtree:true});ready();})();</script>`;
+  return html.replace(/(<body[^>]*>)/, '$1' + content).replace('</body>', script + '</body>');
 }
-main().catch(e=>{console.error(e);process.exitCode=1});
+function pageLinks(items, route, title) {
+  return `<ul>${items.map(item => `<li><a href="${esc(route(item))}">${esc(title(item))}</a></li>`).join('')}</ul>`;
+}
+
+async function generatePublicPages(out = 'dist') {
+  const api = (process.env.EXPO_PUBLIC_API_BASE || 'https://platformaapp.ru').replace(/\/+$/, '');
+  const site = (process.env.SITE_BASE_URL || 'https://platformaapp.ru').replace(/\/+$/, '');
+  const [articles, events, mentors] = await Promise.all([
+    collection(api, '/api/articles'), collection(api, '/api/events/feed'), collection(api, '/api/users/tutors'),
+  ]);
+  for (const article of articles) {
+    if (!article.slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(article.slug)) throw new Error(`Article ${article.id}: missing or invalid slug`);
+  }
+  const articlePath = article => `/journal/${article.slug}`;
+  const name = mentor => mentor.fullName || mentor.full_name || mentor.name || 'Наставник';
+  const navigation = `<nav aria-label="Разделы сайта">${PUBLIC_PAGES.map(page => `<a href="${page.path}">${esc(page.heading)}</a>`).join(' · ')}</nav>`;
+  const manifest = [];
+  const redirects = [];
+  const apacheRedirects = [];
+  const templates = new Map();
+  function template(file) {
+    if (!templates.has(file)) templates.set(file, fs.readFileSync(path.join(out, file), 'utf8'));
+    return templates.get(file);
+  }
+  // Capture templates before root/list pages are overwritten.
+  for (const page of PUBLIC_PAGES) template(page.template);
+  for (const file of ['events/[id].html', 'explore/[id].html', 'journal/[slug].html']) template(file);
+
+  function write(route, file, options) {
+    const canonical = options.canonical || site + route;
+    const image = options.image ? new URL(options.image, site).href : undefined;
+    let html = metadata(template(file), { ...options, canonical, image });
+    if (options.body !== undefined) html = fallback(html, { ...options, image, route, body: navigation + options.body });
+    const outputFile = route === '/' ? 'index.html' : route.slice(1) + '/index.html';
+    const target = path.join(out, outputFile);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, html);
+    if (route !== '/') fs.writeFileSync(path.join(out, route.slice(1) + '.html'), html);
+    manifest.push({ path: route, canonical, noindex: !!options.noindex, lastmod: options.lastmod, file: outputFile });
+    redirects.push(`${route} ${route === '/' ? '/index.html' : route + '/index.html'} 200`);
+  }
+  function alias(from, to) {
+    redirects.unshift(`${from} ${to} 301`);
+    apacheRedirects.push(`RewriteRule ^${from.slice(1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/?$ ${to} [R=301,L]`);
+  }
+  for (const page of PUBLIC_PAGES) {
+    let body;
+    if (page.path === '/events') body = pageLinks(events, eventPath, e => e.title);
+    if (page.path === '/explore') body = pageLinks(mentors, mentorPath, name);
+    if (page.path === '/journal') body = pageLinks(articles.filter(a => !a.noindex), articlePath, a => a.title);
+    if (page.path === '/') body = '<h2>События</h2>' + pageLinks(events, eventPath, e => e.title) + '<h2>Наставники</h2>' + pageLinks(mentors, mentorPath, name) + '<h2>Журнал</h2>' + pageLinks(articles.filter(a => !a.noindex), articlePath, a => a.title);
+    write(page.path, page.template, { ...page, body });
+  }
+  for (const a of articles) {
+    const author = a.author;
+    write(articlePath(a), 'journal/[slug].html', {
+      title: a.seo_title || a.title, heading: a.h1 || a.title, description: plain(a.meta_description || a.excerpt || a.content) || a.title, image: a.cover_url,
+      canonical: a.canonical_url || undefined, noindex: a.noindex, nofollow: a.nofollow, lastmod: a.updated_at,
+      body: `<article>${author ? `<p>Автор: <a href="${esc(mentorPath(author))}">${esc(name(author))}</a></p>` : ''}<p>${esc(plain(a.content)).replace(/\n/g, '<br>')}</p></article>`,
+      schema: { '@type': 'Article', headline: a.h1 || a.title, description: plain(a.excerpt || a.content).slice(0, 300), ...(a.published_at ? { datePublished: a.published_at } : {}), ...(a.updated_at ? { dateModified: a.updated_at } : {}), ...(author ? { author: { '@type': 'Person', name: name(author), url: site + mentorPath(author) } } : {}) },
+    });
+  }
+  for (const e of events) {
+    const route = eventPath(e), date = e.datetimeStart || e.datetime_start, mentor = e.mentor;
+    write(route, 'events/[id].html', {
+      title: e.title, heading: e.title, description: plain(e.description) || e.title, image: e.coverUrl || e.cover_url, lastmod: e.updated_at,
+      body: `${date ? `<p><time datetime="${esc(date)}">${esc(date)}</time></p>` : ''}${mentor ? `<a href="${esc(mentorPath(mentor))}">${esc(name(mentor))}</a>` : ''}`,
+      schema: { '@type': 'Event', name: e.title, description: plain(e.description), ...(date ? { startDate: date } : {}), eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode', location: { '@type': 'VirtualLocation', url: site + route }, ...(mentor ? { organizer: { '@type': 'Person', name: name(mentor), url: site + mentorPath(mentor) } } : {}) },
+    });
+    alias(`/events/${e.id}`, route);
+  }
+  for (const m of mentors) {
+    const route = mentorPath(m), related = events.filter(e => e.mentor?.id === m.id);
+    write(route, 'explore/[id].html', { title: name(m), heading: name(m), description: plain(m.bio || m.shortBio || m.short_bio || m.specialization) || name(m), image: m.avatarUrl || m.avatar_url,
+      schema: { '@type': 'Person', name: name(m), description: plain(m.bio || m.shortBio || m.specialization) },
+      body: related.length ? '<h2>События наставника</h2>' + pageLinks(related, eventPath, e => e.title) : '',
+    });
+    alias(`/explore/${m.id}`, route);
+  }
+  // Private screens and unresolved route templates must never become search results.
+  function protect(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) { if (!['_expo', 'assets'].includes(entry.name)) protect(file); continue; }
+      if (!entry.name.endsWith('.html')) continue;
+      const route = '/' + path.relative(out, file).replace(/\\/g, '/').replace(/(?:\/index)?\.html$/, '');
+      if (isPrivatePath(route) || entry.name === '+not-found.html') {
+        const html = fs.readFileSync(file, 'utf8').replace(/<meta\b[^>]*name=["']robots["'][^>]*>/gi, '');
+        fs.writeFileSync(file, html.replace('</head>', '<meta data-rh="true" name="robots" content="noindex,nofollow"></head>'));
+      }
+    }
+  }
+  protect(out);
+  fs.writeFileSync(path.join(out, '_redirects'), redirects.join('\n') + '\n/* /index.html 200\n');
+  const htaccess = path.join(out, '.htaccess');
+  if (fs.existsSync(htaccess)) {
+    const rules = fs.readFileSync(htaccess, 'utf8').replace(/\n# BEGIN SEO REDIRECTS[\s\S]*?# END SEO REDIRECTS\n?/g, '');
+    fs.writeFileSync(htaccess, rules.replace('RewriteEngine On', 'RewriteEngine On\n# BEGIN SEO REDIRECTS\n' + apacheRedirects.join('\n') + '\n# END SEO REDIRECTS\n'));
+  }
+  fs.writeFileSync(path.join(out, MANIFEST), JSON.stringify({ site, pages: manifest }, null, 2));
+  console.log(`Generated SEO HTML: ${PUBLIC_PAGES.length} public pages, ${articles.length} articles, ${events.length} events, ${mentors.length} mentors`);
+  return { site, pages: manifest };
+}
+if (require.main === module) generatePublicPages(process.argv[2] || 'dist').catch(error => { console.error(error); process.exitCode = 1; });
+module.exports = { generatePublicPages, collection, MANIFEST };
