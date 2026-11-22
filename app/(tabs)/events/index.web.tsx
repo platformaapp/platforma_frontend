@@ -1,3 +1,4 @@
+import { EVENT_GRID, EVENT_FEATURED_ASPECTS, EVENT_TRIPLE_ASPECTS } from '@/lib/event-grid-layout';
 import { eventFormatSlug, eventFormatLabel, eventFilterPath, EVENT_FORMATS } from '@/lib/event-filters';
 import { eventPath } from '@/lib/public-paths';
 import { useFocusEffect } from '@react-navigation/native';
@@ -57,19 +58,8 @@ const FORMATS = EVENT_FORMATS.map(f => f.label);
  * подписи, что в фильтрах выше. r.format/r.type — старый фолбэк на случай,
  * если где-то на бэкенде эти поля всё же присылаются вместо category.
  */
-const CATEGORY_LABELS: Record<string, string> = {
-  broadcast: 'Трансляция',
-  lecture: 'Лекция',
-  mediation: 'Медиация',
-  practices: 'Практика',
-  meeting: 'Встреча',
-  discussion: 'Обсуждение',
-};
 function resolveFormat(raw: Record<string, unknown>): string | undefined {
-  const category = raw.category as string | null | undefined;
-  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
-  const legacy = (raw.format as string) ?? (raw.type as string) ?? undefined;
-  return legacy;
+  return eventFormatLabel(raw.category as string) ?? eventFormatLabel(raw.format as string) ?? eventFormatLabel(raw.type as string);
 }
 
 const PER_PAGE = 20;
@@ -81,8 +71,8 @@ const PER_PAGE = 20;
 // карточки стоят в колонках 1/3/5 (.proj-row .card:nth-child(1/2/3)). Отступ
 // сверху чередуется: 254 у нечётных по счёту строк троек (.proj-row--2),
 // 120 у чётных (.proj-row--3).
-const FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
-const ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const FEATURED_ASPECT: [number, number] = EVENT_FEATURED_ASPECTS;
+const ROW_ASPECTS: [number, number, number] = EVENT_TRIPLE_ASPECTS;
 const ROW_GRID_COLUMNS: [string, string, string] = ['1', '3', '5'];
 
 export default function EventsScreenWeb() {
@@ -524,15 +514,15 @@ const styles = StyleSheet.create({
   // 403fr:75fr:365fr:76fr:340fr:191fr, карточки в колонках 1/3/5 (см.
   // ROW_GRID_COLUMNS). Отступ сверху всех строк подряд — 80 (первая), затем
   // 254/120/254/120... (см. marginTop в рендере).
-  featuredRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
-  pairBRow: { display: 'grid', gridTemplateColumns: '481fr 165fr 611fr 193fr' } as any,
+  featuredRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.featuredColumns } as any,
+  pairBRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.pairBColumns } as any,
   // pairA (строка 1).
   featuredCardOne: { width: '100%', overflow: 'hidden' },
   featuredCardTwo: { width: '100%', overflow: 'hidden' },
   // overflow:'hidden' — подстраховка от визуального вылезания картинки за
   // границу своей колонки (72.8%/100%), даже если что-то внутри (напр.
   // реальное фото с нестандартными пропорциями) посчитает себя шире.
-  featuredInnerTwo: { width: '72.8%', overflow: 'hidden' },
+  featuredInnerTwo: { width: EVENT_GRID.secondCardWidth, overflow: 'hidden' },
   featuredLabelOne: { marginTop: 20 },
   featuredLabelTwo: { marginTop: 23 },
   featuredTitleOne: { marginTop: 13, fontSize: 25, lineHeight: 25},
@@ -555,7 +545,7 @@ const styles = StyleSheet.create({
   // всегда aspect-ratio, без исключения для второй картинки). Теперь на
   // /events пара B тоже просто aspect-ratio (см. variant==='A' в условии
   // применения этого стиля ниже) — обе страницы совпадают.
-  featuredImageTwo: { height: 248 },
+  featuredImageTwo: { height: EVENT_GRID.secondCardHeight },
 
   // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают
   // колонки 1/3/5 (см. ROW_GRID_COLUMNS), 2/4 — зазоры, 6 (191fr) — пустая

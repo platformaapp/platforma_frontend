@@ -1,4 +1,4 @@
-import { eventFilterPath } from '@/lib/event-filters';
+import { eventFilterPath, eventFormatLabel } from '@/lib/event-filters';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { publicId } from '@/lib/public-paths';
 import { eventPath, mentorPath } from '@/lib/public-paths';
@@ -69,18 +69,8 @@ type EventDetail = {
 // Тип события — показывается только здесь (страница события) и в
 // рубрикаторе фильтров, не в карточках списка /events (см. resolveFormat
 // в events/index.web.tsx, та же логика).
-const CATEGORY_LABELS: Record<string, string> = {
-  broadcast: 'Трансляция',
-  lecture: 'Лекция',
-  mediation: 'Медиация',
-  practices: 'Практика',
-  meeting: 'Встреча',
-  discussion: 'Обсуждение',
-};
 function resolveFormat(raw: Record<string, unknown>): string | undefined {
-  const category = raw.category as string | null | undefined;
-  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
-  return (raw.format as string) ?? (raw.type as string) ?? undefined;
+  return eventFormatLabel(raw.category as string) ?? eventFormatLabel(raw.format as string) ?? eventFormatLabel(raw.type as string);
 }
 
 function normalizeEvent(raw: Record<string, unknown>): EventDetail {

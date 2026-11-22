@@ -1,11 +1,14 @@
+import { EVENT_GRID, EVENT_FEATURED_ASPECTS, EVENT_TRIPLE_ASPECTS } from '@/lib/event-grid-layout';
+import { eventFormatLabel } from '@/lib/event-filters';
 import { mentorPath } from '@/lib/public-paths';
 import { publicId } from '@/lib/public-paths';
 import { eventPath } from '@/lib/public-paths';
 import * as Linking from 'expo-linking';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -33,30 +36,19 @@ function resolveCover(url: unknown): string | null {
 
 // Формат события хранится в поле category (enum EventCategory на бэкенде) —
 // фид отдаёт английский слаг ('lecture', 'practices', ...), те же подписи,
-// что и в /events (см. events/index.web.tsx CATEGORY_LABELS).
-const CATEGORY_LABELS: Record<string, string> = {
-  broadcast: 'Трансляция',
-  lecture: 'Лекция',
-  mediation: 'Медиация',
-  practices: 'Практика',
-  meeting: 'Встреча',
-  discussion: 'Обсуждение',
-};
+// что и в /events (единый список в lib/event-filters).
 function resolveFormat(raw: Record<string, unknown>): string | undefined {
-  const category = raw.category as string | null | undefined;
-  if (category && CATEGORY_LABELS[category]) return CATEGORY_LABELS[category];
-  const legacy = (raw.format as string) ?? (raw.type as string) ?? undefined;
-  return legacy;
+  return eventFormatLabel(raw.category as string) ?? eventFormatLabel(raw.format as string) ?? eventFormatLabel(raw.type as string);
 }
 
 // Карточки в строке "События наставника" — 3 на ряд, каждая со своим
 // соотношением сторон картинки (та же сетка 403/365/340, что в rowThree на
 // /events, но со своими колонками-зазорами — см. mentorEventsRow).
-const MENTOR_ROW_ASPECTS: [number, number, number] = [403 / 285, 365 / 211, 340 / 232];
+const MENTOR_ROW_ASPECTS: [number, number, number] = EVENT_TRIPLE_ASPECTS;
 const MENTOR_ROW_COLUMNS: [string, string, string] = ['1', '3', '5'];
 // Та же пара соотношений, что у featured-строк (пара карточек) на /events
 // (FEATURED_ASPECT) — используется в pairA/pairB-строках ниже.
-const MENTOR_FEATURED_ASPECT: [number, number] = [649 / 360, 521 / 294];
+const MENTOR_FEATURED_ASPECT: [number, number] = EVENT_FEATURED_ASPECTS;
 
 function formatEventDate(iso?: string): string {
   if (!iso) return '';
@@ -620,27 +612,11 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
-  // Desktop: настоящий CSS Grid, а не два независимых flex-столбца — нужно,
-  // чтобы строка карточек справа (под фото) совпадала по высоте со строкой
-  // карточек слева (см. eventsGridRow). columnGap — та самая пустая полоса
-  // между текстом/фото по референсу (не баг). display:'grid' — не входит в
-  // типы RN ViewStyle, но RN Web пропускает произвольные CSS-свойства как
-  // есть (то же самое уже используется для outlineStyle в plus-field.tsx).
-  // alignItems убран (был 'start'): без него работает дефолт CSS Grid —
-  // 'stretch' — только тогда actionsRowContainer реально получает высоту
-  // строки (фото avatarLargeBox с его фиксированными 345px), и actionsRow
-  // (position:'absolute', bottom:0) внутри него садится ровно на нижний
-  // край фото, а не куда попало (раньше actionsRowContainer с height:'100%'
-  // ничего не наследовал — alignItems:'start' не растягивает ячейки).
-  desktopGrid: { display: 'grid', gridTemplateColumns: '659px 285px', columnGap: 271, position: 'relative' } as any,
-  // 339×409 по референсу (339/1512 от общей ширины страницы = 22.42%) —
-  // прямоугольное портретное фото вместо квадратного. paddingBottom-в-%
-  // вместо aspectRatio — тот ломается для RN Image с локальным
-  // плейсхолдером (react-native-web подставляет inline height по
-  // натуральным пикселям самой картинки, игнорируя aspectRatio; та же
-  // проблема и тот же фикс, что и на /explore, см. комментарий там).
-  avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: 0,     height: 345,  },
-  // avatarLargeBox: { width: '100%', position: 'relative', backgroundColor: '#E5E5E5', paddingBottom: `${(409 / 339) * 100}%` },
+  // The header fills the same width as the event grid. The portrait stays
+  // at its right edge at every desktop viewport, instead of stopping at 1215px.
+  desktopGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 659px) 285px', columnGap: 32, justifyContent: 'space-between', width: '100%', position: 'relative' } as any,
+  // Keep the existing portrait size; position is controlled by desktopGrid.
+  avatarLargeBox: { width: '100%', height: 345, position: 'relative', backgroundColor: '#E5E5E5' },
   avatarLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
 
   // Mobile: имя/роль слева, небольшой квадратный аватар справа.
@@ -717,22 +693,22 @@ const styles = StyleSheet.create({
   // и "О чём пишет" (обе секции используют этот же стиль) были гораздо
   // больше, чем тот же переход в статье.
   mentorEventsSection: { marginTop: 140, width: '100%' },
-  mentorEventsRow: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 266fr 340fr' } as any,
+  mentorEventsRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.tripleColumns } as any,
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
 
   // Ряды чередуются, как на /events. В pairB нет пустой последней
   // колонки: её ширина добавлена к зазору, размеры карточек как на /events.
-  mentorFeaturedRow: { display: 'grid', gridTemplateColumns: '649fr 84fr 716fr' } as any,
-  mentorPairBRow: { display: 'grid', gridTemplateColumns: '481fr 358fr 611fr' } as any,
+  mentorFeaturedRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.featuredColumns } as any,
+  mentorPairBRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.pairBAlignedColumns } as any,
   // overflow:'hidden' — подстраховка от визуального вылезания картинки за
   // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
   mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },
   mentorFeaturedCardTwo: { width: '100%', overflow: 'hidden' },
-  mentorFeaturedInnerTwo: { width: '72.8%', alignSelf: 'flex-end', overflow: 'hidden' },
+  mentorFeaturedInnerTwo: { width: EVENT_GRID.secondCardWidth, alignSelf: 'flex-end', overflow: 'hidden' },
   mentorFeaturedInnerTwoB: { width: '100%', overflow: 'hidden' },
   mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
-  mentorFeaturedImageTwo: { height: 248 },
+  mentorFeaturedImageTwo: { height: EVENT_GRID.secondCardHeight },
   // Отступы label/title под картинкой — буквально те же значения, что у
   // featuredLabelOne/Two(B)/featuredTitleOne/Two(B) на /events: карточки
   // в паре имеют разную высоту картинки (72.8%/248 у второй), и этот сдвиг

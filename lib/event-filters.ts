@@ -1,7 +1,6 @@
 export const EVENT_FORMATS = [
   { slug: 'broadcast', label: 'Трансляция' },
   { slug: 'lecture', label: 'Лекция' },
-  { slug: 'mediation', label: 'Медиация' },
   { slug: 'practices', label: 'Практика' },
   { slug: 'meeting', label: 'Встреча' },
   { slug: 'discussion', label: 'Обсуждение' },

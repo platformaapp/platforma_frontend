@@ -46,13 +46,8 @@ export default function AboutUsScreenWeb() {
   const heading = aboutUs.heading || DEFAULT_HEADING;
   const text = fixHangingPrepositions(aboutUs.text || DEFAULT_TEXT);
   // На десктопе фото имеет фиксированный размер 339 × 409 px.
-  // На мобильном обёртка с paddingBottom (аспект через % от своей ширины) +
-  // картинка внутри position:absolute/inset:0 — для photoUrl с бэкенда (uri)
-  // простой aspectRatio на самом Image тоже работал, но ломается именно для
-  // ЛОКАЛЬНОГО DEFAULT_PHOTO (require()): react-native-web подставляет
-  // зарегистрированные intrinsic width/height ассета как computed height
-  // напрямую, aspectRatio у Image при этом игнорируется (та же причина, что
-  // и у SECTION_BANNER_IMAGE в journal/[slug].web.tsx — см. тот же приём там).
+  // The mobile View owns the same portrait ratio. The image fills the
+  // wrapper absolutely, so local and uploaded photos keep identical geometry.
   const photo = (
     <View style={isMobile ? styles.mobileThumb : styles.cover}>
       <style>{'[data-about-us-photo="true"] > div { background-position: left !important; }'}</style>
@@ -125,11 +120,11 @@ const styles = StyleSheet.create({
   descriptionMobile: { marginTop: 0, maxWidth: '100%' },
   contactsHeadingMobile: { fontSize: 30, lineHeight: 30 },
 
-  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 117 } as any,
+  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 339px', columnGap: 'clamp(24px, 8vw, 117px)' } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%', alignSelf: 'flex-start', overflow: 'hidden' },
-  cover: { width: 339, height: 409, position: 'relative', backgroundColor: '#E5E5E5', alignSelf: 'flex-end' },
-  mobileThumb: { width: '100%', paddingBottom: `${(409 / 339) * 100}%`, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 0 },
+  cover: { width: 339, height: 409, minWidth: 339, minHeight: 409, flexShrink: 0, position: 'relative', backgroundColor: '#E5E5E5', alignSelf: 'flex-end' },
+  mobileThumb: { width: '100%', aspectRatio: 339 / 409, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 0 },
   photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%',     backgroundPosition: 'left' } as any,
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },

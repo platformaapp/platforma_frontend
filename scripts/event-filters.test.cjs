@@ -17,4 +17,6 @@ test('links from both format labels and slugs use a supported API category', () 
   assert.equal(eventFilterPath('format', 'Лекция'), '/events?format=lecture');
   assert.equal(eventFilterPath('tag', 'кино & город'), '/events?tag=' + encodeURIComponent('кино & город'));
   assert.equal(eventFormatSlug('unknown'), undefined);
+  assert.equal(eventFormatSlug('Медиация'), undefined);
+  assert.equal(eventFormatLabel('mediation'), undefined);
 });
