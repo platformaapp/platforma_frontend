@@ -69,7 +69,7 @@ export default function AboutUsScreenWeb() {
       ));
 
   const contactsBlock = (
-    <View style={styles.contacts}>
+    <View style={[styles.contacts, !isMobile && styles.contactsDesktop]}>
       <Text style={[styles.contactsHeading, isMobile && styles.contactsHeadingMobile]}>Свяжитесь с нами</Text>
       {contactRows}
     </View>
@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
 
   // Contacts follow the entire desktop row, below the photo as well as the text.
   contacts: { marginTop: 40, maxWidth: 504 },
+  contactsDesktop: { marginTop: 0 },
   contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 16 },
   contactRow: { marginBottom: 12 },
   contactLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076'},
