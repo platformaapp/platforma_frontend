@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Asset } from 'expo-asset';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
@@ -45,17 +46,15 @@ export default function AboutUsScreenWeb() {
 
   const heading = aboutUs.heading || DEFAULT_HEADING;
   const text = fixHangingPrepositions(aboutUs.text || DEFAULT_TEXT);
-  // На десктопе фото имеет фиксированный размер 339 × 409 px.
-  // The mobile View owns the same portrait ratio. The image fills the
-  // wrapper absolutely, so local and uploaded photos keep identical geometry.
+  // Let the browser derive height from the original file, for both the
+  // default asset and images uploaded in the admin panel.
   const photo = (
-    <View style={isMobile ? styles.mobileThumb : styles.cover}>
-      <style>{'[data-about-us-photo="true"] > div { background-position: left !important; }'}</style>
-      <Image
-        {...({ dataSet: { aboutUsPhoto: 'true' } } as any)}
-        source={aboutUs.photoUrl ? { uri: aboutUs.photoUrl } : DEFAULT_PHOTO}
-        style={styles.photoImage}
-        resizeMode="cover"
+    <View style={styles.photoFrame}>
+      <img
+        data-about-us-photo="true"
+        src={aboutUs.photoUrl || Asset.fromModule(DEFAULT_PHOTO).uri}
+        alt={heading}
+        style={{ display: 'block', width: '100%', height: 'auto', objectPosition: 'left' }}
       />
     </View>
   );
@@ -120,12 +119,10 @@ const styles = StyleSheet.create({
   descriptionMobile: { marginTop: 0, maxWidth: '100%' },
   contactsHeadingMobile: { fontSize: 30, lineHeight: 30 },
 
-  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 339px', columnGap: 'clamp(24px, 8vw, 117px)' } as any,
+  desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', columnGap: 'clamp(24px, 8vw, 117px)' } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
   rightCol: { flex: 1, minWidth: 0, maxWidth: 709, width: '100%', alignSelf: 'flex-start', overflow: 'hidden' },
-  cover: { width: 339, height: 409, minWidth: 339, minHeight: 409, flexShrink: 0, position: 'relative', backgroundColor: '#E5E5E5', alignSelf: 'flex-end' },
-  mobileThumb: { width: '100%', aspectRatio: 339 / 409, position: 'relative', overflow: 'hidden', backgroundColor: '#E5E5E5', marginBottom: 0 },
-  photoImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%',     backgroundPosition: 'left' } as any,
+  photoFrame: { width: '100%', alignSelf: 'flex-end' },
 
   title: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 0 },
   titleMobile: { fontSize: 30, lineHeight: 36, marginBottom: 0 },
