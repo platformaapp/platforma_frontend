@@ -1,3 +1,4 @@
+import { creatorEntryPath } from '@/lib/creator-entry';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -17,7 +18,7 @@ export default function ProfileIndexScreen() {
     const redirect = async () => {
       const token = await getAuthToken();
       if (!token) {
-        router.replace('/login');
+        router.replace((open === 'event' || open === 'article' ? creatorEntryPath(open, false) : '/login') as any);
         return;
       }
       const profile = await getUserProfile();

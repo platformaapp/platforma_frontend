@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import { safeAuthRedirect, withAuthRedirect } from '@/lib/creator-entry';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -7,9 +8,11 @@ import { SiteShell } from '@/components/web/site-shell';
 /** Веб-версия экрана "Заявка отправлена" (см. tutor-application-sent.tsx для нативной). */
 export default function TutorApplicationSentScreenWeb() {
   const router = useRouter();
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const returnTo = safeAuthRedirect(redirect);
 
   function handleClose() {
-    router.replace('/(tabs)/events' as any);
+    router.replace((returnTo || '/(tabs)/events') as any);
   }
 
   return (

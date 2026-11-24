@@ -1,3 +1,4 @@
+import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -337,7 +338,7 @@ export default function TutorCardScreen() {
 
         {displayBio ? (
           <View style={styles.bioSection}>
-            <Text style={styles.bioText}>{displayBio}</Text>
+            <Text style={styles.bioText}>{parseInlineMarkdown(displayBio)}</Text>
           </View>
         ) : null}
 

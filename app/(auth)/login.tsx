@@ -1,3 +1,4 @@
+import { safeAuthRedirect, withAuthRedirect } from '@/lib/creator-entry';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -30,6 +31,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { role: roleParam, showLogin: showLoginParam, redirect: redirectParam } = useLocalSearchParams<{ role?: string; showLogin?: string; redirect?: string }>();
   const [showLogin, setShowLogin] = useState(showLoginParam === '1');
+  useEffect(() => { setShowLogin(showLoginParam === '1'); }, [showLoginParam]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -108,7 +110,7 @@ export default function LoginScreen() {
           } catch { /* ignore — initial save above is enough to proceed */ }
         }
       }
-      const redirectTo = typeof redirectParam === 'string' && redirectParam ? redirectParam : null;
+      const redirectTo = safeAuthRedirect(typeof redirectParam === 'string' ? redirectParam : undefined);
       router.replace((redirectTo ?? (user?.id ? `/(tabs)/profile/${user.id}` : '/(tabs)/events')) as any);
     } catch (e: any) {
       const message = e?.message ?? 'Неизвестная ошибка';
@@ -145,7 +147,7 @@ export default function LoginScreen() {
           </Pressable>
           <Pressable
             style={[styles.btn, styles.btnOutline]}
-            onPress={() => router.push('/register-tutor' as any)}
+            onPress={() => router.push(withAuthRedirect('/register-tutor', typeof redirectParam === 'string' ? redirectParam : undefined) as any)}
           >
             <Text style={[styles.btnText, styles.btnOutlineText]}>Хочу учить</Text>
           </Pressable>

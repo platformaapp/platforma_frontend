@@ -125,3 +125,20 @@ test('event SEO overrides survive static export, old URLs redirect and index fla
     assert.ok(xml.includes('/events/kino-i-gorod</loc>')); assert.ok(!xml.includes('/events/hidden-event</loc>')); assert.ok(!xml.includes('/events/duplicate-event</loc>'));
   } finally { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); }
 });
+
+test('mentor pages expose biography links, events and authored articles without JavaScript', async () => {
+  const tmp = fixture();
+  const tutor = { ...mentor, bio: 'Читайте [мой сайт](https://example.test/mentor) и https://example.test/portfolio. [опасно](javascript:alert)', tags: ['кино'] };
+  const { server, url } = await serve((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(req.url.startsWith('/api/articles') ? { data: articles, pagination: { total: articles.length } } : req.url.startsWith('/api/events') ? { items: [event], pagination: { hasNext: false } } : [tutor]));
+  });
+  try {
+    const result = await run('scripts/generate-public-pages.js', tmp, url);
+    assert.equal(result.code, 0, result.output);
+    const html = fs.readFileSync(path.join(tmp, mentorPath(tutor), 'index.html'), 'utf8');
+    for (const expected of ['href="https://example.test/mentor"', 'href="https://example.test/portfolio"', `href="${eventPath(event)}"`, 'href="/journal/iskusstvo"', 'О чём пишет', '"@type":"Person"', '/explore?tag=', 'content="index,follow"']) assert.ok(html.includes(expected), expected);
+    assert.ok(!html.includes('href="javascript:'));
+    assert.ok(html.includes(`rel="canonical" href="https://example.test${mentorPath(tutor)}"`));
+  } finally { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); }
+});

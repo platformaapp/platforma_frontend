@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import { safeAuthRedirect, withAuthRedirect } from '@/lib/creator-entry';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -28,6 +29,8 @@ function translateAuthError(message: string): string {
  */
 export default function RegisterTutorScreenWeb() {
   const router = useRouter();
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const returnTo = safeAuthRedirect(redirect);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [telegram, setTelegram] = useState('');
@@ -121,7 +124,7 @@ export default function RegisterTutorScreenWeb() {
         } catch { /* исходного сохранения выше достаточно, чтобы продолжить */ }
       }
 
-      router.push('/register-tutor-step2');
+      router.push(withAuthRedirect('/register-tutor-step2', returnTo) as any);
     } catch (e: any) {
       setGeneralError(translateAuthError(e?.message ?? '') || 'Неизвестная ошибка');
     } finally {
@@ -158,6 +161,10 @@ export default function RegisterTutorScreenWeb() {
               onChangeText={(t) => { setPassword2(t); if (errors.password2) setErrors((e) => ({ ...e, password2: undefined })); }} />
 
             <Text style={[styles.hint, { fontSize: 14, lineHeight: 18, fontStyle: 'italic' } ]}>Пароль должен быть не меньше 7 символов и состоять из букв, цифр и прикольных символов</Text>
+
+            <Pressable onPress={() => router.replace(withAuthRedirect('/login?role=tutor&showLogin=1', returnTo) as any)} style={{ marginTop: 16 }}>
+              <Text style={{ fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#E02D2D' }}>Уже есть аккаунт? Войти</Text>
+            </Pressable>
 
             {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
           </ScrollView>

@@ -1,3 +1,4 @@
+import { creatorEntryPath } from '@/lib/creator-entry';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -8,7 +9,7 @@ import { BackArrowIcon } from '@/components/web/back-arrow-icon';
 import { PlusField } from '@/components/web/plus-field';
 import { SiteFooter } from '@/components/web/site-footer';
 import { MOBILE_BREAKPOINT, SiteShell } from '@/components/web/site-shell';
-import { parseTags } from '@/lib/event-filters';
+import { parseTags, EVENT_FORMATS } from '@/lib/event-filters';
 import { uploadEventImage } from '@/lib/api/events';
 import { changePassword, getStudentProfile, updateStudentProfile } from '@/lib/api/student';
 import { bindPaymentMethod, deleteCurrentPaymentMethod, deletePaymentMethod, fetchStudentPaymentHistory, getPaymentMethods, MAX_CARDS, type Card, type PaymentHistoryItem } from '@/lib/api/student-payments';
@@ -37,13 +38,7 @@ const EVENT_TITLE_MAX_CHARS = 70;
 // подписи те же, а слаги — под backend EventCategory. Без выбора формата
 // created-событие никогда не попадало ни под один фильтр (category
 // оставался null навсегда — его негде было установить).
-const EVENT_FORMATS: { label: string; slug: string }[] = [
-  { label: 'Трансляция', slug: 'broadcast' },
-  { label: 'Лекция', slug: 'lecture' },
-  { label: 'Практика', slug: 'practices' },
-  { label: 'Встреча', slug: 'meeting' },
-  { label: 'Обсуждение', slug: 'discussion' },
-];
+
 
 /** Режет текст до 500 символов и до 100 слов — что наступит раньше. */
 function clampEventDescription(text: string): string {
@@ -326,7 +321,7 @@ export default function ProfileScreenWeb() {
           // Не вызываем setLoading(false) здесь — страница и так уходит на
           // /login, лишний рендер формы с пустыми полями не нужен даже на
           // долю секунды.
-          if (active) router.replace('/login' as any);
+          if (active) router.replace((openParam === 'event' || openParam === 'article' ? creatorEntryPath(openParam, false) : '/login') as any);
           return;
         }
         if (active) setProfileLoadError(e instanceof Error ? e.message : 'Не удалось загрузить профиль');

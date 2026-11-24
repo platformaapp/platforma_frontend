@@ -1,5 +1,6 @@
+import { safeAuthRedirect, withAuthRedirect } from '@/lib/creator-entry';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Circle, Path, Svg } from 'react-native-svg';
@@ -23,6 +24,8 @@ const ABOUT_LIMIT = 400;
  */
 export default function RegisterTutorStep2ScreenWeb() {
   const router = useRouter();
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const returnTo = safeAuthRedirect(redirect);
   const [shortBio, setShortBio] = useState('');
   const [about, setAbout] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
@@ -61,7 +64,7 @@ export default function RegisterTutorStep2ScreenWeb() {
         avatarUrl,
       });
 
-      router.replace('/tutor-application-sent');
+      router.replace(withAuthRedirect('/tutor-application-sent', returnTo) as any);
     } catch (e: any) {
       setError(e?.message ?? 'Не удалось отправить заявку');
     } finally {

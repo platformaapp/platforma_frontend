@@ -7,6 +7,21 @@ const { PUBLIC_PAGES, isPrivatePath } = require('../lib/seo-routes');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const plain = value => String(value || '').replace(/<[^>]*>/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*_]/g, '').trim();
 const json = value => JSON.stringify(value).replace(/</g, '\\u003c');
+// The same supported links as the client formatter, emitted as real anchors
+// so mentor biographies remain navigable without JavaScript.
+function linkedText(value) {
+  const text = String(value || '');
+  const pattern = /\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<>]+[^\s<>.,!?;:)])/gi;
+  let result = '', previous = 0;
+  for (const match of text.matchAll(pattern)) {
+    result += esc(text.slice(previous, match.index)).replace(/\n/g, '<br>');
+    const url = match[2] || match[3], label = match[1] || url;
+    result += /^(https?:\/\/|mailto:|tel:|\/(?!\/))/i.test(url)
+      ? `<a href="${esc(url)}">${esc(label)}</a>` : esc(label);
+    previous = match.index + match[0].length;
+  }
+  return result + esc(text.slice(previous)).replace(/\n/g, '<br>');
+}
 const MANIFEST = '_seo-manifest.json';
 
 async function collection(api, endpoint) {
@@ -43,9 +58,9 @@ function metadata(html, { title, description, canonical, image, ogTitle, ogDescr
   return html.replace('</head>', head.replace(/<(title|meta|link|script)\b/g, '<$1 data-rh="true"') + '</head>');
 }
 
-function fallback(html, { heading, description, image, imageAlt, body, route }) {
+function fallback(html, { heading, description, image, imageAlt, body, bodyHasDescription, route }) {
   html = html.replace(/<main id="seo-content"[^>]*>[\s\S]*?<\/main>/g, '').replace(/<script id="seo-fallback-cleanup"[^>]*>[\s\S]*?<\/script>/g, '');
-  const content = `<main id="seo-content" style="position:fixed;inset:0;overflow:auto;background:white;z-index:1;padding:32px;font:18px/1.5 sans-serif"><h1>${esc(heading)}</h1>${image ? `<img src="${esc(image)}" alt="${esc(imageAlt || heading)}" style="max-width:339px;width:100%">` : ''}<p>${esc(description).replace(/\n/g, '<br>')}</p>${body}</main>`;
+  const content = `<main id="seo-content" style="position:fixed;inset:0;overflow:auto;background:white;z-index:1;padding:32px;font:18px/1.5 sans-serif"><h1>${esc(heading)}</h1>${image ? `<img src="${esc(image)}" alt="${esc(imageAlt || heading)}" style="max-width:339px;width:100%">` : ''}${bodyHasDescription ? '' : `<p>${esc(description).replace(/\n/g, '<br>')}</p>`}${body}</main>`;
   const script = `<script id="seo-fallback-cleanup">(function(){function ready(){var root=document.getElementById('root'),fallback=document.getElementById('seo-content');if(root&&fallback){var text=root.textContent.replace(/\\s+/g,' ').trim();var heading=${json(heading)}.replace(/\\s+/g,' ').trim();if(location.pathname.replace(/\\/$/,'')!==${json(route === '/' ? '' : route)}||(text.includes(heading)&&!/Failed to fetch|Не удалось|Ошибка загрузки/i.test(text)&&!root.querySelector('[role="progressbar"]'))){fallback.remove();observer.disconnect();}}}var observer=new MutationObserver(ready);observer.observe(document.documentElement,{childList:true,subtree:true});ready();})();</script>`;
   return html.replace(/(<body[^>]*>)/, '$1' + content).replace('</body>', script + '</body>');
 }
@@ -128,9 +143,16 @@ async function generatePublicPages(out = 'dist') {
   }
   for (const m of mentors) {
     const route = mentorPath(m), related = events.filter(e => e.mentor?.id === m.id);
-    write(route, 'explore/[id].html', { title: name(m), heading: name(m), description: plain(m.bio || m.shortBio || m.short_bio || m.specialization) || name(m), image: m.avatarUrl || m.avatar_url,
-      schema: { '@type': 'Person', name: name(m), description: plain(m.bio || m.shortBio || m.specialization) },
-      body: related.length ? '<h2>События наставника</h2>' + pageLinks(related, eventPath, e => e.title) : '',
+    const authored = articles.filter(a => a.author?.id === m.id && !a.noindex);
+    const bio = m.bio || m.shortBio || m.short_bio || m.specialization || '';
+    write(route, 'explore/[id].html', {
+      title: name(m), heading: name(m), description: plain(bio) || name(m), image: m.avatarUrl || m.avatar_url,
+      schema: { '@type': 'Person', name: name(m), description: plain(bio), ...(authored.length ? { subjectOf: authored.map(a => ({ '@type': 'Article', headline: a.title, url: site + articlePath(a) })) } : {}) },
+      bodyHasDescription: true,
+      body: `<p>${linkedText(bio)}</p>`
+        + (related.length ? '<h2>События наставника</h2>' + pageLinks(related, eventPath, e => e.title) : '')
+        + (authored.length ? '<h2>О чём пишет</h2>' + pageLinks(authored, articlePath, a => a.title) : '')
+        + (m.tags?.length ? '<nav>' + m.tags.map(tag => `<a href="/explore?tag=${encodeURIComponent(tag)}">#${esc(tag)}</a>`).join(' ') + '</nav>' : ''),
     });
     alias(`/explore/${m.id}`, route);
   }

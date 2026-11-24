@@ -1,3 +1,4 @@
+import { creatorEntryPath } from '@/lib/creator-entry';
 import { EVENT_GRID, EVENT_FEATURED_ASPECTS, EVENT_TRIPLE_ASPECTS } from '@/lib/event-grid-layout';
 import { eventFormatSlug, eventFormatLabel, eventFilterPath, EVENT_FORMATS } from '@/lib/event-filters';
 import { eventPath } from '@/lib/public-paths';
@@ -92,26 +93,17 @@ export default function EventsScreenWeb() {
   const [format, setFormat] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
-  const [isAuthedTutor, setIsAuthedTutor] = useState(false);
   // Вариант Б (серый по умолчанию, красный только при наведении) — тот же
   // приём, что и у «Написать текст» на /journal (см. writeTextHovered там).
   const [createEventHovered, setCreateEventHovered] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
-      if (active) setIsAuthedTutor(Boolean(token) && role === 'tutor');
-    })();
-    return () => { active = false; };
-  }, []);
 
   // Авторизованного наставника "Создать событие" ведёт сразу в попап
   // создания на его личной странице (как "Создать событие"/"Написать
   // статью" там же), а не на анкету регистрации наставника — она нужна
   // только тем, кто ещё не наставник.
-  function handleCreateEventPress() {
-    router.push((isAuthedTutor ? '/profile?open=event' : '/register-tutor') as any);
+  async function handleCreateEventPress() {
+    const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
+    router.push(creatorEntryPath('event', Boolean(token) && role === 'tutor') as any);
   }
 
   const fetchRegisteredIds = useCallback(async (): Promise<Set<string>> => {

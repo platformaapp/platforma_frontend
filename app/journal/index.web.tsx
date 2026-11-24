@@ -1,3 +1,4 @@
+import { creatorEntryPath } from '@/lib/creator-entry';
 import { paginationPages } from '@/lib/pagination';
 import { useFocusEffect } from '@react-navigation/native';
 import { Image } from 'expo-image';
@@ -61,22 +62,13 @@ export default function JournalScreenWeb() {
   const [error, setError] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [isAuthedTutor, setIsAuthedTutor] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
-      if (active) setIsAuthedTutor(Boolean(token) && role === 'tutor');
-    })();
-    return () => { active = false; };
-  }, []);
 
   // Авторизованного наставника "Написать текст" ведёт сразу в попап
   // создания статьи на его личной странице, а не на анкету регистрации
   // наставника — она нужна только тем, кто ещё не наставник.
-  function handleWriteTextPress() {
-    router.push((isAuthedTutor ? '/profile?open=article' : '/register-tutor') as any);
+  async function handleWriteTextPress() {
+    const [token, role] = await Promise.all([getAuthToken(), getAuthRole()]);
+    router.push(creatorEntryPath('article', Boolean(token) && role === 'tutor') as any);
   }
 
   // Вариант Б — текст серый по умолчанию, красный только при наведении,

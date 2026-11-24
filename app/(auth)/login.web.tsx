@@ -1,3 +1,4 @@
+import { safeAuthRedirect, withAuthRedirect } from '@/lib/creator-entry';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -26,6 +27,7 @@ export default function LoginScreenWeb() {
   const router = useRouter();
   const { role: roleParam, showLogin: showLoginParam, redirect: redirectParam } = useLocalSearchParams<{ role?: string; showLogin?: string; redirect?: string }>();
   const [showLogin, setShowLogin] = useState(showLoginParam === '1');
+  useEffect(() => { setShowLogin(showLoginParam === '1'); }, [showLoginParam]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isMentor, setIsMentor] = useState(false);
@@ -103,7 +105,7 @@ export default function LoginScreenWeb() {
           } catch { /* ignore — исходного сохранения выше достаточно, чтобы продолжить */ }
         }
       }
-      const redirectTo = typeof redirectParam === 'string' && redirectParam ? redirectParam : null;
+      const redirectTo = safeAuthRedirect(typeof redirectParam === 'string' ? redirectParam : undefined);
       router.replace((redirectTo ?? (user?.id ? `/(tabs)/profile/${user.id}` : '/(tabs)/events')) as any);
     } catch (e: any) {
       const message = e?.message ?? 'Неизвестная ошибка';
@@ -134,7 +136,7 @@ export default function LoginScreenWeb() {
                 <Pressable style={styles.choiceLinkRow} onPress={() => router.push('/register-student' as any)}>
                   <Text style={styles.choiceLinkText}>Хочу учиться</Text>
                 </Pressable>
-                <Pressable style={styles.choiceLinkRow} onPress={() => router.push('/register-tutor' as any)}>
+                <Pressable style={styles.choiceLinkRow} onPress={() => router.push(withAuthRedirect('/register-tutor', typeof redirectParam === 'string' ? redirectParam : undefined) as any)}>
                   <Text style={styles.choiceLinkText}>Хочу учить</Text>
                 </Pressable>
               </View>

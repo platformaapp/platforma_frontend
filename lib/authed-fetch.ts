@@ -1,3 +1,4 @@
+import { withAuthRedirect } from './creator-entry';
 import { router } from 'expo-router';
 
 import { API_BASE } from '@/constants/env';
@@ -86,7 +87,13 @@ export async function authedFetch(
 
   const newToken = await tryRefresh();
   if (!newToken) {
-    router.replace('/login' as any);
+    // Concurrent 401s must not replace the original destination with /login.
+    if (typeof window !== 'undefined' && /\/login\/?$/.test(window.location?.pathname || '')) return res;
+    const returnTo = typeof window !== 'undefined' && window.location?.pathname
+      ? window.location.pathname + window.location.search : undefined;
+    const role = await getAuthRole();
+    const loginPath = `/login?showLogin=1${role === 'tutor' || role === 'student' ? `&role=${role}` : ''}`;
+    router.replace(withAuthRedirect(loginPath, returnTo) as any);
     return res;
   }
 

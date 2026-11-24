@@ -19,4 +19,6 @@ test('links from both format labels and slugs use a supported API category', () 
   assert.equal(eventFormatSlug('unknown'), undefined);
   assert.equal(eventFormatSlug('Медиация'), undefined);
   assert.equal(eventFormatLabel('mediation'), undefined);
+  assert.equal(eventFormatSlug('Обсуждение'), undefined);
+  assert.equal(eventFormatLabel('discussion'), undefined);
 });

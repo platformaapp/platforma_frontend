@@ -3,7 +3,6 @@ export const EVENT_FORMATS = [
   { slug: 'lecture', label: 'Лекция' },
   { slug: 'practices', label: 'Практика' },
   { slug: 'meeting', label: 'Встреча' },
-  { slug: 'discussion', label: 'Обсуждение' },
 ];
 
 export function eventFormatSlug(value?: string | null): string | undefined {

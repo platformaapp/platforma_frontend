@@ -1,3 +1,4 @@
+import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { EVENT_GRID, EVENT_FEATURED_ASPECTS, EVENT_TRIPLE_ASPECTS } from '@/lib/event-grid-layout';
 import { eventFormatLabel } from '@/lib/event-filters';
 import { mentorPath } from '@/lib/public-paths';
@@ -18,7 +19,6 @@ import { API_BASE, endpoints } from '@/constants/env';
 import { getArticles } from '@/lib/api/journal';
 import { getPublicTutorList, getPublicTutors } from '@/lib/api/tutor';
 import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
-import { fixHangingPrepositions } from '@/lib/typography';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
@@ -95,7 +95,7 @@ export default function TutorCardScreenWeb() {
     (async () => {
       try {
         const [viewerRole, profile, authList, publicList] = await Promise.all([
-          getAuthRole(), getUserProfile(), getPublicTutorList(), getPublicTutors(),
+          getAuthRole().catch(() => null), getUserProfile().catch(() => null), getPublicTutorList().catch(() => []), getPublicTutors(),
         ]);
         if (!active) return;
         setIsOwnProfile(profile?.id === id);
@@ -104,6 +104,8 @@ export default function TutorCardScreenWeb() {
         const tutor = authList.find((t) => t.id === id) ?? publicList.find((t) => t.id === id);
         if (tutor) {
           setDisplayName(tutor.fullName ?? '');
+          const canonicalPath = mentorPath({ id, fullName: tutor.fullName });
+          if (`/explore/${routeId}` !== canonicalPath) router.replace(canonicalPath as any);
           setDisplayRole((tutor as any).shortBio ?? (tutor as any).short_bio ?? '');
           setDisplayBio((tutor as any).bio ?? '');
           setAvatarUrl(tutor.avatarUrl ?? '');
@@ -492,15 +494,16 @@ export default function TutorCardScreenWeb() {
   }
 
   // Keep client navigation metadata consistent with generated public SEO HTML.
-  const pageDescription = displayRole || displayBio;
+  const pageDescription = [displayRole, displayBio.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/<[^>]*>/g, '')].filter(Boolean).join('. ').replace(/\s+/g, ' ').trim();
   const headElement = displayName ? (
     <Head>
       <title>{displayName}</title>
+      <meta name="robots" content="index,follow" />
       <script type="application/ld+json">{JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Person', name: displayName,
         description: pageDescription, url: `https://platformaapp.ru${mentorPath({ id, fullName: displayName })}`,
         ...(avatarUrl ? { image: avatarUrl } : {}),
-      })}</script>
+      }).replace(/</g, '\\u003c')}</script>
       {pageDescription ? <meta name="description" content={pageDescription.slice(0, 160)} /> : null}
       <meta property="og:type" content="profile" />
       <meta property="og:title" content={displayName} />
@@ -510,6 +513,7 @@ export default function TutorCardScreenWeb() {
       {avatarUrl && !avatarUrl.startsWith('blob:') ? <meta property="og:image" content={avatarUrl} /> : null}
       <meta name="twitter:card" content={avatarUrl && !avatarUrl.startsWith('blob:') ? 'summary_large_image' : 'summary'} />
       <meta name="twitter:title" content={displayName} />
+      <meta name="twitter:description" content={pageDescription.slice(0, 160)} />
     </Head>
   ) : null;
 
@@ -517,7 +521,7 @@ export default function TutorCardScreenWeb() {
     <SiteShell>
       {headElement}
       <ScrollView contentContainerStyle={isMobile ? styles.scrollContentMobile : styles.scrollContent}>
-      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
+      <View style={[styles.pageContent, isMobile ? styles.pageContentMobile : styles.pageContentDesktop]}>
         {isMobile ? (
           <View>
             <View style={styles.nameRow}>
@@ -541,7 +545,7 @@ export default function TutorCardScreenWeb() {
               </View>
             </View>
 
-            {displayBio ? <Text style={[styles.bio, styles.bioMobile]}>{fixHangingPrepositions(displayBio)}</Text> : null}
+            {displayBio ? <Text style={[styles.bio, styles.bioMobile]}>{parseInlineMarkdown(displayBio)}</Text> : null}
 
             <View style={styles.actionsRowMobile}>{actions}</View>
             {instagramUrl ? (
@@ -565,7 +569,7 @@ export default function TutorCardScreenWeb() {
                 <TagList tags={tags} textStyle={styles.name} onTagPress={(t) => router.push(`/explore?tag=${encodeURIComponent(t)}` as any)} />
               </View>
               {displayRole ? <Text style={styles.role}>{displayRole}</Text> : null}
-              {displayBio ? <Text style={styles.bio}>{fixHangingPrepositions(displayBio)}</Text> : null}
+              {displayBio ? <Text style={styles.bio}>{parseInlineMarkdown(displayBio)}</Text> : null}
 
               {displayPrice ? (
                 <View style={styles.priceRow}>
@@ -610,6 +614,7 @@ const styles = StyleSheet.create({
   scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 0 },
   pageContent: { paddingHorizontal: 32 },
   pageContentMobile: { paddingHorizontal: 20 },
+  pageContentDesktop: { paddingRight: 'clamp(64px, 10vw, 160px)' } as any,
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // The header fills the same width as the event grid. The portrait stays
