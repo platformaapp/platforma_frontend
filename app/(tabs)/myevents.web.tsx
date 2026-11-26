@@ -1,3 +1,4 @@
+import { RECOMMENDATION_GAP } from '@/lib/recommendation-spacing';
 import { eventPath, mentorPath } from '@/lib/public-paths';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -693,8 +694,8 @@ const styles = StyleSheet.create({
   // "А пока советуем" — тот же интервал до блока, что у "Окей, что ещё" на
   // /journal и странице события (relatedSection: marginTop:140) — раньше
   // было 40, секция стояла заметно ближе к кнопке/тексту выше, чем там.
-  recommendedSection: { marginTop: 140 },
-  recommendedSectionMobile: { marginTop: 40 },
+  recommendedSection: { marginTop: RECOMMENDATION_GAP.desktop },
+  recommendedSectionMobile: { marginTop: RECOMMENDATION_GAP.mobile },
   recommendedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   recommendedSectionTitleMobile: { fontSize: 25, lineHeight: 28 },
   emptyRecommendedImage: { width: '100%', backgroundColor: '#E5E5E5', marginBottom: 0 },

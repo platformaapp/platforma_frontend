@@ -7,7 +7,6 @@ import { Circle, Path, Svg } from 'react-native-svg';
 
 import { PlusField } from '@/components/web/plus-field';
 import { SiteShell } from '@/components/web/site-shell';
-import { AdminTagsInput } from '@/components/admin/tags-input';
 import { uploadEventImage } from '@/lib/api/events';
 import { updateTutorProfile } from '@/lib/api/tutor';
 import { openInNewTab } from '@/lib/open-in-new-tab';
@@ -106,8 +105,8 @@ export default function RegisterTutorStep2ScreenWeb() {
             <PlusField label="Собираете ли вы групповые встречи? Как часто?" value={groupMeetings} onChangeText={setGroupMeetings} multiline />
 
             <View style={styles.fieldWrap}>
-              <Text style={styles.fieldLabel}>Специализация</Text>
-              <AdminTagsInput tags={(specialization || '').split(',').map((t) => t.trim()).filter(Boolean)} onChange={(tags) => setSpecialization(tags.join(', '))} placeholder="Добавьте одну или несколько специализаций" />
+              <PlusField label="Специализация" value={specialization ?? ''} onChangeText={setSpecialization} maxLength={1000} placeholder="Например: кино, искусство" />
+              <Text style={styles.hint}>Специализации через запятую</Text>
             </View>
 
             <View style={styles.fieldWrap}>

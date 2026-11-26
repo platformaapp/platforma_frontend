@@ -1,3 +1,4 @@
+import { RECOMMENDATION_GAP } from '@/lib/recommendation-spacing';
 import { useSiteSettings } from '@/hooks/use-site-settings';
 import { eventPath, mentorPath } from '@/lib/public-paths';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -782,7 +783,7 @@ const styles = StyleSheet.create({
   // Две независимые по высоте колонки (flex, не CSS Grid — см. комментарий у
   // bannerOpposesHeading в теле компонента, почему именно так) — текст слева
   // течёт своим потоком, сайдбар справа своим, одна не ждёт высоту другой.
-  articleCols: { flexDirection: 'row', alignItems: 'flex-start', columnGap: 32, marginBottom: 40 },
+  articleCols: { flexDirection: 'row', alignItems: 'flex-start', columnGap: 32, marginBottom: 0 },
   textCol: { flex: 1, minWidth: 0 },
   mobileStack: { marginBottom: 0 },
   // gap — отступ между элементами sideStack (обложка+галерея / баннер / CTA
@@ -849,8 +850,8 @@ const styles = StyleSheet.create({
 
   // "Окей, что ещё" — те же токены карточки, что на /journal (cardCategory/
   // cardTitleText), сетка-тройка 403/365/340 (см. ROW_ASPECTS в journal/index.web.tsx).
-  relatedSection: { marginTop: 140, marginBottom: 0 },
-  relatedSectionMobile: { marginTop: 40 },
+  relatedSection: { marginTop: RECOMMENDATION_GAP.desktop, marginBottom: 0 },
+  relatedSectionMobile: { marginTop: RECOMMENDATION_GAP.mobile },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самой статьи (titleMobile):
   // 40px десктопного была слишком крупной для "Окей, что ещё"/"Ближайшие

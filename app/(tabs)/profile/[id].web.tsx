@@ -1243,8 +1243,8 @@ export default function ProfileScreenWeb() {
               {/* Без этого поля специализация наставника никогда не устанавливалась
                   и не менялась после регистрации — наставник навсегда выпадал из
                   всех фильтров рубрикатора на /explore. */}
-              <Text style={styles.fieldLabel}>Специализация</Text>
-              <TextInput style={styles.popupFieldInput} value={specialization ?? ''} onChangeText={setSpecialization} maxLength={1000} placeholder="Специализации через запятую" accessibilityLabel="Специализация" />
+              <FieldWithPlus label="Специализация" value={specialization ?? ''} onChangeText={setSpecialization} maxLength={1000} placeholder="Например: кино, искусство" />
+              <Text style={styles.hint}>Специализации через запятую</Text>
               <Text style={styles.fieldLabel}>Фото</Text>
               <Pressable accessibilityLabel="Изменить фото профиля" disabled={avatarUploading} onPress={handlePickAvatar}>
                 {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatarThumb} /> : <View style={[styles.avatarThumb, styles.avatarThumbPlaceholder]} />}

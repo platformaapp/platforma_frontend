@@ -1,3 +1,4 @@
+import { RECOMMENDATION_GAP } from '@/lib/recommendation-spacing';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { EVENT_GRID, EVENT_FEATURED_ASPECTS, EVENT_TRIPLE_ASPECTS } from '@/lib/event-grid-layout';
 import { eventFormatLabel } from '@/lib/event-filters';
@@ -681,7 +682,7 @@ const styles = StyleSheet.create({
 
   instagramDisclaimer: { fontSize: 11, lineHeight: 15, fontFamily: 'Gramatika-Regular', color: '#9B9B9B', marginTop: 8, marginBottom: 8 },
 
-  eventsSection: { marginTop: 40 },
+  eventsSection: { marginTop: RECOMMENDATION_GAP.mobile },
   eventsSectionTitle: { fontSize: 40, lineHeight: 23, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 93 },
   eventsSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
   eventsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20},
@@ -697,7 +698,7 @@ const styles = StyleSheet.create({
   // кнопок до "События наставника", и отступ между "События наставника"
   // и "О чём пишет" (обе секции используют этот же стиль) были гораздо
   // больше, чем тот же переход в статье.
-  mentorEventsSection: { marginTop: 140, width: '100%' },
+  mentorEventsSection: { marginTop: RECOMMENDATION_GAP.desktop, width: '100%' },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.tripleColumns } as any,
   mentorEventsRowSpacing: { marginTop: 113 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },

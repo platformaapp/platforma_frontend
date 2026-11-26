@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20 },
   mobileStack: { gap: 24 },
   descriptionMobile: { marginTop: 0, maxWidth: '100%' },
-  contactsHeadingMobile: { fontSize: 30, lineHeight: 30 },
+  contactsHeadingMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
 
   desktopLayout: { flexDirection: 'row', justifyContent: 'space-between', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', columnGap: 'clamp(24px, 8vw, 117px)' } as any,
   leftCol: { flexBasis: 420, maxWidth: 605, flexShrink: 1 },
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   // Contacts follow the entire desktop row, below the photo as well as the text.
   contacts: { marginTop: 40, maxWidth: 504 },
   contactsDesktop: { marginTop: 0 },
-  contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 16 },
+  contactsHeading: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 40, lineHeight: 36, color: '#010101', marginBottom: 40 },
   contactRow: { marginBottom: 12 },
   contactLabel: { fontFamily: 'Gramatika-Regular', fontSize: 14, color: '#687076'},
   contactHandle: { fontFamily: 'Gramatika-Regular', fontSize: 18, color: '#E02D2D', textDecorationLine: 'none' },

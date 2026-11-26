@@ -1,3 +1,4 @@
+import { RECOMMENDATION_GAP } from '@/lib/recommendation-spacing';
 import { eventFilterPath, eventFormatLabel } from '@/lib/event-filters';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { publicId } from '@/lib/public-paths';
@@ -10,7 +11,6 @@ import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Tex
 
 import { SiteFooter } from '@/components/web/site-footer';
 import { SiteShell, useIsMobileWeb } from '@/components/web/site-shell';
-import { TagList } from '@/components/web/tag-list';
 import { API_BASE, endpoints } from '@/constants/env';
 import { updateEvent, uploadEventImage, type EventPatchBody } from '@/lib/api/events';
 import { getPaymentMethods, type PaymentMethod } from '@/lib/api/student-payments';
@@ -478,34 +478,23 @@ export default function EventDetailScreenWeb() {
   // отменить запись на него (участник) — действие уже неактуально.
   const isPastEvent = !!event?.datetimeStart && new Date(event.datetimeStart).getTime() < Date.now();
 
-  // Формат + теги — тот же блок, что "автор + теги" под заголовком статьи в
-  // журнале (journal/[slug].web.tsx: authorBlock/authorRow/author) — тем же
-  // мелким серым стилем, а не крупным, как заголовок (раньше теги стояли
-  // прямо в titleRow, тем же размером, что и сам заголовок).
-  const formatRow = event && (event.format || event.tags?.length) ? (
+  // Tags, date and price share one wrapping row on both layouts.
+  const metadataRow = event ? (
     <View style={styles.eventMetaRow}>
-      {event.format ? <Pressable {...({ href: eventFilterPath('format', event.format!) } as any)}><Text style={[styles.eventFormatText, styles.eventFormatShrink]}>#{event.format}</Text></Pressable> : null}
-      <TagList tags={event.tags} textStyle={styles.eventFormatText} onTagPress={(t) => router.push(eventFilterPath('tag', t) as any)} />
+      {event.tags?.map(tag => (
+        <Pressable key={tag} {...({ href: eventFilterPath('tag', tag), dataSet: { textLink: 'true' } } as any)}>
+          <Text style={styles.eventFormatText}>#{tag}</Text>
+        </Pressable>
+      ))}
+      <Text style={styles.eventFormatText}>{formatDatetime(event.datetimeStart)}</Text>
+      <Text style={styles.eventFormatText}>{formatPrice(event.price)}</Text>
     </View>
   ) : null;
-
-  const metaBlock = (
-    <View style={styles.metaRow}>
-      <View>
-        <Text style={styles.metaLabel}>Дата:</Text>
-        <Text style={styles.metaValue}>{formatDatetime(event?.datetimeStart)}</Text>
-      </View>
-      <View>
-        <Text style={styles.metaLabel}>Стоимость:</Text>
-        <Text style={styles.metaValue}>{formatPrice(event?.price)}</Text>
-      </View>
-    </View>
-  );
 
   // На мобильном — формат карточки как на /events (mobileRow/mobileThumb/
   // mobileInfo/mobileTitleText), по просьбе пользователя унифицировать с
   // /events. Названия стилей с префиксом related* — чтобы не конфликтовать
-  // с mobileThumb/mobileMetaRow выше (те — для обложки самого события).
+  // с mobileThumb и строки метаданных выше (те — для обложки самого события).
   function renderRelatedEventCard(item: RelatedEventItem, posInRow: 0 | 1 | 2) {
     if (isMobile) {
       return (
@@ -601,11 +590,7 @@ export default function EventDetailScreenWeb() {
         ) : isMobile ? (
           <View>
             <Text style={[styles.title, styles.titleMobile]}>{preventOrphanLastWord(event.title)}</Text>
-            {formatRow}
-            <View style={styles.mobileMetaRow}>
-              <Text style={styles.eventFormatText}>{formatDatetime(event.datetimeStart)}</Text>
-              <Text style={styles.eventFormatText}>{formatPrice(event.price)}</Text>
-            </View>
+            {metadataRow}
             {event.coverUrl ? <Image source={{ uri: event.coverUrl }} style={styles.mobileThumb} accessibilityLabel={event.cover_alt || event.title} resizeMode="cover" /> : null}
 
             {event.description ? <Text style={styles.description}>{parseInlineMarkdown(event.description)}</Text> : null}
@@ -652,9 +637,8 @@ export default function EventDetailScreenWeb() {
           <View style={styles.desktopLayout}>
             <View style={styles.leftCol}>
               <Text style={styles.title}>{preventOrphanLastWord(event.title)}</Text>
-              {formatRow}
+              {metadataRow}
               {event.description ? <Text style={styles.description}>{parseInlineMarkdown(event.description)}</Text> : null}
-              {metaBlock}
 
               {registerError ? <Text style={styles.errorText}>{registerError}</Text> : null}
 
@@ -933,25 +917,20 @@ const styles = StyleSheet.create({
   // 16, 40).
   titleMobile: { fontSize: 30, lineHeight: 30, marginBottom: 24 },
   // Формат события + теги — тот же блок, что "автор + теги" под
-  // заголовком статьи в журнале (authorRow/author): мелкий серый текст,
-  // формат слева, теги справа. Раньше теги стояли прямо рядом с
-  // заголовком, тем же крупным размером, что и сам заголовок.
-  eventMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  // заголовком статьи в журнале: мелкий серый текст.
+  // Теги, дата и стоимость используют единый интервал и переносятся вместе.
+  eventMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: 16, rowGap: 8, marginBottom: 24 },
   eventFormatText: { fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#687076' },
   // minWidth:0 — без него flex-item по умолчанию не сжимается уже самого
   // контента (min-width:auto в CSS flexbox), и при нехватке места сжимает
   // теги вместо формата (та же проблема, что и у имени автора в журнале).
-  eventFormatShrink: { flexShrink: 1, minWidth: 0 },
   // lineHeight:26, без maxWidth — тот же межстрочный интервал и та же
   // "длина текста" (во всю ширину колонки, не уже), что у текста статьи в
   // журнале (body: lineHeight:26, без своего maxWidth у textCol) — раньше
   // текст события был уже (504px) самой колонки (605px) и плотнее (18).
-  // marginTop:0 — отступ до текста теперь даёт formatRow.marginBottom
+  // marginTop:0 — отступ до текста теперь даёт eventMetaRow.marginBottom
   // (24) выше, а не фиксированный 40.
   description: { fontFamily: 'Gramatika-Regular', color: '#010101', marginBottom: 24, marginTop: 0, fontSize: 18, lineHeight: 26 },
-  metaRow: { flexDirection: 'row', gap: 48, marginBottom: 24 },
-  metaLabel: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#000', marginBottom: 4 },
-  metaValue: { fontSize: 16, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101' },
 
   actionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24, marginTop: 'auto', paddingTop: 40 },
   actionLink: { fontFamily: 'Gramatika-Regular', fontWeight: 'normal', fontSize: 18, color: '#E02D2D', lineHeight: 18 },
@@ -973,7 +952,6 @@ const styles = StyleSheet.create({
   pageContentMobile: { paddingHorizontal: 20 },
   mobileTags: { flex: 1, minWidth: 0 },
   desktopMentorProfile: { marginTop: 'auto', paddingTop: 24 },
-  mobileMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', columnGap: 16, rowGap: 4, marginBottom: 24 },
   mobileThumb: { width: '100%', aspectRatio: 4 / 3, backgroundColor: '#E5E5E5', marginBottom: 24 },
   mobileMetaValue: { fontSize: 10, lineHeight: 10, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', opacity: 0.5 },
   // Заметный отступ перед блоком наставника — см. референс.
@@ -1024,8 +1002,8 @@ const styles = StyleSheet.create({
 
   // "Окей, что ещё" — та же сетка-тройка (403/365/340), что у похожих статей
   // на /journal/[slug] (см. RELATED_ASPECTS там).
-  relatedSection: { marginTop: 140, marginBottom: 40 },
-  relatedSectionMobile: { marginTop: 40 },
+  relatedSection: { marginTop: RECOMMENDATION_GAP.desktop, marginBottom: 40 },
+  relatedSectionMobile: { marginTop: RECOMMENDATION_GAP.mobile },
   relatedSectionTitle: { fontSize: 40, lineHeight: 36, fontFamily: 'Gramatika-Regular', fontWeight: 'normal', color: '#010101', marginBottom: 40 },
   // На мобильном — тот же размер, что у заголовка самого события (titleMobile).
   relatedSectionTitleMobile: { fontSize: 25, lineHeight: 28, marginBottom: 24 },
