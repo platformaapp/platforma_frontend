@@ -1,3 +1,5 @@
+import { EVENT_FORMATS, parseTags } from '@/lib/event-filters';
+import { PlusField } from '@/components/web/plus-field';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -58,6 +60,9 @@ export default function EditEventScreen() {
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [moderationComment, setModerationComment] = useState<string | null>(null);
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
+  const [tagsInput, setTagsInput] = useState('');
+  const initialMetadata = useRef<{ category: string | null; tags: string[] }>({ category: null, tags: [] });
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -97,6 +102,9 @@ export default function EditEventScreen() {
         const event = data?.data ?? data?.event ?? data;
         if (!active) return;
         setTitle(event.title ?? '');
+        setCategory(event.category ?? null);
+        setTagsInput((event.tags ?? []).join(', '));
+        initialMetadata.current = { category: event.category ?? null, tags: event.tags ?? [] };
         setDescription(event.description ?? '');
         if (event.price != null) {
           setPrice(String(event.price));
@@ -166,6 +174,9 @@ export default function EditEventScreen() {
     if (!hasPaidRegistrations && !title.trim()) { Alert.alert('Ошибка', 'Введите название'); return; }
 
     const patch: EventPatchBody = {};
+    if (category !== initialMetadata.current.category) patch.category = category;
+    const tags = parseTags(tagsInput);
+    if (JSON.stringify(tags) !== JSON.stringify(initialMetadata.current.tags)) patch.tags = tags;
 
     if (!hasPaidRegistrations) {
       if (title.trim()) patch.title = title.trim();
@@ -274,7 +285,7 @@ export default function EditEventScreen() {
         {hasPaidRegistrations && (
           <View style={styles.lockedBanner}>
             <Text style={styles.lockedBannerText}>
-              Есть оплаченные регистрации — изменить можно только обложку
+              Есть оплаченные регистрации — можно менять обложку, формат и теги
             </Text>
           </View>
         )}
@@ -463,6 +474,16 @@ export default function EditEventScreen() {
           keyboardType="numeric"
           editable={!hasPaidRegistrations}
         />
+
+        <Text style={{ fontFamily: 'Gramatika-Regular', color: '#687076', fontSize: 14, marginBottom: 8 }}>Формат</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+          {EVENT_FORMATS.map(({ slug, label }) => (
+            <Pressable key={slug} accessibilityRole="button" accessibilityLabel={`Формат: ${label}`} accessibilityState={{ selected: category === slug }} onPress={() => setCategory(current => current === slug ? null : slug)}>
+              <Text style={{ fontFamily: 'Gramatika-Regular', fontSize: 16, color: category === slug ? '#E02D2D' : '#687076' }}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <PlusField label="Теги" value={tagsInput} onChangeText={setTagsInput} placeholder="Например: кино, город" />
 
         {/* ── Cover image ─────────────────────────────────────────────── */}
         <Pressable

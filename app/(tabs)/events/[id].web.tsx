@@ -1,5 +1,6 @@
+import { PlusField } from '@/components/web/plus-field';
 import { RECOMMENDATION_GAP } from '@/lib/recommendation-spacing';
-import { eventFilterPath, eventFormatLabel } from '@/lib/event-filters';
+import { eventFilterPath, eventFormatLabel, EVENT_FORMATS, parseTags } from '@/lib/event-filters';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { publicId } from '@/lib/public-paths';
 import { eventPath, mentorPath } from '@/lib/public-paths';
@@ -39,6 +40,7 @@ function resolveUrl(url: unknown): string | null {
 }
 
 type EventDetail = {
+  category?: string | null;
   slug?: string;
   meta_title?: string | null;
   meta_description?: string | null;
@@ -105,6 +107,7 @@ function normalizeEvent(raw: Record<string, unknown>): EventDetail {
     datetimeStart,
     price,
     coverUrl: resolveUrl(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url ?? r.cover),
+    category: (r.category as string) ?? null,
     format: resolveFormat(r),
     mentor,
     isRegistered: isRegisteredOnEventItem(r) || registeredFromCup,
@@ -188,6 +191,8 @@ export default function EventDetailScreenWeb() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const [editCategory, setEditCategory] = useState<string | null>(null);
+  const [editTagsInput, setEditTagsInput] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDate, setEditDate] = useState<Date | null>(null);
   const [editTimeStr, setEditTimeStr] = useState('');
@@ -381,6 +386,8 @@ export default function EventDetailScreenWeb() {
   function openEditModal() {
     if (!event) return;
     setEditTitle(event.title ?? '');
+    setEditCategory(event.category ?? null);
+    setEditTagsInput((event.tags ?? []).join(', '));
     setEditDescription(event.description ?? '');
     const dtStart = event.datetimeStart ? new Date(event.datetimeStart) : null;
     setEditDate(dtStart);
@@ -418,6 +425,9 @@ export default function EventDetailScreenWeb() {
     if (!event.hasPaidRegistrations && !editTitle.trim()) { setEditStatus('Введите название'); return; }
 
     const patch: EventPatchBody = {};
+    if (editCategory !== (event.category ?? null)) patch.category = editCategory;
+    const tags = parseTags(editTagsInput);
+    if (JSON.stringify(tags) !== JSON.stringify(event.tags ?? [])) patch.tags = tags;
     if (!event.hasPaidRegistrations) {
       if (editTitle.trim()) patch.title = editTitle.trim();
       if (editDescription.trim()) patch.description = editDescription.trim();
@@ -455,10 +465,13 @@ export default function EventDetailScreenWeb() {
 
     try {
       setEditStatus('Сохранение...');
-      await updateEvent(event.id, patch);
+      const saved = await updateEvent(event.id, patch);
       setEvent((prev) => prev ? {
         ...prev,
         title: patch.title ?? prev.title,
+        category: saved.category !== undefined ? saved.category : patch.category !== undefined ? patch.category : prev.category,
+        format: saved.category !== undefined ? eventFormatLabel(saved.category) : patch.category !== undefined ? eventFormatLabel(patch.category) : prev.format,
+        tags: saved.tags ?? patch.tags ?? prev.tags,
         description: patch.description ?? prev.description,
         price: patch.price ?? prev.price,
         maxParticipants: editMaxParticipants ? (Math.max(1, parseInt(editMaxParticipants, 10) || 30)) : prev.maxParticipants,
@@ -757,7 +770,7 @@ export default function EventDetailScreenWeb() {
 
             <ScrollView style={styles.editScroll} contentContainerStyle={styles.editScrollContent}>
               {event?.hasPaidRegistrations ? (
-                <Text style={styles.editLockedNote}>Есть оплаченные регистрации — изменить можно только обложку</Text>
+                <Text style={styles.editLockedNote}>Есть оплаченные регистрации — можно менять обложку, формат и теги</Text>
               ) : null}
 
               <View style={styles.editFieldWrap}>
@@ -842,6 +855,18 @@ export default function EventDetailScreenWeb() {
                   </Text>
                 ) : null}
               </View>
+
+              <View style={styles.editFieldWrap}>
+                <Text style={styles.editFieldLabel}>Формат</Text>
+                <View style={styles.editFormatsRow}>
+                  {EVENT_FORMATS.map(({ slug, label }) => (
+                    <Pressable key={slug} accessibilityRole="button" accessibilityLabel={`Формат: ${label}`} accessibilityState={{ selected: editCategory === slug }} onPress={() => setEditCategory(current => current === slug ? null : slug)}>
+                      <Text style={[styles.editFormatText, editCategory === slug && styles.editFormatSelected]}>{label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              <PlusField label="Теги" value={editTagsInput} onChangeText={setEditTagsInput} placeholder="Например: кино, город" labelStyle={styles.editFieldLabel} inputStyle={styles.editFieldInput} />
 
               <View style={styles.editFieldWrap}>
                 <Text style={styles.editFieldLabel}>Обложка</Text>
@@ -987,6 +1012,9 @@ const styles = StyleSheet.create({
   editScrollContent: { paddingBottom: 8 },
   editLockedNote: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#856404', backgroundColor: '#FFF3CD', borderWidth: 1, borderColor: '#856404', paddingHorizontal: 12, paddingVertical: 10, marginBottom: 20 },
   editFieldWrap: { marginBottom: 28 },
+  editFormatsRow: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 8 },
+  editFormatText: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 22, color: '#687076' },
+  editFormatSelected: { color: '#E02D2D' },
   editFieldLabel: { fontStyle: 'normal', fontSize: 14, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#687076', marginBottom: 6 },
   editFieldInput: { fontSize: 18, lineHeight: 22, fontFamily: 'Gramatika-Regular', color: '#010101', padding: 0, borderWidth: 0, backgroundColor: 'transparent', outlineStyle: 'none', textAlignVertical: 'top' } as any,
   editFieldValueRow: { position: 'relative' },

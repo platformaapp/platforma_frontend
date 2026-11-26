@@ -1,3 +1,4 @@
+import { preventOrphanLastWord } from '@/lib/typography';
 import { RECOMMENDATION_GAP } from '@/lib/recommendation-spacing';
 import { parseInlineMarkdown } from '@/lib/markdown-inline';
 import { EVENT_GRID, EVENT_FEATURED_ASPECTS, EVENT_TRIPLE_ASPECTS } from '@/lib/event-grid-layout';
@@ -23,7 +24,7 @@ import { getAuthRole, getAuthToken, getUserProfile } from '@/lib/auth';
 
 const PLACEHOLDER_AVATAR = require('@/assets/images/avatar.png');
 
-type MentorEvent = { slug?: string; id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
+type MentorEvent = { excerpt?: string; slug?: string; id: string; title: string; datetimeStart?: string; price?: number; coverUrl?: string | null; format?: string };
 // "О чём пишет" — статьи этого наставника в журнале (см. GET
 // /api/articles?author_id=...), тот же формат блоков, что у "События
 // наставника" ниже, см. renderMentorArticlesGrid/renderArticleCardMobile.
@@ -141,6 +142,7 @@ export default function TutorCardScreenWeb() {
                 id: String(r.id ?? ''),
                 slug: typeof r.slug === 'string' ? r.slug : undefined,
                 title: String(r.title ?? ''),
+                excerpt: typeof r.excerpt === 'string' ? r.excerpt : undefined,
                 datetimeStart: r.datetimeStart ?? r.datetime_start ?? r.startAt ?? r.start_at ?? undefined,
                 price: typeof r.price === 'number' ? r.price : undefined,
                 coverUrl: resolveCover(r.coverUrl ?? r.cover_url ?? r.imageUrl ?? r.image_url),
@@ -206,13 +208,12 @@ export default function TutorCardScreenWeb() {
   }
 
   // Карточка пары ("pairA"/"pairB") — та же разметка, что renderFeaturedCard
-  // на /events, но без строки с именем автора (это и так страница самого
-  // наставника) — сразу картинка, заголовок, дата/категория.
+  // на /events: обложка, имя автора, заголовок и дата/категория.
   function renderMentorFeaturedCard(args: {
-    key: string; coverUrl: string | null; title: string; meta: string;
+    key: string; coverUrl: string | null; title: string; meta: string; excerpt?: string;
     href: string; index: 0 | 1; variant: 'A' | 'B'; dimmed?: boolean;
   }) {
-    const { key, coverUrl, title, meta, href, index, variant, dimmed } = args;
+    const { key, coverUrl, title, meta, href, index, variant, dimmed, excerpt } = args;
     const isSecond = index === 1;
     const cardStyle = [isSecond ? styles.mentorFeaturedCardTwo : styles.mentorFeaturedCardOne, dimmed && styles.eventDimmed];
     const innerStyle = isSecond ? (variant === 'B' ? styles.mentorFeaturedInnerTwoB : styles.mentorFeaturedInnerTwo) : undefined;
@@ -231,8 +232,9 @@ export default function TutorCardScreenWeb() {
           ) : (
             <View style={[styles.mentorFeaturedImage, styles.eventCoverPlaceholder, imageStyle]} />
           )}
-          <View style={labelStyle} />
-          <Text style={[styles.mentorCardTitleText, titleStyle]}>{title}</Text>
+          <View style={labelStyle}><Text style={styles.mentorCardAuthor} numberOfLines={1}>{displayName}</Text></View>
+          <Text style={[styles.mentorCardTitleText, titleStyle]}>{preventOrphanLastWord(title)}</Text>
+          {excerpt ? <Text style={styles.mentorCardExcerpt} numberOfLines={3}>{excerpt}</Text> : null}
           {meta ? <Text style={styles.mentorCardDate}>{meta}</Text> : null}
         </View>
       </Pressable>
@@ -332,8 +334,9 @@ export default function TutorCardScreenWeb() {
         ) : (
           <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
         )}
-        <View style={styles.mentorRowLabel} />
-        <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{ev.title}</Text>
+        <View style={styles.mentorRowLabel}><Text style={styles.mentorCardAuthor} numberOfLines={1}>{displayName}</Text></View>
+        <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{preventOrphanLastWord(ev.title)}</Text>
+        {ev.excerpt ? <Text style={styles.mentorCardExcerpt} numberOfLines={3}>{ev.excerpt}</Text> : null}
         <Text style={styles.mentorCardDate}>{formatEventDate(ev.datetimeStart)}</Text>
       </Pressable>
     );
@@ -358,6 +361,7 @@ export default function TutorCardScreenWeb() {
                   key: row.items[0].id,
                   coverUrl: row.items[0].coverUrl ?? null,
                   title: row.items[0].title,
+                  excerpt: row.items[0].excerpt,
                   meta: formatEventDate(row.items[0].datetimeStart),
                   href: eventPath(row.items[0]),
                   index: 0,
@@ -369,6 +373,7 @@ export default function TutorCardScreenWeb() {
                   key: row.items[1].id,
                   coverUrl: row.items[1].coverUrl ?? null,
                   title: row.items[1].title,
+                  excerpt: row.items[1].excerpt,
                   meta: formatEventDate(row.items[1].datetimeStart),
                   href: eventPath(row.items[1]),
                   index: 1,
@@ -411,7 +416,7 @@ export default function TutorCardScreenWeb() {
         ) : (
           <View style={[styles.mentorGridImage, styles.eventCoverPlaceholder, { aspectRatio: MENTOR_ROW_ASPECTS[posInRow] }]} />
         )}
-        <View style={styles.mentorRowLabel} />
+        <View style={styles.mentorRowLabel}><Text style={styles.mentorCardAuthor} numberOfLines={1}>{displayName}</Text></View>
         <Text style={[styles.mentorCardTitleText, styles.mentorRowTitle]}>{a.title}</Text>
         {a.category ? <Text style={styles.mentorCardDate}>{a.category}</Text> : null}
       </Pressable>
@@ -522,7 +527,7 @@ export default function TutorCardScreenWeb() {
     <SiteShell>
       {headElement}
       <ScrollView contentContainerStyle={isMobile ? styles.scrollContentMobile : styles.scrollContent}>
-      <View style={[styles.pageContent, isMobile ? styles.pageContentMobile : styles.pageContentDesktop]}>
+      <View style={[styles.pageContent, isMobile && styles.pageContentMobile]}>
         {isMobile ? (
           <View>
             <View style={styles.nameRow}>
@@ -613,14 +618,13 @@ const styles = StyleSheet.create({
   // marginTop:0 — отступ до контента на мобильном теперь даёт только
   // стрелка "назад" в шапке (5px, см. site-header.tsx).
   scrollContentMobile: { paddingTop: 0, paddingBottom: 24,     marginTop: 0 },
-  pageContent: { paddingHorizontal: 32 },
+  pageContent: { paddingHorizontal: 31 },
   pageContentMobile: { paddingHorizontal: 20 },
-  pageContentDesktop: { paddingRight: 'clamp(64px, 10vw, 160px)' } as any,
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 64 },
 
   // The header fills the same width as the event grid. The portrait stays
   // at its right edge at every desktop viewport, instead of stopping at 1215px.
-  desktopGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 659px) 285px', columnGap: 32, justifyContent: 'space-between', width: '100%', position: 'relative' } as any,
+  desktopGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 659px) 285px', columnGap: 32, justifyContent: 'space-between', width: EVENT_GRID.featuredVisibleWidth, position: 'relative' } as any,
   // Keep the existing portrait size; position is controlled by desktopGrid.
   avatarLargeBox: { width: '100%', height: 345, position: 'relative', backgroundColor: '#E5E5E5' },
   avatarLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
@@ -700,18 +704,17 @@ const styles = StyleSheet.create({
   // больше, чем тот же переход в статье.
   mentorEventsSection: { marginTop: RECOMMENDATION_GAP.desktop, width: '100%' },
   mentorEventsRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.tripleColumns } as any,
-  mentorEventsRowSpacing: { marginTop: 113 },
+  mentorEventsRowSpacing: { marginTop: 120 },
   mentorGridImage: { width: '100%', backgroundColor: '#E5E5E5' },
 
-  // Ряды чередуются, как на /events. В pairB нет пустой последней
-  // колонки: её ширина добавлена к зазору, размеры карточек как на /events.
+  // Ряды и пустая последняя колонка pairB совпадают с /events.
   mentorFeaturedRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.featuredColumns } as any,
-  mentorPairBRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.pairBAlignedColumns } as any,
+  mentorPairBRow: { display: 'grid', gridTemplateColumns: EVENT_GRID.pairBColumns } as any,
   // overflow:'hidden' — подстраховка от визуального вылезания картинки за
   // границу своей колонки (72.8%/100%), та же, что на /journal и /events.
   mentorFeaturedCardOne: { width: '100%', overflow: 'hidden' },
   mentorFeaturedCardTwo: { width: '100%', overflow: 'hidden' },
-  mentorFeaturedInnerTwo: { width: EVENT_GRID.secondCardWidth, alignSelf: 'flex-end', overflow: 'hidden' },
+  mentorFeaturedInnerTwo: { width: EVENT_GRID.secondCardWidth, overflow: 'hidden' },
   mentorFeaturedInnerTwoB: { width: '100%', overflow: 'hidden' },
   mentorFeaturedImage: { width: '100%', backgroundColor: '#E5E5E5' },
   mentorFeaturedImageTwo: { height: EVENT_GRID.secondCardHeight },
@@ -733,6 +736,8 @@ const styles = StyleSheet.create({
   mentorRowTitle: { marginTop: 12 },
   // Базовый заголовок/дата карточки — те же cardTitleText/cardDate, что на
   // /events (без marginBottom/paddingTop — тех отступов там нет).
+  mentorCardExcerpt: { fontFamily: 'Gramatika-Regular', fontSize: 18, lineHeight: 24, color: '#687076', marginTop: 12 },
+  mentorCardAuthor: { fontSize: 18, lineHeight: 18, fontFamily: 'Gramatika-Regular', color: '#010101', opacity: 0.5 },
   mentorCardTitleText: { fontSize: 25, lineHeight: 25, fontFamily: 'Gramatika-Regular', color: '#010101' },
   mentorCardDate: { fontSize: 18, fontFamily: 'Gramatika-Regular', color: '#687076', lineHeight: 18, textAlign: 'right', marginTop: 27 },
 

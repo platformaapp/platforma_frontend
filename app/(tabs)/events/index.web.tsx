@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
   // .proj-row: CSS grid 403fr:75fr:365fr:76fr:340fr:191fr — карточки занимают
   // колонки 1/3/5 (см. ROW_GRID_COLUMNS), 2/4 — зазоры, 6 (191fr) — пустая
   // правая граница, специально не занята.
-  rowThree: { display: 'grid', gridTemplateColumns: '403fr 75fr 365fr 76fr 340fr 191fr' } as any,
+  rowThree: { display: 'grid', gridTemplateColumns: EVENT_GRID.tripleColumns } as any,
   // Баннер между тройками — только колонки 1..5 той же сетки (не заезжает
   // в пустую 6-ю), чтобы его правый край совпадал с правым краем карточек.
   promoBannerCell: { gridColumn: '1 / 6', marginTop: 120 } as any,

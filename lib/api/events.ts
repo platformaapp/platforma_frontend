@@ -32,6 +32,8 @@ export interface EventCreateBody {
 }
 
 export interface EventResponse {
+  category?: string | null;
+  tags?: string[];
   id: string;
   title: string;
   description?: string;
@@ -57,6 +59,8 @@ export interface EventDetailResponse {
 }
 
 export interface EventPatchBody {
+  category?: string | null;
+  tags?: string[];
   title?: string;
   description?: string;
   datetime_start?: string;
