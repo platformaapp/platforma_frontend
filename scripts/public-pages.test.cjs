@@ -11,7 +11,7 @@ const { collection } = require('./generate-public-pages');
 const mentor = { id: '22222222-2222-4222-8222-222222222222', name: 'Анна Иванова', bio: 'Биография наставника' };
 const event = { id: '11111111-1111-4111-8111-111111111111', title: 'Разговор об искусстве', description: 'Описание <script>alert(1)</script>', datetimeStart: '2026-12-01T12:00:00Z', mentor };
 const articles = [
-  { id: 'article-1', slug: 'iskusstvo', title: 'Искусство и город', content: 'Полный текст статьи о городе', author: mentor, seo_title: 'Искусство — авторская статья', updated_at: '2026-11-01T12:00:00Z' },
+  { id: 'article-1', slug: 'iskusstvo', title: 'Искусство и город', content: 'Полный текст статьи о городе', author: mentor, seo_title: 'Искусство — авторская статья', og_title: 'Превью конкретной статьи', og_description: 'Описание для мессенджера', cover_url: '/api/uploads/article-cover.jpg', updated_at: '2026-11-01T12:00:00Z' },
   { id: 'article-2', slug: 'hidden', title: 'Не индексировать', content: 'Текст', noindex: true },
   { id: 'article-3', slug: 'duplicate', title: 'Копия', content: 'Текст', canonical_url: 'https://other.example/original' },
 ];
@@ -27,7 +27,7 @@ function fixture() {
 }
 async function run(script, out, api) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [script, out], { env: { ...process.env, EXPO_PUBLIC_API_BASE: api, SITE_BASE_URL: 'https://example.test' }, stdio: 'pipe' });
+    const child = spawn(process.execPath, [script, out, ...(script.endsWith('verify-public-pages.js') ? [api] : [])], { env: { ...process.env, EXPO_PUBLIC_API_BASE: api, SITE_BASE_URL: 'https://example.test' }, stdio: 'pipe' });
     let output = '';
     child.stdout.on('data', data => { output += data; }); child.stderr.on('data', data => { output += data; });
     child.on('error', reject); child.on('exit', code => resolve({ code, output }));
@@ -69,8 +69,24 @@ test('public catalogs, articles, events and mentors have HTML and a complete can
     assert.ok(html.includes(`href="${mentorPath(mentor)}"`));
     assert.ok(!html.includes('<script>alert(1)</script>'));
     const article = fs.readFileSync(path.join(tmp, 'journal/iskusstvo/index.html'), 'utf8');
+    assert.match(article, /property="og:title" content="Превью конкретной статьи"/);
+    assert.match(article, /property="og:description" content="Описание для мессенджера"/);
+    assert.match(article, /property="og:image" content="https:\/\/example.test\/api\/uploads\/article-cover.jpg"/);
+    assert.equal((article.match(/property="og:title"/g) || []).length, 1);
     assert.match(article, /Полный текст статьи о городе/); assert.match(article, /"@type":"Article"/);
     assert.match(article, /<title[^>]*>Искусство — авторская статья<\/title>/);
+    // Production routing must return generated metadata, without running JS.
+    const { server: published, url: publishedUrl } = await serve((req, res) => {
+      const file = path.join(tmp, req.url.replace(/^\//, '') + '.html');
+      res.setHeader('Content-Type', 'text/html');
+      res.end(fs.readFileSync(file, 'utf8'));
+    });
+    try {
+      const verified = await run('scripts/verify-public-pages.js', tmp, publishedUrl);
+      // A local delivery host must still serve the production canonical metadata.
+      assert.equal(verified.code, 0, verified.output);
+      assert.match(verified.output, /public HTML/);
+    } finally { published.close(); }
     const catalog = fs.readFileSync(path.join(tmp, 'journal/index.html'), 'utf8');
     assert.match(catalog, /href="\/journal\/iskusstvo"/);
     assert.ok(xml.includes('/journal/iskusstvo</loc>'));

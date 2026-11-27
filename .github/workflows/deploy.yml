@@ -76,3 +76,6 @@ jobs:
 
       - name: Verify published sitemap is XML
         run: python3 scripts/verify-sitemap.py https://platformaapp.ru/sitemap.xml --expect-file dist/sitemap.xml --allow-additional
+
+      - name: Verify article, event and mentor HTML without JavaScript
+        run: node scripts/verify-public-pages.js dist https://platformaapp.ru

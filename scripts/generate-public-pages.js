@@ -95,7 +95,8 @@ async function generatePublicPages(out = 'dist') {
   function write(route, file, options) {
     const canonical = options.canonical || site + route;
     const image = options.image ? new URL(options.image, site).href : undefined;
-    let html = metadata(template(file), { ...options, canonical, image });
+    const ogImage = options.ogImage ? new URL(options.ogImage, site).href : undefined;
+    let html = metadata(template(file), { ...options, canonical, image, ogImage });
     if (options.body !== undefined) html = fallback(html, { ...options, image, route, body: navigation + options.body });
     const outputFile = route === '/' ? 'index.html' : route.slice(1) + '/index.html';
     const target = path.join(out, outputFile);
@@ -120,7 +121,8 @@ async function generatePublicPages(out = 'dist') {
   for (const a of articles) {
     const author = a.author;
     write(articlePath(a), 'journal/[slug].html', {
-      title: a.seo_title || a.title, heading: a.h1 || a.title, description: plain(a.meta_description || a.excerpt || a.content) || a.title, image: a.cover_url,
+      title: a.seo_title || a.title, heading: a.h1 || a.title, description: plain(a.meta_description || a.excerpt || a.content) || a.title, image: a.cover_url, imageAlt: a.cover_alt,
+      ogTitle: a.og_title, ogDescription: a.og_description,
       canonical: a.canonical_url || undefined, noindex: a.noindex, nofollow: a.nofollow, lastmod: a.updated_at,
       body: `<article>${author ? `<p>Автор: <a href="${esc(mentorPath(author))}">${esc(name(author))}</a></p>` : ''}<p>${esc(plain(a.content)).replace(/\n/g, '<br>')}</p></article>`,
       schema: { '@type': 'Article', headline: a.h1 || a.title, description: plain(a.excerpt || a.content).slice(0, 300), ...(a.published_at ? { datePublished: a.published_at } : {}), ...(a.updated_at ? { dateModified: a.updated_at } : {}), ...(author ? { author: { '@type': 'Person', name: name(author), url: site + mentorPath(author) } } : {}) },
