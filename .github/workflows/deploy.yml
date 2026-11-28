@@ -60,19 +60,31 @@ jobs:
       ###################################
       - name: Upload dist via scp
         shell: bash
+        env:
+          # Must match the host directory mounted into platforma_frontend.
+          FRONTEND_DEPLOY_PATH: ${{ vars.FRONTEND_DEPLOY_PATH || '/opt/frontend/dist' }}
         run: |
-          set -e
+          set -euo pipefail
+          if [[ ! "$FRONTEND_DEPLOY_PATH" =~ ^/[a-zA-Z0-9_./-]+/dist$ ]]; then
+            echo "FRONTEND_DEPLOY_PATH must be an absolute path ending in /dist"
+            exit 1
+          fi
       
           echo "[INFO] Writing SSH key"
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/github_deploy
           chmod 600 ~/.ssh/github_deploy
       
-          echo "[INFO] Copying files"
+          # Refuse to create an unrelated directory while nginx serves another one.
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/github_deploy \
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+              "test -d '$FRONTEND_DEPLOY_PATH'"
+
+          echo "[INFO] Copying files to the nginx-mounted dist directory"
           scp -o StrictHostKeyChecking=no \
               -i ~/.ssh/github_deploy \
               -r dist/. \
-              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/dist/
+              ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:"$FRONTEND_DEPLOY_PATH/"
 
       - name: Verify published sitemap is XML
         run: python3 scripts/verify-sitemap.py https://platformaapp.ru/sitemap.xml --expect-file dist/sitemap.xml --allow-additional

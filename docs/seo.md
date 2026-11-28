@@ -159,7 +159,8 @@ node scripts/verify-public-pages.js dist https://platformaapp.ru
 
 1. Убедиться, что перед загрузкой выполнялись `generate-public-pages.js` и
    `generate-sitemap.js`. Обычного Expo export недостаточно.
-2. Сверить директорию загрузки workflow (`/dist/`) с настоящим bind mount
+2. Сверить директорию загрузки workflow (`FRONTEND_DEPLOY_PATH`, по умолчанию
+   `/opt/frontend/dist`) с настоящим bind mount
    nginx. В показанной конфигурации `/opt/frontend/dist` смонтирован в
    `/usr/share/nginx/html`: это должна быть та же сборка, а не другой каталог.
 3. В реальном `/opt/nginx/nginx.conf` обновить общий location:
@@ -210,3 +211,29 @@ workflow вручную и дождаться успешной проверки 
 После публикации исправлений проверить URL в Search Console в реальном
 времени, запросить индексирование приоритетных страниц и запустить проверку
 исправления для соответствующей группы ошибок. Это не гарантирует индексацию.
+
+
+## Исправление пути production-деплоя
+
+`Upload dist via scp` загружает сгенерированную сборку в
+`/opt/frontend/dist` — показанный host bind mount контейнера nginx.
+Для другого сервера задать GitHub Actions repository variable
+`FRONTEND_DEPLOY_PATH` (абсолютный путь, заканчивающийся на `/dist`).
+Workflow проверяет существование каталога перед загрузкой и затем проверяет
+публичный HTML без JavaScript. Перезапуск nginx сам по себе не создаёт HTML
+статей и не переносит сборку из другого каталога.
+
+Если HTTP-ответ статьи содержит `canonical=https://platformaapp.ru/` и
+заголовок главной, проблема в выдаваемом HTML; обновление Telegram-кеша
+до исправления сервера не поможет. Для диагностики существования файла:
+
+```sh
+docker exec platforma_frontend sh -c 'ls -l /usr/share/nginx/html/_seo-manifest.json /usr/share/nginx/html/journal/mariinskiy-teatr-kak-turisticheskiy-attraktsion-pochemu-pohod-tuda-bolshe-ne-svyazan-s-muzykoy.html /usr/share/nginx/html/journal/mariinskiy-teatr-kak-turisticheskiy-attraktsion-pochemu-pohod-tuda-bolshe-ne-svyazan-s-muzykoy/index.html'
+```
+
+Отсутствие файла означает, что материал не сгенерирован в обслуживаемой
+сборке. При наличии файла сравнить его title/canonical с HTTP-ответом и
+проверить активный `nginx -T`, права чтения и соответствие server/location.
+301 с `/journal` на `/journal/`, за которым следует 200, не является циклом.
+Но такой ответ не соответствует новой конфигурации `try_files`, которая
+сразу обслуживает сгенерированный `journal.html` по `/journal`.
