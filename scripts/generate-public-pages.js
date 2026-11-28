@@ -52,10 +52,13 @@ async function collection(api, endpoint) {
 function metadata(html, { title, description, canonical, image, ogTitle, ogDescription, ogImage, schema, noindex, nofollow }) {
   html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
     .replace(/<meta\b[^>]*(?:name=["'](?:description|robots|twitter:[^"']*)["']|property=["']og:[^"']*["'])[^>]*>/gi, '')
-    .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi, '');
+    .replace(/<link\b[^>]*rel=["']canonical["'][^>]*>/gi, '')
+    .replace(/<meta\b[^>]*\bcharset\s*=[^>]*>/gi, '');
   const robots = `${noindex ? 'noindex' : 'index'},${nofollow ? 'nofollow' : 'follow'}`;
   const head = `<title>${esc(title)}</title><meta name="description" content="${esc(description.slice(0, 160))}"><link rel="canonical" href="${esc(canonical)}"><meta name="robots" content="${robots}"><meta property="og:site_name" content="p(34)"><meta property="og:title" content="${esc(ogTitle || title)}"><meta property="og:description" content="${esc(ogDescription || description.slice(0, 160))}"><meta property="og:url" content="${esc(canonical)}"><meta property="og:type" content="${schema?.['@type'] === 'Article' ? 'article' : schema?.['@type'] === 'Person' ? 'profile' : 'website'}"><meta name="twitter:card" content="${ogImage || image ? 'summary_large_image' : 'summary'}"><meta name="twitter:title" content="${esc(ogTitle || title)}"><meta name="twitter:description" content="${esc(ogDescription || description.slice(0, 160))}">${ogImage || image ? `<meta property="og:image" content="${esc(ogImage || image)}"><meta name="twitter:image" content="${esc(ogImage || image)}">` : ''}${schema ? `<script type="application/ld+json">${json({ '@context': 'https://schema.org', ...schema, url: canonical })}</script>` : ''}`;
-  return html.replace('</head>', head.replace(/<(title|meta|link|script)\b/g, '<$1 data-rh="true"') + '</head>');
+  // Keep UTF-8 and preview metadata ahead of Expo's large inline stylesheet.
+  // A callback also keeps literal dollar signs in editorial text intact.
+  return html.replace(/<head\b[^>]*>/i, opening => opening + '<meta charset="utf-8">' + head.replace(/<(title|meta|link|script)\b/g, '<$1 data-rh="true"'));
 }
 
 function fallback(html, { heading, description, image, imageAlt, body, bodyHasDescription, route }) {

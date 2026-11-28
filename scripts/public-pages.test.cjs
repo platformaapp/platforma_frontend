@@ -15,7 +15,7 @@ const articles = [
   { id: 'article-2', slug: 'hidden', title: 'Не индексировать', content: 'Текст', noindex: true },
   { id: 'article-3', slug: 'duplicate', title: 'Копия', content: 'Текст', canonical_url: 'https://other.example/original' },
 ];
-const template = '<html><head><title>Generic</title><meta name="description" content="Generic"><meta name="google-site-verification" content="keep-me"></head><body><div id="root"></div></body></html>';
+const template = '<html><head><meta charset="utf-8"><style>' + '/* styles */'.repeat(5000) + '</style><title>Generic</title><meta name="description" content="Generic"><meta name="google-site-verification" content="keep-me"></head><body><div id="root"></div></body></html>';
 function fixture() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'platforma-seo-'));
   for (const file of [...PUBLIC_PAGES.map(page => page.template), 'events/[id].html', 'explore/[id].html', 'journal/[slug].html', 'login.html', 'profile/index.html']) {
@@ -73,6 +73,9 @@ test('public catalogs, articles, events and mentors have HTML and a complete can
     assert.match(article, /property="og:description" content="Описание для мессенджера"/);
     assert.match(article, /property="og:image" content="https:\/\/example.test\/api\/uploads\/article-cover.jpg"/);
     assert.equal((article.match(/property="og:title"/g) || []).length, 1);
+    assert.ok(article.indexOf('property="og:image"') < article.indexOf('<style>'));
+    assert.ok(Buffer.byteLength(article.slice(0, article.indexOf('property="og:image"'))) < 4096);
+    assert.equal((article.match(/charset="utf-8"/g) || []).length, 1);
     assert.match(article, /Полный текст статьи о городе/); assert.match(article, /"@type":"Article"/);
     assert.match(article, /<title[^>]*>Искусство — авторская статья<\/title>/);
     // Production routing must return generated metadata, without running JS.
