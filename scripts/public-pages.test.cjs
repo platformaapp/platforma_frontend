@@ -57,6 +57,10 @@ test('public catalogs, articles, events and mentors have HTML and a complete can
     assert.equal(generated.code, 0, generated.output);
     const sitemap = await run('scripts/generate-sitemap.js', tmp, url);
     assert.equal(sitemap.code, 0, sitemap.output);
+    const robots = fs.readFileSync(path.join(tmp, 'robots.txt'), 'utf8');
+    assert.match(robots, /^Allow: \/api\/uploads\/$/m);
+    assert.match(robots, /^Disallow: \/api\/$/m);
+    assert.equal(robots, fs.readFileSync(path.join(__dirname, '../public/robots.txt'), 'utf8'));
     const xml = fs.readFileSync(path.join(tmp, 'sitemap.xml'), 'utf8');
     for (const page of PUBLIC_PAGES) {
       assert.ok(xml.includes(`<loc>https://example.test${page.path}</loc>`), page.path);
@@ -140,6 +144,10 @@ test('event SEO overrides survive static export, old URLs redirect and index fla
     for (const part of ['Название для поиска', '<h1>Разговор об искусстве</h1>', 'name="description" content="Описание для поиска"', 'property="og:title" content="Для Telegram"', 'property="og:description" content="Описание для Telegram"', 'property="og:image" content="https://example.test/og.png"', 'alt="Наставник у окна"', 'Мини-био наставника', 'content="index,nofollow"', '"datePublished":"2026-11-21T10:00:00Z"', '"dateModified":"2026-11-21T11:00:00Z"', '/events?tag=', '#кино']) assert.ok(html.includes(part), part);
     const redirects = fs.readFileSync(path.join(tmp, '_redirects'), 'utf8');
     for (const old of [`/events/${event.id}`, eventPath(event), '/events/old-kino']) assert.ok(redirects.includes(`${old} /events/kino-i-gorod 301`));
+    const robots = fs.readFileSync(path.join(tmp, 'robots.txt'), 'utf8');
+    assert.match(robots, /^Allow: \/api\/uploads\/$/m);
+    assert.match(robots, /^Disallow: \/api\/$/m);
+    assert.equal(robots, fs.readFileSync(path.join(__dirname, '../public/robots.txt'), 'utf8'));
     const xml = fs.readFileSync(path.join(tmp, 'sitemap.xml'), 'utf8');
     assert.ok(xml.includes('/events/kino-i-gorod</loc>')); assert.ok(!xml.includes('/events/hidden-event</loc>')); assert.ok(!xml.includes('/events/duplicate-event</loc>'));
   } finally { server.close(); fs.rmSync(tmp, { recursive: true, force: true }); }

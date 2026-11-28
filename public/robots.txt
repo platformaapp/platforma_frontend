@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Allow: /api/seo/sitemap.xml
+Allow: /api/uploads/
 Disallow: /api/
 Disallow: /admin
 Disallow: /profile

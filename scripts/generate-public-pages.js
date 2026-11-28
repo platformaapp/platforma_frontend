@@ -181,6 +181,8 @@ async function generatePublicPages(out = 'dist') {
     const rules = fs.readFileSync(htaccess, 'utf8').replace(/\n# BEGIN SEO REDIRECTS[\s\S]*?# END SEO REDIRECTS\n?/g, '');
     fs.writeFileSync(htaccess, rules.replace('RewriteEngine On', 'RewriteEngine On\n# BEGIN SEO REDIRECTS\n' + apacheRedirects.join('\n') + '\n# END SEO REDIRECTS\n'));
   }
+  // Manual SEO refreshes must also publish current crawler access rules.
+  fs.copyFileSync(path.join(__dirname, '../public/robots.txt'), path.join(out, 'robots.txt'));
   fs.writeFileSync(path.join(out, MANIFEST), JSON.stringify({ site, pages: manifest }, null, 2));
   console.log(`Generated SEO HTML: ${PUBLIC_PAGES.length} public pages, ${articles.length} articles, ${events.length} events, ${mentors.length} mentors`);
   return { site, pages: manifest };
